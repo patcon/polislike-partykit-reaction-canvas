@@ -12,15 +12,30 @@ interface CursorEvent {
   position: CursorPosition;
 }
 
+interface QueueItem {
+  statementId: number;
+  displayTimestamp: number; // timestamp when this should become active
+}
+
 interface StatementEvent {
   type: 'setActiveStatement';
   statementId: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent;
+interface QueueStatementEvent {
+  type: 'queueStatement';
+  statementId: number;
+}
+
+interface ClearQueueEvent {
+  type: 'clearQueue';
+}
+
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent;
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
+  private allSelectedStatements: QueueItem[] = []; // All statements that have been selected
 
   constructor(readonly room: Party.Room) {}
 
@@ -33,11 +48,13 @@ export default class Server implements Party.Server {
   url: ${new URL(ctx.request.url).pathname}`
     );
 
-    // Send welcome message with current active statement
+    // Send welcome message with current active statement and queue info
     conn.send(JSON.stringify({
       type: 'connected',
       connectionId: conn.id,
-      activeStatementId: this.activeStatementId
+      activeStatementId: this.activeStatementId,
+      allSelectedStatements: this.allSelectedStatements,
+      currentTime: Date.now()
     }));
   }
 
@@ -51,7 +68,7 @@ export default class Server implements Party.Server {
         // Broadcast the cursor event to all other connections
         this.room.broadcast(message, [sender.id]);
       } else if (event.type === 'setActiveStatement') {
-        // Handle statement change events
+        // Handle immediate statement change events (legacy support)
         console.log(`Statement change from ${sender.id}:`, event.statementId);
         this.activeStatementId = event.statementId;
         // Broadcast the statement change to all connections
@@ -59,10 +76,76 @@ export default class Server implements Party.Server {
           type: 'activeStatementChanged',
           statementId: this.activeStatementId
         }));
+      } else if (event.type === 'queueStatement') {
+        // Handle queuing statement events
+        console.log(`Queue statement from ${sender.id}:`, event.statementId);
+        this.queueStatement(event.statementId);
+      } else if (event.type === 'clearQueue') {
+        // Handle clearing the queue
+        console.log(`Clear queue from ${sender.id}`);
+        this.clearQueue();
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
     }
+  }
+
+  private queueStatement(statementId: number) {
+    const displayTimestamp = Date.now() + 10000; // 10 seconds from now
+    const queueItem: QueueItem = { statementId, displayTimestamp };
+
+    this.allSelectedStatements.push(queueItem);
+
+    // Broadcast queue update
+    this.room.broadcast(JSON.stringify({
+      type: 'queueUpdated',
+      allSelectedStatements: this.allSelectedStatements,
+      currentTime: Date.now()
+    }));
+  }
+
+  private clearQueue() {
+    // Clear ALL statements - both future and past
+    this.allSelectedStatements = [];
+
+    // Broadcast queue update
+    this.room.broadcast(JSON.stringify({
+      type: 'queueUpdated',
+      allSelectedStatements: this.allSelectedStatements,
+      currentTime: Date.now()
+    }));
+  }
+
+  // Method to get the currently active statement (most recently displayed)
+  private getCurrentActiveStatement(): number {
+    const now = Date.now();
+
+    // Find the most recent statement that should have been displayed
+    const displayedStatements = this.allSelectedStatements
+      .filter(item => item.displayTimestamp <= now)
+      .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
+
+    if (displayedStatements.length > 0) {
+      // Update active statement to the most recently displayed
+      const mostRecent = displayedStatements[0];
+      if (this.activeStatementId !== mostRecent.statementId) {
+        this.activeStatementId = mostRecent.statementId;
+
+        // Broadcast the changes
+        this.room.broadcast(JSON.stringify({
+          type: 'activeStatementChanged',
+          statementId: this.activeStatementId
+        }));
+
+        this.room.broadcast(JSON.stringify({
+          type: 'queueUpdated',
+          allSelectedStatements: this.allSelectedStatements,
+          currentTime: Date.now()
+        }));
+      }
+    }
+
+    return this.activeStatementId;
   }
 
   onRequest(req: Party.Request) {

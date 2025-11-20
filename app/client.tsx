@@ -1,9 +1,15 @@
 import "./styles.css";
 import { createRoot } from "react-dom/client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import usePartySocket from "partysocket/react";
 import Canvas from "./components/Canvas";
 import StatementPanel from "./components/StatementPanel";
 import AdminPanel from "./components/AdminPanel";
+
+interface QueueItem {
+  statementId: number;
+  displayTimestamp: number;
+}
 
 // Extract room from URL parameters, default to "default"
 function getRoomFromUrl(): string {
@@ -30,10 +36,84 @@ function isAdminMode(): boolean {
 function App() {
   const room = getRoomFromUrl();
   const adminMode = isAdminMode();
-  const [activeStatementId, setActiveStatementId] = useState<number | null>(1);
+  const [allSelectedStatements, setAllSelectedStatements] = useState<QueueItem[]>([]);
+  const [currentTime, setCurrentTime] = useState<number>(Date.now());
+  const [activeStatementId, setActiveStatementId] = useState<number>(1);
+
+  // Set up socket connection for non-admin mode to receive queue updates
+  const socket = usePartySocket({
+    host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
+    room: room,
+    onMessage(evt) {
+      try {
+        const data = JSON.parse(evt.data);
+
+        if (data.type === 'connected') {
+          if (data.allSelectedStatements) {
+            setAllSelectedStatements(data.allSelectedStatements);
+          }
+          if (data.currentTime) {
+            setCurrentTime(data.currentTime);
+          }
+        } else if (data.type === 'queueUpdated') {
+          if (data.allSelectedStatements) {
+            setAllSelectedStatements(data.allSelectedStatements);
+          }
+          setCurrentTime(data.currentTime);
+        }
+      } catch (e) {
+        console.error('Failed to parse message:', e);
+      }
+    },
+  });
+
+  const getQueuedStatements = () => {
+    const now = Date.now();
+    return allSelectedStatements.filter(item => item.displayTimestamp > now);
+  };
+
+  const getCurrentActiveStatementId = () => {
+    const now = Date.now();
+    // Find the most recent statement that should be displayed
+    const displayedStatements = allSelectedStatements
+      .filter(item => item.displayTimestamp <= now)
+      .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
+
+    if (displayedStatements.length > 0) {
+      return displayedStatements[0].statementId;
+    }
+
+    // Default to statement 1 if no statements have been queued yet
+    return 1;
+  };
+
+  // Update active statement based on timestamps
+  useEffect(() => {
+    const newActiveId = getCurrentActiveStatementId();
+    if (newActiveId !== activeStatementId) {
+      setActiveStatementId(newActiveId);
+    }
+  }, [allSelectedStatements, currentTime]);
+
+  // Set up a timer to check for statement updates every second
+  useEffect(() => {
+    if (adminMode) return; // Don't run timer in admin mode
+
+    const timer = setInterval(() => {
+      const now = Date.now();
+      setCurrentTime(now);
+
+      const newActiveId = getCurrentActiveStatementId();
+      if (newActiveId !== activeStatementId) {
+        setActiveStatementId(newActiveId);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [allSelectedStatements, activeStatementId, adminMode]);
 
   const handleActiveStatementChange = (statementId: number) => {
-    setActiveStatementId(statementId);
+    // This is now derived from queue data, so we don't need to set it manually
   };
 
   // Render admin panel if admin mode is enabled
@@ -48,7 +128,11 @@ function App() {
   // Render normal interface
   return (
     <div>
-      <StatementPanel activeStatementId={activeStatementId} />
+      <StatementPanel
+        activeStatementId={activeStatementId}
+        queue={getQueuedStatements()}
+        currentTime={currentTime}
+      />
       <Canvas room={room} onActiveStatementChange={handleActiveStatementChange} />
     </div>
   );

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import CountdownTimer from "./CountdownTimer";
 
 interface Statement {
   statementId: number;
@@ -6,11 +7,18 @@ interface Statement {
   text: string;
 }
 
-interface StatementPanelProps {
-  activeStatementId: number | null;
+interface QueueItem {
+  statementId: number;
+  displayTimestamp: number;
 }
 
-export default function StatementPanel({ activeStatementId }: StatementPanelProps) {
+interface StatementPanelProps {
+  activeStatementId: number | null;
+  queue?: QueueItem[];
+  currentTime?: number;
+}
+
+export default function StatementPanel({ activeStatementId, queue = [], currentTime = Date.now() }: StatementPanelProps) {
   const [statements, setStatements] = useState<Statement[]>([]);
   const [activeStatement, setActiveStatement] = useState<Statement | null>(null);
 
@@ -53,6 +61,7 @@ export default function StatementPanel({ activeStatementId }: StatementPanelProp
 
   return (
     <div className="statement-panel">
+      <CountdownTimer queue={queue} currentTime={currentTime} />
       <div className="statement-content">
         <div className="statement-id">Statement #{activeStatement.statementId}</div>
         <div className="statement-text">{activeStatement.text}</div>
