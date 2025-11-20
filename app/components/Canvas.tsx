@@ -1,9 +1,10 @@
 import { useRef, useEffect, useState } from "react";
 import usePartySocket from "partysocket/react";
+import * as d3 from "d3";
 
 interface CursorPosition {
-  x: number;
-  y: number;
+  x: number; // Normalized coordinates (0-100)
+  y: number; // Normalized coordinates (0-100)
   timestamp: number;
   userId: string;
 }
@@ -28,13 +29,14 @@ interface CanvasProps {
 }
 
 export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
+  const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
 
   const socket = usePartySocket({
-    host: process?.env.PARTYKIT_HOST,
+    host: process.env.PARTYKIT_HOST,
     room: room,
     onMessage(evt) {
       try {
@@ -90,10 +92,10 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
   };
 
   const getCursorPosition = (e: React.MouseEvent | React.TouchEvent): CursorPosition => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0, timestamp: Date.now(), userId };
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0, timestamp: Date.now(), userId };
 
-    const rect = canvas.getBoundingClientRect();
+    const rect = svg.getBoundingClientRect();
     let clientX: number, clientY: number;
 
     if ('touches' in e) {
@@ -105,27 +107,31 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
       clientY = e.clientY;
     }
 
+    // Convert to normalized coordinates (0-100)
+    const pixelX = clientX - rect.left;
+    const pixelY = clientY - rect.top;
+    const normalizedX = (pixelX / dimensions.width) * 100;
+    const normalizedY = (pixelY / dimensions.height) * 100;
+
     return {
-      x: clientX - rect.left,
-      y: clientY - rect.top,
+      x: normalizedX,
+      y: normalizedY,
       timestamp: Date.now(),
       userId
     };
   };
 
-  const getVoteFromPosition = (x: number, y: number): VoteState => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
+  const getVoteFromPosition = (normalizedX: number, normalizedY: number): VoteState => {
+    // Input coordinates are already normalized (0-100), convert to 0-1 range for calculations
+    const x = normalizedX / 100;
+    const y = normalizedY / 100;
 
-    const width = canvas.width;
-    const height = canvas.height;
+    // Define vote zones using normalized coordinates (0-1 range)
+    const agreeZone = { x: 1, y: 0.15 }; // top-right, below statement panel (15% from top)
+    const disagreeZone = { x: 0, y: 1 }; // bottom-left
+    const passZone = { x: 1, y: 1 }; // bottom-right
 
-    // Define vote zones (corners) - adjust agree zone for statement panel
-    const agreeZone = { x: width, y: 80 }; // top-right, below statement panel
-    const disagreeZone = { x: 0, y: height }; // bottom-left
-    const passZone = { x: width, y: height }; // bottom-right
-
-    // Calculate distances to each zone
+    // Calculate distances to each zone using normalized coordinates
     const distanceToAgree = Math.sqrt(Math.pow(x - agreeZone.x, 2) + Math.pow(y - agreeZone.y, 2));
     const distanceToDisagree = Math.sqrt(Math.pow(x - disagreeZone.x, 2) + Math.pow(y - disagreeZone.y, 2));
     const distanceToPass = Math.sqrt(Math.pow(x - passZone.x, 2) + Math.pow(y - passZone.y, 2));
@@ -185,17 +191,13 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
     setUserVoteState(null);
   };
 
-  // Render cursor positions and vote labels
+  // Render with D3 SVG
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const svg = d3.select(svgRef.current);
+    if (!svg.node()) return;
 
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // Set canvas size to full window size
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
+    // Clear previous content
+    svg.selectAll("*").remove();
 
     // Set background color based on vote state
     let backgroundColor = 'rgba(255, 255, 255, 0.1)'; // Default transparent white
@@ -207,55 +209,97 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
       backgroundColor = 'rgba(255, 255, 0, 0.2)'; // Yellow with transparency
     }
 
-    // Fill background
-    ctx.fillStyle = backgroundColor;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Add background rectangle
+    svg.append('rect')
+      .attr('width', dimensions.width)
+      .attr('height', dimensions.height)
+      .attr('fill', backgroundColor);
 
-    // Draw vote labels in corners
-    ctx.font = 'bold 24px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
+    // Add vote labels in corners using responsive positioning and sizing
+    const baseFontSize = Math.min(dimensions.width, dimensions.height) * 0.03; // 3% of smaller dimension
+    const labels = [
+      {
+        text: 'AGREE',
+        x: dimensions.width * 0.9, // 90% from left
+        y: dimensions.height * 0.15, // 15% from top (below statement panel)
+        color: userVoteState === 'agree' ? '#00AA00' : '#00FF00'
+      },
+      {
+        text: 'DISAGREE',
+        x: dimensions.width * 0.1, // 10% from left
+        y: dimensions.height * 0.9, // 90% from top
+        color: userVoteState === 'disagree' ? '#AA0000' : '#FF0000'
+      },
+      {
+        text: 'PASS',
+        x: dimensions.width * 0.9, // 90% from left
+        y: dimensions.height * 0.9, // 90% from top
+        color: userVoteState === 'pass' ? '#B8860B' : '#DAA520'
+      }
+    ];
 
-    // Agree (top-right, green) - pushed down to account for statement panel
-    ctx.fillStyle = userVoteState === 'agree' ? '#00AA00' : '#00FF00';
-    ctx.fillText('AGREE', canvas.width - 80, 120);
+    svg.selectAll('.vote-label')
+      .data(labels)
+      .enter()
+      .append('text')
+      .attr('class', 'vote-label')
+      .attr('x', d => d.x)
+      .attr('y', d => d.y)
+      .attr('text-anchor', 'middle')
+      .attr('dominant-baseline', 'middle')
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', `${baseFontSize}px`)
+      .attr('font-weight', 'bold')
+      .attr('fill', d => d.color)
+      .text(d => d.text);
 
-    // Disagree (bottom-left, red)
-    ctx.fillStyle = userVoteState === 'disagree' ? '#AA0000' : '#FF0000';
-    ctx.fillText('DISAGREE', 80, canvas.height - 40);
+    // Add cursor positions as colored dots - convert normalized coordinates to pixels
+    const cursorData = Array.from(cursors.entries()).map(([cursorUserId, cursor]) => ({
+      cursorUserId,
+      x: (cursor.x / 100) * dimensions.width, // Convert from 0-100 to pixel coordinates
+      y: (cursor.y / 100) * dimensions.height, // Convert from 0-100 to pixel coordinates
+      timestamp: cursor.timestamp,
+      userId: cursor.userId
+    }));
 
-    // Pass (bottom-right, yellow)
-    ctx.fillStyle = userVoteState === 'pass' ? '#B8860B' : '#DAA520';
-    ctx.fillText('PASS', canvas.width - 80, canvas.height - 40);
+    const cursorGroups = svg.selectAll('.cursor-group')
+      .data(cursorData, (d: any) => d.cursorUserId)
+      .enter()
+      .append('g')
+      .attr('class', 'cursor-group');
 
-    // Draw cursor positions as colored dots
-    cursors.forEach((cursor, userId) => {
-      // Generate a consistent color for each user
-      const hue = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
-      ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+    // Add cursor circles with responsive radius
+    const cursorRadius = Math.min(dimensions.width, dimensions.height) * 0.01; // 1% of smaller dimension
+    cursorGroups.append('circle')
+      .attr('cx', d => d.x)
+      .attr('cy', d => d.y)
+      .attr('r', cursorRadius)
+      .attr('fill', (d: any) => {
+        // Generate a consistent color for each user
+        const hue = d.cursorUserId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 360;
+        return `hsl(${hue}, 70%, 50%)`;
+      });
 
-      // Draw cursor dot
-      ctx.beginPath();
-      ctx.arc(cursor.x, cursor.y, 8, 0, 2 * Math.PI);
-      ctx.fill();
+    // Add user ID labels with responsive font size and positioning
+    const cursorLabelFontSize = Math.min(dimensions.width, dimensions.height) * 0.015; // 1.5% of smaller dimension
+    const labelOffset = Math.min(dimensions.width, dimensions.height) * 0.015; // Responsive offset
+    cursorGroups.append('text')
+      .attr('x', (d: any) => d.x + labelOffset)
+      .attr('y', (d: any) => d.y - labelOffset * 0.5)
+      .attr('font-family', 'sans-serif')
+      .attr('font-size', `${cursorLabelFontSize}px`)
+      .attr('fill', '#000')
+      .text((d: any) => d.cursorUserId.substring(0, 6));
 
-      // Draw user ID label
-      ctx.fillStyle = '#000';
-      ctx.font = '12px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText(userId.substring(0, 6), cursor.x + 12, cursor.y - 8);
-    });
-  }, [cursors, userVoteState]);
+  }, [cursors, userVoteState, dimensions]);
 
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      const canvas = canvasRef.current;
-      if (canvas) {
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-      }
+      setDimensions({
+        width: window.innerWidth,
+        height: window.innerHeight
+      });
     };
 
     window.addEventListener('resize', handleResize);
@@ -265,8 +309,10 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
   }, []);
 
   return (
-    <canvas
-      ref={canvasRef}
+    <svg
+      ref={svgRef}
+      width={dimensions.width}
+      height={dimensions.height}
       style={{
         position: 'fixed',
         top: 0,
