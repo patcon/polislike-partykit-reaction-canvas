@@ -32,7 +32,7 @@ export default class Server implements Party.Server {
     try {
       const event: CursorEvent = JSON.parse(message);
       console.log(`Cursor event from ${sender.id}:`, event.type, event.position);
-      
+
       // Broadcast the cursor event to all other connections
       this.room.broadcast(message, [sender.id]);
     } catch (e) {
