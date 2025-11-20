@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useState } from "react";
 import usePartySocket from "partysocket/react";
 import * as d3 from "d3";
 
@@ -39,7 +39,7 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     height: window.innerHeight - 120 // Account for statement panel height
   });
   const [isDragging, setIsDragging] = useState(false);
-  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [hasMovedDuringTouch, setHasMovedDuringTouch] = useState(false);
   const currentVoteStateRef = useRef<VoteState>(null);
 
   const socket = usePartySocket({
@@ -106,13 +106,10 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     let clientX: number, clientY: number;
 
     if ('touches' in e) {
-      // Prevent default touch behavior to avoid conflicts
-      e.preventDefault();
-
-      // For touch events, use changedTouches for more reliable position tracking
-      // especially during rapid movement across zones
-      const touch = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] :
-                   (e.touches && e.touches.length > 0) ? e.touches[0] : null;
+      // For touch events, prioritize touches over changedTouches for active touches
+      // Use the first available touch from either touches or changedTouches
+      const touch = (e.touches && e.touches.length > 0) ? e.touches[0] :
+                   (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : null;
 
       if (!touch) return { x: 0, y: 0, timestamp: Date.now(), userId };
 
@@ -126,8 +123,8 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     // Convert to normalized coordinates (0-100)
     const pixelX = clientX - rect.left;
     const pixelY = clientY - rect.top;
-    const normalizedX = Math.max(0, Math.min(100, (pixelX / dimensions.width) * 100));
-    const normalizedY = Math.max(0, Math.min(100, (pixelY / dimensions.height) * 100));
+    const normalizedX = (pixelX / dimensions.width) * 100;
+    const normalizedY = (pixelY / dimensions.height) * 100;
 
     return {
       x: normalizedX,
@@ -163,27 +160,14 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     return null;
   };
 
-  // Debounced vote state update to prevent rapid changes during threshold crossing
-  const updateVoteStateDebounced = useCallback((voteState: VoteState) => {
-    if (debounceTimeoutRef.current) {
-      clearTimeout(debounceTimeoutRef.current);
-    }
-
-    debounceTimeoutRef.current = setTimeout(() => {
-      setUserVoteState(voteState);
-      onVoteStateChange(voteState);
-    }, 50); // 50ms debounce to smooth out rapid changes
-  }, [onVoteStateChange]);
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const position = getCursorPosition(e);
     sendCursorEvent('move', position);
 
-    // Update vote state using direct DOM manipulation to avoid re-renders
+    // Update vote state based on cursor position
     const voteState = getVoteFromPosition(position.x, position.y);
-    currentVoteStateRef.current = voteState;
     setUserVoteState(voteState);
-    updateBackgroundColor(voteState);
     onVoteStateChange(voteState);
   };
 
@@ -193,9 +177,7 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     sendCursorEvent('remove', position);
 
     // Reset vote state when mouse leaves
-    currentVoteStateRef.current = null;
     setUserVoteState(null);
-    updateBackgroundColor(null);
     onVoteStateChange(null);
   };
 
@@ -219,6 +201,9 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
 
+    // Mark that we've moved during this touch interaction
+    setHasMovedDuringTouch(true);
+
     const position = getCursorPosition(e);
     sendCursorEvent('touch', position);
 
@@ -230,13 +215,12 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
 
   const handleTouchStart = (e: React.TouchEvent) => {
     setIsDragging(true);
+    setHasMovedDuringTouch(false);
     const position = getCursorPosition(e);
     sendCursorEvent('touch', position);
 
-    // Update vote state without triggering React re-render during drag
-    const voteState = getVoteFromPosition(position.x, position.y);
-    currentVoteStateRef.current = voteState;
-    updateBackgroundColor(voteState);
+    // Don't update vote state on touch start - only during actual dragging
+    // This prevents flash/lock behavior on simple taps
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -246,16 +230,15 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
     sendCursorEvent('remove', position);
 
-    // Now safely update React state after touch ends
-    const finalVoteState = currentVoteStateRef.current;
+    // Always reset vote state when touch ends
+    // For taps (no movement), this ensures state goes back to null
+    // For drags, this also resets to null after the interaction
     currentVoteStateRef.current = null;
     setUserVoteState(null);
     updateBackgroundColor(null);
+    onVoteStateChange(null);
 
-    // Call parent callback with the final vote state if it was set
-    if (finalVoteState) {
-      onVoteStateChange(finalVoteState);
-    }
+    setHasMovedDuringTouch(false);
   };
 
   // Render with D3 SVG
@@ -370,15 +353,6 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     handleResize(); // Initial call
 
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  // Cleanup debounce timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (debounceTimeoutRef.current) {
-        clearTimeout(debounceTimeoutRef.current);
-      }
-    };
   }, []);
 
   return (

@@ -216,7 +216,7 @@ body {
 /* Countdown Timer Styles */
 .countdown-timer-container {
   /* Reserve space to prevent layout jumping */
-  min-height: 60px;
+  /* min-height: 60px; */
   margin: 10px 0;
 }
 
