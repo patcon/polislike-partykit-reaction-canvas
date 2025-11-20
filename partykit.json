@@ -1,4 +1,4 @@
-{
+sta{
   "$schema": "https://www.partykit.io/schema.json",
   "name": "polislike-partykit-reaction-canvas",
   "main": "party/server.ts",

@@ -36,7 +36,7 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
 
   const socket = usePartySocket({
-    host: process.env.PARTYKIT_HOST,
+    host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
     room: room,
     onMessage(evt) {
       try {
@@ -99,7 +99,13 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
     let clientX: number, clientY: number;
 
     if ('touches' in e) {
-      const touch = e.touches[0] || e.changedTouches[0];
+      // For touch events, prioritize touches over changedTouches for active touches
+      // Use the first available touch from either touches or changedTouches
+      const touch = (e.touches && e.touches.length > 0) ? e.touches[0] :
+                   (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : null;
+
+      if (!touch) return { x: 0, y: 0, timestamp: Date.now(), userId };
+
       clientX = touch.clientX;
       clientY = touch.clientY;
     } else {
