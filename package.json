@@ -1,0 +1,20 @@
+{
+  "name": "polislike-partykit-reaction-canvas",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "partykit dev --live",
+    "deploy": "partykit deploy"
+  },
+  "dependencies": {
+    "partysocket": "^1.0.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.4",
+    "@types/react-dom": "^18.3.0",
+    "partykit": "^0.0.110",
+    "typescript": "^5.5.4"
+  }
+}
