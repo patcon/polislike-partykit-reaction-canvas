@@ -21,21 +21,31 @@ html, body {
   -webkit-tap-highlight-color: transparent;
   touch-action: none;
   font-family: sans-serif;
+  /* iOS viewport fix */
+  height: 100vh;
+  height: -webkit-fill-available;
 }
 
 #app {
   width: 100vw;
   height: 100vh;
+  height: -webkit-fill-available;
   position: fixed;
   top: 0;
   left: 0;
   background: rgba(240, 240, 240, 0.1);
+  /* Support for iOS safe areas */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-top: env(safe-area-inset-top);
+  /* Don't add bottom padding as we handle it per element */
 }
 
 /* App Container - Simple vertical layout */
 .app-container {
   width: 100vw;
   height: 100vh;
+  height: -webkit-fill-available;
   display: block;
 }
 
@@ -102,14 +112,14 @@ html, body {
 
 /* DISAGREE - Bottom left of vote canvas and page */
 .vote-label-disagree {
-  bottom: 20px;
-  left: 20px;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  left: max(20px, env(safe-area-inset-left, 20px));
 }
 
 /* PASS - Bottom right */
 .vote-label-pass {
-  bottom: 20px;
-  right: 20px;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  right: max(20px, env(safe-area-inset-right, 20px));
 }
 
 /* Responsive vote labels */
@@ -137,13 +147,13 @@ html, body {
   }
 
   .vote-label-disagree {
-    bottom: 15px;
-    left: 15px;
+    bottom: max(15px, env(safe-area-inset-bottom, 15px));
+    left: max(15px, env(safe-area-inset-left, 15px));
   }
 
   .vote-label-pass {
-    bottom: 15px;
-    right: 15px;
+    bottom: max(15px, env(safe-area-inset-bottom, 15px));
+    right: max(15px, env(safe-area-inset-right, 15px));
   }
 }
 
