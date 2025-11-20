@@ -105,8 +105,16 @@ export default class Server implements Party.Server {
   }
 
   private clearQueue() {
-    // Clear ALL statements - both future and past
-    this.allSelectedStatements = [];
+    const now = Date.now();
+    
+    // Keep only the currently active statement (most recent past statement)
+    // Remove all future queued statements
+    const pastStatements = this.allSelectedStatements
+      .filter(item => item.displayTimestamp <= now)
+      .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
+    
+    // Keep only the most recent past statement (current active) if it exists
+    this.allSelectedStatements = pastStatements.length > 0 ? [pastStatements[0]] : [];
 
     // Broadcast queue update
     this.room.broadcast(JSON.stringify({
