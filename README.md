@@ -1,18 +1,34 @@
-# 🎈 polislike-partykit-reaction-canvas
+# Polislike Vote Canvas
 
-Welcome to the party, pal!
+This is a sample project to show how websockets could be used for reaction to live events, creating polislike data.
 
-This is a [Partykit](https://partykit.io) project, which lets you create real-time collaborative applications with minimal coding effort.
+## Goals
+- Prototype an interface for collecting vote data for sychronous events.
+- Prototype an interface that allows for participation without looking at phone.
+- Show how presence features can make data collection feels more "collective".
+- Provide a rough admin interface for selecting statements.
+
+## Non-Goals
+- Will not demo any security or authentication of data.
+- Will not do dimensional reduction on the vote data.
+- Will not store data to any sort of scalable production database.
+
+__This is a [Partykit](https://partykit.io) project, which lets you create real-time collaborative applications with minimal coding effort.__
 
 This is the **React starter** which pairs a PartyKit server with a React client.
 
-Refer to our docs for more information: https://github.com/partykit/partykit/blob/main/README.md. For more help, reach out to us on [Discord](https://discord.gg/g5uqHQJc3z), [GitHub](https://github.com/partykit/partykit), or [Twitter](https://twitter.com/partykit_io).
+## Technologies Used
+- React
+- Partykit.io
+    - Websockets
 
-## Usage
+## Default Partykit Docs
+
+### Usage
 
 You can start developing by running `npm run dev` and opening [http://localhost:1999](http://localhost:1999) in your browser. When you're ready, you can deploy your application on to the PartyKit cloud with `npm run deploy`.
 
-## Finding your way around
+### Finding your way around
 
 [`party/server.ts`](./party/server.ts) is the server-side code, which is responsible for handling WebSocket events and HTTP requests.
 
@@ -35,6 +51,6 @@ This is achieved with the optional `serve` property in the [`partykit.json`](./p
 > [!NOTE]
 > Learn about PartyKit config under [Configuration in the PartyKit docs](https://docs.partykit.io/reference/partykit-configuration/)
 
-## Next Steps
+### Next Steps
 
 Learn about deploying PartyKit applications in the [Deployment guide of the PartyKit docs](https://docs.partykit.io/guides/deploying-your-partykit-server/).
