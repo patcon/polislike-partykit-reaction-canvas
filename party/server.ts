@@ -8,7 +8,7 @@ interface CursorPosition {
 }
 
 interface CursorEvent {
-  type: 'move' | 'touch';
+  type: 'move' | 'touch' | 'remove';
   position: CursorPosition;
 }
 

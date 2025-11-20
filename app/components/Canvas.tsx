@@ -9,7 +9,7 @@ interface CursorPosition {
 }
 
 interface CursorEvent {
-  type: 'move' | 'touch';
+  type: 'move' | 'touch' | 'remove';
   position: CursorPosition;
 }
 
@@ -24,24 +24,35 @@ export default function Canvas() {
     onMessage(evt) {
       try {
         const event: CursorEvent = JSON.parse(evt.data);
-        if (event.position.userId !== userId) {
-          setCursors(prev => {
-            const newCursors = new Map(prev);
-            newCursors.set(event.position.userId, event.position);
-            return newCursors;
-          });
-          
-          // Remove old cursor positions after 5 seconds
-          setTimeout(() => {
+        // Check if event has the expected structure
+        if (event && event.position && event.position.userId !== userId) {
+          if (event.type === 'remove') {
+            // Remove cursor when user leaves or touch ends
             setCursors(prev => {
               const newCursors = new Map(prev);
-              const cursor = newCursors.get(event.position.userId);
-              if (cursor && cursor.timestamp === event.position.timestamp) {
-                newCursors.delete(event.position.userId);
-              }
+              newCursors.delete(event.position.userId);
               return newCursors;
             });
-          }, 5000);
+          } else {
+            // Add or update cursor position
+            setCursors(prev => {
+              const newCursors = new Map(prev);
+              newCursors.set(event.position.userId, event.position);
+              return newCursors;
+            });
+            
+            // Remove old cursor positions after 3 seconds of inactivity
+            setTimeout(() => {
+              setCursors(prev => {
+                const newCursors = new Map(prev);
+                const cursor = newCursors.get(event.position.userId);
+                if (cursor && cursor.timestamp === event.position.timestamp) {
+                  newCursors.delete(event.position.userId);
+                }
+                return newCursors;
+              });
+            }, 3000);
+          }
         }
       } catch (e) {
         console.error('Failed to parse message:', e);
@@ -79,21 +90,30 @@ export default function Canvas() {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    e.preventDefault();
     const position = getCursorPosition(e);
     sendCursorEvent('move', position);
   };
 
+  const handleMouseLeave = () => {
+    // Send remove event when mouse leaves the canvas
+    const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
+    sendCursorEvent('remove', position);
+  };
+
   const handleTouchMove = (e: React.TouchEvent) => {
-    e.preventDefault();
     const position = getCursorPosition(e);
     sendCursorEvent('touch', position);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    e.preventDefault();
     const position = getCursorPosition(e);
     sendCursorEvent('touch', position);
+  };
+
+  const handleTouchEnd = () => {
+    // Send remove event when touch ends
+    const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
+    sendCursorEvent('remove', position);
   };
 
   // Render cursor positions
@@ -160,8 +180,11 @@ export default function Canvas() {
         pointerEvents: 'auto'
       }}
       onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+      onTouchCancel={handleTouchEnd}
     />
   );
 }
