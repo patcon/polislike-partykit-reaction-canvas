@@ -1,8 +1,18 @@
 import type * as Party from "partykit/server";
 
-export default class Server implements Party.Server {
-  count = 0;
+interface Point {
+  x: number;
+  y: number;
+  timestamp: number;
+  userId: string;
+}
 
+interface CanvasEvent {
+  type: 'move' | 'start' | 'end';
+  point: Point;
+}
+
+export default class Server implements Party.Server {
   constructor(readonly room: Party.Room) {}
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
@@ -14,36 +24,27 @@ export default class Server implements Party.Server {
   url: ${new URL(ctx.request.url).pathname}`
     );
 
-    // send the current count to the new client
-    conn.send(this.count.toString());
+    // Send welcome message
+    conn.send(JSON.stringify({ type: 'connected', connectionId: conn.id }));
   }
 
   onMessage(message: string, sender: Party.Connection) {
-    // let's log the message
-    console.log(`connection ${sender.id} sent message: ${message}`);
-    // we could use a more sophisticated protocol here, such as JSON
-    // in the message data, but for simplicity we just use a string
-    if (message === "increment") {
-      this.increment();
+    try {
+      const event: CanvasEvent = JSON.parse(message);
+      console.log(`Canvas event from ${sender.id}:`, event.type, event.point);
+      
+      // Broadcast the canvas event to all other connections
+      this.room.broadcast(message, [sender.id]);
+    } catch (e) {
+      console.error('Failed to parse canvas event:', e);
     }
   }
 
   onRequest(req: Party.Request) {
-    // response to any HTTP request (any method, any path) with the current
-    // count. This allows us to use SSR to give components an initial value
-
-    // if the request is a POST, increment the count
-    if (req.method === "POST") {
-      this.increment();
-    }
-
-    return new Response(this.count.toString());
-  }
-
-  increment() {
-    this.count = (this.count + 1) % 100;
-    // broadcast the new count to all clients
-    this.room.broadcast(this.count.toString(), []);
+    // Handle HTTP requests if needed
+    return new Response("Canvas server is running", {
+      headers: { "Content-Type": "text/plain" }
+    });
   }
 }
 
