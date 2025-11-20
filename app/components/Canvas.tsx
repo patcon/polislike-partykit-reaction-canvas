@@ -1,32 +1,47 @@
 import { useRef, useEffect, useState } from "react";
 import usePartySocket from "partysocket/react";
 
-interface Point {
+interface CursorPosition {
   x: number;
   y: number;
   timestamp: number;
   userId: string;
 }
 
-interface CanvasEvent {
-  type: 'move' | 'start' | 'end';
-  point: Point;
+interface CursorEvent {
+  type: 'move' | 'touch';
+  position: CursorPosition;
 }
 
 export default function Canvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
-  const [points, setPoints] = useState<Point[]>([]);
+  const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
 
   const socket = usePartySocket({
     host: "localhost:1999",
-    room: "canvas-room",
+    room: "cursor-room",
     onMessage(evt) {
       try {
-        const event: CanvasEvent = JSON.parse(evt.data);
-        if (event.point.userId !== userId) {
-          setPoints(prev => [...prev.slice(-100), event.point]); // Keep last 100 points
+        const event: CursorEvent = JSON.parse(evt.data);
+        if (event.position.userId !== userId) {
+          setCursors(prev => {
+            const newCursors = new Map(prev);
+            newCursors.set(event.position.userId, event.position);
+            return newCursors;
+          });
+          
+          // Remove old cursor positions after 5 seconds
+          setTimeout(() => {
+            setCursors(prev => {
+              const newCursors = new Map(prev);
+              const cursor = newCursors.get(event.position.userId);
+              if (cursor && cursor.timestamp === event.position.timestamp) {
+                newCursors.delete(event.position.userId);
+              }
+              return newCursors;
+            });
+          }, 5000);
         }
       } catch (e) {
         console.error('Failed to parse message:', e);
@@ -34,12 +49,12 @@ export default function Canvas() {
     },
   });
 
-  const sendEvent = (type: CanvasEvent['type'], point: Point) => {
-    const event: CanvasEvent = { type, point };
+  const sendCursorEvent = (type: CursorEvent['type'], position: CursorPosition) => {
+    const event: CursorEvent = { type, position };
     socket.send(JSON.stringify(event));
   };
 
-  const getEventPoint = (e: React.MouseEvent | React.TouchEvent): Point => {
+  const getCursorPosition = (e: React.MouseEvent | React.TouchEvent): CursorPosition => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0, timestamp: Date.now(), userId };
 
@@ -63,31 +78,25 @@ export default function Canvas() {
     };
   };
 
-  const handleStart = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     e.preventDefault();
-    setIsDrawing(true);
-    const point = getEventPoint(e);
-    setPoints(prev => [...prev.slice(-100), point]);
-    sendEvent('start', point);
+    const position = getCursorPosition(e);
+    sendCursorEvent('move', position);
   };
 
-  const handleMove = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleTouchMove = (e: React.TouchEvent) => {
     e.preventDefault();
-    if (!isDrawing) return;
-    
-    const point = getEventPoint(e);
-    setPoints(prev => [...prev.slice(-100), point]);
-    sendEvent('move', point);
+    const position = getCursorPosition(e);
+    sendCursorEvent('touch', position);
   };
 
-  const handleEnd = (e: React.MouseEvent | React.TouchEvent) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     e.preventDefault();
-    setIsDrawing(false);
-    const point = getEventPoint(e);
-    sendEvent('end', point);
+    const position = getCursorPosition(e);
+    sendCursorEvent('touch', position);
   };
 
-  // Draw on canvas
+  // Render cursor positions
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -99,28 +108,26 @@ export default function Canvas() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    // Clear canvas with white background
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Clear canvas with transparent background
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw all points
-    if (points.length > 0) {
-      ctx.strokeStyle = '#ff0f0f';
-      ctx.lineWidth = 3;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
+    // Draw cursor positions as colored dots
+    cursors.forEach((cursor, userId) => {
+      // Generate a consistent color for each user
+      const hue = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
+      ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+      
+      // Draw cursor dot
       ctx.beginPath();
-      points.forEach((point, index) => {
-        if (index === 0) {
-          ctx.moveTo(point.x, point.y);
-        } else {
-          ctx.lineTo(point.x, point.y);
-        }
-      });
-      ctx.stroke();
-    }
-  }, [points]);
+      ctx.arc(cursor.x, cursor.y, 8, 0, 2 * Math.PI);
+      ctx.fill();
+      
+      // Draw user ID label
+      ctx.fillStyle = '#000';
+      ctx.font = '12px sans-serif';
+      ctx.fillText(userId.substring(0, 6), cursor.x + 12, cursor.y - 8);
+    });
+  }, [cursors]);
 
   // Handle window resize
   useEffect(() => {
@@ -148,17 +155,13 @@ export default function Canvas() {
         width: '100vw',
         height: '100vh',
         touchAction: 'none',
-        cursor: 'crosshair',
-        zIndex: 1000
+        cursor: 'default',
+        zIndex: 1000,
+        pointerEvents: 'auto'
       }}
-      onMouseDown={handleStart}
-      onMouseMove={handleMove}
-      onMouseUp={handleEnd}
-      onMouseLeave={handleEnd}
-      onTouchStart={handleStart}
-      onTouchMove={handleMove}
-      onTouchEnd={handleEnd}
-      onTouchCancel={handleEnd}
+      onMouseMove={handleMouseMove}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
     />
   );
 }
