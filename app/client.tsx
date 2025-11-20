@@ -199,18 +199,23 @@ function App() {
 
   // Render normal interface
   return (
-    <div>
+    <div className="app-container">
       <StatementPanel
         activeStatementId={activeStatementId}
         queue={getQueuedStatements()}
         currentTime={currentTime}
       />
-      <Canvas
-        room={room}
-        onActiveStatementChange={handleActiveStatementChange}
-        onVoteStateChange={handleVoteStateChange}
-        userId={userId}
-      />
+      <div className="vote-canvas-container">
+        <div className="vote-label vote-label-agree">AGREE</div>
+        <div className="vote-label vote-label-disagree">DISAGREE</div>
+        <div className="vote-label vote-label-pass">PASS</div>
+        <Canvas
+          room={room}
+          onActiveStatementChange={handleActiveStatementChange}
+          onVoteStateChange={handleVoteStateChange}
+          userId={userId}
+        />
+      </div>
     </div>
   );
 }

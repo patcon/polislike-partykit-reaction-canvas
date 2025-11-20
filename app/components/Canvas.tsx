@@ -36,7 +36,7 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
-    height: window.innerHeight - (window.innerWidth <= 768 ? 120 : 140) // Account for responsive statement panel height
+    height: window.innerHeight - 140 // Canvas height is viewport minus statement panel height
   });
   const [isDragging, setIsDragging] = useState(false);
   const [hasMovedDuringTouch, setHasMovedDuringTouch] = useState(false);
@@ -262,43 +262,8 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
       updateBackgroundColor(currentVoteState);
     }
 
-    // Add vote labels in corners using responsive positioning and sizing
-    const baseFontSize = Math.min(dimensions.width, dimensions.height) * 0.03; // 3% of smaller dimension
-    const labels = [
-      {
-        text: 'AGREE',
-        x: dimensions.width * 0.9, // 90% from left
-        y: dimensions.height * 0.1, // 10% from top (canvas now starts below statement panel)
-        color: '#000000' // Solid black
-      },
-      {
-        text: 'DISAGREE',
-        x: dimensions.width * 0.1, // 10% from left
-        y: dimensions.height * 0.9, // 90% from top
-        color: '#000000' // Solid black
-      },
-      {
-        text: 'PASS',
-        x: dimensions.width * 0.9, // 90% from left
-        y: dimensions.height * 0.9, // 90% from top
-        color: '#000000' // Solid black
-      }
-    ];
-
-    svg.selectAll('.vote-label')
-      .data(labels)
-      .enter()
-      .append('text')
-      .attr('class', 'vote-label')
-      .attr('x', d => d.x)
-      .attr('y', d => d.y)
-      .attr('text-anchor', 'middle')
-      .attr('dominant-baseline', 'middle')
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', `${baseFontSize}px`)
-      .attr('font-weight', 'bold')
-      .attr('fill', d => d.color)
-      .text(d => d.text);
+    // Vote labels are now handled outside the Canvas component
+    // No need to render them here anymore
 
     // Add cursor positions as colored dots - convert normalized coordinates to pixels
     const cursorData = Array.from(cursors.entries()).map(([cursorUserId, cursor]) => ({
@@ -346,7 +311,7 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
       const statementPanelHeight = window.innerWidth <= 768 ? 120 : 140;
       setDimensions({
         width: window.innerWidth,
-        height: window.innerHeight - statementPanelHeight // Account for responsive statement panel height
+        height: window.innerHeight - statementPanelHeight
       });
     };
 
@@ -362,14 +327,10 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
       width={dimensions.width}
       height={dimensions.height}
       style={{
-        position: 'fixed',
-        top: window.innerWidth <= 768 ? '120px' : '140px', // Position below the responsive statement panel
-        left: 0,
-        width: '100vw',
-        height: window.innerWidth <= 768 ? 'calc(100vh - 120px)' : 'calc(100vh - 140px)', // Adjust height to account for responsive statement panel
+        width: '100%',
+        height: '100%',
         touchAction: 'none',
         cursor: 'default',
-        zIndex: 1000,
         pointerEvents: 'auto'
       }}
       onMouseMove={handleMouseMove}

@@ -1,5 +1,5 @@
 /*
-  Full-screen canvas app with disabled zoom and scroll
+  Simple layout: Statement panel at top, vote canvas below
 */
 
 * {
@@ -32,34 +32,27 @@ html, body {
   background: rgba(240, 240, 240, 0.1);
 }
 
-/* Disable zoom on mobile */
-input, textarea, select {
-  font-size: 16px !important;
+/* App Container - Simple vertical layout */
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  display: block;
 }
 
-/* Prevent pull-to-refresh */
-body {
-  overscroll-behavior: none;
-}
-
-/* Statement Panel Styles */
+/* Statement Panel - Full width at top */
 .statement-panel {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 140px; /* Fixed consistent height */
+  width: 100%;
+  height: 140px;
   background: rgba(255, 255, 255, 0.95);
   color: #333;
   padding: 20px;
-  z-index: 2000;
   border-bottom: 2px solid #ddd;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
-  pointer-events: auto; /* Ensure statement panel captures events */
   display: flex;
   flex-direction: column;
   justify-content: center;
+  position: relative;
 }
 
 .statement-content {
@@ -83,16 +76,85 @@ body {
   font-weight: 500;
 }
 
-/* Responsive design for smaller screens */
+/* Vote Canvas Container - Takes remaining space below statement panel */
+.vote-canvas-container {
+  width: 100%;
+  height: calc(100vh - 140px);
+  position: relative;
+}
+
+/* Vote Labels - Positioned absolutely within canvas container */
+.vote-label {
+  position: absolute;
+  font-family: sans-serif;
+  font-weight: bold;
+  font-size: 28px;
+  color: #000000;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* AGREE - Top right of vote canvas */
+.vote-label-agree {
+  top: 20px;
+  right: 20px;
+}
+
+/* DISAGREE - Bottom left of vote canvas and page */
+.vote-label-disagree {
+  bottom: 20px;
+  left: 20px;
+}
+
+/* PASS - Bottom right */
+.vote-label-pass {
+  bottom: 20px;
+  right: 20px;
+}
+
+/* Responsive vote labels */
 @media (max-width: 768px) {
   .statement-panel {
-    height: 120px; /* Slightly smaller on mobile but still consistent */
+    height: 120px;
     padding: 15px;
   }
 
   .statement-text {
     font-size: 16px;
   }
+
+  .vote-canvas-container {
+    height: calc(100vh - 120px);
+  }
+
+  .vote-label {
+    font-size: 24px;
+  }
+
+  .vote-label-agree {
+    top: 15px;
+    right: 15px;
+  }
+
+  .vote-label-disagree {
+    bottom: 15px;
+    left: 15px;
+  }
+
+  .vote-label-pass {
+    bottom: 15px;
+    right: 15px;
+  }
+}
+
+/* Disable zoom on mobile */
+input, textarea, select {
+  font-size: 16px !important;
+}
+
+/* Prevent pull-to-refresh */
+body {
+  overscroll-behavior: none;
 }
 
 /* Admin Panel Styles */
@@ -170,7 +232,7 @@ body {
   margin-bottom: 10px;
 }
 
-.statement-id {
+.statement-item .statement-id {
   font-weight: bold;
   color: #007bff;
   font-size: 16px;
@@ -186,7 +248,7 @@ body {
   font-family: monospace;
 }
 
-.statement-text {
+.statement-item .statement-text {
   color: #333;
   font-size: 16px;
   line-height: 1.5;
@@ -220,8 +282,6 @@ body {
 
 /* Countdown Timer Styles */
 .countdown-timer-container {
-  /* Reserve space to prevent layout jumping */
-  /* min-height: 60px; */
   margin: 15px 0;
 }
 
@@ -390,7 +450,6 @@ body {
 /* Responsive countdown timer */
 @media (max-width: 768px) {
   .countdown-timer-container {
-    min-height: 50px;
     margin: 12px 0;
   }
 
