@@ -487,10 +487,18 @@ body {
   min-width: 140px;
 }
 
-.clear-votes-btn:hover {
+.clear-votes-btn:hover:not(:disabled) {
   background: #c82333;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.clear-votes-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
 }
 
 /* Responsive votes controls */

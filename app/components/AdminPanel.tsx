@@ -269,7 +269,7 @@ export default function AdminPanel({ room }: AdminPanelProps) {
               <button
                 className="clear-queue-btn"
                 onClick={handleClearQueue}
-                disabled={allSelectedStatements.length === 0}
+                disabled={allSelectedStatements.length < 2}
               >
                 Clear Queue ({allSelectedStatements.length} items)
               </button>
@@ -291,11 +291,13 @@ export default function AdminPanel({ room }: AdminPanelProps) {
               <button onClick={loadVotes} disabled={votesLoading} className="refresh-btn">
                 {votesLoading ? 'Loading...' : 'Refresh Votes'}
               </button>
-              {votes.length > 0 && (
-                <button onClick={clearVotes} className="clear-votes-btn">
-                  Clear All Votes ({votes.length} votes)
-                </button>
-              )}
+              <button
+                onClick={clearVotes}
+                className="clear-votes-btn"
+                disabled={votes.length === 0}
+              >
+                Clear All Votes ({votes.length} votes)
+              </button>
             </div>
           </>
         )}
