@@ -28,9 +28,10 @@ interface CanvasProps {
   onActiveStatementChange: (statementId: number) => void;
   onVoteStateChange: (voteState: VoteState) => void;
   userId: string;
+  voteStateRef?: React.MutableRefObject<VoteState>;
 }
 
-export default function Canvas({ room, onActiveStatementChange, onVoteStateChange, userId }: CanvasProps) {
+export default function Canvas({ room, onActiveStatementChange, onVoteStateChange, userId, voteStateRef }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
@@ -188,6 +189,8 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     // Update vote state based on cursor position
     const voteState = getVoteFromPosition(position.x, position.y);
     setUserVoteState(voteState);
+    currentVoteStateRef.current = voteState;
+    if (voteStateRef) voteStateRef.current = voteState;
     onVoteStateChange(voteState);
   };
 
@@ -198,6 +201,8 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
 
     // Reset vote state when mouse leaves
     setUserVoteState(null);
+    currentVoteStateRef.current = null;
+    if (voteStateRef) voteStateRef.current = null;
     onVoteStateChange(null);
   };
 
@@ -227,10 +232,12 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     const position = getCursorPosition(e);
     sendCursorEvent('touch', position);
 
-    // Update vote state without triggering React re-render
+    // Update vote state without triggering React re-render during drag
     const voteState = getVoteFromPosition(position.x, position.y);
     currentVoteStateRef.current = voteState;
+    if (voteStateRef) voteStateRef.current = voteState;
     updateBackgroundColor(voteState);
+    // Don't call setUserVoteState or onVoteStateChange during drag to avoid interrupting touch
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -239,8 +246,11 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     const position = getCursorPosition(e);
     sendCursorEvent('touch', position);
 
-    // Don't update vote state on touch start - only during actual dragging
-    // This prevents flash/lock behavior on simple taps
+    // Store initial vote state but don't trigger re-renders during touch start
+    const voteState = getVoteFromPosition(position.x, position.y);
+    currentVoteStateRef.current = voteState;
+    if (voteStateRef) voteStateRef.current = voteState;
+    updateBackgroundColor(voteState);
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -250,10 +260,9 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
     sendCursorEvent('remove', position);
 
-    // Always reset vote state when touch ends
-    // For taps (no movement), this ensures state goes back to null
-    // For drags, this also resets to null after the interaction
+    // Reset vote state when touch ends
     currentVoteStateRef.current = null;
+    if (voteStateRef) voteStateRef.current = null;
     setUserVoteState(null);
     updateBackgroundColor(null);
     onVoteStateChange(null);

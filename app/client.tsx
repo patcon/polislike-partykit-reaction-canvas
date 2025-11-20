@@ -1,6 +1,6 @@
 import "./styles.css";
 import { createRoot } from "react-dom/client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import Canvas from "./components/Canvas";
 import StatementPanel from "./components/StatementPanel";
@@ -41,6 +41,7 @@ function App() {
   const [activeStatementId, setActiveStatementId] = useState<number>(1);
   const [previousActiveStatementId, setPreviousActiveStatementId] = useState<number | null>(null);
   const [currentVoteState, setCurrentVoteState] = useState<'agree' | 'disagree' | 'pass' | null>(null);
+  const canvasVoteStateRef = useRef<'agree' | 'disagree' | 'pass' | null>(null);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
 
   // Set up socket connection for non-admin mode to receive queue updates
@@ -148,14 +149,17 @@ function App() {
     const newActiveId = getCurrentActiveStatementId();
     if (newActiveId !== activeStatementId) {
       // Submit vote for previous statement if we have one and a vote state
-      if (activeStatementId && currentVoteState) {
-        console.log(`Submitting vote via useEffect: ${currentVoteState} for statement ${activeStatementId}`);
-        submitVote(userId, activeStatementId, currentVoteState);
+      // Check both currentVoteState (for mouse) and canvasVoteStateRef (for touch)
+      const voteToSubmit = currentVoteState || canvasVoteStateRef.current;
+      if (activeStatementId && voteToSubmit) {
+        console.log(`Submitting vote via useEffect: ${voteToSubmit} for statement ${activeStatementId}`);
+        submitVote(userId, activeStatementId, voteToSubmit);
       }
 
       setPreviousActiveStatementId(activeStatementId);
       setActiveStatementId(newActiveId);
       setCurrentVoteState(null); // Reset vote state for new statement
+      canvasVoteStateRef.current = null; // Reset canvas vote state ref
     }
   }, [allSelectedStatements, currentTime, currentVoteState, activeStatementId, userId]);
 
@@ -170,14 +174,17 @@ function App() {
       const newActiveId = getCurrentActiveStatementId();
       if (newActiveId !== activeStatementId) {
         // Submit vote for previous statement if we have one and a vote state
-        if (activeStatementId && currentVoteState) {
-          console.log(`Submitting vote via timer: ${currentVoteState} for statement ${activeStatementId}`);
-          submitVote(userId, activeStatementId, currentVoteState);
+        // Check both currentVoteState (for mouse) and canvasVoteStateRef (for touch)
+        const voteToSubmit = currentVoteState || canvasVoteStateRef.current;
+        if (activeStatementId && voteToSubmit) {
+          console.log(`Submitting vote via timer: ${voteToSubmit} for statement ${activeStatementId}`);
+          submitVote(userId, activeStatementId, voteToSubmit);
         }
 
         setPreviousActiveStatementId(activeStatementId);
         setActiveStatementId(newActiveId);
         setCurrentVoteState(null); // Reset vote state for new statement
+        canvasVoteStateRef.current = null; // Reset canvas vote state ref
       }
     }, 1000);
 
@@ -214,6 +221,7 @@ function App() {
           onActiveStatementChange={handleActiveStatementChange}
           onVoteStateChange={handleVoteStateChange}
           userId={userId}
+          voteStateRef={canvasVoteStateRef}
         />
       </div>
     </div>
