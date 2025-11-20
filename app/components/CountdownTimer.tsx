@@ -46,7 +46,8 @@ export default function CountdownTimer({ queue, currentTime, showNextStatementId
       }
 
       // Set total duration based on the gap between statements
-      if (totalDuration === 0 || next !== nextStatement) {
+      // Only reset duration if we have a different next statement (by ID) or no duration set
+      if (totalDuration === 0 || (nextStatement && next.statementId !== nextStatement.statementId)) {
         setTotalDuration(calculatedDuration);
       }
 
