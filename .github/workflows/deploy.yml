@@ -18,7 +18,7 @@ jobs:
           node-version: 18
           cache: "npm"
       - run: npm ci
-      - run: npx partykit deploy --with-vars
+      - run: npm run deploy -- --with-vars
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon

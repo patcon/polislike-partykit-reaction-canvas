@@ -11,5 +11,9 @@
         "process.env.PARTYKIT_HOST": "'polislike-partykit-reaction-canvas.patcon.partykit.dev'"
       }
     }
+  },
+  "build": {
+    "command": "node scripts/build-with-cachebust.js",
+    "watch": "app"
   }
 }

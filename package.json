@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "partykit dev --live",
-    "deploy": "partykit deploy"
+    "deploy": "npm run cachebust && partykit deploy",
+    "cachebust": "node scripts/build-with-cachebust.js"
   },
   "dependencies": {
     "@types/d3": "^7.4.3",
