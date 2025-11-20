@@ -5,6 +5,11 @@
   "compatibilityDate": "2025-11-20",
   "serve": {
     "path": "public",
-    "build": "app/client.tsx"
+    "build": {
+      "entry": "app/client.tsx",
+      "define": {
+        "process.env.PARTYKIT_HOST": "'polislike-partykit-reaction-canvas.patcon.partykit.dev'"
+      }
+    }
   }
 }
