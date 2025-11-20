@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import usePartySocket from "partysocket/react";
 import * as d3 from "d3";
 
@@ -38,6 +38,9 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     width: window.innerWidth,
     height: window.innerHeight - 120 // Account for statement panel height
   });
+  const [isDragging, setIsDragging] = useState(false);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const currentVoteStateRef = useRef<VoteState>(null);
 
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
@@ -103,10 +106,13 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     let clientX: number, clientY: number;
 
     if ('touches' in e) {
-      // For touch events, prioritize touches over changedTouches for active touches
-      // Use the first available touch from either touches or changedTouches
-      const touch = (e.touches && e.touches.length > 0) ? e.touches[0] :
-                   (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : null;
+      // Prevent default touch behavior to avoid conflicts
+      e.preventDefault();
+
+      // For touch events, use changedTouches for more reliable position tracking
+      // especially during rapid movement across zones
+      const touch = (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] :
+                   (e.touches && e.touches.length > 0) ? e.touches[0] : null;
 
       if (!touch) return { x: 0, y: 0, timestamp: Date.now(), userId };
 
@@ -120,8 +126,8 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     // Convert to normalized coordinates (0-100)
     const pixelX = clientX - rect.left;
     const pixelY = clientY - rect.top;
-    const normalizedX = (pixelX / dimensions.width) * 100;
-    const normalizedY = (pixelY / dimensions.height) * 100;
+    const normalizedX = Math.max(0, Math.min(100, (pixelX / dimensions.width) * 100));
+    const normalizedY = Math.max(0, Math.min(100, (pixelY / dimensions.height) * 100));
 
     return {
       x: normalizedX,
@@ -157,13 +163,27 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     return null;
   };
 
+  // Debounced vote state update to prevent rapid changes during threshold crossing
+  const updateVoteStateDebounced = useCallback((voteState: VoteState) => {
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    debounceTimeoutRef.current = setTimeout(() => {
+      setUserVoteState(voteState);
+      onVoteStateChange(voteState);
+    }, 50); // 50ms debounce to smooth out rapid changes
+  }, [onVoteStateChange]);
+
   const handleMouseMove = (e: React.MouseEvent) => {
     const position = getCursorPosition(e);
     sendCursorEvent('move', position);
 
-    // Update vote state based on cursor position
+    // Update vote state using direct DOM manipulation to avoid re-renders
     const voteState = getVoteFromPosition(position.x, position.y);
+    currentVoteStateRef.current = voteState;
     setUserVoteState(voteState);
+    updateBackgroundColor(voteState);
     onVoteStateChange(voteState);
   };
 
@@ -173,38 +193,69 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     sendCursorEvent('remove', position);
 
     // Reset vote state when mouse leaves
+    currentVoteStateRef.current = null;
     setUserVoteState(null);
+    updateBackgroundColor(null);
     onVoteStateChange(null);
   };
 
+  // Direct DOM manipulation to avoid re-renders during touch
+  const updateBackgroundColor = (voteState: VoteState) => {
+    const svg = d3.select(svgRef.current);
+    const backgroundRect = svg.select('rect');
+
+    let backgroundColor = 'rgba(255, 255, 255, 0.1)';
+    if (voteState === 'agree') {
+      backgroundColor = 'rgba(0, 255, 0, 0.2)';
+    } else if (voteState === 'disagree') {
+      backgroundColor = 'rgba(255, 0, 0, 0.2)';
+    } else if (voteState === 'pass') {
+      backgroundColor = 'rgba(255, 255, 0, 0.2)';
+    }
+
+    backgroundRect.attr('fill', backgroundColor);
+  };
+
   const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isDragging) return;
+
     const position = getCursorPosition(e);
     sendCursorEvent('touch', position);
 
-    // Update vote state based on touch position
+    // Update vote state without triggering React re-render
     const voteState = getVoteFromPosition(position.x, position.y);
-    setUserVoteState(voteState);
-    onVoteStateChange(voteState);
+    currentVoteStateRef.current = voteState;
+    updateBackgroundColor(voteState);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
+    setIsDragging(true);
     const position = getCursorPosition(e);
     sendCursorEvent('touch', position);
 
-    // Update vote state based on touch position
+    // Update vote state without triggering React re-render during drag
     const voteState = getVoteFromPosition(position.x, position.y);
-    setUserVoteState(voteState);
-    onVoteStateChange(voteState);
+    currentVoteStateRef.current = voteState;
+    updateBackgroundColor(voteState);
   };
 
-  const handleTouchEnd = () => {
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    setIsDragging(false);
+
     // Send remove event when touch ends
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
     sendCursorEvent('remove', position);
 
-    // Reset vote state when touch ends
+    // Now safely update React state after touch ends
+    const finalVoteState = currentVoteStateRef.current;
+    currentVoteStateRef.current = null;
     setUserVoteState(null);
-    onVoteStateChange(null);
+    updateBackgroundColor(null);
+
+    // Call parent callback with the final vote state if it was set
+    if (finalVoteState) {
+      onVoteStateChange(finalVoteState);
+    }
   };
 
   // Render with D3 SVG
@@ -215,21 +266,18 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     // Clear previous content
     svg.selectAll("*").remove();
 
-    // Set background color based on vote state
-    let backgroundColor = 'rgba(255, 255, 255, 0.1)'; // Default transparent white
-    if (userVoteState === 'agree') {
-      backgroundColor = 'rgba(0, 255, 0, 0.2)'; // Green with transparency
-    } else if (userVoteState === 'disagree') {
-      backgroundColor = 'rgba(255, 0, 0, 0.2)'; // Red with transparency
-    } else if (userVoteState === 'pass') {
-      backgroundColor = 'rgba(255, 255, 0, 0.2)'; // Yellow with transparency
-    }
-
-    // Add background rectangle
+    // Add background rectangle with default color
+    // Color will be updated via direct DOM manipulation during interactions
     svg.append('rect')
       .attr('width', dimensions.width)
       .attr('height', dimensions.height)
-      .attr('fill', backgroundColor);
+      .attr('fill', 'rgba(255, 255, 255, 0.1)'); // Default transparent white
+
+    // Apply current vote state color if any
+    const currentVoteState = currentVoteStateRef.current || userVoteState;
+    if (currentVoteState) {
+      updateBackgroundColor(currentVoteState);
+    }
 
     // Add vote labels in corners using responsive positioning and sizing
     const baseFontSize = Math.min(dimensions.width, dimensions.height) * 0.03; // 3% of smaller dimension
@@ -322,6 +370,15 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     handleResize(); // Initial call
 
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Cleanup debounce timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
   }, []);
 
   return (
