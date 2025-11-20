@@ -19,7 +19,6 @@ interface AdminPanelProps {
 
 export default function AdminPanel({ room }: AdminPanelProps) {
   const [statements, setStatements] = useState<Statement[]>([]);
-  const [activeStatementId, setActiveStatementId] = useState<number | null>(null);
   const [allSelectedStatements, setAllSelectedStatements] = useState<QueueItem[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [loading, setLoading] = useState(true);
@@ -31,19 +30,14 @@ export default function AdminPanel({ room }: AdminPanelProps) {
       try {
         const data = JSON.parse(evt.data);
 
-        // Handle server messages to track current active statement and queue
+        // Handle server messages to track queue
         if (data.type === 'connected') {
-          if (data.activeStatementId) {
-            setActiveStatementId(data.activeStatementId);
-          }
           if (data.allSelectedStatements) {
             setAllSelectedStatements(data.allSelectedStatements);
           }
           if (data.currentTime) {
             setCurrentTime(data.currentTime);
           }
-        } else if (data.type === 'activeStatementChanged') {
-          setActiveStatementId(data.statementId);
         } else if (data.type === 'queueUpdated') {
           if (data.allSelectedStatements) {
             setAllSelectedStatements(data.allSelectedStatements);
@@ -73,6 +67,15 @@ export default function AdminPanel({ room }: AdminPanelProps) {
     loadStatements();
   }, []);
 
+  // Set up a timer to update current time every second for real-time badge updates
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(Date.now());
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
   const handleStatementClick = (statementId: number) => {
     // Send statement to queue instead of setting active immediately
     socket.send(JSON.stringify({
@@ -88,8 +91,25 @@ export default function AdminPanel({ room }: AdminPanelProps) {
     }));
   };
 
+  // Calculate the currently active statement from queue data
+  const getCurrentActiveStatementId = () => {
+    const now = Date.now();
+    // Find the most recent statement that should be displayed
+    const displayedStatements = allSelectedStatements
+      .filter(item => item.displayTimestamp <= now)
+      .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
+
+    if (displayedStatements.length > 0) {
+      return displayedStatements[0].statementId;
+    }
+
+    // Default to statement 1 if no statements have been queued yet
+    return 1;
+  };
+
   const getStatementStatus = (statementId: number) => {
     const now = Date.now();
+    const activeStatementId = getCurrentActiveStatementId();
 
     // Check if this statement is queued for the future (takes precedence)
     const futureQueueItem = allSelectedStatements.find(item =>
@@ -138,11 +158,9 @@ export default function AdminPanel({ room }: AdminPanelProps) {
       <div className="admin-header">
         <h1>Admin Panel</h1>
         <p>Click on a statement to add it to the queue (10 second delay)</p>
-        {activeStatementId && (
-          <p className="current-active">
-            Currently active: Statement #{activeStatementId}
-          </p>
-        )}
+        <p className="current-active">
+          Currently active: Statement #{getCurrentActiveStatementId()}
+        </p>
         <CountdownTimer queue={getQueuedStatements()} currentTime={currentTime} showNextStatementId={true} />
         {allSelectedStatements.length > 0 && (
           <button className="clear-queue-btn" onClick={handleClearQueue}>

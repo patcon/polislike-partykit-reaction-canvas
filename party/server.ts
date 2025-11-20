@@ -116,37 +116,6 @@ export default class Server implements Party.Server {
     }));
   }
 
-  // Method to get the currently active statement (most recently displayed)
-  private getCurrentActiveStatement(): number {
-    const now = Date.now();
-
-    // Find the most recent statement that should have been displayed
-    const displayedStatements = this.allSelectedStatements
-      .filter(item => item.displayTimestamp <= now)
-      .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
-
-    if (displayedStatements.length > 0) {
-      // Update active statement to the most recently displayed
-      const mostRecent = displayedStatements[0];
-      if (this.activeStatementId !== mostRecent.statementId) {
-        this.activeStatementId = mostRecent.statementId;
-
-        // Broadcast the changes
-        this.room.broadcast(JSON.stringify({
-          type: 'activeStatementChanged',
-          statementId: this.activeStatementId
-        }));
-
-        this.room.broadcast(JSON.stringify({
-          type: 'queueUpdated',
-          allSelectedStatements: this.allSelectedStatements,
-          currentTime: Date.now()
-        }));
-      }
-    }
-
-    return this.activeStatementId;
-  }
 
   onRequest(req: Party.Request) {
     // Handle HTTP requests if needed
