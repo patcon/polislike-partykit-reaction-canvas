@@ -99,7 +99,19 @@ export default class Server implements Party.Server {
   }
 
   private queueStatement(statementId: number) {
-    const displayTimestamp = Date.now() + 10000; // 10 seconds from now
+    // Check if the current active statement is -1 (End Voting)
+    const now = Date.now();
+    const currentActiveStatement = this.getCurrentActiveStatementId();
+
+    let displayTimestamp: number;
+    if (currentActiveStatement === -1) {
+      // If active statement is -1, add new statement immediately
+      displayTimestamp = now;
+    } else {
+      // Otherwise, use the normal 10-second delay
+      displayTimestamp = now + 10000; // 10 seconds from now
+    }
+
     const queueItem: QueueItem = { statementId, displayTimestamp };
 
     this.allSelectedStatements.push(queueItem);
@@ -110,6 +122,21 @@ export default class Server implements Party.Server {
       allSelectedStatements: this.allSelectedStatements,
       currentTime: Date.now()
     }));
+  }
+
+  private getCurrentActiveStatementId(): number {
+    const now = Date.now();
+    // Find the most recent statement that should be displayed
+    const displayedStatements = this.allSelectedStatements
+      .filter(item => item.displayTimestamp <= now)
+      .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
+
+    if (displayedStatements.length > 0) {
+      return displayedStatements[0].statementId;
+    }
+
+    // Default to statement 1 if no statements have been queued yet
+    return 1;
   }
 
   private clearQueue() {

@@ -97,6 +97,12 @@ function App() {
       return;
     }
 
+    // Don't allow voting on the -1 statementId (End Voting pseudo-statement)
+    if (statementId === -1) {
+      console.log('Vote submission skipped: cannot vote on End Voting pseudo-statement', { statementId });
+      return;
+    }
+
     const voteValue = voteState === 'agree' ? 1 : voteState === 'disagree' ? -1 : 0;
 
     console.log('Attempting to submit vote:', { userId, statementId, voteState, voteValue });
