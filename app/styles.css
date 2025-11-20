@@ -272,6 +272,16 @@ body {
   transform-origin: right center;
 }
 
+/* Queue controls container */
+.queue-controls {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+  align-items: center;
+  margin-top: 15px;
+  flex-wrap: wrap;
+}
+
 /* Clear queue button */
 .clear-queue-btn {
   background: #dc3545;
@@ -282,14 +292,50 @@ body {
   font-size: 14px;
   font-weight: 500;
   cursor: pointer;
-  margin-top: 10px;
   transition: all 0.2s ease;
+  min-width: 140px;
 }
 
-.clear-queue-btn:hover {
+.clear-queue-btn:hover:not(:disabled) {
   background: #c82333;
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(220, 53, 69, 0.3);
+}
+
+.clear-queue-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
+}
+
+/* End voting button */
+.end-voting-btn {
+  background: #6f42c1;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.end-voting-btn:hover:not(:disabled) {
+  background: #5a32a3;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(111, 66, 193, 0.3);
+}
+
+.end-voting-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  opacity: 0.6;
 }
 
 /* Statement status styles for admin panel */

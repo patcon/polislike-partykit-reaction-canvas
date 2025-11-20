@@ -145,6 +145,14 @@ export default function AdminPanel({ room }: AdminPanelProps) {
     }));
   };
 
+  const handleEndVoting = () => {
+    // Send pseudo-statement with ID -1 to queue to trigger final vote
+    socket.send(JSON.stringify({
+      type: 'queueStatement',
+      statementId: -1
+    }));
+  };
+
   // Calculate the currently active statement from queue data
   const getCurrentActiveStatementId = () => {
     const now = Date.now();
@@ -189,6 +197,17 @@ export default function AdminPanel({ room }: AdminPanelProps) {
     }
 
     return null;
+  };
+
+  const isEndVotingActive = () => {
+    if (allSelectedStatements.length === 0) return false;
+
+    // Sort statements by display timestamp to find the last one
+    const sortedStatements = [...allSelectedStatements].sort((a, b) => a.displayTimestamp - b.displayTimestamp);
+    const lastStatement = sortedStatements[sortedStatements.length - 1];
+
+    // End voting is active only if the last statement in the queue is the -1 statement
+    return lastStatement.statementId === -1;
   };
 
   const getQueuedStatements = () => {
@@ -243,14 +262,25 @@ export default function AdminPanel({ room }: AdminPanelProps) {
           <>
             <p>Click on a statement to add it to the queue (10 second delay)</p>
             <p className="current-active">
-              Currently active: Statement #{getCurrentActiveStatementId()}
+              Currently active: {getCurrentActiveStatementId() === -1 ? 'None' : `Statement #${getCurrentActiveStatementId()}`}
             </p>
             <CountdownTimer queue={getQueuedStatements()} currentTime={currentTime} showNextStatementId={true} />
-            {allSelectedStatements.length > 0 && (
-              <button className="clear-queue-btn" onClick={handleClearQueue}>
+            <div className="queue-controls">
+              <button
+                className="clear-queue-btn"
+                onClick={handleClearQueue}
+                disabled={allSelectedStatements.length === 0}
+              >
                 Clear Queue ({allSelectedStatements.length} items)
               </button>
-            )}
+              <button
+                className="end-voting-btn"
+                onClick={handleEndVoting}
+                disabled={isEndVotingActive()}
+              >
+                End Voting
+              </button>
+            </div>
           </>
         )}
 

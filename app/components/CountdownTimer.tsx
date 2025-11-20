@@ -97,7 +97,9 @@ export default function CountdownTimer({ queue, currentTime, showNextStatementId
             />
           </div>
           {hasNextStatement && showNextStatementId && (
-            <span className="countdown-label">Next: #{nextStatement.statementId}</span>
+            <span className="countdown-label">
+              {nextStatement.statementId === -1 ? 'End' : `Next: #${nextStatement.statementId}`}
+            </span>
           )}
         </div>
       </div>

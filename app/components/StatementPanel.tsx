@@ -39,7 +39,14 @@ export default function StatementPanel({ activeStatementId, queue = [], currentT
 
   // Update active statement when activeStatementId changes
   useEffect(() => {
-    if (activeStatementId && statements.length > 0) {
+    if (activeStatementId === -1) {
+      // Handle "End Voting" pseudo-statement with blank content
+      setActiveStatement({
+        statementId: -1,
+        timecode: 0,
+        text: ""
+      });
+    } else if (activeStatementId && statements.length > 0) {
       const statement = statements.find(s => s.statementId === activeStatementId);
       setActiveStatement(statement || null);
     } else if (statements.length > 0) {
@@ -63,8 +70,17 @@ export default function StatementPanel({ activeStatementId, queue = [], currentT
     <div className="statement-panel">
       <CountdownTimer queue={queue} currentTime={currentTime} />
       <div className="statement-content">
-        <div className="statement-id">Statement #{activeStatement.statementId}</div>
-        <div className="statement-text">{activeStatement.text}</div>
+        {activeStatement.statementId === -1 ? (
+          <>
+            <div className="statement-id">Voting Ended</div>
+            <div className="statement-text"></div>
+          </>
+        ) : (
+          <>
+            <div className="statement-id">Statement #{activeStatement.statementId}</div>
+            <div className="statement-text">{activeStatement.text}</div>
+          </>
+        )}
       </div>
     </div>
   );
