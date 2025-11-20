@@ -15,14 +15,18 @@ interface CursorEvent {
 
 type VoteState = 'agree' | 'disagree' | 'pass' | null;
 
-export default function Canvas() {
+interface CanvasProps {
+  room: string;
+}
+
+export default function Canvas({ room }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
 
   const socket = usePartySocket({
-    room: "cursor-room",
+    room: room,
     onMessage(evt) {
       try {
         const event: CursorEvent = JSON.parse(evt.data);
