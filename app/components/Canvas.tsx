@@ -22,7 +22,6 @@ export default function Canvas() {
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
 
   const socket = usePartySocket({
-    host: "localhost:1999",
     room: "cursor-room",
     onMessage(evt) {
       try {
