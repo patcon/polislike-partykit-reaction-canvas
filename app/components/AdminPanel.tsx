@@ -143,7 +143,7 @@ export default function AdminPanel({ room }: AdminPanelProps) {
             Currently active: Statement #{activeStatementId}
           </p>
         )}
-        <CountdownTimer queue={getQueuedStatements()} currentTime={currentTime} />
+        <CountdownTimer queue={getQueuedStatements()} currentTime={currentTime} showNextStatementId={true} />
         {allSelectedStatements.length > 0 && (
           <button className="clear-queue-btn" onClick={handleClearQueue}>
             Clear Queue ({allSelectedStatements.length} items)

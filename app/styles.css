@@ -256,6 +256,8 @@ body {
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;
   overflow: hidden;
+  display: flex;
+  justify-content: flex-end;
 }
 
 .countdown-bar {
@@ -264,6 +266,7 @@ body {
   border-radius: 3px;
   transition: width 0.05s linear;
   box-shadow: 0 0 8px rgba(255, 255, 255, 0.5);
+  transform-origin: right center;
 }
 
 /* Clear queue button */
