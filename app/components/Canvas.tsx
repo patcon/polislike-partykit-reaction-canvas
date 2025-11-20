@@ -33,7 +33,10 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
-  const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [dimensions, setDimensions] = useState({
+    width: window.innerWidth,
+    height: window.innerHeight - 120 // Account for statement panel height
+  });
 
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
@@ -133,7 +136,8 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
     const y = normalizedY / 100;
 
     // Define vote zones using normalized coordinates (0-1 range)
-    const agreeZone = { x: 1, y: 0.15 }; // top-right, below statement panel (15% from top)
+    // Since canvas is now below statement panel, agree zone can be at the top
+    const agreeZone = { x: 1, y: 0 }; // top-right
     const disagreeZone = { x: 0, y: 1 }; // bottom-left
     const passZone = { x: 1, y: 1 }; // bottom-right
 
@@ -227,20 +231,20 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
       {
         text: 'AGREE',
         x: dimensions.width * 0.9, // 90% from left
-        y: dimensions.height * 0.15, // 15% from top (below statement panel)
-        color: userVoteState === 'agree' ? '#00AA00' : '#00FF00'
+        y: dimensions.height * 0.1, // 10% from top (canvas now starts below statement panel)
+        color: '#000000' // Solid black
       },
       {
         text: 'DISAGREE',
         x: dimensions.width * 0.1, // 10% from left
         y: dimensions.height * 0.9, // 90% from top
-        color: userVoteState === 'disagree' ? '#AA0000' : '#FF0000'
+        color: '#000000' // Solid black
       },
       {
         text: 'PASS',
         x: dimensions.width * 0.9, // 90% from left
         y: dimensions.height * 0.9, // 90% from top
-        color: userVoteState === 'pass' ? '#B8860B' : '#DAA520'
+        color: '#000000' // Solid black
       }
     ];
 
@@ -304,7 +308,7 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
     const handleResize = () => {
       setDimensions({
         width: window.innerWidth,
-        height: window.innerHeight
+        height: window.innerHeight - 120 // Account for statement panel height
       });
     };
 
@@ -321,10 +325,10 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
       height={dimensions.height}
       style={{
         position: 'fixed',
-        top: 0,
+        top: '120px', // Position below the statement panel
         left: 0,
         width: '100vw',
-        height: '100vh',
+        height: 'calc(100vh - 120px)', // Adjust height to account for statement panel
         touchAction: 'none',
         cursor: 'default',
         zIndex: 1000,

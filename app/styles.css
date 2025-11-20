@@ -55,6 +55,7 @@ body {
   border-bottom: 2px solid #ddd;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  pointer-events: auto; /* Ensure statement panel captures events */
 }
 
 .statement-content {
