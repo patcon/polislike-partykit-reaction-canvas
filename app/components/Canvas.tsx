@@ -139,23 +139,43 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     const x = normalizedX / 100;
     const y = normalizedY / 100;
 
-    // Define vote zones using normalized coordinates (0-1 range)
-    // Since canvas is now below statement panel, agree zone can be at the top
-    const agreeZone = { x: 1, y: 0 }; // top-right
-    const disagreeZone = { x: 0, y: 1 }; // bottom-left
-    const passZone = { x: 1, y: 1 }; // bottom-right
+    // Define triangle vertices based on vote label positions
+    // AGREE: top-right, DISAGREE: bottom-left, PASS: bottom-right
+    const agree = { x: 1, y: 0 };     // top-right
+    const disagree = { x: 0, y: 1 };  // bottom-left
+    const pass = { x: 1, y: 1 };      // bottom-right
 
-    // Calculate distances to each zone using normalized coordinates
-    const distanceToAgree = Math.sqrt(Math.pow(x - agreeZone.x, 2) + Math.pow(y - agreeZone.y, 2));
-    const distanceToDisagree = Math.sqrt(Math.pow(x - disagreeZone.x, 2) + Math.pow(y - disagreeZone.y, 2));
-    const distanceToPass = Math.sqrt(Math.pow(x - passZone.x, 2) + Math.pow(y - passZone.y, 2));
+    // Calculate barycentric coordinates for the triangle
+    // This gives us the proportional "weight" of each vertex for any point in the triangle
+    const denominator = (disagree.y - pass.y) * (agree.x - pass.x) + (pass.x - disagree.x) * (agree.y - pass.y);
 
-    // Find the closest zone
-    const minDistance = Math.min(distanceToAgree, distanceToDisagree, distanceToPass);
+    // Avoid division by zero (degenerate triangle)
+    if (Math.abs(denominator) < 1e-10) {
+      // Fallback to simple distance if triangle is degenerate
+      const distanceToAgree = Math.sqrt(Math.pow(x - agree.x, 2) + Math.pow(y - agree.y, 2));
+      const distanceToDisagree = Math.sqrt(Math.pow(x - disagree.x, 2) + Math.pow(y - disagree.y, 2));
+      const distanceToPass = Math.sqrt(Math.pow(x - pass.x, 2) + Math.pow(y - pass.y, 2));
 
-    if (minDistance === distanceToAgree) return 'agree';
-    if (minDistance === distanceToDisagree) return 'disagree';
-    if (minDistance === distanceToPass) return 'pass';
+      const minDistance = Math.min(distanceToAgree, distanceToDisagree, distanceToPass);
+      if (minDistance === distanceToAgree) return 'agree';
+      if (minDistance === distanceToDisagree) return 'disagree';
+      if (minDistance === distanceToPass) return 'pass';
+      return null;
+    }
+
+    // Calculate barycentric coordinates (weights for each vertex)
+    const wAgree = ((disagree.y - pass.y) * (x - pass.x) + (pass.x - disagree.x) * (y - pass.y)) / denominator;
+    const wDisagree = ((pass.y - agree.y) * (x - pass.x) + (agree.x - pass.x) * (y - pass.y)) / denominator;
+    const wPass = 1 - wAgree - wDisagree;
+
+    // The barycentric coordinates represent the "influence" or "weight" of each vertex
+    // The vertex with the highest weight is the closest in terms of triangle geometry
+    const maxWeight = Math.max(wAgree, wDisagree, wPass);
+
+    // Simply return the option with highest weight - no dead zones
+    if (maxWeight === wAgree) return 'agree';
+    if (maxWeight === wDisagree) return 'disagree';
+    if (maxWeight === wPass) return 'pass';
 
     return null;
   };
