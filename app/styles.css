@@ -239,19 +239,21 @@ body {
   }
 }
 
-.countdown-info {
-  text-align: center;
-  margin-bottom: 8px;
+.countdown-row {
+  display: flex;
+  align-items: center;
+  gap: 15px;
 }
 
 .countdown-label {
   font-size: 14px;
   font-weight: 500;
   opacity: 0.9;
+  white-space: nowrap;
 }
 
 .countdown-bar-container {
-  width: 100%;
+  flex: 1;
   height: 6px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 3px;

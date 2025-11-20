@@ -86,19 +86,19 @@ export default function CountdownTimer({ queue, currentTime, showNextStatementId
     <div className="countdown-timer-container">
       {hasNextStatement && (
         <div className="countdown-timer">
-          {showNextStatementId && (
-            <div className="countdown-info">
-              <span className="countdown-label">Next: Statement #{nextStatement.statementId}</span>
+          <div className="countdown-row">
+            <div className="countdown-bar-container">
+              <div
+                className="countdown-bar"
+                style={{
+                  width: `${progress}%`,
+                  transformOrigin: 'left center'
+                }}
+              />
             </div>
-          )}
-          <div className="countdown-bar-container">
-            <div
-              className="countdown-bar"
-              style={{
-                width: `${progress}%`,
-                transformOrigin: 'left center'
-              }}
-            />
+            {showNextStatementId && (
+              <span className="countdown-label">Next: #{nextStatement.statementId}</span>
+            )}
           </div>
         </div>
       )}
