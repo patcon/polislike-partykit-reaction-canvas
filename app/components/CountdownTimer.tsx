@@ -54,7 +54,7 @@ export default function CountdownTimer({ queue, currentTime, showNextStatementId
       const progressPercent = Math.max(0, Math.min(100, (timeRemaining / totalDuration) * 100));
       setProgress(progressPercent);
     } else {
-      setProgress(0);
+      setProgress(100); // Set to full width when no next statement
       setTotalDuration(0);
     }
   }, [queue, currentTime]);
@@ -84,24 +84,22 @@ export default function CountdownTimer({ queue, currentTime, showNextStatementId
 
   return (
     <div className="countdown-timer-container">
-      {hasNextStatement && (
-        <div className="countdown-timer">
-          <div className="countdown-row">
-            <div className="countdown-bar-container">
-              <div
-                className="countdown-bar"
-                style={{
-                  width: `${progress}%`,
-                  transformOrigin: 'left center'
-                }}
-              />
-            </div>
-            {showNextStatementId && (
-              <span className="countdown-label">Next: #{nextStatement.statementId}</span>
-            )}
+      <div className="countdown-timer">
+        <div className="countdown-row">
+          <div className="countdown-bar-container">
+            <div
+              className="countdown-bar"
+              style={{
+                width: `${progress}%`,
+                transformOrigin: 'left center'
+              }}
+            />
           </div>
+          {hasNextStatement && showNextStatementId && (
+            <span className="countdown-label">Next: #{nextStatement.statementId}</span>
+          )}
         </div>
-      )}
+      </div>
     </div>
   );
 }
