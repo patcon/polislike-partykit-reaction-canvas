@@ -41,3 +41,50 @@ input, textarea, select {
 body {
   overscroll-behavior: none;
 }
+
+/* Statement Panel Styles */
+.statement-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 20px;
+  z-index: 2000;
+  border-bottom: 2px solid #333;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.statement-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.statement-id {
+  font-size: 14px;
+  font-weight: bold;
+  color: #888;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.statement-text {
+  font-size: 18px;
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .statement-panel {
+    padding: 15px;
+  }
+
+  .statement-text {
+    font-size: 16px;
+  }
+}

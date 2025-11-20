@@ -13,13 +13,21 @@ interface CursorEvent {
   position: CursorPosition;
 }
 
+interface ServerMessage {
+  type: 'connected' | 'activeStatementChanged';
+  connectionId?: string;
+  activeStatementId?: number;
+  statementId?: number;
+}
+
 type VoteState = 'agree' | 'disagree' | 'pass' | null;
 
 interface CanvasProps {
   room: string;
+  onActiveStatementChange: (statementId: number) => void;
 }
 
-export default function Canvas({ room }: CanvasProps) {
+export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
@@ -29,35 +37,44 @@ export default function Canvas({ room }: CanvasProps) {
     room: room,
     onMessage(evt) {
       try {
-        const event: CursorEvent = JSON.parse(evt.data);
-        // Check if event has the expected structure
-        if (event && event.position && event.position.userId !== userId) {
-          if (event.type === 'remove') {
-            // Remove cursor when user leaves or touch ends
-            setCursors(prev => {
-              const newCursors = new Map(prev);
-              newCursors.delete(event.position.userId);
-              return newCursors;
-            });
-          } else {
-            // Add or update cursor position
-            setCursors(prev => {
-              const newCursors = new Map(prev);
-              newCursors.set(event.position.userId, event.position);
-              return newCursors;
-            });
+        const data = JSON.parse(evt.data);
 
-            // Remove old cursor positions after 3 seconds of inactivity
-            setTimeout(() => {
+        // Handle server messages (connected, activeStatementChanged)
+        if (data.type === 'connected' && data.activeStatementId) {
+          onActiveStatementChange(data.activeStatementId);
+        } else if (data.type === 'activeStatementChanged') {
+          onActiveStatementChange(data.statementId);
+        } else if (data.position) {
+          // Handle cursor events
+          const event: CursorEvent = data;
+          if (event && event.position && event.position.userId !== userId) {
+            if (event.type === 'remove') {
+              // Remove cursor when user leaves or touch ends
               setCursors(prev => {
                 const newCursors = new Map(prev);
-                const cursor = newCursors.get(event.position.userId);
-                if (cursor && cursor.timestamp === event.position.timestamp) {
-                  newCursors.delete(event.position.userId);
-                }
+                newCursors.delete(event.position.userId);
                 return newCursors;
               });
-            }, 3000);
+            } else {
+              // Add or update cursor position
+              setCursors(prev => {
+                const newCursors = new Map(prev);
+                newCursors.set(event.position.userId, event.position);
+                return newCursors;
+              });
+
+              // Remove old cursor positions after 3 seconds of inactivity
+              setTimeout(() => {
+                setCursors(prev => {
+                  const newCursors = new Map(prev);
+                  const cursor = newCursors.get(event.position.userId);
+                  if (cursor && cursor.timestamp === event.position.timestamp) {
+                    newCursors.delete(event.position.userId);
+                  }
+                  return newCursors;
+                });
+              }, 3000);
+            }
           }
         }
       } catch (e) {
@@ -102,8 +119,8 @@ export default function Canvas({ room }: CanvasProps) {
     const width = canvas.width;
     const height = canvas.height;
 
-    // Define vote zones (corners)
-    const agreeZone = { x: width, y: 0 }; // top-right
+    // Define vote zones (corners) - adjust agree zone for statement panel
+    const agreeZone = { x: width, y: 80 }; // top-right, below statement panel
     const disagreeZone = { x: 0, y: height }; // bottom-left
     const passZone = { x: width, y: height }; // bottom-right
 
@@ -175,7 +192,7 @@ export default function Canvas({ room }: CanvasProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set canvas size to window size
+    // Set canvas size to full window size
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
@@ -198,9 +215,9 @@ export default function Canvas({ room }: CanvasProps) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Agree (top-right, green)
+    // Agree (top-right, green) - pushed down to account for statement panel
     ctx.fillStyle = userVoteState === 'agree' ? '#00AA00' : '#00FF00';
-    ctx.fillText('AGREE', canvas.width - 80, 40);
+    ctx.fillText('AGREE', canvas.width - 80, 120);
 
     // Disagree (bottom-left, red)
     ctx.fillStyle = userVoteState === 'disagree' ? '#AA0000' : '#FF0000';

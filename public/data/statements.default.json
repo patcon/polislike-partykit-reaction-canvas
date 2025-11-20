@@ -1,0 +1,47 @@
+[
+  {
+    "statementId": 1,
+    "timecode": 4,
+    "text": "I hate this timeline."
+  },
+  {
+    "statementId": 2,
+    "timecode": 12,
+    "text": "I was excited for this speech."
+  },
+  {
+    "statementId": 3,
+    "timecode": 35,
+    "text": "I feel that Trump is addressing his peers (past executives) in a respectful way."
+  },
+  {
+    "statementId": 4,
+    "timecode": 39,
+    "text": "I believe that a golden age of America began at that moment."
+  },
+  {
+    "statementId": 5,
+    "timecode": 52.8,
+    "text": "I believe that our country is flourishing."
+  },
+  {
+    "statementId": 6,
+    "timecode": 54.9,
+    "text": "I believe that our country is respected."
+  },
+  {
+    "statementId": 7,
+    "timecode": 56.9,
+    "text": "We are the envy of many nations."
+  },
+  {
+    "statementId": 8,
+    "timecode": 61.1,
+    "text": "I believe we were taken advantage of before Trump's election."
+  },
+  {
+    "statementId": 9,
+    "timecode": 71.4,
+    "text": "Trump has put America first."
+  }
+]
