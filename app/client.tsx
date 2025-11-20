@@ -39,6 +39,9 @@ function App() {
   const [allSelectedStatements, setAllSelectedStatements] = useState<QueueItem[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [activeStatementId, setActiveStatementId] = useState<number>(1);
+  const [previousActiveStatementId, setPreviousActiveStatementId] = useState<number | null>(null);
+  const [currentVoteState, setCurrentVoteState] = useState<'agree' | 'disagree' | 'pass' | null>(null);
+  const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
 
   // Set up socket connection for non-admin mode to receive queue updates
   const socket = usePartySocket({
@@ -87,13 +90,68 @@ function App() {
     return 1;
   };
 
+  // Function to submit vote
+  const submitVote = async (userId: string, statementId: number, voteState: 'agree' | 'disagree' | 'pass' | null) => {
+    if (!voteState || !statementId) {
+      console.log('Vote submission skipped: missing voteState or statementId', { voteState, statementId });
+      return;
+    }
+
+    const voteValue = voteState === 'agree' ? 1 : voteState === 'disagree' ? -1 : 0;
+
+    console.log('Attempting to submit vote:', { userId, statementId, voteState, voteValue });
+
+    try {
+      const url = `${window.location.protocol}//${window.location.host}/parties/main/${room}/vote`;
+      console.log('Vote submission URL:', url);
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId,
+          statementId,
+          vote: voteValue,
+          timestamp: Date.now()
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log(`Vote submitted successfully: ${voteState} for statement ${statementId}`, result);
+      } else {
+        const errorText = await response.text();
+        console.error('Failed to submit vote:', response.status, response.statusText, errorText);
+      }
+    } catch (error) {
+      console.error('Error submitting vote:', error);
+    }
+  };
+
+  // Function to handle vote state changes (visual feedback only, no immediate submission)
+  const handleVoteStateChange = (voteState: 'agree' | 'disagree' | 'pass' | null) => {
+    setCurrentVoteState(voteState);
+    // Note: We don't submit votes immediately on cursor movement
+    // Votes are only submitted when the statement changes
+  };
+
   // Update active statement based on timestamps
   useEffect(() => {
     const newActiveId = getCurrentActiveStatementId();
     if (newActiveId !== activeStatementId) {
+      // Submit vote for previous statement if we have one and a vote state
+      if (activeStatementId && currentVoteState) {
+        console.log(`Submitting vote via useEffect: ${currentVoteState} for statement ${activeStatementId}`);
+        submitVote(userId, activeStatementId, currentVoteState);
+      }
+
+      setPreviousActiveStatementId(activeStatementId);
       setActiveStatementId(newActiveId);
+      setCurrentVoteState(null); // Reset vote state for new statement
     }
-  }, [allSelectedStatements, currentTime]);
+  }, [allSelectedStatements, currentTime, currentVoteState, activeStatementId, userId]);
 
   // Set up a timer to check for statement updates every second
   useEffect(() => {
@@ -105,12 +163,20 @@ function App() {
 
       const newActiveId = getCurrentActiveStatementId();
       if (newActiveId !== activeStatementId) {
+        // Submit vote for previous statement if we have one and a vote state
+        if (activeStatementId && currentVoteState) {
+          console.log(`Submitting vote via timer: ${currentVoteState} for statement ${activeStatementId}`);
+          submitVote(userId, activeStatementId, currentVoteState);
+        }
+
+        setPreviousActiveStatementId(activeStatementId);
         setActiveStatementId(newActiveId);
+        setCurrentVoteState(null); // Reset vote state for new statement
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [allSelectedStatements, activeStatementId, adminMode]);
+  }, [allSelectedStatements, activeStatementId, adminMode, currentVoteState, userId]);
 
   const handleActiveStatementChange = (statementId: number) => {
     // This is now derived from queue data, so we don't need to set it manually
@@ -133,7 +199,12 @@ function App() {
         queue={getQueuedStatements()}
         currentTime={currentTime}
       />
-      <Canvas room={room} onActiveStatementChange={handleActiveStatementChange} />
+      <Canvas
+        room={room}
+        onActiveStatementChange={handleActiveStatementChange}
+        onVoteStateChange={handleVoteStateChange}
+        userId={userId}
+      />
     </div>
   );
 }

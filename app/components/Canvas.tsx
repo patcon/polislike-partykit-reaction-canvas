@@ -26,11 +26,12 @@ type VoteState = 'agree' | 'disagree' | 'pass' | null;
 interface CanvasProps {
   room: string;
   onActiveStatementChange: (statementId: number) => void;
+  onVoteStateChange: (voteState: VoteState) => void;
+  userId: string;
 }
 
-export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
+export default function Canvas({ room, onActiveStatementChange, onVoteStateChange, userId }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
-  const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
   const [dimensions, setDimensions] = useState({
@@ -163,6 +164,7 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
     // Update vote state based on cursor position
     const voteState = getVoteFromPosition(position.x, position.y);
     setUserVoteState(voteState);
+    onVoteStateChange(voteState);
   };
 
   const handleMouseLeave = () => {
@@ -172,6 +174,7 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
 
     // Reset vote state when mouse leaves
     setUserVoteState(null);
+    onVoteStateChange(null);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -181,6 +184,7 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
     // Update vote state based on touch position
     const voteState = getVoteFromPosition(position.x, position.y);
     setUserVoteState(voteState);
+    onVoteStateChange(voteState);
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -190,6 +194,7 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
     // Update vote state based on touch position
     const voteState = getVoteFromPosition(position.x, position.y);
     setUserVoteState(voteState);
+    onVoteStateChange(voteState);
   };
 
   const handleTouchEnd = () => {
@@ -199,6 +204,7 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
 
     // Reset vote state when touch ends
     setUserVoteState(null);
+    onVoteStateChange(null);
   };
 
   // Render with D3 SVG

@@ -13,6 +13,13 @@ interface QueueItem {
   displayTimestamp: number;
 }
 
+interface Vote {
+  userId: string;
+  statementId: number;
+  vote: number; // +1 for agree, -1 for disagree, 0 for pass
+  timestamp: number;
+}
+
 interface AdminPanelProps {
   room: string;
 }
@@ -22,6 +29,9 @@ export default function AdminPanel({ room }: AdminPanelProps) {
   const [allSelectedStatements, setAllSelectedStatements] = useState<QueueItem[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'statements' | 'votes'>('statements');
+  const [votes, setVotes] = useState<Vote[]>([]);
+  const [votesLoading, setVotesLoading] = useState(false);
 
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
@@ -66,6 +76,50 @@ export default function AdminPanel({ room }: AdminPanelProps) {
 
     loadStatements();
   }, []);
+
+  // Load votes data
+  const loadVotes = async () => {
+    setVotesLoading(true);
+    try {
+      const response = await fetch(`${window.location.protocol}//${window.location.host}/parties/main/${room}/votes`);
+      if (response.ok) {
+        const votesData = await response.json();
+        setVotes(votesData);
+      } else {
+        console.error('Failed to load votes:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Failed to load votes:', error);
+    } finally {
+      setVotesLoading(false);
+    }
+  };
+
+  // Clear all votes
+  const clearVotes = async () => {
+    try {
+      const response = await fetch(`${window.location.protocol}//${window.location.host}/parties/main/${room}/votes`, {
+        method: 'DELETE'
+      });
+      if (response.ok) {
+        const result = await response.json();
+        console.log('Votes cleared:', result.message);
+        // Refresh the votes list to show empty state
+        setVotes([]);
+      } else {
+        console.error('Failed to clear votes:', response.statusText);
+      }
+    } catch (error) {
+      console.error('Failed to clear votes:', error);
+    }
+  };
+
+  // Load votes when switching to votes tab
+  useEffect(() => {
+    if (activeTab === 'votes') {
+      loadVotes();
+    }
+  }, [activeTab, room]);
 
   // Set up a timer to update current time every second for real-time badge updates
   useEffect(() => {
@@ -142,6 +196,17 @@ export default function AdminPanel({ room }: AdminPanelProps) {
     return allSelectedStatements.filter(item => item.displayTimestamp > now);
   };
 
+  const getVoteText = (vote: number) => {
+    if (vote === 1) return 'Agree';
+    if (vote === -1) return 'Disagree';
+    if (vote === 0) return 'Pass';
+    return 'Unknown';
+  };
+
+  const formatTimestamp = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString();
+  };
+
   if (loading) {
     return (
       <div className="admin-panel">
@@ -157,41 +222,117 @@ export default function AdminPanel({ room }: AdminPanelProps) {
     <div className="admin-panel">
       <div className="admin-header">
         <h1>Admin Panel</h1>
-        <p>Click on a statement to add it to the queue (10 second delay)</p>
-        <p className="current-active">
-          Currently active: Statement #{getCurrentActiveStatementId()}
-        </p>
-        <CountdownTimer queue={getQueuedStatements()} currentTime={currentTime} showNextStatementId={true} />
-        {allSelectedStatements.length > 0 && (
-          <button className="clear-queue-btn" onClick={handleClearQueue}>
-            Clear Queue ({allSelectedStatements.length} items)
+
+        {/* Tab Navigation */}
+        <div className="tab-navigation">
+          <button
+            className={`tab-button ${activeTab === 'statements' ? 'active' : ''}`}
+            onClick={() => setActiveTab('statements')}
+          >
+            Statements
           </button>
+          <button
+            className={`tab-button ${activeTab === 'votes' ? 'active' : ''}`}
+            onClick={() => setActiveTab('votes')}
+          >
+            Votes
+          </button>
+        </div>
+
+        {activeTab === 'statements' && (
+          <>
+            <p>Click on a statement to add it to the queue (10 second delay)</p>
+            <p className="current-active">
+              Currently active: Statement #{getCurrentActiveStatementId()}
+            </p>
+            <CountdownTimer queue={getQueuedStatements()} currentTime={currentTime} showNextStatementId={true} />
+            {allSelectedStatements.length > 0 && (
+              <button className="clear-queue-btn" onClick={handleClearQueue}>
+                Clear Queue ({allSelectedStatements.length} items)
+              </button>
+            )}
+          </>
+        )}
+
+        {activeTab === 'votes' && (
+          <>
+            <p>All votes submitted by users</p>
+            <div className="votes-controls">
+              <button onClick={loadVotes} disabled={votesLoading} className="refresh-btn">
+                {votesLoading ? 'Loading...' : 'Refresh Votes'}
+              </button>
+              {votes.length > 0 && (
+                <button onClick={clearVotes} className="clear-votes-btn">
+                  Clear All Votes ({votes.length} votes)
+                </button>
+              )}
+            </div>
+          </>
         )}
       </div>
 
-      <div className="statements-list">
-        {statements.map((statement) => {
-          const status = getStatementStatus(statement.statementId);
-          return (
-            <div
-              key={statement.statementId}
-              className={`statement-item ${status ? `status-${status}` : ''}`}
-              onClick={() => handleStatementClick(statement.statementId)}
-            >
-              <div className="statement-header">
-                <span className="statement-id">#{statement.statementId}</span>
-                <span className="statement-timecode">@{statement.timecode}s</span>
-                {status && (
-                  <span className={`status-indicator status-${status}`}>
-                    {status.toUpperCase()}
-                  </span>
-                )}
+      {/* Statements Tab Content */}
+      {activeTab === 'statements' && (
+        <div className="statements-list">
+          {statements.map((statement) => {
+            const status = getStatementStatus(statement.statementId);
+            return (
+              <div
+                key={statement.statementId}
+                className={`statement-item ${status ? `status-${status}` : ''}`}
+                onClick={() => handleStatementClick(statement.statementId)}
+              >
+                <div className="statement-header">
+                  <span className="statement-id">#{statement.statementId}</span>
+                  <span className="statement-timecode">@{statement.timecode}s</span>
+                  {status && (
+                    <span className={`status-indicator status-${status}`}>
+                      {status.toUpperCase()}
+                    </span>
+                  )}
+                </div>
+                <div className="statement-text">{statement.text}</div>
               </div>
-              <div className="statement-text">{statement.text}</div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Votes Tab Content */}
+      {activeTab === 'votes' && (
+        <div className="votes-list">
+          {votesLoading ? (
+            <p>Loading votes...</p>
+          ) : votes.length === 0 ? (
+            <p>No votes recorded yet.</p>
+          ) : (
+            <div className="votes-table">
+              <table>
+                <thead>
+                  <tr>
+                    <th>User ID</th>
+                    <th>Statement ID</th>
+                    <th>Vote</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {votes.map((vote, index) => (
+                    <tr key={index}>
+                      <td>{vote.userId}</td>
+                      <td>#{vote.statementId}</td>
+                      <td className={`vote-${vote.vote === 1 ? 'agree' : vote.vote === -1 ? 'disagree' : 'pass'}`}>
+                        {getVoteText(vote.vote)}
+                      </td>
+                      <td>{formatTimestamp(vote.timestamp)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

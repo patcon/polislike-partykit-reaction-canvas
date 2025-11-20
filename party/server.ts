@@ -31,11 +31,19 @@ interface ClearQueueEvent {
   type: 'clearQueue';
 }
 
+interface Vote {
+  userId: string;
+  statementId: number;
+  vote: number; // +1 for agree, -1 for disagree, 0 for pass
+  timestamp: number;
+}
+
 type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent;
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
   private allSelectedStatements: QueueItem[] = []; // All statements that have been selected
+  private votes: Vote[] = []; // Store all votes
 
   constructor(readonly room: Party.Room) {}
 
@@ -106,13 +114,13 @@ export default class Server implements Party.Server {
 
   private clearQueue() {
     const now = Date.now();
-    
+
     // Keep only the currently active statement (most recent past statement)
     // Remove all future queued statements
     const pastStatements = this.allSelectedStatements
       .filter(item => item.displayTimestamp <= now)
       .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
-    
+
     // Keep only the most recent past statement (current active) if it exists
     this.allSelectedStatements = pastStatements.length > 0 ? [pastStatements[0]] : [];
 
@@ -125,8 +133,70 @@ export default class Server implements Party.Server {
   }
 
 
-  onRequest(req: Party.Request) {
-    // Handle HTTP requests if needed
+  async onRequest(request: Party.Request) {
+    const url = new URL(request.url);
+    console.log(`[VOTE] Incoming request: ${request.method} ${url.pathname}`);
+
+    if (request.method === "POST" && url.pathname.endsWith("/vote")) {
+      console.log(`[VOTE] Processing vote submission...`);
+      try {
+        const voteData = await request.json<Vote>();
+        console.log(`[VOTE] Received vote data:`, JSON.stringify(voteData, null, 2));
+
+        // Validate vote data
+        if (!voteData.userId || typeof voteData.statementId !== 'number' ||
+            typeof voteData.vote !== 'number' || ![-1, 0, 1].includes(voteData.vote)) {
+          console.log(`[VOTE] Invalid vote data - validation failed:`, {
+            hasUserId: !!voteData.userId,
+            statementIdType: typeof voteData.statementId,
+            voteType: typeof voteData.vote,
+            voteValue: voteData.vote,
+            isValidVoteValue: [-1, 0, 1].includes(voteData.vote)
+          });
+          return new Response("Invalid vote data", { status: 400 });
+        }
+
+        // Add timestamp if not provided
+        if (!voteData.timestamp) {
+          voteData.timestamp = Date.now();
+          console.log(`[VOTE] Added timestamp: ${voteData.timestamp}`);
+        }
+
+        // Store the vote
+        this.votes.push(voteData);
+        console.log(`[VOTE] Vote stored successfully. Total votes: ${this.votes.length}`);
+        console.log(`[VOTE] Vote details: User ${voteData.userId} voted ${voteData.vote} (${voteData.vote === 1 ? 'AGREE' : voteData.vote === -1 ? 'DISAGREE' : 'PASS'}) on statement ${voteData.statementId} at ${new Date(voteData.timestamp).toISOString()}`);
+
+        return new Response(JSON.stringify({ success: true, voteCount: this.votes.length }), {
+          headers: { "Content-Type": "application/json" }
+        });
+      } catch (error) {
+        console.error("[VOTE] Error processing vote:", error);
+        console.error("[VOTE] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+        return new Response("Error processing vote", { status: 500 });
+      }
+    }
+
+    if (request.method === "GET" && url.pathname.endsWith("/votes")) {
+      console.log(`[VOTE] Retrieving votes for admin panel. Total votes: ${this.votes.length}`);
+      // Return all votes for admin panel
+      return new Response(JSON.stringify(this.votes), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    if (request.method === "DELETE" && url.pathname.endsWith("/votes")) {
+      console.log(`[VOTE] Clearing all votes. Previous count: ${this.votes.length}`);
+      // Clear all votes
+      this.votes = [];
+      console.log(`[VOTE] All votes cleared successfully`);
+      return new Response(JSON.stringify({ success: true, message: "All votes cleared" }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    // Default response
+    console.log(`[VOTE] Default response for ${request.method} ${url.pathname}`);
     return new Response("Cursor tracking server is running", {
       headers: { "Content-Type": "text/plain" }
     });
