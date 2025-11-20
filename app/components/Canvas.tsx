@@ -34,6 +34,7 @@ export default function Canvas({ room, onActiveStatementChange }: CanvasProps) {
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
 
   const socket = usePartySocket({
+    host: process.env.PARTYKIT_HOST,
     room: room,
     onMessage(evt) {
       try {
