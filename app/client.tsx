@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { useState } from "react";
 import Canvas from "./components/Canvas";
 import StatementPanel from "./components/StatementPanel";
+import AdminPanel from "./components/AdminPanel";
 
 // Extract room from URL parameters, default to "default"
 function getRoomFromUrl(): string {
@@ -20,14 +21,31 @@ function getRoomFromUrl(): string {
   return room;
 }
 
+// Check if admin mode is enabled
+function isAdminMode(): boolean {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('admin') === 'true';
+}
+
 function App() {
   const room = getRoomFromUrl();
+  const adminMode = isAdminMode();
   const [activeStatementId, setActiveStatementId] = useState<number | null>(1);
 
   const handleActiveStatementChange = (statementId: number) => {
     setActiveStatementId(statementId);
   };
 
+  // Render admin panel if admin mode is enabled
+  if (adminMode) {
+    return (
+      <div>
+        <AdminPanel room={room} />
+      </div>
+    );
+  }
+
+  // Render normal interface
   return (
     <div>
       <StatementPanel activeStatementId={activeStatementId} />
