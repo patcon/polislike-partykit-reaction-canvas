@@ -1,4 +1,5 @@
 import type * as Party from "partykit/server";
+import { createNoise2D } from 'simplex-noise';
 
 interface CursorPosition {
   x: number;
@@ -59,8 +60,17 @@ export default class Server implements Party.Server {
     isMoving: boolean;
     moveStartTime: number;
     moveDuration: number;
+    voteArea: { x: number; y: number }; // Current vote area for random motion
+    noiseOffsetX: number; // Unique noise offset for X axis
+    noiseOffsetY: number; // Unique noise offset for Y axis
+    restingSpeed: number; // Individual resting movement speed multiplier
+    restingRadius: number; // Individual resting movement radius
+    transitionStartTime: number; // When transition to resting began
+    transitionDuration: number; // How long the transition takes
+    finalMovePosition: { x: number; y: number }; // Position when movement ended
   }> = [];
   private ghostCursorInterval?: NodeJS.Timeout;
+  private noise2D = createNoise2D();
 
   constructor(readonly room: Party.Room) {}
 
@@ -253,6 +263,17 @@ export default class Server implements Party.Server {
 
       const targetArea = voteAreas[Math.floor(Math.random() * voteAreas.length)];
 
+      // Generate individual resting characteristics
+      // Most cursors (70%) will have slow movement, some (30%) will have faster movement
+      const isActiveCursor = Math.random() < 0.3;
+      const restingSpeed = isActiveCursor ?
+        0.8 + Math.random() * 0.7 : // Active cursors: 0.8-1.5x speed
+        0.2 + Math.random() * 0.4;  // Most cursors: 0.2-0.6x speed
+
+      const restingRadius = isActiveCursor ?
+        4 + Math.random() * 4 : // Active cursors: 4-8% radius
+        2 + Math.random() * 3;  // Most cursors: 2-5% radius
+
       this.ghostCursors.push({
         id: this.generateRandomUserId(),
         x: startX,
@@ -261,7 +282,15 @@ export default class Server implements Party.Server {
         targetY: targetArea.y,
         isMoving: true,
         moveStartTime: Date.now() + Math.random() * 2000, // Stagger start times
-        moveDuration: 3000 + Math.random() * 2000 // 3-5 seconds to reach target
+        moveDuration: 3000 + Math.random() * 2000, // 3-5 seconds to reach target
+        voteArea: { x: targetArea.x, y: targetArea.y },
+        noiseOffsetX: Math.random() * 1000, // Unique noise offset for each cursor
+        noiseOffsetY: Math.random() * 1000,
+        restingSpeed: restingSpeed,
+        restingRadius: restingRadius,
+        transitionStartTime: 0,
+        transitionDuration: 2000, // 2 second transition to resting motion
+        finalMovePosition: { x: startX, y: startY }
       });
     }
   }
@@ -309,7 +338,37 @@ export default class Server implements Party.Server {
 
         if (distanceToTarget < 2 || progress >= 1) {
           cursor.isMoving = false;
+          // Start transition to resting motion
+          cursor.transitionStartTime = now;
+          cursor.finalMovePosition = { x: cursor.x, y: cursor.y };
+          cursor.voteArea = { x: cursor.x, y: cursor.y };
         }
+      } else if (!cursor.isMoving) {
+        // Handle transition from movement to resting motion
+        const transitionElapsed = now - cursor.transitionStartTime;
+        const transitionProgress = Math.min(transitionElapsed / cursor.transitionDuration, 1);
+
+        // Generate noise-based target position
+        const time = now * 0.0005 * cursor.restingSpeed;
+        const noiseX = this.noise2D(cursor.noiseOffsetX, time);
+        const noiseY = this.noise2D(cursor.noiseOffsetY, time);
+        const noiseTargetX = cursor.voteArea.x + (noiseX * cursor.restingRadius);
+        const noiseTargetY = cursor.voteArea.y + (noiseY * cursor.restingRadius);
+
+        if (transitionProgress < 1) {
+          // During transition: blend from final move position to noise position
+          const easeProgress = this.easeInOutCubic(transitionProgress);
+          cursor.x = cursor.finalMovePosition.x + (noiseTargetX - cursor.finalMovePosition.x) * easeProgress;
+          cursor.y = cursor.finalMovePosition.y + (noiseTargetY - cursor.finalMovePosition.y) * easeProgress;
+        } else {
+          // After transition: use pure noise motion
+          cursor.x = noiseTargetX;
+          cursor.y = noiseTargetY;
+        }
+
+        // Ensure cursors stay within canvas bounds
+        cursor.x = Math.max(0, Math.min(100, cursor.x));
+        cursor.y = Math.max(0, Math.min(100, cursor.y));
       }
 
       // Always broadcast cursor position to prevent 3-second timeout removal
@@ -365,6 +424,8 @@ export default class Server implements Party.Server {
 
       // Ensure minimum movement duration of 1 second
       cursor.moveDuration = Math.max(1000, availableMoveDuration);
+
+      // The vote area will be updated when the cursor reaches its target
     });
   }
 
