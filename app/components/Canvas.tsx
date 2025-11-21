@@ -29,9 +29,10 @@ interface CanvasProps {
   onVoteStateChange: (voteState: VoteState) => void;
   userId: string;
   voteStateRef?: React.MutableRefObject<VoteState>;
+  colorCursorsByVote?: boolean; // Optional prop to enable vote-based coloring
 }
 
-export default function Canvas({ room, onActiveStatementChange, onVoteStateChange, userId, voteStateRef }: CanvasProps) {
+export default function Canvas({ room, onActiveStatementChange, onVoteStateChange, userId, voteStateRef, colorCursorsByVote = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
@@ -300,7 +301,9 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
       x: (cursor.x / 100) * dimensions.width, // Convert from 0-100 to pixel coordinates
       y: (cursor.y / 100) * dimensions.height, // Convert from 0-100 to pixel coordinates
       timestamp: cursor.timestamp,
-      userId: cursor.userId
+      userId: cursor.userId,
+      // Calculate vote state on client side for coloring
+      voteState: colorCursorsByVote ? getVoteFromPosition(cursor.x, cursor.y) : null
     }));
 
     const cursorGroups = svg.selectAll('.cursor-group')
@@ -316,10 +319,26 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
       .attr('cy', d => d.y)
       .attr('r', cursorRadius)
       .attr('fill', (d: any) => {
-        // Generate a consistent color for each user
+        // Use region-based colors if enabled and vote state is available (for ghost cursors)
+        if (colorCursorsByVote && d.voteState) {
+          switch (d.voteState) {
+            case 'agree':
+              return 'rgba(0, 255, 0, 0.8)'; // Green for agree
+            case 'disagree':
+              return 'rgba(255, 0, 0, 0.8)'; // Red for disagree
+            case 'pass':
+              return 'rgba(255, 255, 0, 0.8)'; // Yellow for pass
+            default:
+              return 'rgba(128, 128, 128, 0.8)'; // Gray for null/unknown
+          }
+        }
+
+        // Generate a consistent color for each user (for real user cursors or when vote coloring is disabled)
         const hue = d.cursorUserId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 360;
         return `hsl(${hue}, 70%, 50%)`;
-      });
+      })
+      .attr('stroke', '#000000') // Black border
+      .attr('stroke-width', 2); // 2px border width
 
     // Add user ID labels with responsive font size and positioning
     const cursorLabelFontSize = Math.min(dimensions.width, dimensions.height) * 0.015; // 1.5% of smaller dimension

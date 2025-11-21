@@ -228,6 +228,7 @@ function App() {
           onVoteStateChange={handleVoteStateChange}
           userId={userId}
           voteStateRef={canvasVoteStateRef}
+          colorCursorsByVote={true}
         />
       </div>
     </div>
