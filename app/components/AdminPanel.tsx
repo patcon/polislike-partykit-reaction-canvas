@@ -32,6 +32,7 @@ export default function AdminPanel({ room }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'statements' | 'votes'>('statements');
   const [votes, setVotes] = useState<Vote[]>([]);
   const [votesLoading, setVotesLoading] = useState(false);
+  const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(false);
 
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
@@ -48,11 +49,16 @@ export default function AdminPanel({ room }: AdminPanelProps) {
           if (data.currentTime) {
             setCurrentTime(data.currentTime);
           }
+          if (typeof data.ghostCursorsEnabled === 'boolean') {
+            setGhostCursorsEnabled(data.ghostCursorsEnabled);
+          }
         } else if (data.type === 'queueUpdated') {
           if (data.allSelectedStatements) {
             setAllSelectedStatements(data.allSelectedStatements);
           }
           setCurrentTime(data.currentTime);
+        } else if (data.type === 'ghostCursorsChanged') {
+          setGhostCursorsEnabled(data.enabled);
         }
       } catch (e) {
         console.error('Failed to parse message:', e);
@@ -142,6 +148,15 @@ export default function AdminPanel({ room }: AdminPanelProps) {
     // Send clear queue command to server
     socket.send(JSON.stringify({
       type: 'clearQueue'
+    }));
+  };
+
+  const handleGhostCursorsChange = (enabled: boolean) => {
+    setGhostCursorsEnabled(enabled);
+    // Send ghost cursor setting to server
+    socket.send(JSON.stringify({
+      type: 'setGhostCursors',
+      enabled: enabled
     }));
   };
 
@@ -280,6 +295,22 @@ export default function AdminPanel({ room }: AdminPanelProps) {
               >
                 End Voting
               </button>
+            </div>
+
+            {/* Ghost Cursors Control */}
+            <div className="ghost-cursors-control">
+              <label className="ghost-cursors-checkbox">
+                <input
+                  type="checkbox"
+                  checked={ghostCursorsEnabled}
+                  onChange={(e) => handleGhostCursorsChange(e.target.checked)}
+                />
+                <span className="checkmark"></span>
+                Enable 10 Ghost Cursors
+              </label>
+              <p className="ghost-cursors-description">
+                Ghost cursors will randomly move between voting areas when statements change
+              </p>
             </div>
           </>
         )}

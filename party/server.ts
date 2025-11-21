@@ -31,6 +31,11 @@ interface ClearQueueEvent {
   type: 'clearQueue';
 }
 
+interface GhostCursorSettingEvent {
+  type: 'setGhostCursors';
+  enabled: boolean;
+}
+
 interface Vote {
   userId: string;
   statementId: number;
@@ -38,12 +43,24 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | GhostCursorSettingEvent;
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
   private allSelectedStatements: QueueItem[] = []; // All statements that have been selected
   private votes: Vote[] = []; // Store all votes
+  private ghostCursorsEnabled: boolean = false; // Ghost cursor setting
+  private ghostCursors: Array<{
+    id: string;
+    x: number;
+    y: number;
+    targetX: number;
+    targetY: number;
+    isMoving: boolean;
+    moveStartTime: number;
+    moveDuration: number;
+  }> = [];
+  private ghostCursorInterval?: NodeJS.Timeout;
 
   constructor(readonly room: Party.Room) {}
 
@@ -62,7 +79,8 @@ export default class Server implements Party.Server {
       connectionId: conn.id,
       activeStatementId: this.activeStatementId,
       allSelectedStatements: this.allSelectedStatements,
-      currentTime: Date.now()
+      currentTime: Date.now(),
+      ghostCursorsEnabled: this.ghostCursorsEnabled
     }));
   }
 
@@ -92,6 +110,10 @@ export default class Server implements Party.Server {
         // Handle clearing the queue
         console.log(`Clear queue from ${sender.id}`);
         this.clearQueue();
+      } else if (event.type === 'setGhostCursors') {
+        // Handle ghost cursor setting changes
+        console.log(`Ghost cursor setting from ${sender.id}:`, event.enabled);
+        this.setGhostCursorsEnabled(event.enabled);
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
@@ -157,6 +179,206 @@ export default class Server implements Party.Server {
       allSelectedStatements: this.allSelectedStatements,
       currentTime: Date.now()
     }));
+  }
+
+  private setGhostCursorsEnabled(enabled: boolean) {
+    this.ghostCursorsEnabled = enabled;
+
+    if (enabled) {
+      this.initializeGhostCursors();
+      this.startGhostCursorAnimation();
+    } else {
+      this.stopGhostCursorAnimation();
+      // Send remove events for all current ghost cursors
+      this.ghostCursors.forEach(cursor => {
+        this.room.broadcast(JSON.stringify({
+          type: 'remove',
+          position: {
+            x: 0,
+            y: 0,
+            timestamp: Date.now(),
+            userId: cursor.id,
+          }
+        }));
+      });
+      this.ghostCursors = [];
+    }
+
+    // Broadcast the ghost cursor setting change to all connections
+    this.room.broadcast(JSON.stringify({
+      type: 'ghostCursorsChanged',
+      enabled: this.ghostCursorsEnabled
+    }));
+  }
+
+  private generateRandomUserId(): string {
+    // Generate a random user ID similar to real users (9 characters)
+    return Math.random().toString(36).substr(2, 9);
+  }
+
+  private initializeGhostCursors() {
+    this.ghostCursors = [];
+
+    // Define vote areas (normalized coordinates 0-100)
+    const voteAreas = [
+      { x: 97, y: 8 },   // AGREE: top-right
+      { x: 3, y: 85 },   // DISAGREE: bottom-left
+      { x: 97, y: 85 }   // PASS: bottom-right
+    ];
+
+    for (let i = 0; i < 10; i++) {
+      // Start from random edge positions
+      const side = Math.floor(Math.random() * 4);
+      let startX, startY;
+
+      switch (side) {
+        case 0: // top
+          startX = Math.random() * 100;
+          startY = -5;
+          break;
+        case 1: // right
+          startX = 105;
+          startY = Math.random() * 100;
+          break;
+        case 2: // bottom
+          startX = Math.random() * 100;
+          startY = 105;
+          break;
+        case 3: // left
+        default:
+          startX = -5;
+          startY = Math.random() * 100;
+          break;
+      }
+
+      const targetArea = voteAreas[Math.floor(Math.random() * voteAreas.length)];
+
+      this.ghostCursors.push({
+        id: this.generateRandomUserId(),
+        x: startX,
+        y: startY,
+        targetX: targetArea.x,
+        targetY: targetArea.y,
+        isMoving: true,
+        moveStartTime: Date.now() + Math.random() * 2000, // Stagger start times
+        moveDuration: 3000 + Math.random() * 2000 // 3-5 seconds to reach target
+      });
+    }
+  }
+
+  private startGhostCursorAnimation() {
+    if (this.ghostCursorInterval) {
+      clearInterval(this.ghostCursorInterval);
+    }
+
+    this.ghostCursorInterval = setInterval(() => {
+      this.checkForStatementChanges();
+      this.updateGhostCursors();
+    }, 100); // Update every 100ms for smooth animation
+  }
+
+  private stopGhostCursorAnimation() {
+    if (this.ghostCursorInterval) {
+      clearInterval(this.ghostCursorInterval);
+      this.ghostCursorInterval = undefined;
+    }
+  }
+
+  private updateGhostCursors() {
+    if (!this.ghostCursorsEnabled) return;
+
+    const now = Date.now();
+
+    this.ghostCursors.forEach(cursor => {
+      if (cursor.isMoving && now >= cursor.moveStartTime) {
+        const elapsed = now - cursor.moveStartTime;
+        const progress = Math.min(elapsed / cursor.moveDuration, 1);
+
+        // Use easing function for more natural movement
+        const easeProgress = this.easeInOutCubic(progress);
+
+        // Interpolate position
+        cursor.x = cursor.x + (cursor.targetX - cursor.x) * easeProgress * 0.1;
+        cursor.y = cursor.y + (cursor.targetY - cursor.y) * easeProgress * 0.1;
+
+        // Check if reached target
+        const distanceToTarget = Math.sqrt(
+          Math.pow(cursor.targetX - cursor.x, 2) +
+          Math.pow(cursor.targetY - cursor.y, 2)
+        );
+
+        if (distanceToTarget < 2 || progress >= 1) {
+          cursor.isMoving = false;
+        }
+      }
+
+      // Always broadcast cursor position to prevent 3-second timeout removal
+      this.room.broadcast(JSON.stringify({
+        type: 'move',
+        position: {
+          x: Math.max(0, Math.min(100, cursor.x)),
+          y: Math.max(0, Math.min(100, cursor.y)),
+          timestamp: now,
+          userId: cursor.id,
+        }
+      }));
+    });
+  }
+
+  private easeInOutCubic(t: number): number {
+    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+  }
+
+  private moveGhostCursorsToNewTargets() {
+    if (!this.ghostCursorsEnabled) return;
+
+    const voteAreas = [
+      { x: 97, y: 8 },   // AGREE: top-right
+      { x: 3, y: 85 },   // DISAGREE: bottom-left
+      { x: 97, y: 85 }   // PASS: bottom-right
+    ];
+
+    // Calculate the time until the next statement
+    const now = Date.now();
+    const nextStatement = this.allSelectedStatements
+      .filter(item => item.displayTimestamp > now)
+      .sort((a, b) => a.displayTimestamp - b.displayTimestamp)[0];
+
+    // Default to 10 seconds if no next statement (standard statement duration)
+    const timeUntilNext = nextStatement ? nextStatement.displayTimestamp - now : 10000;
+
+    this.ghostCursors.forEach(cursor => {
+      const newTarget = voteAreas[Math.floor(Math.random() * voteAreas.length)];
+      cursor.targetX = newTarget.x;
+      cursor.targetY = newTarget.y;
+      cursor.isMoving = true;
+
+      // Random delay from 0 to 20% of statement duration before starting to move
+      const maxStartDelay = timeUntilNext * 0.2;
+      const startDelay = Math.random() * maxStartDelay;
+      cursor.moveStartTime = now + startDelay;
+
+      // Finish moving 0 to 20% of total time before the next statement
+      const maxEarlyFinish = timeUntilNext * 0.2;
+      const earlyFinish = Math.random() * maxEarlyFinish;
+      const availableMoveDuration = timeUntilNext - startDelay - earlyFinish;
+
+      // Ensure minimum movement duration of 1 second
+      cursor.moveDuration = Math.max(1000, availableMoveDuration);
+    });
+  }
+
+  private lastActiveStatementId: number = 1;
+
+  private checkForStatementChanges() {
+    if (!this.ghostCursorsEnabled) return;
+
+    const currentActiveId = this.getCurrentActiveStatementId();
+    if (currentActiveId !== this.lastActiveStatementId) {
+      console.log(`Statement changed from ${this.lastActiveStatementId} to ${currentActiveId}, moving ghost cursors`);
+      this.lastActiveStatementId = currentActiveId;
+      this.moveGhostCursorsToNewTargets();
+    }
   }
 
 

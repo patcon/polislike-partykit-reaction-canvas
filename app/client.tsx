@@ -43,6 +43,7 @@ function App() {
   const [currentVoteState, setCurrentVoteState] = useState<'agree' | 'disagree' | 'pass' | null>(null);
   const canvasVoteStateRef = useRef<'agree' | 'disagree' | 'pass' | null>(null);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
+  const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(false);
 
   // Set up socket connection for non-admin mode to receive queue updates
   const socket = usePartySocket({
@@ -59,11 +60,16 @@ function App() {
           if (data.currentTime) {
             setCurrentTime(data.currentTime);
           }
+          if (typeof data.ghostCursorsEnabled === 'boolean') {
+            setGhostCursorsEnabled(data.ghostCursorsEnabled);
+          }
         } else if (data.type === 'queueUpdated') {
           if (data.allSelectedStatements) {
             setAllSelectedStatements(data.allSelectedStatements);
           }
           setCurrentTime(data.currentTime);
+        } else if (data.type === 'ghostCursorsChanged') {
+          setGhostCursorsEnabled(data.enabled);
         }
       } catch (e) {
         console.error('Failed to parse message:', e);
