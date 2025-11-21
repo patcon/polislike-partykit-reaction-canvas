@@ -33,9 +33,19 @@ function isAdminMode(): boolean {
   return urlParams.get('admin') === 'true';
 }
 
+// Check if ghost cursors should be enabled from URL parameter
+function getGhostCursorsFromUrl(): boolean | null {
+  const urlParams = new URLSearchParams(window.location.search);
+  const ghostCursorsParam = urlParams.get('ghostCursors');
+  if (ghostCursorsParam === 'true') return true;
+  if (ghostCursorsParam === 'false') return false;
+  return null; // No parameter specified, use server default
+}
+
 function App() {
   const room = getRoomFromUrl();
   const adminMode = isAdminMode();
+  const ghostCursorsFromUrl = getGhostCursorsFromUrl();
   const [allSelectedStatements, setAllSelectedStatements] = useState<QueueItem[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [activeStatementId, setActiveStatementId] = useState<number>(1);
@@ -43,7 +53,7 @@ function App() {
   const [currentVoteState, setCurrentVoteState] = useState<'agree' | 'disagree' | 'pass' | null>(null);
   const canvasVoteStateRef = useRef<'agree' | 'disagree' | 'pass' | null>(null);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
-  const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(false);
+  const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(ghostCursorsFromUrl ?? false);
 
   // Set up socket connection for non-admin mode to receive queue updates
   const socket = usePartySocket({
@@ -76,6 +86,16 @@ function App() {
       }
     },
   });
+
+  // Send ghost cursors setting to server when component mounts if specified via URL
+  useEffect(() => {
+    if (ghostCursorsFromUrl !== null && socket) {
+      socket.send(JSON.stringify({
+        type: 'setGhostCursors',
+        enabled: ghostCursorsFromUrl
+      }));
+    }
+  }, [socket, ghostCursorsFromUrl]);
 
   const getQueuedStatements = () => {
     const now = Date.now();

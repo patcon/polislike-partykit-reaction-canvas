@@ -238,9 +238,9 @@ export default class Server implements Party.Server {
 
     // Define vote areas (normalized coordinates 0-100) - moved inward for natural thumb placement
     const voteAreas = [
-      { x: 80, y: 20 },   // AGREE: top-right (moved inward)
-      { x: 20, y: 70 },   // DISAGREE: bottom-left (moved inward)
-      { x: 80, y: 70 }    // PASS: bottom-right (moved inward)
+      { x: 70, y: 20 },   // AGREE: top-right (moved inward)
+      { x: 20, y: 60 },   // DISAGREE: bottom-left (moved inward)
+      { x: 90, y: 70 }    // PASS: bottom-right (moved inward)
     ];
 
     for (let i = 0; i < 10; i++) {
@@ -399,9 +399,9 @@ export default class Server implements Party.Server {
     if (!this.ghostCursorsEnabled) return;
 
     const voteAreas = [
-      { x: 80, y: 20 },   // AGREE: top-right (moved inward)
-      { x: 20, y: 70 },   // DISAGREE: bottom-left (moved inward)
-      { x: 80, y: 70 }    // PASS: bottom-right (moved inward)
+      { x: 70, y: 20 },   // AGREE: top-right (moved inward)
+      { x: 20, y: 60 },   // DISAGREE: bottom-left (moved inward)
+      { x: 90, y: 70 }    // PASS: bottom-right (moved inward)
     ];
 
     // Calculate the time until the next statement
