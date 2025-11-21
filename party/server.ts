@@ -1,4 +1,5 @@
 import type * as Party from "partykit/server";
+// Ghost cursor imports (for demo purposes - can be easily removed)
 import { createNoise2D } from 'simplex-noise';
 
 interface CursorPosition {
@@ -50,7 +51,9 @@ export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
   private allSelectedStatements: QueueItem[] = []; // All statements that have been selected
   private votes: Vote[] = []; // Store all votes
-  private ghostCursorsEnabled: boolean = false; // Ghost cursor setting
+
+  // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
+  private ghostCursorsEnabled: boolean = false;
   private ghostCursors: Array<{
     id: string;
     x: number;
@@ -71,6 +74,8 @@ export default class Server implements Party.Server {
   }> = [];
   private ghostCursorInterval?: NodeJS.Timeout;
   private noise2D = createNoise2D();
+  private lastActiveStatementId: number = 1;
+  // ===== END GHOST CURSOR DEMO CODE =====
 
   constructor(readonly room: Party.Room) {}
 
@@ -190,6 +195,8 @@ export default class Server implements Party.Server {
       currentTime: Date.now()
     }));
   }
+
+  // ===== GHOST CURSOR DEMO METHODS (can be easily removed) =====
 
   private setGhostCursorsEnabled(enabled: boolean) {
     this.ghostCursorsEnabled = enabled;
@@ -429,8 +436,6 @@ export default class Server implements Party.Server {
     });
   }
 
-  private lastActiveStatementId: number = 1;
-
   private checkForStatementChanges() {
     if (!this.ghostCursorsEnabled) return;
 
@@ -442,6 +447,7 @@ export default class Server implements Party.Server {
     }
   }
 
+  // ===== END GHOST CURSOR DEMO METHODS =====
 
   async onRequest(request: Party.Request) {
     const url = new URL(request.url);
