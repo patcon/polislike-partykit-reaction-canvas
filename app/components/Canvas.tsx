@@ -14,35 +14,22 @@ interface CursorEvent {
   position: CursorPosition;
 }
 
-interface ServerMessage {
-  type: 'connected' | 'activeStatementChanged';
-  connectionId?: string;
-  activeStatementId?: number;
-  statementId?: number;
-}
-
 type VoteState = 'agree' | 'disagree' | 'pass' | null;
 
 interface CanvasProps {
   room: string;
-  onActiveStatementChange: (statementId: number) => void;
-  onVoteStateChange: (voteState: VoteState) => void;
   userId: string;
-  voteStateRef?: React.MutableRefObject<VoteState>;
   colorCursorsByVote?: boolean; // Optional prop to enable vote-based coloring
+  currentVoteState?: VoteState; // Current vote state for background color
 }
 
-export default function Canvas({ room, onActiveStatementChange, onVoteStateChange, userId, voteStateRef, colorCursorsByVote = false }: CanvasProps) {
+export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
-  const [userVoteState, setUserVoteState] = useState<VoteState>(null);
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
     height: window.innerHeight - 140 // Canvas height is viewport minus statement panel height
   });
-  const [isDragging, setIsDragging] = useState(false);
-  const [hasMovedDuringTouch, setHasMovedDuringTouch] = useState(false);
-  const currentVoteStateRef = useRef<VoteState>(null);
 
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
@@ -51,13 +38,8 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
       try {
         const data = JSON.parse(evt.data);
 
-        // Handle server messages (connected, activeStatementChanged)
-        if (data.type === 'connected' && data.activeStatementId) {
-          onActiveStatementChange(data.activeStatementId);
-        } else if (data.type === 'activeStatementChanged') {
-          onActiveStatementChange(data.statementId);
-        } else if (data.position) {
-          // Handle cursor events
+        // Handle cursor events only
+        if (data.position) {
           const event: CursorEvent = data;
           if (event && event.position && event.position.userId !== userId) {
             if (event.type === 'remove') {
@@ -94,47 +76,6 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
       }
     },
   });
-
-  const sendCursorEvent = (type: CursorEvent['type'], position: CursorPosition) => {
-    const event: CursorEvent = { type, position };
-    socket.send(JSON.stringify(event));
-  };
-
-  const getCursorPosition = (e: React.MouseEvent | React.TouchEvent): CursorPosition => {
-    const svg = svgRef.current;
-    if (!svg) return { x: 0, y: 0, timestamp: Date.now(), userId };
-
-    const rect = svg.getBoundingClientRect();
-    let clientX: number, clientY: number;
-
-    if ('touches' in e) {
-      // For touch events, prioritize touches over changedTouches for active touches
-      // Use the first available touch from either touches or changedTouches
-      const touch = (e.touches && e.touches.length > 0) ? e.touches[0] :
-                   (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : null;
-
-      if (!touch) return { x: 0, y: 0, timestamp: Date.now(), userId };
-
-      clientX = touch.clientX;
-      clientY = touch.clientY;
-    } else {
-      clientX = e.clientX;
-      clientY = e.clientY;
-    }
-
-    // Convert to normalized coordinates (0-100)
-    const pixelX = clientX - rect.left;
-    const pixelY = clientY - rect.top;
-    const normalizedX = (pixelX / dimensions.width) * 100;
-    const normalizedY = (pixelY / dimensions.height) * 100;
-
-    return {
-      x: normalizedX,
-      y: normalizedY,
-      timestamp: Date.now(),
-      userId
-    };
-  };
 
   const getVoteFromPosition = (normalizedX: number, normalizedY: number): VoteState => {
     // Input coordinates are already normalized (0-100), convert to 0-1 range for calculations
@@ -182,32 +123,7 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     return null;
   };
 
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const position = getCursorPosition(e);
-    sendCursorEvent('move', position);
-
-    // Update vote state based on cursor position
-    const voteState = getVoteFromPosition(position.x, position.y);
-    setUserVoteState(voteState);
-    currentVoteStateRef.current = voteState;
-    if (voteStateRef) voteStateRef.current = voteState;
-    onVoteStateChange(voteState);
-  };
-
-  const handleMouseLeave = () => {
-    // Send remove event when mouse leaves the canvas
-    const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
-    sendCursorEvent('remove', position);
-
-    // Reset vote state when mouse leaves
-    setUserVoteState(null);
-    currentVoteStateRef.current = null;
-    if (voteStateRef) voteStateRef.current = null;
-    onVoteStateChange(null);
-  };
-
-  // Direct DOM manipulation to avoid re-renders during touch
+  // Update background color based on current vote state
   const updateBackgroundColor = (voteState: VoteState) => {
     const svg = d3.select(svgRef.current);
     const backgroundRect = svg.select('rect');
@@ -224,52 +140,10 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     backgroundRect.attr('fill', backgroundColor);
   };
 
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-
-    // Mark that we've moved during this touch interaction
-    setHasMovedDuringTouch(true);
-
-    const position = getCursorPosition(e);
-    sendCursorEvent('touch', position);
-
-    // Update vote state without triggering React re-render during drag
-    const voteState = getVoteFromPosition(position.x, position.y);
-    currentVoteStateRef.current = voteState;
-    if (voteStateRef) voteStateRef.current = voteState;
-    updateBackgroundColor(voteState);
-    // Don't call setUserVoteState or onVoteStateChange during drag to avoid interrupting touch
-  };
-
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setIsDragging(true);
-    setHasMovedDuringTouch(false);
-    const position = getCursorPosition(e);
-    sendCursorEvent('touch', position);
-
-    // Store initial vote state but don't trigger re-renders during touch start
-    const voteState = getVoteFromPosition(position.x, position.y);
-    currentVoteStateRef.current = voteState;
-    if (voteStateRef) voteStateRef.current = voteState;
-    updateBackgroundColor(voteState);
-  };
-
-  const handleTouchEnd = (e: React.TouchEvent) => {
-    setIsDragging(false);
-
-    // Send remove event when touch ends
-    const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
-    sendCursorEvent('remove', position);
-
-    // Reset vote state when touch ends
-    currentVoteStateRef.current = null;
-    if (voteStateRef) voteStateRef.current = null;
-    setUserVoteState(null);
-    updateBackgroundColor(null);
-    onVoteStateChange(null);
-
-    setHasMovedDuringTouch(false);
-  };
+  // Update background color when currentVoteState changes
+  useEffect(() => {
+    updateBackgroundColor(currentVoteState || null);
+  }, [currentVoteState]);
 
   // Render with D3 SVG
   useEffect(() => {
@@ -280,20 +154,15 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
     svg.selectAll("*").remove();
 
     // Add background rectangle with default color
-    // Color will be updated via direct DOM manipulation during interactions
     svg.append('rect')
       .attr('width', dimensions.width)
       .attr('height', dimensions.height)
       .attr('fill', 'rgba(255, 255, 255, 0.1)'); // Default transparent white
 
     // Apply current vote state color if any
-    const currentVoteState = currentVoteStateRef.current || userVoteState;
     if (currentVoteState) {
       updateBackgroundColor(currentVoteState);
     }
-
-    // Vote labels are now handled outside the Canvas component
-    // No need to render them here anymore
 
     // Add cursor positions as colored dots - convert normalized coordinates to pixels
     const cursorData = Array.from(cursors.entries()).map(([cursorUserId, cursor]) => ({
@@ -351,7 +220,7 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
       .attr('fill', '#000')
       .text((d: any) => d.cursorUserId.substring(0, 6));
 
-  }, [cursors, userVoteState, dimensions]);
+  }, [cursors, dimensions]);
 
   // Handle window resize
   useEffect(() => {
@@ -377,16 +246,9 @@ export default function Canvas({ room, onActiveStatementChange, onVoteStateChang
       style={{
         width: '100%',
         height: '100%',
-        touchAction: 'none',
-        cursor: 'default',
-        pointerEvents: 'auto'
+        zIndex: 1, // Lower z-index for rendering layer
+        pointerEvents: 'none' // Don't capture events, let TouchLayer handle them
       }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
     />
   );
 }

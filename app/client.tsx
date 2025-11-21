@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import Canvas from "./components/Canvas";
+import TouchLayer from "./components/TouchLayer";
 import StatementPanel from "./components/StatementPanel";
 import AdminPanel from "./components/AdminPanel";
 
@@ -52,6 +53,7 @@ function App() {
   const [previousActiveStatementId, setPreviousActiveStatementId] = useState<number | null>(null);
   const [currentVoteState, setCurrentVoteState] = useState<'agree' | 'disagree' | 'pass' | null>(null);
   const canvasVoteStateRef = useRef<'agree' | 'disagree' | 'pass' | null>(null);
+  const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<'agree' | 'disagree' | 'pass' | null>(null);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(ghostCursorsFromUrl ?? false);
 
@@ -170,6 +172,11 @@ function App() {
     // Votes are only submitted when the statement changes
   };
 
+  // Function to handle background color changes from TouchLayer
+  const handleBackgroundColorChange = (voteState: 'agree' | 'disagree' | 'pass' | null) => {
+    setCanvasBackgroundVoteState(voteState);
+  };
+
   // Update active statement based on timestamps
   useEffect(() => {
     const newActiveId = getCurrentActiveStatementId();
@@ -238,17 +245,23 @@ function App() {
         queue={getQueuedStatements()}
         currentTime={currentTime}
       />
-      <div className="vote-canvas-container">
+      <div className="vote-canvas-container" style={{ position: 'relative' }}>
         <div className="vote-label vote-label-agree">AGREE</div>
         <div className="vote-label vote-label-disagree">DISAGREE</div>
         <div className="vote-label vote-label-pass">PASS</div>
         <Canvas
           room={room}
+          userId={userId}
+          colorCursorsByVote={true}
+          currentVoteState={canvasBackgroundVoteState}
+        />
+        <TouchLayer
+          room={room}
           onActiveStatementChange={handleActiveStatementChange}
           onVoteStateChange={handleVoteStateChange}
           userId={userId}
           voteStateRef={canvasVoteStateRef}
-          colorCursorsByVote={true}
+          onBackgroundColorChange={handleBackgroundColorChange}
         />
       </div>
     </div>
