@@ -250,13 +250,13 @@ export default class Server implements Party.Server {
         const polisUrl = `${polisBaseUrl}/api/v3/comments?conversation_id=${conversationId}&moderation=true&include_voting_patterns=true`;
         console.log(`Fetching statements from Polis API for conversation: ${conversationId}`);
         console.log(`Fetching from: ${polisUrl}`);
-        
+
         const response = await fetch(polisUrl);
         if (!response.ok) {
           throw new Error(`Failed to fetch from Polis API: ${response.status}`);
         }
         const data = await response.json();
-        
+
         // Data is already in PolisStatement format from the API
         if (Array.isArray(data)) {
           newStatements = data;
@@ -266,7 +266,7 @@ export default class Server implements Party.Server {
         }
       } else if (json) {
         console.log(`Processing JSON data with ${json.length} items`);
-        
+
         // Convert DefaultStatement format to PolisStatement format
         if (Array.isArray(json)) {
           newStatements = json.map((item: any): PolisStatement => ({

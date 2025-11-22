@@ -444,6 +444,28 @@ body {
   opacity: 0.8;
 }
 
+.statement-item.disabled {
+  border-color: #dc3545;
+  background: #f8f9fa;
+  opacity: 0.5;
+  box-shadow: 0 2px 5px rgba(220, 53, 69, 0.2);
+}
+
+.statement-item.disabled:hover {
+  border-color: #dc3545;
+  box-shadow: 0 2px 5px rgba(220, 53, 69, 0.2);
+  transform: none;
+  cursor: not-allowed;
+}
+
+.statement-item.disabled .statement-text {
+  color: #6c757d;
+}
+
+.statement-item.disabled .statement-id {
+  color: #dc3545;
+}
+
 .status-indicator {
   padding: 2px 8px;
   border-radius: 12px;
@@ -465,6 +487,11 @@ body {
 
 .status-indicator.status-shown {
   background: #6c757d;
+  color: white;
+}
+
+.status-indicator.status-disabled {
+  background: #dc3545;
   color: white;
 }
 

@@ -82,7 +82,7 @@ export default function AdminPanel({ room }: AdminPanelProps) {
           try {
             const response = await fetch(`/data/statements.${room}.json`);
             const data = await response.json();
-            
+
             // Send the JSON data directly to the server
             socket.send(JSON.stringify({
               type: 'updateStatementsPool',
@@ -165,6 +165,12 @@ export default function AdminPanel({ room }: AdminPanelProps) {
   }, []);
 
   const handleStatementClick = (statementId: number) => {
+    // Check if statement is disabled (mod = -1)
+    const polisStatement = statementsPool.find(stmt => stmt.tid === statementId);
+    if (polisStatement && polisStatement.mod === -1) {
+      return; // Don't allow clicking disabled statements
+    }
+
     // Send statement to queue instead of setting active immediately
     socket.send(JSON.stringify({
       type: 'queueStatement',
@@ -367,15 +373,24 @@ export default function AdminPanel({ room }: AdminPanelProps) {
         <div className="statements-list">
           {statements.map((statement) => {
             const status = getStatementStatus(statement.statementId);
+            const polisStatement = statementsPool.find(stmt => stmt.tid === statement.statementId);
+            const isDisabled = polisStatement && polisStatement.mod === -1;
+
             return (
               <div
                 key={statement.statementId}
-                className={`statement-item ${status ? `status-${status}` : ''}`}
+                className={`statement-item ${status ? `status-${status}` : ''} ${isDisabled ? 'disabled' : ''}`}
                 onClick={() => handleStatementClick(statement.statementId)}
+                style={isDisabled ? { cursor: 'not-allowed' } : {}}
               >
                 <div className="statement-header">
                   <span className="statement-id">#{statement.statementId}</span>
-                  {status && (
+                  {isDisabled && (
+                    <span className="status-indicator status-disabled">
+                      MODERATED
+                    </span>
+                  )}
+                  {status && !isDisabled && (
                     <span className={`status-indicator status-${status}`}>
                       {status.toUpperCase()}
                     </span>

@@ -121,7 +121,7 @@ function App() {
           try {
             const response = await fetch(`/data/statements.${room}.json`);
             const data = await response.json();
-            
+
             // Send the JSON data directly to the server
             socket.send(JSON.stringify({
               type: 'updateStatementsPool',
