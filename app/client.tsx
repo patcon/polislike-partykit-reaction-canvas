@@ -6,11 +6,7 @@ import Canvas from "./components/Canvas";
 import TouchLayer from "./components/TouchLayer";
 import StatementPanel from "./components/StatementPanel";
 import AdminPanel from "./components/AdminPanel";
-
-interface QueueItem {
-  statementId: number;
-  displayTimestamp: number;
-}
+import type { PolisStatement, QueueItem } from "./types";
 
 // Extract room from URL parameters, default to "default"
 function getRoomFromUrl(): string {
@@ -48,6 +44,7 @@ function App() {
   const adminMode = isAdminMode();
   const ghostCursorsFromUrl = getGhostCursorsFromUrl();
   const [allSelectedStatements, setAllSelectedStatements] = useState<QueueItem[]>([]);
+  const [statementsPool, setStatementsPool] = useState<PolisStatement[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [activeStatementId, setActiveStatementId] = useState<number>(1);
   const [previousActiveStatementId, setPreviousActiveStatementId] = useState<number | null>(null);
@@ -69,6 +66,9 @@ function App() {
           if (data.allSelectedStatements) {
             setAllSelectedStatements(data.allSelectedStatements);
           }
+          if (data.statementsPool) {
+            setStatementsPool(data.statementsPool);
+          }
           if (data.currentTime) {
             setCurrentTime(data.currentTime);
           }
@@ -80,6 +80,12 @@ function App() {
             setAllSelectedStatements(data.allSelectedStatements);
           }
           setCurrentTime(data.currentTime);
+        } else if (data.type === 'statementsPoolUpdated') {
+          if (data.statementsPool) {
+            setStatementsPool(data.statementsPool);
+          }
+        } else if (data.type === 'statementsPoolError') {
+          console.error('Error updating statements pool:', data.error);
         } else if (data.type === 'ghostCursorsChanged') {
           setGhostCursorsEnabled(data.enabled);
         }
@@ -98,6 +104,38 @@ function App() {
       }));
     }
   }, [socket, ghostCursorsFromUrl]);
+
+  // Load statements on page load - either from Polis API or room-specific JSON
+  useEffect(() => {
+    const loadStatements = async () => {
+      if (socket) {
+        // Check if room starts with a digit - if so, assume it's a Polis conversation ID
+        if (/^\d/.test(room)) {
+          console.log(`Room "${room}" starts with digit, requesting Polis API data`);
+          socket.send(JSON.stringify({
+            type: 'updateStatementsPool',
+            conversationId: room
+          }));
+        } else {
+          console.log(`Room "${room}" doesn't start with digit, loading statements.${room}.json`);
+          try {
+            const response = await fetch(`/data/statements.${room}.json`);
+            const data = await response.json();
+            
+            // Send the JSON data directly to the server
+            socket.send(JSON.stringify({
+              type: 'updateStatementsPool',
+              json: data
+            }));
+          } catch (error) {
+            console.error(`Failed to load statements.${room}.json:`, error);
+          }
+        }
+      }
+    };
+
+    loadStatements();
+  }, [socket, room]);
 
   const getQueuedStatements = () => {
     const now = Date.now();
@@ -244,6 +282,7 @@ function App() {
         activeStatementId={activeStatementId}
         queue={getQueuedStatements()}
         currentTime={currentTime}
+        statementsPool={statementsPool}
       />
       <div className="vote-canvas-container" style={{ position: 'relative' }}>
         <div className="vote-label vote-label-agree">AGREE</div>

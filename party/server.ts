@@ -14,6 +14,31 @@ interface CursorEvent {
   position: CursorPosition;
 }
 
+interface PolisStatement {
+  txt: string;
+  tid: number;
+  created?: string;
+  quote_src_url?: string | null;
+  is_seed?: boolean;
+  is_meta?: boolean;
+  lang?: string;
+  pid?: number;
+  velocity?: number;
+  mod?: number;
+  active?: boolean;
+  agree_count?: number;
+  disagree_count?: number;
+  pass_count?: number;
+  count?: number;
+  conversation_id?: string;
+}
+
+interface DefaultStatement {
+  txt: string;
+  tid: number;
+  timecode?: number;
+}
+
 interface QueueItem {
   statementId: number;
   displayTimestamp: number; // timestamp when this should become active
@@ -33,6 +58,13 @@ interface ClearQueueEvent {
   type: 'clearQueue';
 }
 
+interface UpdateStatementsPoolEvent {
+  type: 'updateStatementsPool';
+  json?: any[];
+  conversationId?: string;
+  baseUrl?: string;
+}
+
 interface GhostCursorSettingEvent {
   type: 'setGhostCursors';
   enabled: boolean;
@@ -45,11 +77,12 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | GhostCursorSettingEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent;
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
   private allSelectedStatements: QueueItem[] = []; // All statements that have been selected
+  private statementsPool: PolisStatement[] = []; // Pool of all available statements
   private votes: Vote[] = []; // Store all votes
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
@@ -88,12 +121,13 @@ export default class Server implements Party.Server {
   url: ${new URL(ctx.request.url).pathname}`
     );
 
-    // Send welcome message with current active statement and queue info
+    // Send welcome message with current active statement, queue info, and statements pool
     conn.send(JSON.stringify({
       type: 'connected',
       connectionId: conn.id,
       activeStatementId: this.activeStatementId,
       allSelectedStatements: this.allSelectedStatements,
+      statementsPool: this.statementsPool,
       currentTime: Date.now(),
       ghostCursorsEnabled: this.ghostCursorsEnabled
     }));
@@ -125,6 +159,17 @@ export default class Server implements Party.Server {
         // Handle clearing the queue
         console.log(`Clear queue from ${sender.id}`);
         this.clearQueue();
+      } else if (event.type === 'updateStatementsPool') {
+        // Handle statements pool updates from client
+        if (event.conversationId) {
+          console.log(`Statements pool update from ${sender.id} via Polis conversation:`, event.conversationId);
+          this.updateStatementsPool(undefined, event.conversationId, event.baseUrl);
+        } else if (event.json) {
+          console.log(`Statements pool update from ${sender.id} via JSON data:`, event.json.length, 'items');
+          this.updateStatementsPool(event.json);
+        } else {
+          console.log(`Invalid statements pool update from ${sender.id}: no json or conversationId provided`);
+        }
       } else if (event.type === 'setGhostCursors') {
         // Handle ghost cursor setting changes
         console.log(`Ghost cursor setting from ${sender.id}:`, event.enabled);
@@ -194,6 +239,71 @@ export default class Server implements Party.Server {
       allSelectedStatements: this.allSelectedStatements,
       currentTime: Date.now()
     }));
+  }
+
+  private async updateStatementsPool(json?: any[], conversationId?: string, baseUrl?: string) {
+    try {
+      let newStatements: PolisStatement[] = [];
+
+      if (conversationId) {
+        const polisBaseUrl = baseUrl || 'https://pol.is';
+        const polisUrl = `${polisBaseUrl}/api/v3/comments?conversation_id=${conversationId}&moderation=true&include_voting_patterns=true`;
+        console.log(`Fetching statements from Polis API for conversation: ${conversationId}`);
+        console.log(`Fetching from: ${polisUrl}`);
+        
+        const response = await fetch(polisUrl);
+        if (!response.ok) {
+          throw new Error(`Failed to fetch from Polis API: ${response.status}`);
+        }
+        const data = await response.json();
+        
+        // Data is already in PolisStatement format from the API
+        if (Array.isArray(data)) {
+          newStatements = data;
+          console.log(`Loaded ${newStatements.length} statements from Polis API`);
+        } else {
+          throw new Error('Invalid Polis API response - expected array');
+        }
+      } else if (json) {
+        console.log(`Processing JSON data with ${json.length} items`);
+        
+        // Convert DefaultStatement format to PolisStatement format
+        if (Array.isArray(json)) {
+          newStatements = json.map((item: any): PolisStatement => ({
+            txt: item.text || item.txt,
+            tid: item.statementId || item.tid,
+            created: item.created || new Date().toISOString(),
+            is_seed: item.is_seed || false,
+            is_meta: item.is_meta || false,
+            lang: item.lang || 'en',
+            pid: item.pid || 0
+          }));
+        } else {
+          throw new Error('Invalid JSON format - expected array');
+        }
+      } else {
+        throw new Error('Either json or conversationId must be provided');
+      }
+
+      // Update the statements pool with new data
+      this.statementsPool = newStatements;
+      console.log(`Statements pool updated with ${newStatements.length} statements`);
+
+      // Broadcast the updated statements pool to all connected clients
+      this.room.broadcast(JSON.stringify({
+        type: 'statementsPoolUpdated',
+        statementsPool: this.statementsPool,
+        currentTime: Date.now()
+      }));
+    } catch (error) {
+      console.error('Error updating statements pool:', error);
+      // Broadcast error to clients
+      this.room.broadcast(JSON.stringify({
+        type: 'statementsPoolError',
+        error: error instanceof Error ? error.message : 'Unknown error',
+        currentTime: Date.now()
+      }));
+    }
   }
 
   // ===== GHOST CURSOR DEMO METHODS (can be easily removed) =====

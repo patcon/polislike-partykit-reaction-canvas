@@ -1,17 +1,7 @@
 import { useState, useEffect } from "react";
 import usePartySocket from "partysocket/react";
 import CountdownTimer from "./CountdownTimer";
-
-interface Statement {
-  statementId: number;
-  timecode: number;
-  text: string;
-}
-
-interface QueueItem {
-  statementId: number;
-  displayTimestamp: number;
-}
+import type { PolisStatement, QueueItem, Statement } from "../types";
 
 interface Vote {
   userId: string;
@@ -26,6 +16,7 @@ interface AdminPanelProps {
 
 export default function AdminPanel({ room }: AdminPanelProps) {
   const [statements, setStatements] = useState<Statement[]>([]);
+  const [statementsPool, setStatementsPool] = useState<PolisStatement[]>([]);
   const [allSelectedStatements, setAllSelectedStatements] = useState<QueueItem[]>([]);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [loading, setLoading] = useState(true);
@@ -41,10 +32,13 @@ export default function AdminPanel({ room }: AdminPanelProps) {
       try {
         const data = JSON.parse(evt.data);
 
-        // Handle server messages to track queue
+        // Handle server messages to track queue and statements
         if (data.type === 'connected') {
           if (data.allSelectedStatements) {
             setAllSelectedStatements(data.allSelectedStatements);
+          }
+          if (data.statementsPool) {
+            setStatementsPool(data.statementsPool);
           }
           if (data.currentTime) {
             setCurrentTime(data.currentTime);
@@ -57,6 +51,12 @@ export default function AdminPanel({ room }: AdminPanelProps) {
             setAllSelectedStatements(data.allSelectedStatements);
           }
           setCurrentTime(data.currentTime);
+        } else if (data.type === 'statementsPoolUpdated') {
+          if (data.statementsPool) {
+            setStatementsPool(data.statementsPool);
+          }
+        } else if (data.type === 'statementsPoolError') {
+          console.error('Error updating statements pool:', data.error);
         } else if (data.type === 'ghostCursorsChanged') {
           setGhostCursorsEnabled(data.enabled);
         }
@@ -66,22 +66,50 @@ export default function AdminPanel({ room }: AdminPanelProps) {
     },
   });
 
-  // Load statements data
+  // Load statements on page load - either from Polis API or room-specific JSON
   useEffect(() => {
     const loadStatements = async () => {
-      try {
-        const response = await fetch('/data/statements.default.json');
-        const data = await response.json();
-        setStatements(data);
-        setLoading(false);
-      } catch (error) {
-        console.error('Failed to load statements:', error);
-        setLoading(false);
+      if (socket) {
+        // Check if room starts with a digit - if so, assume it's a Polis conversation ID
+        if (/^\d/.test(room)) {
+          console.log(`Room "${room}" starts with digit, requesting Polis API data`);
+          socket.send(JSON.stringify({
+            type: 'updateStatementsPool',
+            conversationId: room
+          }));
+        } else {
+          console.log(`Room "${room}" doesn't start with digit, loading statements.${room}.json`);
+          try {
+            const response = await fetch(`/data/statements.${room}.json`);
+            const data = await response.json();
+            
+            // Send the JSON data directly to the server
+            socket.send(JSON.stringify({
+              type: 'updateStatementsPool',
+              json: data
+            }));
+          } catch (error) {
+            console.error(`Failed to load statements.${room}.json:`, error);
+          }
+        }
       }
     };
 
     loadStatements();
-  }, []);
+  }, [socket, room]);
+
+  // Convert PolisStatement to Statement format
+  useEffect(() => {
+    if (statementsPool.length > 0) {
+      const convertedStatements: Statement[] = statementsPool.map(polisStatement => ({
+        statementId: polisStatement.tid,
+        timecode: 0, // Default timecode since PolisStatement doesn't have it
+        text: polisStatement.txt
+      }));
+      setStatements(convertedStatements);
+      setLoading(false);
+    }
+  }, [statementsPool]);
 
   // Load votes data
   const loadVotes = async () => {
@@ -347,7 +375,6 @@ export default function AdminPanel({ room }: AdminPanelProps) {
               >
                 <div className="statement-header">
                   <span className="statement-id">#{statement.statementId}</span>
-                  <span className="statement-timecode">@{statement.timecode}s</span>
                   {status && (
                     <span className={`status-indicator status-${status}`}>
                       {status.toUpperCase()}

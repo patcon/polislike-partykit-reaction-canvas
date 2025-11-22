@@ -1,41 +1,29 @@
 import { useState, useEffect } from "react";
 import CountdownTimer from "./CountdownTimer";
-
-interface Statement {
-  statementId: number;
-  timecode: number;
-  text: string;
-}
-
-interface QueueItem {
-  statementId: number;
-  displayTimestamp: number;
-}
+import type { PolisStatement, QueueItem, Statement } from "../types";
 
 interface StatementPanelProps {
   activeStatementId: number | null;
   queue?: QueueItem[];
   currentTime?: number;
+  statementsPool?: PolisStatement[];
 }
 
-export default function StatementPanel({ activeStatementId, queue = [], currentTime = Date.now() }: StatementPanelProps) {
+export default function StatementPanel({ activeStatementId, queue = [], currentTime = Date.now(), statementsPool = [] }: StatementPanelProps) {
   const [statements, setStatements] = useState<Statement[]>([]);
   const [activeStatement, setActiveStatement] = useState<Statement | null>(null);
 
-  // Load statements data
+  // Convert PolisStatement to Statement format
   useEffect(() => {
-    const loadStatements = async () => {
-      try {
-        const response = await fetch('/data/statements.default.json');
-        const data = await response.json();
-        setStatements(data);
-      } catch (error) {
-        console.error('Failed to load statements:', error);
-      }
-    };
-
-    loadStatements();
-  }, []);
+    if (statementsPool.length > 0) {
+      const convertedStatements: Statement[] = statementsPool.map(polisStatement => ({
+        statementId: polisStatement.tid,
+        timecode: 0, // Default timecode since PolisStatement doesn't have it
+        text: polisStatement.txt
+      }));
+      setStatements(convertedStatements);
+    }
+  }, [statementsPool]);
 
   // Update active statement when activeStatementId changes
   useEffect(() => {
