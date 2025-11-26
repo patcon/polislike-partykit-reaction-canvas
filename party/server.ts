@@ -181,28 +181,33 @@ export default class Server implements Party.Server {
   }
 
   private queueStatement(statementId: number) {
-    // Check if the current active statement is -1 (End Voting)
     const now = Date.now();
-    const currentActiveStatement = this.getCurrentActiveStatementId();
 
-    let displayTimestamp: number;
-    if (currentActiveStatement === -1) {
-      // If active statement is -1, add new statement immediately
-      displayTimestamp = now;
-    } else {
-      // Otherwise, use the normal 10-second delay
-      displayTimestamp = now + 10000; // 10 seconds from now
+    // Find the latest *future* or *past* displayTimestamp
+    // i.e. the most recently scheduled statement
+    let lastTimestamp = now;
+
+    if (this.allSelectedStatements.length > 0) {
+      const latest = this.allSelectedStatements.reduce((a, b) =>
+        a.displayTimestamp > b.displayTimestamp ? a : b
+      );
+      lastTimestamp = latest.displayTimestamp;
     }
 
-    const queueItem: QueueItem = { statementId, displayTimestamp };
+    // Special rule: if active statement is -1, add immediately
+    const currentActive = this.getCurrentActiveStatementId();
+    const displayTimestamp =
+      currentActive === -1
+        ? now
+        : lastTimestamp + 10_000;   // ← 10s after last queued item's timestamp
 
+    const queueItem: QueueItem = { statementId, displayTimestamp };
     this.allSelectedStatements.push(queueItem);
 
-    // Broadcast queue update
     this.room.broadcast(JSON.stringify({
       type: 'queueUpdated',
       allSelectedStatements: this.allSelectedStatements,
-      currentTime: Date.now()
+      currentTime: Date.now(),
     }));
   }
 
