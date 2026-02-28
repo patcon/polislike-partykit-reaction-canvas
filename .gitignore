@@ -168,3 +168,6 @@ dist
 
 .partykit
 .DS_Store
+
+*storybook.log
+storybook-static

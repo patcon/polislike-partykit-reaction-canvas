@@ -5,7 +5,9 @@
   "scripts": {
     "dev": "partykit dev --live",
     "deploy": "partykit deploy",
-    "cachebust": "node scripts/build-with-cachebust.js"
+    "cachebust": "node scripts/build-with-cachebust.js",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@types/d3": "^7.4.3",
@@ -21,6 +23,16 @@
     "@types/react": "^18.3.4",
     "@types/react-dom": "^18.3.0",
     "partykit": "^0.0.110",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "storybook": "^10.1.0",
+    "@storybook/react-vite": "^10.1.0",
+    "@chromatic-com/storybook": "^4.1.3",
+    "@storybook/addon-vitest": "^10.1.0",
+    "@storybook/addon-a11y": "^10.1.0",
+    "@storybook/addon-docs": "^10.1.0",
+    "vitest": "^4.0.14",
+    "playwright": "^1.57.0",
+    "@vitest/browser-playwright": "^4.0.14",
+    "@vitest/coverage-v8": "^4.0.14"
   }
 }
