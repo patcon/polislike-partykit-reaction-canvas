@@ -8,16 +8,7 @@ import type { PolisStatement, QueueItem } from "../types";
 
 function getRoomFromUrl(): string {
   const urlParams = new URLSearchParams(window.location.search);
-  const room = urlParams.get('room');
-
-  if (!room) {
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.set('room', 'default');
-    window.history.replaceState({}, '', newUrl.toString());
-    return 'default';
-  }
-
-  return room;
+  return urlParams.get('room') ?? 'default';
 }
 
 function isAdminMode(): boolean {
