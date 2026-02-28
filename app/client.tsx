@@ -10,8 +10,29 @@ function IndexApp() {
       <div className="app-cards">
         <a href="#v1" className="app-card">
           <div className="app-card-content">
-            <h2 className="app-card-title">Simple Reaction Canvas App</h2>
-            <p className="app-card-description">Real-time collaborative voting canvas with cursor tracking and Polis statement display.</p>
+            <h2 className="app-card-title">Simple Reaction Canvas</h2>
+            <p className="app-card-description">Collaborative voting canvas with real-time cursor tracking and Polis statement display.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="?ghostCursors=true#v1" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">Reaction Canvas — Ghost Cursors</h2>
+            <p className="app-card-description">Same as above, with 10 simulated ghost cursors moving between voting regions.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="?admin=true#v1" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">Admin Panel</h2>
+            <p className="app-card-description">Queue statements for display and monitor submitted votes.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="?room=3ntrtcehas&admin=true#v1" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">Admin Panel — pol.is/3ntrtcehas</h2>
+            <p className="app-card-description">Admin view pre-loaded with statements from the pol.is/3ntrtcehas conversation.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
