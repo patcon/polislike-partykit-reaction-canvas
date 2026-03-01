@@ -23,6 +23,8 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - Vote labels in both V1 and V2 now rendered from `getReactionLabelSet()` rather than hardcoded strings
 - `.vote-label` CSS class now has `white-space: nowrap` so longer labels display on one line
+- `npm run deploy` now runs `npm run cachebust` automatically before uploading; cachebust no longer runs during `npm run dev`
+- `.index-app` is now scrollable on mobile (`overflow-y: auto`, `touch-action: pan-y`) without affecting the touch canvas apps
 
 ### Fixed
 - Back button broken by `replaceState` normalising `?room=default` into the history entry — default room is now used silently without touching the URL

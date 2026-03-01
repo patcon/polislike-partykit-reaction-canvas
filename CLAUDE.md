@@ -2,6 +2,10 @@
 
 A real-time collaborative voting canvas built on PartyKit (WebSockets) and React. Participants move their cursor/touch into AGREE/DISAGREE/PASS regions of a canvas; cursor positions are shared live across all connected users.
 
+## Contribution rules
+
+**Always update `CHANGELOG.md`** under `## [Unreleased]` when making any user-facing change (features, fixes, behaviour changes, config changes). Do this in the same commit as the code change.
+
 ## Dev commands
 
 ```bash
