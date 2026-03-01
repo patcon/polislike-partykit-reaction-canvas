@@ -255,6 +255,7 @@ export default function TouchLayer({
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     setIsDragging(false);
+    lastPositionRef.current = null;
     onTouchPosition?.(null);
 
     // Send remove event when touch ends
