@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] (2026-03-01)
 
 ### Fixed
-- Fix connection counter in V2 always showing zero; moved presence socket to V2 component level following waterhole pattern
+- Fix connection counter in V2 always showing zero; root cause was server-side presenceCount logic never having been committed/deployed
 
 ### Changed
 - V2: cursor room is now derived from `?videoId=` — each video gets its own cursor space automatically; `?room=` param removed from V2 (it remains a V1 concept)

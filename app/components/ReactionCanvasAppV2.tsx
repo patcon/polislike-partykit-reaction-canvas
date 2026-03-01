@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import PartySocket from "partysocket";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import { getReactionLabelSet } from "../voteLabels";
@@ -53,33 +52,6 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const [youtubeHeight, setYoutubeHeight] = useState(
     Math.round(window.innerHeight * YOUTUBE_HEIGHT_FRACTION)
   );
-
-  // Waterhole-style: raw socket + useEffect + addEventListener for reliable presenceCount receipt
-  useEffect(() => {
-    const host = window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST;
-    console.log('[V2 presence] connecting to room:', room, 'host:', host);
-    const ws = new PartySocket({ host, room, query: { userId } });
-
-    const handler = (evt: MessageEvent) => {
-      try {
-        const data = JSON.parse(evt.data);
-        console.log('[V2 presence] received message:', data);
-        if (data.type === 'presenceCount') {
-          console.log('[V2 presence] setting count to:', data.count);
-          setPresenceCount(data.count);
-        }
-      } catch (e) {
-        console.error('[V2 presence] parse error:', e);
-      }
-    };
-
-    ws.addEventListener('message', handler);
-    return () => {
-      console.log('[V2 presence] cleanup — closing socket');
-      ws.removeEventListener('message', handler);
-      ws.close();
-    };
-  }, [room]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -134,6 +106,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           colorCursorsByVote={true}
           currentVoteState={canvasBackgroundVoteState}
           heightOffset={youtubeHeight}
+          onPresenceCount={setPresenceCount}
         />
         <TouchLayer
           room={room}
