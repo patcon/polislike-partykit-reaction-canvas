@@ -53,7 +53,6 @@ export default function TouchLayer({
   });
   const [isDragging, setIsDragging] = useState(false);
   const [isMouseOver, setIsMouseOver] = useState(false);
-  const hasMovedDuringTouchRef = useRef(false);
   const lastTouchTimeRef = useRef(0); // Used to suppress synthesized mouse events after touch
   const currentVoteStateRef = useRef<VoteState>(null);
   const lastPositionRef = useRef<CursorPosition | null>(null);
@@ -235,9 +234,6 @@ export default function TouchLayer({
   const handleTouchMove = (e: React.TouchEvent) => {
     if (!isDragging) return;
 
-    // Mark that we've moved during this touch interaction
-    hasMovedDuringTouchRef.current = true;
-
     const position = getCursorPosition(e);
     lastPositionRef.current = position;
     sendCursorEvent('touch', position);
@@ -254,36 +250,27 @@ export default function TouchLayer({
   const handleTouchStart = (e: React.TouchEvent) => {
     lastTouchTimeRef.current = Date.now();
     setIsDragging(true);
-    hasMovedDuringTouchRef.current = false;
     const position = getCursorPosition(e);
     lastPositionRef.current = position;
-    // Set local touch position so V2's allTouching check registers this user as touching.
-    // Socket cursor events are deferred to handleTouchMove so taps don't appear on other clients.
+    sendCursorEvent('touch', position);
     onTouchPosition?.(getPixelPosition(e));
+
+    const voteState = getVoteFromPosition(position.x, position.y);
+    currentVoteStateRef.current = voteState;
+    if (voteStateRef) voteStateRef.current = voteState;
+    onBackgroundColorChange(voteState);
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     lastTouchTimeRef.current = Date.now();
     setIsDragging(false);
     lastPositionRef.current = null;
-
-    // Always clear local touch position so V2's allTouching check resets on lift.
+    sendTimecode();
     onTouchPosition?.(null);
 
-    if (!hasMovedDuringTouchRef.current) {
-      // Pure tap — no socket cursor events were sent, so nothing to clean up server-side.
-      hasMovedDuringTouchRef.current = false;
-      return;
-    }
-
-    hasMovedDuringTouchRef.current = false;
-    sendTimecode();
-
-    // Send remove event when touch ends
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
     sendCursorEvent('remove', position);
 
-    // Reset vote state when touch ends
     currentVoteStateRef.current = null;
     if (voteStateRef) voteStateRef.current = null;
     setUserVoteState(null);

@@ -5,8 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] (2026-03-01)
 
 ### Fixed
-- Mobile single taps no longer leave the blue cursor circle stuck; the browser's synthesized `mousemove` after a tap is now suppressed so it cannot start the hover/heartbeat path
-- V2: video no longer auto-resumes on page refresh when it was previously playing; the iframe's `onLoad` now sends `pauseVideo` if not all touching
+- Mobile taps no longer leave the cursor stuck as a persistent touch; the root cause was the browser's synthesized `mousemove` (fired ~300ms after every tap) landing in `handleMouseMove` and starting the heartbeat with no corresponding `mouseleave` to clean up — now suppressed with a 500ms post-touch guard
+- V2: video no longer auto-resumes on page refresh when it was previously playing; the iframe's `onLoad` now re-sends `pauseVideo` on non-touch devices (mobile browsers block autoplay natively so the guard is not needed there and was causing the player to go black)
 - V2: `seekTo` (triggered by timecode sync on lift) no longer unintentionally starts playback; a `pauseVideo` is sent immediately after every seek when not all touching
 
 ### Added

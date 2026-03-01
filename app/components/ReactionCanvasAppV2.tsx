@@ -125,9 +125,13 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
               onLoad={() => {
-                // Pause on load in case YouTube resumes from a previously-playing state
-                // (the pauseVideo from the allTouching effect fires before the iframe is ready).
-                if (!allTouchingRef.current) {
+                // On desktop, YouTube can resume a previously-playing session after refresh
+                // because the pauseVideo from the allTouching effect fires before the iframe
+                // is ready to receive commands. Re-send it here once the iframe is loaded.
+                // On real touch devices this is unnecessary: mobile browsers block autoplay
+                // without a user gesture, so sending pauseVideo to an unstarted player only
+                // causes it to go black (paused-with-no-frame + controls=0 = invisible).
+                if (!allTouchingRef.current && !isTouchDevice()) {
                   iframeRef.current?.contentWindow?.postMessage(
                     JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }), '*'
                   );
