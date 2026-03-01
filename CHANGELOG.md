@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - V2: video plays only when every user in the room is touching the reaction canvas simultaneously; pauses as soon as anyone lifts their finger
+- TouchLayer: heartbeat re-sends current position every 2s while holding still, preventing Canvas's 3s staleness timeout from falsely dropping the cursor
 
 ### Fixed
 - Fix connection counter in V2 always showing zero; root cause was server-side presenceCount logic never having been committed/deployed

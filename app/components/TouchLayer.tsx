@@ -52,6 +52,7 @@ export default function TouchLayer({
   const [isDragging, setIsDragging] = useState(false);
   const [hasMovedDuringTouch, setHasMovedDuringTouch] = useState(false);
   const currentVoteStateRef = useRef<VoteState>(null);
+  const lastPositionRef = useRef<CursorPosition | null>(null);
 
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
@@ -77,6 +78,18 @@ export default function TouchLayer({
     const event: CursorEvent = { type, position };
     socket.send(JSON.stringify(event));
   };
+
+  // Heartbeat: re-send position every 2s while holding still, so Canvas's 3s staleness
+  // timeout doesn't remove the cursor and incorrectly signal that the user lifted their finger.
+  useEffect(() => {
+    if (!isDragging) return;
+    const interval = setInterval(() => {
+      if (lastPositionRef.current) {
+        sendCursorEvent('touch', { ...lastPositionRef.current, timestamp: Date.now() });
+      }
+    }, 2000);
+    return () => clearInterval(interval);
+  }, [isDragging]);
 
   const getPixelPosition = (e: React.MouseEvent | React.TouchEvent): { x: number; y: number } | null => {
     const layer = layerRef.current;
@@ -207,6 +220,7 @@ export default function TouchLayer({
     setHasMovedDuringTouch(true);
 
     const position = getCursorPosition(e);
+    lastPositionRef.current = position;
     sendCursorEvent('touch', position);
     onTouchPosition?.(getPixelPosition(e));
 
@@ -222,6 +236,7 @@ export default function TouchLayer({
     setIsDragging(true);
     setHasMovedDuringTouch(false);
     const position = getCursorPosition(e);
+    lastPositionRef.current = position;
     sendCursorEvent('touch', position);
     onTouchPosition?.(getPixelPosition(e));
 
