@@ -11,9 +11,11 @@ A real-time collaborative voting canvas built on PartyKit (WebSockets) and React
 ```bash
 npm run dev          # PartyKit dev server on localhost:1999
 npm run storybook    # Storybook on localhost:6006
-npm run deploy       # Deploy to PartyKit
+npm run deploy       # Deploy to PartyKit  ⚠️  CI ONLY — never run from workstation
 npm run cachebust    # Production build with cache-busting
 ```
+
+> **Never run `npm run deploy` from the workstation.** Deployment is handled exclusively by CI. Running it locally risks deploying uncommitted or out-of-sync state.
 
 ### Cache-busting and `public/index.html`
 
