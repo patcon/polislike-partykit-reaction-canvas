@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import { getReactionLabelSet } from "../voteLabels";
@@ -17,10 +18,32 @@ function getVideoIdFromUrl(): string {
   return urlParams.get('videoId') ?? '';
 }
 
-export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?: string }) {
-  const room = getRoomFromUrl();
-  const videoId = videoIdProp ?? getVideoIdFromUrl();
+function isTouchDevice(): boolean {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
 
+function isMobileOverridden(): boolean {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('mobile') === 'true';
+}
+
+function MobileOnlyGate() {
+  const url = window.location.href;
+  return (
+    <div className="v2-mobile-gate">
+      <div className="v2-mobile-gate-content">
+        <p className="v2-mobile-gate-message">This experience is designed for mobile touch devices.</p>
+        <p className="v2-mobile-gate-sub">Scan the QR code on your phone to open this page:</p>
+        <div className="v2-mobile-gate-qr">
+          <QRCodeSVG value={url} size={220} />
+        </div>
+        <p className="v2-mobile-gate-url">{url}</p>
+      </div>
+    </div>
+  );
+}
+
+export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?: string }) {
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<VoteState>(null);
   const voteStateRef = useRef<VoteState>(null);
@@ -37,6 +60,12 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  if (!isTouchDevice() && !isMobileOverridden()) {
+    return <MobileOnlyGate />;
+  }
+
+  const room = getRoomFromUrl();
+  const videoId = videoIdProp ?? getVideoIdFromUrl();
   const labels = getReactionLabelSet();
 
   return (
