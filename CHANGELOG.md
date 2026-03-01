@@ -5,7 +5,6 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] (2026-02-28)
 
 ### Added
-- V2 mobile-only gate: non-touch devices see a QR code linking to the current URL instead of the canvas; override with `?mobile=true`
 - Configurable reaction label sets via `localStorage` (`polis_label_set` key) for minimal A/B testing
 - `ReactionLabelSet` interface and `REACTION_LABEL_PRESETS` with three built-in sets: `default` (AGREE / DISAGREE / PASS), `yesno` (YES / NO / SKIP), and `supportive` (SUPPORT / OPPOSE / NEUTRAL)
 - `getReactionLabelSet()` helper in `app/voteLabels.ts` reads from `localStorage` and falls back to `default`
