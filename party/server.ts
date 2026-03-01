@@ -84,6 +84,7 @@ export default class Server implements Party.Server {
   private allSelectedStatements: QueueItem[] = []; // All statements that have been selected
   private statementsPool: PolisStatement[] = []; // Pool of all available statements
   private votes: Vote[] = []; // Store all votes
+  private connectionUserMap = new Map<string, string>(); // connectionId -> userId
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -114,12 +115,21 @@ export default class Server implements Party.Server {
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     // A websocket just connected!
+    const url = new URL(ctx.request.url);
     console.log(
       `Connected:
   id: ${conn.id}
   room: ${this.room.id}
-  url: ${new URL(ctx.request.url).pathname}`
+  url: ${url.pathname}`
     );
+
+    const userId = url.searchParams.get('userId') ?? conn.id;
+    this.connectionUserMap.set(conn.id, userId);
+    const count = new Set(this.connectionUserMap.values()).size;
+    // Send directly to new connection (broadcast may not include it)
+    conn.send(JSON.stringify({ type: 'presenceCount', count }));
+    // Notify all other connections
+    this.room.broadcast(JSON.stringify({ type: 'presenceCount', count }), [conn.id]);
 
     // Send welcome message with current active statement, queue info, and statements pool
     conn.send(JSON.stringify({
@@ -131,6 +141,12 @@ export default class Server implements Party.Server {
       currentTime: Date.now(),
       ghostCursorsEnabled: this.ghostCursorsEnabled
     }));
+  }
+
+  onClose(conn: Party.Connection) {
+    this.connectionUserMap.delete(conn.id);
+    const count = new Set(this.connectionUserMap.values()).size;
+    this.room.broadcast(JSON.stringify({ type: 'presenceCount', count }));
   }
 
   onMessage(message: string, sender: Party.Connection) {

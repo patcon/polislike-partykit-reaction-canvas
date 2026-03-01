@@ -856,6 +856,20 @@ body {
   z-index: 5;
 }
 
+.v2-presence-counter {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 20;
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  font-size: 13px;
+  padding: 3px 9px;
+  border-radius: 12px;
+  pointer-events: none;
+  user-select: none;
+}
+
 /* Index / Landing Page */
 .index-app {
   width: 100vw;
