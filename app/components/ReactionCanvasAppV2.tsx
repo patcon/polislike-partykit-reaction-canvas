@@ -46,7 +46,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
             allowFullScreen
           />
         ) : (
-          <div className="v2-no-video">No video — add <code>?videoId=</code> to the URL</div>
+          <div className="v2-no-video">No video — add <code>?videoId=</code> to the URL (<a href="?videoId=s-ONlhskCrA#v2">example</a>)</div>
         )}
       </div>
       <div className="v2-vote-canvas-container">
