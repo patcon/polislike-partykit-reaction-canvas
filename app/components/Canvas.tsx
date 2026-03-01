@@ -21,14 +21,15 @@ interface CanvasProps {
   userId: string;
   colorCursorsByVote?: boolean; // Optional prop to enable vote-based coloring
   currentVoteState?: VoteState; // Current vote state for background color
+  heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
 }
 
-export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState }: CanvasProps) {
+export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState, heightOffset }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
-    height: window.innerHeight - 140 // Canvas height is viewport minus statement panel height
+    height: window.innerHeight - (heightOffset ?? 140)
   });
 
   const socket = usePartySocket({
@@ -225,10 +226,10 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      const statementPanelHeight = window.innerWidth <= 768 ? 120 : 140;
+      const offset = heightOffset ?? (window.innerWidth <= 768 ? 120 : 140);
       setDimensions({
         width: window.innerWidth,
-        height: window.innerHeight - statementPanelHeight
+        height: window.innerHeight - offset
       });
     };
 
@@ -236,7 +237,7 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
     handleResize(); // Initial call
 
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [heightOffset]);
 
   return (
     <svg

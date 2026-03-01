@@ -29,21 +29,23 @@ interface TouchLayerProps {
   userId: string;
   voteStateRef?: React.MutableRefObject<VoteState>;
   onBackgroundColorChange: (voteState: VoteState) => void;
+  heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
 }
 
-export default function TouchLayer({ 
-  room, 
-  onActiveStatementChange, 
-  onVoteStateChange, 
-  userId, 
+export default function TouchLayer({
+  room,
+  onActiveStatementChange,
+  onVoteStateChange,
+  userId,
   voteStateRef,
-  onBackgroundColorChange
+  onBackgroundColorChange,
+  heightOffset
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
-    height: window.innerHeight - 140 // Canvas height is viewport minus statement panel height
+    height: window.innerHeight - (heightOffset ?? 140)
   });
   const [isDragging, setIsDragging] = useState(false);
   const [hasMovedDuringTouch, setHasMovedDuringTouch] = useState(false);
@@ -231,10 +233,10 @@ export default function TouchLayer({
   // Handle window resize
   useEffect(() => {
     const handleResize = () => {
-      const statementPanelHeight = window.innerWidth <= 768 ? 120 : 140;
+      const offset = heightOffset ?? (window.innerWidth <= 768 ? 120 : 140);
       setDimensions({
         width: window.innerWidth,
-        height: window.innerHeight - statementPanelHeight
+        height: window.innerHeight - offset
       });
     };
 
@@ -242,7 +244,7 @@ export default function TouchLayer({
     handleResize(); // Initial call
 
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [heightOffset]);
 
   return (
     <div

@@ -2,6 +2,7 @@ import "./styles.css";
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
 import SimpleReactionCanvasAppV1 from "./components/SimpleReactionCanvasAppV1";
+import ReactionCanvasAppV2 from "./components/ReactionCanvasAppV2";
 
 function IndexApp() {
   return (
@@ -36,6 +37,13 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
+        <a href="#v2" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V2: Participant View (YouTube)</h2>
+            <p className="app-card-description">YouTube embed at the top with a live reaction canvas below. Add <code>?videoId=</code> to set the video.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
       </div>
     </div>
   );
@@ -51,6 +59,7 @@ function App() {
   }, []);
 
   if (hash === '#v1') return <SimpleReactionCanvasAppV1 />;
+  if (hash === '#v2') return <ReactionCanvasAppV2 />;
   return <IndexApp />;
 }
 
