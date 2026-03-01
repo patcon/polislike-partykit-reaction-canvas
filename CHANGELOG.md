@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] (2026-03-01)
 
 ### Added
+- V3: new full-page reaction canvas variant (no video, no statements); supports `?room=`, `?labels=`, presence counter, blue-dot cursor, and mobile-only QR gate with `?mobile=true` override
 - V2: `?labels=` query param selects a reaction label preset (`default`, `yesno`, `supportive`, `abu`); falls back to localStorage / default if omitted or unrecognised
 - `abu` label set: agree=A, disagree=B, pass=U
 
