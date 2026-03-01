@@ -6,6 +6,8 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - Mobile single taps no longer leave the blue cursor circle stuck; the browser's synthesized `mousemove` after a tap is now suppressed so it cannot start the hover/heartbeat path
+- V2: video no longer auto-resumes on page refresh when it was previously playing; the iframe's `onLoad` now sends `pauseVideo` if not all touching
+- V2: `seekTo` (triggered by timecode sync on lift) no longer unintentionally starts playback; a `pauseVideo` is sent immediately after every seek when not all touching
 
 ### Added
 - V2: video plays only when every user in the room is touching the reaction canvas simultaneously; pauses as soon as anyone lifts their finger

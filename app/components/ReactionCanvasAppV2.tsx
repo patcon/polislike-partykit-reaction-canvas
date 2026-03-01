@@ -46,6 +46,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const voteStateRef = useRef<VoteState>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
+  const allTouchingRef = useRef(false);
 
   // Track video timecode locally: seek offset + elapsed play time
   const seekOffsetRef = useRef(0);
@@ -62,9 +63,17 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     iframeRef.current?.contentWindow?.postMessage(
       JSON.stringify({ event: 'command', func: 'seekTo', args: [timecode, true] }), '*'
     );
+    // seekTo can resume playback on YouTube even when the player was paused.
+    // Explicitly re-pause if we shouldn't be playing.
+    if (!allTouchingRef.current) {
+      iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }), '*'
+      );
+    }
   };
 
   const allTouching = presenceCount > 0 && touchPos !== null && activeCursorCount >= presenceCount - 1;
+  allTouchingRef.current = allTouching;
 
   const videoId = videoIdProp ?? getVideoIdFromUrl();
   const room = videoId || 'default';
@@ -115,6 +124,15 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
               src={`https://www.youtube-nocookie.com/embed/${videoId}?controls=0&modestbranding=1&rel=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1`}
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
+              onLoad={() => {
+                // Pause on load in case YouTube resumes from a previously-playing state
+                // (the pauseVideo from the allTouching effect fires before the iframe is ready).
+                if (!allTouchingRef.current) {
+                  iframeRef.current?.contentWindow?.postMessage(
+                    JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }), '*'
+                  );
+                }
+              }}
             />
             <div className="v2-youtube-overlay" />
           </>
