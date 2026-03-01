@@ -13,6 +13,11 @@ function getVideoIdFromUrl(): string {
   return urlParams.get('videoId') ?? '';
 }
 
+function getLabelsParamFromUrl(): string | undefined {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('labels') ?? undefined;
+}
+
 function isTouchDevice(): boolean {
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 }
@@ -112,7 +117,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     return <MobileOnlyGate />;
   }
 
-  const labels = getReactionLabelSet();
+  const labels = getReactionLabelSet(getLabelsParamFromUrl());
 
   return (
     <div className="v2-app-container">

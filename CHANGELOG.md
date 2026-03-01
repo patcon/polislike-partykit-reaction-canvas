@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-03-01)
 
+### Added
+- V2: `?labels=` query param selects a reaction label preset (`default`, `yesno`, `supportive`, `abu`); falls back to localStorage / default if omitted or unrecognised
+- `abu` label set: agree=A, disagree=B, pass=U
+
 ### Fixed
 - Mobile taps no longer leave the cursor stuck as a persistent touch; the root cause was the browser's synthesized `mousemove` (fired ~300ms after every tap) landing in `handleMouseMove` and starting the heartbeat with no corresponding `mouseleave` to clean up — now suppressed with a 500ms post-touch guard
 - V2: video no longer auto-resumes on page refresh when it was previously playing; the iframe's `onLoad` now re-sends `pauseVideo` on non-touch devices (mobile browsers block autoplay natively so the guard is not needed there and was causing the player to go black)

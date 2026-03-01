@@ -86,6 +86,7 @@ URL params are read by each sub-app independently (`?room=`, `?admin=`, `?ghostC
 | Param | Values | Effect |
 |-------|--------|--------|
 | `videoId` | YouTube video ID | Embeds that video and scopes cursor room to that video ID; shows placeholder with example link if omitted |
+| `labels` | `default`, `yesno`, `supportive`, `abu` | Selects a reaction label preset; falls back to localStorage / `default` if omitted |
 
 ## Storybook
 
