@@ -50,6 +50,7 @@ export default function TouchLayer({
     height: window.innerHeight - (heightOffset ?? 140)
   });
   const [isDragging, setIsDragging] = useState(false);
+  const [isMouseOver, setIsMouseOver] = useState(false);
   const [hasMovedDuringTouch, setHasMovedDuringTouch] = useState(false);
   const currentVoteStateRef = useRef<VoteState>(null);
   const lastPositionRef = useRef<CursorPosition | null>(null);
@@ -81,15 +82,16 @@ export default function TouchLayer({
 
   // Heartbeat: re-send position every 2s while holding still, so Canvas's 3s staleness
   // timeout doesn't remove the cursor and incorrectly signal that the user lifted their finger.
+  // Covers both touch (isDragging) and mouse hover (isMouseOver, for desktop debugging).
   useEffect(() => {
-    if (!isDragging) return;
+    if (!isDragging && !isMouseOver) return;
     const interval = setInterval(() => {
       if (lastPositionRef.current) {
         sendCursorEvent('touch', { ...lastPositionRef.current, timestamp: Date.now() });
       }
     }, 2000);
     return () => clearInterval(interval);
-  }, [isDragging]);
+  }, [isDragging, isMouseOver]);
 
   const getPixelPosition = (e: React.MouseEvent | React.TouchEvent): { x: number; y: number } | null => {
     const layer = layerRef.current;
@@ -187,6 +189,8 @@ export default function TouchLayer({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     const position = getCursorPosition(e);
+    lastPositionRef.current = position;
+    setIsMouseOver(true);
     sendCursorEvent('move', position);
     onTouchPosition?.(getPixelPosition(e));
 
@@ -200,6 +204,8 @@ export default function TouchLayer({
   };
 
   const handleMouseLeave = () => {
+    setIsMouseOver(false);
+    lastPositionRef.current = null;
     // Send remove event when mouse leaves the canvas
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
     sendCursorEvent('remove', position);
