@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
+import { getReactionLabelSet } from "../voteLabels";
 
 type VoteState = 'agree' | 'disagree' | 'pass' | null;
 
@@ -36,6 +37,8 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
+  const labels = getReactionLabelSet();
+
   return (
     <div className="v2-app-container">
       <div className="v2-youtube-container" style={{ height: youtubeHeight }}>
@@ -50,9 +53,9 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         )}
       </div>
       <div className="v2-vote-canvas-container">
-        <div className="vote-label vote-label-agree">AGREE</div>
-        <div className="vote-label vote-label-disagree">DISAGREE</div>
-        <div className="vote-label vote-label-pass">PASS</div>
+        <div className="vote-label vote-label-agree">{labels.agree}</div>
+        <div className="vote-label vote-label-disagree">{labels.disagree}</div>
+        <div className="vote-label vote-label-pass">{labels.pass}</div>
         <Canvas
           room={room}
           userId={userId}

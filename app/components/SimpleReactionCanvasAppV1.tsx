@@ -5,6 +5,7 @@ import TouchLayer from "./TouchLayer";
 import StatementPanel from "./StatementPanel";
 import AdminPanel from "./AdminPanel";
 import type { PolisStatement, QueueItem } from "../types";
+import { getReactionLabelSet } from "../voteLabels";
 
 function getRoomFromUrl(): string {
   const urlParams = new URLSearchParams(window.location.search);
@@ -237,6 +238,8 @@ export default function SimpleReactionCanvasAppV1() {
     );
   }
 
+  const labels = getReactionLabelSet();
+
   return (
     <div className="app-container">
       <StatementPanel
@@ -246,9 +249,9 @@ export default function SimpleReactionCanvasAppV1() {
         statementsPool={statementsPool}
       />
       <div className="vote-canvas-container" style={{ position: 'relative' }}>
-        <div className="vote-label vote-label-agree">AGREE</div>
-        <div className="vote-label vote-label-disagree">DISAGREE</div>
-        <div className="vote-label vote-label-pass">PASS</div>
+        <div className="vote-label vote-label-agree">{labels.agree}</div>
+        <div className="vote-label vote-label-disagree">{labels.disagree}</div>
+        <div className="vote-label vote-label-pass">{labels.pass}</div>
         <Canvas
           room={room}
           userId={userId}

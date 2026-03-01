@@ -110,6 +110,7 @@ html, body {
   padding: 8px 12px;
   border-radius: 6px;
   border: 2px solid #000000;
+  white-space: nowrap;
 }
 
 /* AGREE - Top right of vote canvas */
