@@ -39,8 +39,15 @@ function IndexApp() {
         </a>
         <a href="#v2" className="app-card">
           <div className="app-card-content">
-            <h2 className="app-card-title">V2: Participant View (YouTube)</h2>
-            <p className="app-card-description">YouTube embed at the top with a live reaction canvas below. Add <code>?videoId=</code> to set the video.</p>
+            <h2 className="app-card-title">V2: YouTube (Blank)</h2>
+            <p className="app-card-description">YouTube embed + reaction canvas. No video set — add <code>?videoId=</code> to the URL.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="?videoId=s-ONlhskCrA#v2" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V2: YouTube (Example)</h2>
+            <p className="app-card-description">YouTube embed + reaction canvas with an example video pre-loaded.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
