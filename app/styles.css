@@ -844,6 +844,18 @@ body {
   min-height: 0;
 }
 
+.v2-touch-indicator {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(30, 120, 255, 0.35);
+  border: 3px solid rgba(30, 120, 255, 0.75);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+
 /* Index / Landing Page */
 .index-app {
   width: 100vw;

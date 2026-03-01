@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] (2026-02-28)
 
 ### Added
+- V2 touch indicator: large blue circle follows finger on the reaction canvas
+- V2 video control: touching the canvas plays the YouTube video; releasing pauses it
 - V2 mobile-only gate: non-touch devices see a QR code linking to the current URL instead of the canvas; override with `?mobile=true`
 - Split V2 index card into two: "YouTube (Blank)" and "YouTube (Example)" with pre-loaded video
 - Configurable reaction label sets via `localStorage` (`polis_label_set` key) for minimal A/B testing

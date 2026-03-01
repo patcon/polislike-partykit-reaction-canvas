@@ -30,6 +30,7 @@ interface TouchLayerProps {
   voteStateRef?: React.MutableRefObject<VoteState>;
   onBackgroundColorChange: (voteState: VoteState) => void;
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
+  onTouchPosition?: (pos: { x: number; y: number } | null) => void; // Pixel coords relative to layer
 }
 
 export default function TouchLayer({
@@ -39,7 +40,8 @@ export default function TouchLayer({
   userId,
   voteStateRef,
   onBackgroundColorChange,
-  heightOffset
+  heightOffset,
+  onTouchPosition,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
@@ -73,6 +75,18 @@ export default function TouchLayer({
   const sendCursorEvent = (type: CursorEvent['type'], position: CursorPosition) => {
     const event: CursorEvent = { type, position };
     socket.send(JSON.stringify(event));
+  };
+
+  const getPixelPosition = (e: React.MouseEvent | React.TouchEvent): { x: number; y: number } | null => {
+    const layer = layerRef.current;
+    if (!layer) return null;
+    const rect = layer.getBoundingClientRect();
+    if ('touches' in e) {
+      const touch = e.touches.length > 0 ? e.touches[0] : e.changedTouches[0] ?? null;
+      if (!touch) return null;
+      return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
+    }
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
 
   const getCursorPosition = (e: React.MouseEvent | React.TouchEvent): CursorPosition => {
@@ -160,6 +174,7 @@ export default function TouchLayer({
   const handleMouseMove = (e: React.MouseEvent) => {
     const position = getCursorPosition(e);
     sendCursorEvent('move', position);
+    onTouchPosition?.(getPixelPosition(e));
 
     // Update vote state based on cursor position
     const voteState = getVoteFromPosition(position.x, position.y);
@@ -174,6 +189,7 @@ export default function TouchLayer({
     // Send remove event when mouse leaves the canvas
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
     sendCursorEvent('remove', position);
+    onTouchPosition?.(null);
 
     // Reset vote state when mouse leaves
     setUserVoteState(null);
@@ -191,6 +207,7 @@ export default function TouchLayer({
 
     const position = getCursorPosition(e);
     sendCursorEvent('touch', position);
+    onTouchPosition?.(getPixelPosition(e));
 
     // Update vote state without triggering React re-render during drag
     const voteState = getVoteFromPosition(position.x, position.y);
@@ -205,6 +222,7 @@ export default function TouchLayer({
     setHasMovedDuringTouch(false);
     const position = getCursorPosition(e);
     sendCursorEvent('touch', position);
+    onTouchPosition?.(getPixelPosition(e));
 
     // Store initial vote state but don't trigger re-renders during touch start
     const voteState = getVoteFromPosition(position.x, position.y);
@@ -215,6 +233,7 @@ export default function TouchLayer({
 
   const handleTouchEnd = (e: React.TouchEvent) => {
     setIsDragging(false);
+    onTouchPosition?.(null);
 
     // Send remove event when touch ends
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };

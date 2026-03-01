@@ -47,6 +47,8 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<VoteState>(null);
   const voteStateRef = useRef<VoteState>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
 
   const [youtubeHeight, setYoutubeHeight] = useState(
     Math.round(window.innerHeight * YOUTUBE_HEIGHT_FRACTION)
@@ -59,6 +61,14 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  const handleTouchPosition = (pos: { x: number; y: number } | null) => {
+    setTouchPos(pos);
+    const cmd = pos ? 'playVideo' : 'pauseVideo';
+    iframeRef.current?.contentWindow?.postMessage(
+      JSON.stringify({ event: 'command', func: cmd, args: '' }), '*'
+    );
+  };
 
   if (!isTouchDevice() && !isMobileOverridden()) {
     return <MobileOnlyGate />;
@@ -73,7 +83,8 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
       <div className="v2-youtube-container" style={{ height: youtubeHeight }}>
         {videoId ? (
           <iframe
-            src={`https://www.youtube-nocookie.com/embed/${videoId}?controls=0&modestbranding=1&rel=0&iv_load_policy=3&cc_load_policy=0`}
+            ref={iframeRef}
+            src={`https://www.youtube-nocookie.com/embed/${videoId}?controls=0&modestbranding=1&rel=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1`}
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
           />
@@ -85,6 +96,12 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         <div className="vote-label vote-label-agree">{labels.agree}</div>
         <div className="vote-label vote-label-disagree">{labels.disagree}</div>
         <div className="vote-label vote-label-pass">{labels.pass}</div>
+        {touchPos && (
+          <div
+            className="v2-touch-indicator"
+            style={{ left: touchPos.x, top: touchPos.y }}
+          />
+        )}
         <Canvas
           room={room}
           userId={userId}
@@ -99,6 +116,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           onVoteStateChange={() => {}}
           voteStateRef={voteStateRef}
           onBackgroundColorChange={setCanvasBackgroundVoteState}
+          onTouchPosition={handleTouchPosition}
           heightOffset={youtubeHeight}
         />
       </div>
