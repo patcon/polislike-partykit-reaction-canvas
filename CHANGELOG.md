@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-03-01)
 
+### Added
+- V2: video plays only when every user in the room is touching the reaction canvas simultaneously; pauses as soon as anyone lifts their finger
+
 ### Fixed
 - Fix connection counter in V2 always showing zero; root cause was server-side presenceCount logic never having been committed/deployed
 

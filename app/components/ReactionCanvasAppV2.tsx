@@ -42,9 +42,12 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<VoteState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
+  const [activeCursorCount, setActiveCursorCount] = useState<number>(0);
   const voteStateRef = useRef<VoteState>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
+
+  const allTouching = presenceCount > 0 && touchPos !== null && activeCursorCount >= presenceCount - 1;
 
   const videoId = videoIdProp ?? getVideoIdFromUrl();
   const room = videoId || 'default';
@@ -61,12 +64,15 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleTouchPosition = (pos: { x: number; y: number } | null) => {
-    setTouchPos(pos);
-    const cmd = pos ? 'playVideo' : 'pauseVideo';
+  useEffect(() => {
+    const cmd = allTouching ? 'playVideo' : 'pauseVideo';
     iframeRef.current?.contentWindow?.postMessage(
       JSON.stringify({ event: 'command', func: cmd, args: '' }), '*'
     );
+  }, [allTouching]);
+
+  const handleTouchPosition = (pos: { x: number; y: number } | null) => {
+    setTouchPos(pos);
   };
 
   if (!isTouchDevice() && !isMobileOverridden()) {
@@ -107,6 +113,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           currentVoteState={canvasBackgroundVoteState}
           heightOffset={youtubeHeight}
           onPresenceCount={setPresenceCount}
+          onActiveCursorCountChange={setActiveCursorCount}
         />
         <TouchLayer
           room={room}

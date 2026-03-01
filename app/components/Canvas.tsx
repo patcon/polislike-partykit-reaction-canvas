@@ -23,11 +23,17 @@ interface CanvasProps {
   currentVoteState?: VoteState; // Current vote state for background color
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
   onPresenceCount?: (count: number) => void;
+  onActiveCursorCountChange?: (count: number) => void;
 }
 
-export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState, heightOffset, onPresenceCount }: CanvasProps) {
+export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState, heightOffset, onPresenceCount, onActiveCursorCountChange }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
+
+  useEffect(() => {
+    onActiveCursorCountChange?.(cursors.size);
+  }, [cursors.size]);
+
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
     height: window.innerHeight - (heightOffset ?? 140)
