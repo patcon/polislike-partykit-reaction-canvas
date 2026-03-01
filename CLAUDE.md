@@ -11,6 +11,12 @@ npm run deploy       # Deploy to PartyKit
 npm run cachebust    # Production build with cache-busting
 ```
 
+### Cache-busting and `public/index.html`
+
+`public/index.html` is **generated** from `public/index.template.html` by `npm run cachebust`, which stamps `?v=<timestamp>` onto the JS and CSS asset URLs to force browsers to reload after a deploy.
+
+`npm run deploy` runs cachebust automatically before uploading. The committed `public/index.html` serves local dev as-is (stale timestamp is fine locally). Do not run cachebust manually or commit the result — CI handles it.
+
 ## Architecture
 
 - **`party/server.ts`** — PartyKit server: manages the statement queue, broadcasts cursor events, stores votes, serves the Polis API proxy

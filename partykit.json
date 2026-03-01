@@ -12,8 +12,4 @@
       }
     }
   },
-  "build": {
-    "command": "node scripts/build-with-cachebust.js",
-    "watch": "app"
-  }
 }

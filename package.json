@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "partykit dev --live",
-    "deploy": "partykit deploy",
+    "deploy": "npm run cachebust && partykit deploy",
     "cachebust": "node scripts/build-with-cachebust.js",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"

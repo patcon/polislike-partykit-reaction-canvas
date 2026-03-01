@@ -806,6 +806,9 @@ body {
   background: #f5f5f5;
   padding: 40px;
   box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
 }
 
 .index-title {
