@@ -11,11 +11,25 @@ A real-time collaborative voting canvas built on PartyKit (WebSockets) and React
 ```bash
 npm run dev          # PartyKit dev server on localhost:1999
 npm run storybook    # Storybook on localhost:6006
-npm run deploy       # Deploy to PartyKit  ⚠️  CI ONLY — never run from workstation
+npm run deploy       # Deploy to PartyKit — see rules below
 npm run cachebust    # Production build with cache-busting
 ```
 
-> **Never run `npm run deploy` from the workstation.** Deployment is handled exclusively by CI. Running it locally risks deploying uncommitted or out-of-sync state.
+### Deploy rules
+
+> **Never deploy uncommitted changes.** Always commit `party/server.ts` (and any other changed files) before running `npm run deploy`.
+
+CI deploys automatically on merge to `main`. But deploying from the workstation is also appropriate — and **required** — when you have changed `party/server.ts` and need to test those changes, because:
+
+**`npm run dev` only serves the frontend locally. The PartyKit sockets always connect to the deployed server**, not a local instance. Uncommitted or undeployed changes to `party/server.ts` are invisible to the client, even during local dev.
+
+Workflow for server changes:
+1. Edit `party/server.ts`
+2. Commit the change
+3. Run `npm run deploy` from the workstation to push it
+4. Test against the live server
+
+If a server feature appears to work locally but not in production (or vice versa), the first thing to check is whether `party/server.ts` has been committed **and** deployed.
 
 ### Cache-busting and `public/index.html`
 

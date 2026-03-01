@@ -22,9 +22,10 @@ interface CanvasProps {
   colorCursorsByVote?: boolean; // Optional prop to enable vote-based coloring
   currentVoteState?: VoteState; // Current vote state for background color
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
+  onPresenceCount?: (count: number) => void;
 }
 
-export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState, heightOffset }: CanvasProps) {
+export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState, heightOffset, onPresenceCount }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [dimensions, setDimensions] = useState({
@@ -35,9 +36,15 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
     room: room,
+    query: { userId },
     onMessage(evt) {
       try {
         const data = JSON.parse(evt.data);
+
+        if (data.type === 'presenceCount') {
+          onPresenceCount?.(data.count);
+          return;
+        }
 
         // Handle cursor events only
         if (data.position) {

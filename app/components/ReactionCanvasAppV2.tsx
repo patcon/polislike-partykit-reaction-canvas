@@ -41,9 +41,13 @@ function MobileOnlyGate() {
 export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?: string }) {
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<VoteState>(null);
+  const [presenceCount, setPresenceCount] = useState<number>(0);
   const voteStateRef = useRef<VoteState>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
+
+  const videoId = videoIdProp ?? getVideoIdFromUrl();
+  const room = videoId || 'default';
 
   const [youtubeHeight, setYoutubeHeight] = useState(
     Math.round(window.innerHeight * YOUTUBE_HEIGHT_FRACTION)
@@ -69,8 +73,6 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     return <MobileOnlyGate />;
   }
 
-  const videoId = videoIdProp ?? getVideoIdFromUrl();
-  const room = videoId || 'default';
   const labels = getReactionLabelSet();
 
   return (
@@ -91,6 +93,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         <div className="vote-label vote-label-agree">{labels.agree}</div>
         <div className="vote-label vote-label-disagree">{labels.disagree}</div>
         <div className="vote-label vote-label-pass">{labels.pass}</div>
+        <div className="v2-presence-counter">{presenceCount} here</div>
         {touchPos && (
           <div
             className="v2-touch-indicator"
@@ -103,6 +106,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           colorCursorsByVote={true}
           currentVoteState={canvasBackgroundVoteState}
           heightOffset={youtubeHeight}
+          onPresenceCount={setPresenceCount}
         />
         <TouchLayer
           room={room}

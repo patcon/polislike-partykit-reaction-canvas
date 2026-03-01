@@ -56,6 +56,7 @@ export default function TouchLayer({
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
     room: room,
+    query: { userId },
     onMessage(evt) {
       try {
         const data = JSON.parse(evt.data);
