@@ -71,8 +71,7 @@ URL params are read by each sub-app independently (`?room=`, `?admin=`, `?ghostC
 
 | Param | Values | Effect |
 |-------|--------|--------|
-| `room` | string | PartyKit room name; defaults to `"default"` |
-| `videoId` | YouTube video ID | Embeds that video; shows placeholder with example link if omitted |
+| `videoId` | YouTube video ID | Embeds that video and scopes cursor room to that video ID; shows placeholder with example link if omitted |
 
 ## Storybook
 

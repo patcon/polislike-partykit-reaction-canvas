@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-02-28)
 
+### Changed
+- V2: cursor room is now derived from `?videoId=` — each video gets its own cursor space automatically; `?room=` param removed from V2 (it remains a V1 concept)
+
 ### Added
 - V2 touch indicator: large blue circle follows finger on the reaction canvas
 - V2 video control: touching the canvas plays the YouTube video; releasing pauses it

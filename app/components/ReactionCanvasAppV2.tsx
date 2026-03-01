@@ -8,11 +8,6 @@ type VoteState = 'agree' | 'disagree' | 'pass' | null;
 
 const YOUTUBE_HEIGHT_FRACTION = 0.45; // YouTube player takes 45vh
 
-function getRoomFromUrl(): string {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('room') ?? 'default';
-}
-
 function getVideoIdFromUrl(): string {
   const urlParams = new URLSearchParams(window.location.search);
   return urlParams.get('videoId') ?? '';
@@ -74,8 +69,8 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     return <MobileOnlyGate />;
   }
 
-  const room = getRoomFromUrl();
   const videoId = videoIdProp ?? getVideoIdFromUrl();
+  const room = videoId || 'default';
   const labels = getReactionLabelSet();
 
   return (
