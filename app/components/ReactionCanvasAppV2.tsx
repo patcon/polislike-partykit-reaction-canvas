@@ -85,12 +85,15 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     <div className="v2-app-container">
       <div className="v2-youtube-container" style={{ height: youtubeHeight }}>
         {videoId ? (
-          <iframe
-            ref={iframeRef}
-            src={`https://www.youtube-nocookie.com/embed/${videoId}?controls=0&modestbranding=1&rel=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1`}
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-            allowFullScreen
-          />
+          <>
+            <iframe
+              ref={iframeRef}
+              src={`https://www.youtube-nocookie.com/embed/${videoId}?controls=0&modestbranding=1&rel=0&iv_load_policy=3&cc_load_policy=0&enablejsapi=1`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+            />
+            <div className="v2-youtube-overlay" />
+          </>
         ) : (
           <div className="v2-no-video">No video — add <code>?videoId=</code> to the URL (<a href="?videoId=s-ONlhskCrA#v2">example</a>)</div>
         )}

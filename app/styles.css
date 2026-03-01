@@ -804,9 +804,16 @@ body {
 }
 
 .v2-youtube-container {
+  position: relative;
   width: 100%;
   flex-shrink: 0;
   background: #000;
+}
+
+.v2-youtube-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
 }
 
 .v2-youtube-container iframe {
