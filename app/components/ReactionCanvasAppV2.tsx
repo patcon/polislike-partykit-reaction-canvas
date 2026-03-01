@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import usePartySocket from "partysocket/react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import { getReactionLabelSet } from "../voteLabels";
@@ -41,13 +42,31 @@ function MobileOnlyGate() {
 export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?: string }) {
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<VoteState>(null);
+  const [presenceCount, setPresenceCount] = useState<number>(0);
   const voteStateRef = useRef<VoteState>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
 
+  const videoId = videoIdProp ?? getVideoIdFromUrl();
+  const room = videoId || 'default';
+
   const [youtubeHeight, setYoutubeHeight] = useState(
     Math.round(window.innerHeight * YOUTUBE_HEIGHT_FRACTION)
   );
+
+  usePartySocket({
+    host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
+    room,
+    query: { userId },
+    onMessage(evt) {
+      try {
+        const data = JSON.parse(evt.data);
+        if (data.type === 'presenceCount') {
+          setPresenceCount(data.count);
+        }
+      } catch (e) {}
+    },
+  });
 
   useEffect(() => {
     const handleResize = () => {
@@ -69,8 +88,6 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     return <MobileOnlyGate />;
   }
 
-  const videoId = videoIdProp ?? getVideoIdFromUrl();
-  const room = videoId || 'default';
   const labels = getReactionLabelSet();
 
   return (
@@ -91,6 +108,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         <div className="vote-label vote-label-agree">{labels.agree}</div>
         <div className="vote-label vote-label-disagree">{labels.disagree}</div>
         <div className="vote-label vote-label-pass">{labels.pass}</div>
+        <div className="v2-presence-counter">{presenceCount} here</div>
         {touchPos && (
           <div
             className="v2-touch-indicator"
