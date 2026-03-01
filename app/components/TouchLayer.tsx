@@ -31,6 +31,7 @@ interface TouchLayerProps {
   onBackgroundColorChange: (voteState: VoteState) => void;
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
   onTouchPosition?: (pos: { x: number; y: number } | null) => void; // Pixel coords relative to layer
+  getTimecode?: () => number; // Returns current video timecode to send on lift
 }
 
 export default function TouchLayer({
@@ -42,6 +43,7 @@ export default function TouchLayer({
   onBackgroundColorChange,
   heightOffset,
   onTouchPosition,
+  getTimecode,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [userVoteState, setUserVoteState] = useState<VoteState>(null);
@@ -78,6 +80,12 @@ export default function TouchLayer({
   const sendCursorEvent = (type: CursorEvent['type'], position: CursorPosition) => {
     const event: CursorEvent = { type, position };
     socket.send(JSON.stringify(event));
+  };
+
+  const sendTimecode = () => {
+    if (getTimecode) {
+      socket.send(JSON.stringify({ type: 'setTimecode', timecode: getTimecode() }));
+    }
   };
 
   // Heartbeat: re-send position every 2s while holding still, so Canvas's 3s staleness
@@ -206,6 +214,7 @@ export default function TouchLayer({
   const handleMouseLeave = () => {
     setIsMouseOver(false);
     lastPositionRef.current = null;
+    sendTimecode();
     // Send remove event when mouse leaves the canvas
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
     sendCursorEvent('remove', position);
@@ -256,6 +265,7 @@ export default function TouchLayer({
   const handleTouchEnd = (e: React.TouchEvent) => {
     setIsDragging(false);
     lastPositionRef.current = null;
+    sendTimecode();
     onTouchPosition?.(null);
 
     // Send remove event when touch ends

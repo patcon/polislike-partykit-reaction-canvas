@@ -47,6 +47,23 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
 
+  // Track video timecode locally: seek offset + elapsed play time
+  const seekOffsetRef = useRef(0);
+  const playStartRef = useRef<number | null>(null);
+
+  const getCurrentTimecode = () => {
+    if (playStartRef.current === null) return seekOffsetRef.current;
+    return seekOffsetRef.current + (Date.now() - playStartRef.current) / 1000;
+  };
+
+  const seekTo = (timecode: number) => {
+    seekOffsetRef.current = timecode;
+    playStartRef.current = null;
+    iframeRef.current?.contentWindow?.postMessage(
+      JSON.stringify({ event: 'command', func: 'seekTo', args: [timecode, true] }), '*'
+    );
+  };
+
   const allTouching = presenceCount > 0 && touchPos !== null && activeCursorCount >= presenceCount - 1;
 
   const videoId = videoIdProp ?? getVideoIdFromUrl();
@@ -65,10 +82,17 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   }, []);
 
   useEffect(() => {
-    const cmd = allTouching ? 'playVideo' : 'pauseVideo';
-    iframeRef.current?.contentWindow?.postMessage(
-      JSON.stringify({ event: 'command', func: cmd, args: '' }), '*'
-    );
+    if (allTouching) {
+      playStartRef.current = Date.now();
+      iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func: 'playVideo', args: '' }), '*'
+      );
+    } else {
+      playStartRef.current = null;
+      iframeRef.current?.contentWindow?.postMessage(
+        JSON.stringify({ event: 'command', func: 'pauseVideo', args: '' }), '*'
+      );
+    }
   }, [allTouching]);
 
   const handleTouchPosition = (pos: { x: number; y: number } | null) => {
@@ -117,6 +141,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           heightOffset={youtubeHeight}
           onPresenceCount={setPresenceCount}
           onActiveCursorCountChange={setActiveCursorCount}
+          onTimecodeUpdate={seekTo}
         />
         <TouchLayer
           room={room}
@@ -127,6 +152,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           onBackgroundColorChange={setCanvasBackgroundVoteState}
           onTouchPosition={handleTouchPosition}
           heightOffset={youtubeHeight}
+          getTimecode={getCurrentTimecode}
         />
       </div>
     </div>

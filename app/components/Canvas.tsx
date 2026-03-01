@@ -24,9 +24,10 @@ interface CanvasProps {
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
   onPresenceCount?: (count: number) => void;
   onActiveCursorCountChange?: (count: number) => void;
+  onTimecodeUpdate?: (timecode: number) => void;
 }
 
-export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState, heightOffset, onPresenceCount, onActiveCursorCountChange }: CanvasProps) {
+export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
 
@@ -49,6 +50,11 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
 
         if (data.type === 'presenceCount') {
           onPresenceCount?.(data.count);
+          return;
+        }
+
+        if (data.type === 'timecodeUpdate' || (data.type === 'connected' && data.timecode !== undefined)) {
+          onTimecodeUpdate?.(data.timecode);
           return;
         }
 

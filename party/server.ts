@@ -70,6 +70,11 @@ interface GhostCursorSettingEvent {
   enabled: boolean;
 }
 
+interface SetTimecodeEvent {
+  type: 'setTimecode';
+  timecode: number;
+}
+
 interface Vote {
   userId: string;
   statementId: number;
@@ -77,7 +82,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent;
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
@@ -85,6 +90,7 @@ export default class Server implements Party.Server {
   private statementsPool: PolisStatement[] = []; // Pool of all available statements
   private votes: Vote[] = []; // Store all votes
   private connectionUserMap = new Map<string, string>(); // connectionId -> userId
+  private savedTimecode: number = 0; // Last paused timecode for the video in this room
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -139,7 +145,8 @@ export default class Server implements Party.Server {
       allSelectedStatements: this.allSelectedStatements,
       statementsPool: this.statementsPool,
       currentTime: Date.now(),
-      ghostCursorsEnabled: this.ghostCursorsEnabled
+      ghostCursorsEnabled: this.ghostCursorsEnabled,
+      timecode: this.savedTimecode,
     }));
   }
 
@@ -190,6 +197,9 @@ export default class Server implements Party.Server {
         // Handle ghost cursor setting changes
         console.log(`Ghost cursor setting from ${sender.id}:`, event.enabled);
         this.setGhostCursorsEnabled(event.enabled);
+      } else if (event.type === 'setTimecode') {
+        this.savedTimecode = event.timecode;
+        this.room.broadcast(JSON.stringify({ type: 'timecodeUpdate', timecode: this.savedTimecode }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
