@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-03-01)
 
+### Fixed
+- Mobile single taps no longer leave the blue cursor circle stuck; the browser's synthesized `mousemove` after a tap is now suppressed so it cannot start the hover/heartbeat path
+
 ### Added
 - V2: video plays only when every user in the room is touching the reaction canvas simultaneously; pauses as soon as anyone lifts their finger
 - V2: video timecode is saved to the server when any user lifts their finger; all clients seek to that position so playback resumes in sync next time everyone touches
