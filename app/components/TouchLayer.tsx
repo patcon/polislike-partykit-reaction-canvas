@@ -1,5 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import usePartySocket from "partysocket/react";
+import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
+import type { ReactionAnchors } from "../utils/voteRegion";
 
 interface CursorPosition {
   x: number; // Normalized coordinates (0-100)
@@ -32,6 +34,7 @@ interface TouchLayerProps {
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
   onTouchPosition?: (pos: { x: number; y: number } | null) => void; // Pixel coords relative to layer
   getTimecode?: () => number; // Returns current video timecode to send on lift
+  anchors?: ReactionAnchors;
 }
 
 export default function TouchLayer({
@@ -44,6 +47,7 @@ export default function TouchLayer({
   heightOffset,
   onTouchPosition,
   getTimecode,
+  anchors,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [userReactionState, setUserReactionState] = useState<ReactionState>(null);
@@ -149,51 +153,6 @@ export default function TouchLayer({
     };
   };
 
-  const getReactionFromPosition = (normalizedX: number, normalizedY: number): ReactionState => {
-    // Input coordinates are already normalized (0-100), convert to 0-1 range for calculations
-    const x = normalizedX / 100;
-    const y = normalizedY / 100;
-
-    // Define triangle vertices based on reaction label positions
-    // POSITIVE: top-right, NEGATIVE: bottom-left, NEUTRAL: bottom-right
-    const positive = { x: 1, y: 0 };  // top-right
-    const negative = { x: 0, y: 1 };  // bottom-left
-    const neutral  = { x: 1, y: 1 };  // bottom-right
-
-    // Calculate barycentric coordinates for the triangle
-    // This gives us the proportional "weight" of each vertex for any point in the triangle
-    const denominator = (negative.y - neutral.y) * (positive.x - neutral.x) + (neutral.x - negative.x) * (positive.y - neutral.y);
-
-    // Avoid division by zero (degenerate triangle)
-    if (Math.abs(denominator) < 1e-10) {
-      // Fallback to simple distance if triangle is degenerate
-      const distanceToPositive = Math.sqrt(Math.pow(x - positive.x, 2) + Math.pow(y - positive.y, 2));
-      const distanceToNegative = Math.sqrt(Math.pow(x - negative.x, 2) + Math.pow(y - negative.y, 2));
-      const distanceToNeutral  = Math.sqrt(Math.pow(x - neutral.x,  2) + Math.pow(y - neutral.y,  2));
-
-      const minDistance = Math.min(distanceToPositive, distanceToNegative, distanceToNeutral);
-      if (minDistance === distanceToPositive) return 'positive';
-      if (minDistance === distanceToNegative) return 'negative';
-      if (minDistance === distanceToNeutral)  return 'neutral';
-      return null;
-    }
-
-    // Calculate barycentric coordinates (weights for each vertex)
-    const wPositive = ((negative.y - neutral.y) * (x - neutral.x) + (neutral.x - negative.x) * (y - neutral.y)) / denominator;
-    const wNegative = ((neutral.y - positive.y) * (x - neutral.x) + (positive.x - neutral.x) * (y - neutral.y)) / denominator;
-    const wNeutral  = 1 - wPositive - wNegative;
-
-    // The vertex with the highest weight is the closest in terms of triangle geometry
-    const maxWeight = Math.max(wPositive, wNegative, wNeutral);
-
-    // Simply return the option with highest weight - no dead zones
-    if (maxWeight === wPositive) return 'positive';
-    if (maxWeight === wNegative) return 'negative';
-    if (maxWeight === wNeutral)  return 'neutral';
-
-    return null;
-  };
-
   const handleMouseMove = (e: React.MouseEvent) => {
     // Ignore synthesized mouse events that browsers fire ~300ms after a touch interaction.
     if (Date.now() - lastTouchTimeRef.current < 500) return;
@@ -204,7 +163,7 @@ export default function TouchLayer({
     onTouchPosition?.(getPixelPosition(e));
 
     // Update reaction state based on cursor position
-    const reactionState = getReactionFromPosition(position.x, position.y);
+    const reactionState = computeReactionRegion(position.x, position.y, anchors ?? DEFAULT_ANCHORS);
     setUserReactionState(reactionState);
     currentReactionStateRef.current = reactionState;
     if (reactionStateRef) reactionStateRef.current = reactionState;
@@ -239,7 +198,7 @@ export default function TouchLayer({
     onTouchPosition?.(getPixelPosition(e));
 
     // Update reaction state without triggering React re-render during drag
-    const reactionState = getReactionFromPosition(position.x, position.y);
+    const reactionState = computeReactionRegion(position.x, position.y, anchors ?? DEFAULT_ANCHORS);
     currentReactionStateRef.current = reactionState;
     if (reactionStateRef) reactionStateRef.current = reactionState;
     onBackgroundColorChange(reactionState);
@@ -254,7 +213,7 @@ export default function TouchLayer({
     sendCursorEvent('touch', position);
     onTouchPosition?.(getPixelPosition(e));
 
-    const reactionState = getReactionFromPosition(position.x, position.y);
+    const reactionState = computeReactionRegion(position.x, position.y, anchors ?? DEFAULT_ANCHORS);
     currentReactionStateRef.current = reactionState;
     if (reactionStateRef) reactionStateRef.current = reactionState;
     onBackgroundColorChange(reactionState);

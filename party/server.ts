@@ -85,6 +85,17 @@ interface SetRoomLabelsEvent {
   labels: { positive: string; negative: string; neutral: string } | null;
 }
 
+interface ReactionAnchors {
+  positive: { x: number; y: number };
+  negative: { x: number; y: number };
+  neutral:  { x: number; y: number };
+}
+
+interface SetRoomAnchorsEvent {
+  type: 'setRoomAnchors';
+  anchors: ReactionAnchors | null;
+}
+
 interface Vote {
   userId: string;
   statementId: number;
@@ -92,7 +103,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent;
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
@@ -103,6 +114,7 @@ export default class Server implements Party.Server {
   private savedTimecode: number = 0; // Last paused timecode for the video in this room
   private recordingState: boolean = false;
   private roomLabels: { positive: string; negative: string; neutral: string } | null = null;
+  private roomAnchors: ReactionAnchors | null = null;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -161,6 +173,7 @@ export default class Server implements Party.Server {
       timecode: this.savedTimecode,
       recordingState: this.recordingState,
       roomLabels: this.roomLabels,
+      roomAnchors: this.roomAnchors,
     }));
   }
 
@@ -220,6 +233,9 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setRoomLabels') {
         this.roomLabels = event.labels;
         this.room.broadcast(JSON.stringify({ type: 'roomLabelsChanged', labels: this.roomLabels }));
+      } else if (event.type === 'setRoomAnchors') {
+        this.roomAnchors = event.anchors;
+        this.room.broadcast(JSON.stringify({ type: 'roomAnchorsChanged', anchors: this.roomAnchors }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);

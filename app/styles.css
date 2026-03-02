@@ -114,23 +114,7 @@ html, body {
   text-transform: uppercase;
 }
 
-/* POSITIVE - Top right of canvas */
-.reaction-label-positive {
-  top: 30px;
-  right: 30px;
-}
-
-/* NEGATIVE - Bottom left of canvas */
-.reaction-label-negative {
-  bottom: 110px;
-  left: 30px;
-}
-
-/* NEUTRAL - Bottom right */
-.reaction-label-neutral {
-  bottom: 110px;
-  right: 30px;
-}
+/* Positional placement is handled via inline styles (percentage-based, from server anchors) */
 
 /* Responsive vote labels */
 @media (max-width: 768px) {
@@ -154,20 +138,6 @@ html, body {
     padding: 6px 10px;
   }
 
-  .reaction-label-positive {
-    top: 25px;
-    right: 25px;
-  }
-
-  .reaction-label-negative {
-    bottom: 130px;
-    left: 25px;
-  }
-
-  .reaction-label-neutral {
-    bottom: 130px;
-    right: 25px;
-  }
 }
 
 /* Disable zoom on mobile */

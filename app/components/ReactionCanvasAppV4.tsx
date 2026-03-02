@@ -3,6 +3,8 @@ import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
+import { DEFAULT_ANCHORS } from "../utils/voteRegion";
+import type { ReactionAnchors } from "../utils/voteRegion";
 import type { ReactionLabelSet } from "../voteLabels";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
@@ -46,6 +48,7 @@ export default function ReactionCanvasAppV4() {
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
+  const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const reactionStateRef = useRef<ReactionState>(null);
 
   if (isAdminMode()) {
@@ -58,13 +61,50 @@ export default function ReactionCanvasAppV4() {
   }
 
   const room = getRoomParamFromUrl();
+  const anchors = serverAnchors ?? DEFAULT_ANCHORS;
 
   return (
     <div className="v2-app-container">
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-        {serverLabels && <div className="reaction-label reaction-label-positive">{serverLabels.positive}</div>}
-        {serverLabels && <div className="reaction-label reaction-label-negative">{serverLabels.negative}</div>}
-        {serverLabels && <div className="reaction-label reaction-label-neutral">{serverLabels.neutral}</div>}
+        {serverLabels && (
+          <div
+            className="reaction-label reaction-label-positive"
+            style={{
+              position: 'absolute',
+              left: `${anchors.positive.x}%`,
+              top: `${anchors.positive.y}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            {serverLabels.positive}
+          </div>
+        )}
+        {serverLabels && (
+          <div
+            className="reaction-label reaction-label-negative"
+            style={{
+              position: 'absolute',
+              left: `${anchors.negative.x}%`,
+              top: `${anchors.negative.y}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            {serverLabels.negative}
+          </div>
+        )}
+        {serverLabels && (
+          <div
+            className="reaction-label reaction-label-neutral"
+            style={{
+              position: 'absolute',
+              left: `${anchors.neutral.x}%`,
+              top: `${anchors.neutral.y}%`,
+              transform: 'translate(-50%, -50%)',
+            }}
+          >
+            {serverLabels.neutral}
+          </div>
+        )}
         <div className="v2-presence-counter">{presenceCount} here</div>
         {isRecording && <div className="v3-rec-badge">● REC</div>}
         {touchPos && (
@@ -82,6 +122,7 @@ export default function ReactionCanvasAppV4() {
           onPresenceCount={setPresenceCount}
           onRecordingStateChange={setIsRecording}
           onRoomLabelsChange={setServerLabels}
+          onRoomAnchorsChange={setServerAnchors}
         />
         <TouchLayer
           room={room}
@@ -92,6 +133,7 @@ export default function ReactionCanvasAppV4() {
           onBackgroundColorChange={setCanvasBackgroundReactionState}
           onTouchPosition={setTouchPos}
           heightOffset={0}
+          anchors={anchors}
         />
       </div>
     </div>

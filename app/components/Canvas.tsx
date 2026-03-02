@@ -1,6 +1,8 @@
 import { useRef, useEffect, useState } from "react";
 import usePartySocket from "partysocket/react";
 import * as d3 from "d3";
+import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
+import type { ReactionAnchors } from "../utils/voteRegion";
 
 interface CursorPosition {
   x: number; // Normalized coordinates (0-100)
@@ -27,11 +29,13 @@ interface CanvasProps {
   onTimecodeUpdate?: (timecode: number) => void;
   onRecordingStateChange?: (recording: boolean) => void;
   onRoomLabelsChange?: (labels: { positive: string; negative: string; neutral: string } | null) => void;
+  onRoomAnchorsChange?: (anchors: ReactionAnchors | null) => void;
 }
 
-export default function Canvas({ room, userId, colorCursorsByVote = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange }: CanvasProps) {
+export default function Canvas({ room, userId, colorCursorsByVote = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
+  const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
 
   useEffect(() => {
     onActiveCursorCountChange?.(cursors.size);
@@ -59,6 +63,11 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
           if (data.timecode !== undefined) onTimecodeUpdate?.(data.timecode);
           if (data.recordingState !== undefined) onRecordingStateChange?.(data.recordingState);
           if ('roomLabels' in data) onRoomLabelsChange?.(data.roomLabels);
+          if ('roomAnchors' in data) {
+            const incoming = data.roomAnchors ?? null;
+            setAnchors(incoming ?? DEFAULT_ANCHORS);
+            onRoomAnchorsChange?.(incoming);
+          }
           return;
         }
 
@@ -74,6 +83,13 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
 
         if (data.type === 'roomLabelsChanged') {
           onRoomLabelsChange?.(data.labels ?? null);
+          return;
+        }
+
+        if (data.type === 'roomAnchorsChanged') {
+          const incoming = data.anchors ?? null;
+          setAnchors(incoming ?? DEFAULT_ANCHORS);
+          onRoomAnchorsChange?.(incoming);
           return;
         }
 
@@ -115,51 +131,6 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
       }
     },
   });
-
-  const getReactionFromPosition = (normalizedX: number, normalizedY: number): ReactionState => {
-    // Input coordinates are already normalized (0-100), convert to 0-1 range for calculations
-    const x = normalizedX / 100;
-    const y = normalizedY / 100;
-
-    // Define triangle vertices based on reaction label positions
-    // POSITIVE: top-right, NEGATIVE: bottom-left, NEUTRAL: bottom-right
-    const positive = { x: 1, y: 0 };  // top-right
-    const negative = { x: 0, y: 1 };  // bottom-left
-    const neutral  = { x: 1, y: 1 };  // bottom-right
-
-    // Calculate barycentric coordinates for the triangle
-    // This gives us the proportional "weight" of each vertex for any point in the triangle
-    const denominator = (negative.y - neutral.y) * (positive.x - neutral.x) + (neutral.x - negative.x) * (positive.y - neutral.y);
-
-    // Avoid division by zero (degenerate triangle)
-    if (Math.abs(denominator) < 1e-10) {
-      // Fallback to simple distance if triangle is degenerate
-      const distanceToPositive = Math.sqrt(Math.pow(x - positive.x, 2) + Math.pow(y - positive.y, 2));
-      const distanceToNegative = Math.sqrt(Math.pow(x - negative.x, 2) + Math.pow(y - negative.y, 2));
-      const distanceToNeutral  = Math.sqrt(Math.pow(x - neutral.x,  2) + Math.pow(y - neutral.y,  2));
-
-      const minDistance = Math.min(distanceToPositive, distanceToNegative, distanceToNeutral);
-      if (minDistance === distanceToPositive) return 'positive';
-      if (minDistance === distanceToNegative) return 'negative';
-      if (minDistance === distanceToNeutral)  return 'neutral';
-      return null;
-    }
-
-    // Calculate barycentric coordinates (weights for each vertex)
-    const wPositive = ((negative.y - neutral.y) * (x - neutral.x) + (neutral.x - negative.x) * (y - neutral.y)) / denominator;
-    const wNegative = ((neutral.y - positive.y) * (x - neutral.x) + (positive.x - neutral.x) * (y - neutral.y)) / denominator;
-    const wNeutral  = 1 - wPositive - wNegative;
-
-    // The vertex with the highest weight is the closest in terms of triangle geometry
-    const maxWeight = Math.max(wPositive, wNegative, wNeutral);
-
-    // Simply return the option with highest weight - no dead zones
-    if (maxWeight === wPositive) return 'positive';
-    if (maxWeight === wNegative) return 'negative';
-    if (maxWeight === wNeutral)  return 'neutral';
-
-    return null;
-  };
 
   // Update background color based on current reaction state
   const updateBackgroundColor = (reactionState: ReactionState) => {
@@ -210,7 +181,7 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
       timestamp: cursor.timestamp,
       userId: cursor.userId,
       // Calculate reaction state on client side for coloring
-      reactionState: colorCursorsByVote ? getReactionFromPosition(cursor.x, cursor.y) : null
+      reactionState: colorCursorsByVote ? computeReactionRegion(cursor.x, cursor.y, anchors) : null
     }));
 
     const cursorGroups = svg.selectAll('.cursor-group')
@@ -258,7 +229,7 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
       .attr('fill', '#000')
       .text((d: any) => d.cursorUserId.substring(0, 6));
 
-  }, [cursors, dimensions]);
+  }, [cursors, dimensions, anchors]);
 
   // Handle window resize
   useEffect(() => {
