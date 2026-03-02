@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased] (2026-03-02)
+
+### Added
+- V4: admin page now has a labels config section; selecting a preset or entering custom values and clicking "Apply Labels" updates labels for all participants in real-time via server room metadata
+
+### Changed
+- V4: label configuration moved from a per-participant `?` help modal to the shared admin page; labels are now server-side state (room metadata) instead of URL params, so all participants see the same labels automatically
+- V4: removed the `?labels=` URL param and `?`-key settings modal from the canvas view; label selection no longer requires page reload or URL sharing
+
+### Removed
+- V4: `?` keyboard shortcut and help modal removed from the canvas view (settings moved to admin page)
+
+---
+
 ## [Unreleased] (2026-03-01)
 
 ### Added

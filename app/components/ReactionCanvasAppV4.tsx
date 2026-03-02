@@ -1,18 +1,14 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
-import { getReactionLabelSet, REACTION_LABEL_PRESETS, encodeCustomLabels, decodeCustomLabels } from "../voteLabels";
+import type { ReactionLabelSet } from "../voteLabels";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 function getRoomParamFromUrl(): string {
   return new URLSearchParams(window.location.search).get('room') ?? 'default';
-}
-
-function getLabelsParamFromUrl(): string | undefined {
-  return new URLSearchParams(window.location.search).get('labels') ?? undefined;
 }
 
 function isTouchDevice(): boolean {
@@ -43,141 +39,14 @@ function MobileOnlyGate() {
   );
 }
 
-function buildUrlWithLabels(labelKey: string): string {
-  const url = new URL(window.location.href);
-  url.searchParams.set('labels', labelKey);
-  return url.toString();
-}
-
-function getCurrentLabelsParam(): string {
-  return new URLSearchParams(window.location.search).get('labels') ?? 'default';
-}
-
-const PRESET_KEYS = Object.keys(REACTION_LABEL_PRESETS);
-
-function isCustomKey(key: string): boolean {
-  return key !== '' && key !== 'none' && !PRESET_KEYS.includes(key);
-}
-
-function HelpModal({ onClose }: { onClose: () => void }) {
-  const currentKey = getCurrentLabelsParam();
-  const startCustom = isCustomKey(currentKey);
-  const decodedCustom = startCustom ? decodeCustomLabels(currentKey) : null;
-
-  const [selected, setSelected] = useState(startCustom ? 'custom' : currentKey);
-  const [customPositive, setCustomPositive] = useState(decodedCustom?.positive ?? '');
-  const [customNegative, setCustomNegative] = useState(decodedCustom?.negative ?? '');
-  const [customNeutral, setCustomNeutral] = useState(decodedCustom?.neutral ?? '');
-
-  const labelKeyForUrl = selected === 'custom'
-    ? (customPositive && customNegative && customNeutral ? encodeCustomLabels(customPositive, customNegative, customNeutral) : '')
-    : selected;
-  const linkHref = labelKeyForUrl ? buildUrlWithLabels(labelKeyForUrl) : undefined;
-
-  return (
-    <div className="v4-help-modal-overlay" onClick={onClose}>
-      <div className="v4-help-modal" onClick={e => e.stopPropagation()}>
-        <h2>Settings</h2>
-
-        <div className="v4-help-modal-section">
-          <label>Reaction labels</label>
-          <div className="v4-help-modal-radios">
-            {Object.entries(REACTION_LABEL_PRESETS).map(([key, set]) => (
-              <div key={key} className="v4-help-modal-option">
-                <label>
-                  <input
-                    type="radio"
-                    name="labels"
-                    value={key}
-                    checked={selected === key}
-                    onChange={() => setSelected(key)}
-                  />
-                  {set.positive} / {set.negative} / {set.neutral}
-                </label>
-                {set.hint && (
-                  <p className="v4-help-modal-hint">
-                    {set.hint}
-                    {set.hintLinkText && set.hintUrl && (
-                      <a href={set.hintUrl} target="_blank" rel="noopener noreferrer">{set.hintLinkText}</a>
-                    )}
-                  </p>
-                )}
-              </div>
-            ))}
-
-            <div className="v4-help-modal-option">
-              <label>
-                <input
-                  type="radio"
-                  name="labels"
-                  value="custom"
-                  checked={selected === 'custom'}
-                  onChange={() => setSelected('custom')}
-                />
-                Custom
-              </label>
-              {selected === 'custom' && (
-                <div className="v4-help-modal-custom-inputs">
-                  {[
-                    ['Positive', customPositive, setCustomPositive],
-                    ['Negative', customNegative, setCustomNegative],
-                    ['Neutral', customNeutral, setCustomNeutral],
-                  ].map(([slot, val, setter]) => (
-                    <div key={slot as string} className="v4-help-modal-custom-row">
-                      <span>{slot as string}</span>
-                      <input
-                        type="text"
-                        value={val as string}
-                        onChange={e => (setter as (v: string) => void)(e.target.value)}
-                        placeholder={`${slot} label`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <div className="v4-help-modal-option">
-              <label>
-                <input
-                  type="radio"
-                  name="labels"
-                  value="none"
-                  checked={selected === 'none'}
-                  onChange={() => setSelected('none')}
-                />
-                None (labels hidden)
-              </label>
-            </div>
-          </div>
-        </div>
-
-        {linkHref
-          ? <a className="v4-help-modal-link" href={linkHref}>Apply &amp; reload →</a>
-          : <span className="v4-help-modal-link v4-help-modal-link-disabled">Apply &amp; reload →</span>
-        }
-        <p className="v4-help-modal-close">Press <kbd>?</kbd> or click outside to close</p>
-      </div>
-    </div>
-  );
-}
-
 export default function ReactionCanvasAppV4() {
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [helpOpen, setHelpOpen] = useState(false);
+  const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
   const reactionStateRef = useRef<ReactionState>(null);
-
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === '?') setHelpOpen(prev => !prev);
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, []);
 
   if (isAdminMode()) {
     const room = getRoomParamFromUrl();
@@ -189,15 +58,13 @@ export default function ReactionCanvasAppV4() {
   }
 
   const room = getRoomParamFromUrl();
-  const labels = getReactionLabelSet(getLabelsParamFromUrl());
 
   return (
     <div className="v2-app-container">
-      {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-        {labels && <div className="reaction-label reaction-label-positive">{labels.positive}</div>}
-        {labels && <div className="reaction-label reaction-label-negative">{labels.negative}</div>}
-        {labels && <div className="reaction-label reaction-label-neutral">{labels.neutral}</div>}
+        {serverLabels && <div className="reaction-label reaction-label-positive">{serverLabels.positive}</div>}
+        {serverLabels && <div className="reaction-label reaction-label-negative">{serverLabels.negative}</div>}
+        {serverLabels && <div className="reaction-label reaction-label-neutral">{serverLabels.neutral}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
         {isRecording && <div className="v3-rec-badge">● REC</div>}
         {touchPos && (
@@ -214,6 +81,7 @@ export default function ReactionCanvasAppV4() {
           heightOffset={0}
           onPresenceCount={setPresenceCount}
           onRecordingStateChange={setIsRecording}
+          onRoomLabelsChange={setServerLabels}
         />
         <TouchLayer
           room={room}

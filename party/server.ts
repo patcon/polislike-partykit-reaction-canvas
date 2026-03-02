@@ -80,6 +80,11 @@ interface SetRecordingStateEvent {
   recording: boolean;
 }
 
+interface SetRoomLabelsEvent {
+  type: 'setRoomLabels';
+  labels: { positive: string; negative: string; neutral: string } | null;
+}
+
 interface Vote {
   userId: string;
   statementId: number;
@@ -87,7 +92,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent;
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
@@ -97,6 +102,7 @@ export default class Server implements Party.Server {
   private connectionUserMap = new Map<string, string>(); // connectionId -> userId
   private savedTimecode: number = 0; // Last paused timecode for the video in this room
   private recordingState: boolean = false;
+  private roomLabels: { positive: string; negative: string; neutral: string } | null = null;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -154,6 +160,7 @@ export default class Server implements Party.Server {
       ghostCursorsEnabled: this.ghostCursorsEnabled,
       timecode: this.savedTimecode,
       recordingState: this.recordingState,
+      roomLabels: this.roomLabels,
     }));
   }
 
@@ -210,6 +217,9 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setRecordingState') {
         this.recordingState = event.recording;
         this.room.broadcast(JSON.stringify({ type: 'recordingStateChanged', recording: this.recordingState }));
+      } else if (event.type === 'setRoomLabels') {
+        this.roomLabels = event.labels;
+        this.room.broadcast(JSON.stringify({ type: 'roomLabelsChanged', labels: this.roomLabels }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);

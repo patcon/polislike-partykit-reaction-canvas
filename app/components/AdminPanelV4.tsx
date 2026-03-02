@@ -2,6 +2,8 @@ import { useState, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import { computeReactionRegion } from "../utils/voteRegion";
 import type { ReactionRegion } from "../utils/voteRegion";
+import { REACTION_LABEL_PRESETS } from "../voteLabels";
+import type { ReactionLabelSet } from "../voteLabels";
 
 interface AdminPanelV4Props {
   room: string;
@@ -14,6 +16,31 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [mode, setMode] = useState<RecordingMode>('transitions');
   const [eventCount, setEventCount] = useState(0);
   const [serverRecording, setServerRecording] = useState(false);
+
+  // Labels config state
+  const [labelSelected, setLabelSelected] = useState<string>('default');
+  const [customPositive, setCustomPositive] = useState('');
+  const [customNegative, setCustomNegative] = useState('');
+  const [customNeutral, setCustomNeutral] = useState('');
+
+  const applyServerLabels = (labels: ReactionLabelSet | null) => {
+    if (labels === null) {
+      setLabelSelected('none');
+      return;
+    }
+    // Check if it matches a preset
+    const matchedKey = Object.entries(REACTION_LABEL_PRESETS).find(
+      ([, set]) => set.positive === labels.positive && set.negative === labels.negative && set.neutral === labels.neutral
+    )?.[0];
+    if (matchedKey) {
+      setLabelSelected(matchedKey);
+    } else {
+      setLabelSelected('custom');
+      setCustomPositive(labels.positive);
+      setCustomNegative(labels.negative);
+      setCustomNeutral(labels.neutral);
+    }
+  };
 
   const eventsRef = useRef<object[]>([]);
   const recordingStartRef = useRef<number | null>(null);
@@ -35,8 +62,14 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           return;
         }
 
-        if (data.type === 'connected' && data.recordingState !== undefined) {
-          setServerRecording(data.recordingState);
+        if (data.type === 'connected') {
+          if (data.recordingState !== undefined) setServerRecording(data.recordingState);
+          if ('roomLabels' in data) applyServerLabels(data.roomLabels);
+          return;
+        }
+
+        if (data.type === 'roomLabelsChanged') {
+          applyServerLabels(data.labels);
           return;
         }
 
@@ -120,6 +153,31 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     modeRef.current = newMode;
   };
 
+  const sendLabels = () => {
+    let labels: ReactionLabelSet | null;
+    if (labelSelected === 'none') {
+      labels = null;
+    } else if (labelSelected === 'custom') {
+      labels = { positive: customPositive, negative: customNegative, neutral: customNeutral };
+    } else {
+      const preset = REACTION_LABEL_PRESETS[labelSelected];
+      labels = preset ? { positive: preset.positive, negative: preset.negative, neutral: preset.neutral } : null;
+    }
+    socket.send(JSON.stringify({ type: 'setRoomLabels', labels }));
+  };
+
+  const selectPreset = (key: string) => {
+    setLabelSelected(key);
+    if (key !== 'custom' && key !== 'none') {
+      const preset = REACTION_LABEL_PRESETS[key];
+      if (preset) {
+        setCustomPositive(preset.positive);
+        setCustomNegative(preset.negative);
+        setCustomNeutral(preset.neutral);
+      }
+    }
+  };
+
   return (
     <div className="v3-admin-panel">
       <h1>Reaction Canvas V4 — Admin</h1>
@@ -179,6 +237,81 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           ? <span style={{ color: '#f55' }}>REC active (participants see badge)</span>
           : <span>inactive</span>
         }
+      </div>
+
+      <hr style={{ margin: '32px 0', borderColor: '#444' }} />
+
+      <div>
+        <p style={{ marginBottom: 12, fontWeight: 600 }}>Reaction labels (shared for all participants):</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {Object.entries(REACTION_LABEL_PRESETS).map(([key, set]) => (
+            <label key={key} style={{ display: 'block', cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="labelSelected"
+                value={key}
+                checked={labelSelected === key}
+                onChange={() => selectPreset(key)}
+                style={{ marginRight: 8 }}
+              />
+              {set.positive} / {set.negative} / {set.neutral}
+              {set.hint && (
+                <span style={{ color: '#888', fontSize: 12, marginLeft: 8 }}>
+                  — {set.hint}
+                  {set.hintLinkText && set.hintUrl && (
+                    <a href={set.hintUrl} target="_blank" rel="noopener noreferrer" style={{ color: '#69f' }}>{set.hintLinkText}</a>
+                  )}
+                </span>
+              )}
+            </label>
+          ))}
+          <label style={{ display: 'block', cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name="labelSelected"
+              value="custom"
+              checked={labelSelected === 'custom'}
+              onChange={() => setLabelSelected('custom')}
+              style={{ marginRight: 8 }}
+            />
+            Custom
+          </label>
+          {labelSelected === 'custom' && (
+            <div style={{ marginLeft: 24, display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {([['Positive', customPositive, setCustomPositive], ['Negative', customNegative, setCustomNegative], ['Neutral', customNeutral, setCustomNeutral]] as const).map(([slot, val, setter]) => (
+                <div key={slot} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ width: 64, color: '#aaa', fontSize: 13 }}>{slot}</span>
+                  <input
+                    type="text"
+                    value={val}
+                    onChange={e => setter(e.target.value)}
+                    placeholder={`${slot} label`}
+                    style={{ background: '#333', border: '1px solid #555', color: '#eee', padding: '4px 8px', borderRadius: 4 }}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+          <label style={{ display: 'block', cursor: 'pointer' }}>
+            <input
+              type="radio"
+              name="labelSelected"
+              value="none"
+              checked={labelSelected === 'none'}
+              onChange={() => setLabelSelected('none')}
+              style={{ marginRight: 8 }}
+            />
+            None (hide labels)
+          </label>
+        </div>
+        <button
+          className="v3-admin-btn"
+          style={{ marginTop: 16 }}
+          onClick={sendLabels}
+          disabled={labelSelected === 'custom' && (!customPositive || !customNegative || !customNeutral)}
+        >
+          Apply Labels
+        </button>
       </div>
     </div>
   );
