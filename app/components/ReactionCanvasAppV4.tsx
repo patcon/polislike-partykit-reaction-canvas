@@ -5,7 +5,7 @@ import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
 import { getReactionLabelSet, REACTION_LABEL_PRESETS, encodeCustomLabels, decodeCustomLabels } from "../voteLabels";
 
-type VoteState = 'agree' | 'disagree' | 'pass' | null;
+type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 function getRoomParamFromUrl(): string {
   return new URLSearchParams(window.location.search).get('room') ?? 'default';
@@ -65,12 +65,12 @@ function HelpModal({ onClose }: { onClose: () => void }) {
   const decodedCustom = startCustom ? decodeCustomLabels(currentKey) : null;
 
   const [selected, setSelected] = useState(startCustom ? 'custom' : currentKey);
-  const [customAgree, setCustomAgree] = useState(decodedCustom?.agree ?? '');
-  const [customDisagree, setCustomDisagree] = useState(decodedCustom?.disagree ?? '');
-  const [customPass, setCustomPass] = useState(decodedCustom?.pass ?? '');
+  const [customPositive, setCustomPositive] = useState(decodedCustom?.positive ?? '');
+  const [customNegative, setCustomNegative] = useState(decodedCustom?.negative ?? '');
+  const [customNeutral, setCustomNeutral] = useState(decodedCustom?.neutral ?? '');
 
   const labelKeyForUrl = selected === 'custom'
-    ? (customAgree && customDisagree && customPass ? encodeCustomLabels(customAgree, customDisagree, customPass) : '')
+    ? (customPositive && customNegative && customNeutral ? encodeCustomLabels(customPositive, customNegative, customNeutral) : '')
     : selected;
   const linkHref = labelKeyForUrl ? buildUrlWithLabels(labelKeyForUrl) : undefined;
 
@@ -92,7 +92,7 @@ function HelpModal({ onClose }: { onClose: () => void }) {
                     checked={selected === key}
                     onChange={() => setSelected(key)}
                   />
-                  {set.agree} / {set.disagree} / {set.pass}
+                  {set.positive} / {set.negative} / {set.neutral}
                 </label>
                 {set.hint && (
                   <p className="v4-help-modal-hint">
@@ -119,9 +119,9 @@ function HelpModal({ onClose }: { onClose: () => void }) {
               {selected === 'custom' && (
                 <div className="v4-help-modal-custom-inputs">
                   {[
-                    ['Agree', customAgree, setCustomAgree],
-                    ['Disagree', customDisagree, setCustomDisagree],
-                    ['Pass', customPass, setCustomPass],
+                    ['Positive', customPositive, setCustomPositive],
+                    ['Negative', customNegative, setCustomNegative],
+                    ['Neutral', customNeutral, setCustomNeutral],
                   ].map(([slot, val, setter]) => (
                     <div key={slot as string} className="v4-help-modal-custom-row">
                       <span>{slot as string}</span>
@@ -164,12 +164,12 @@ function HelpModal({ onClose }: { onClose: () => void }) {
 
 export default function ReactionCanvasAppV4() {
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
-  const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<VoteState>(null);
+  const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
-  const voteStateRef = useRef<VoteState>(null);
+  const reactionStateRef = useRef<ReactionState>(null);
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -195,9 +195,9 @@ export default function ReactionCanvasAppV4() {
     <div className="v2-app-container">
       {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-        {labels && <div className="vote-label vote-label-agree">{labels.agree}</div>}
-        {labels && <div className="vote-label vote-label-disagree">{labels.disagree}</div>}
-        {labels && <div className="vote-label vote-label-pass">{labels.pass}</div>}
+        {labels && <div className="reaction-label reaction-label-positive">{labels.positive}</div>}
+        {labels && <div className="reaction-label reaction-label-negative">{labels.negative}</div>}
+        {labels && <div className="reaction-label reaction-label-neutral">{labels.neutral}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
         {isRecording && <div className="v3-rec-badge">● REC</div>}
         {touchPos && (
@@ -210,7 +210,7 @@ export default function ReactionCanvasAppV4() {
           room={room}
           userId={userId}
           colorCursorsByVote={true}
-          currentVoteState={canvasBackgroundVoteState}
+          currentReactionState={canvasBackgroundReactionState}
           heightOffset={0}
           onPresenceCount={setPresenceCount}
           onRecordingStateChange={setIsRecording}
@@ -219,9 +219,9 @@ export default function ReactionCanvasAppV4() {
           room={room}
           userId={userId}
           onActiveStatementChange={() => {}}
-          onVoteStateChange={() => {}}
-          voteStateRef={voteStateRef}
-          onBackgroundColorChange={setCanvasBackgroundVoteState}
+          onReactionStateChange={() => {}}
+          reactionStateRef={reactionStateRef}
+          onBackgroundColorChange={setCanvasBackgroundReactionState}
           onTouchPosition={setTouchPos}
           heightOffset={0}
         />

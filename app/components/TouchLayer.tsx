@@ -20,15 +20,15 @@ interface ServerMessage {
   statementId?: number;
 }
 
-type VoteState = 'agree' | 'disagree' | 'pass' | null;
+type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 interface TouchLayerProps {
   room: string;
   onActiveStatementChange: (statementId: number) => void;
-  onVoteStateChange: (voteState: VoteState) => void;
+  onReactionStateChange: (reactionState: ReactionState) => void;
   userId: string;
-  voteStateRef?: React.MutableRefObject<VoteState>;
-  onBackgroundColorChange: (voteState: VoteState) => void;
+  reactionStateRef?: React.MutableRefObject<ReactionState>;
+  onBackgroundColorChange: (reactionState: ReactionState) => void;
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
   onTouchPosition?: (pos: { x: number; y: number } | null) => void; // Pixel coords relative to layer
   getTimecode?: () => number; // Returns current video timecode to send on lift
@@ -37,16 +37,16 @@ interface TouchLayerProps {
 export default function TouchLayer({
   room,
   onActiveStatementChange,
-  onVoteStateChange,
+  onReactionStateChange,
   userId,
-  voteStateRef,
+  reactionStateRef,
   onBackgroundColorChange,
   heightOffset,
   onTouchPosition,
   getTimecode,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
-  const [userVoteState, setUserVoteState] = useState<VoteState>(null);
+  const [userReactionState, setUserReactionState] = useState<ReactionState>(null);
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
     height: window.innerHeight - (heightOffset ?? 140)
@@ -54,7 +54,7 @@ export default function TouchLayer({
   const [isDragging, setIsDragging] = useState(false);
   const [isMouseOver, setIsMouseOver] = useState(false);
   const lastTouchTimeRef = useRef(0); // Used to suppress synthesized mouse events after touch
-  const currentVoteStateRef = useRef<VoteState>(null);
+  const currentReactionStateRef = useRef<ReactionState>(null);
   const lastPositionRef = useRef<CursorPosition | null>(null);
 
   const socket = usePartySocket({
@@ -149,48 +149,47 @@ export default function TouchLayer({
     };
   };
 
-  const getVoteFromPosition = (normalizedX: number, normalizedY: number): VoteState => {
+  const getReactionFromPosition = (normalizedX: number, normalizedY: number): ReactionState => {
     // Input coordinates are already normalized (0-100), convert to 0-1 range for calculations
     const x = normalizedX / 100;
     const y = normalizedY / 100;
 
-    // Define triangle vertices based on vote label positions
-    // AGREE: top-right, DISAGREE: bottom-left, PASS: bottom-right
-    const agree = { x: 1, y: 0 };     // top-right
-    const disagree = { x: 0, y: 1 };  // bottom-left
-    const pass = { x: 1, y: 1 };      // bottom-right
+    // Define triangle vertices based on reaction label positions
+    // POSITIVE: top-right, NEGATIVE: bottom-left, NEUTRAL: bottom-right
+    const positive = { x: 1, y: 0 };  // top-right
+    const negative = { x: 0, y: 1 };  // bottom-left
+    const neutral  = { x: 1, y: 1 };  // bottom-right
 
     // Calculate barycentric coordinates for the triangle
     // This gives us the proportional "weight" of each vertex for any point in the triangle
-    const denominator = (disagree.y - pass.y) * (agree.x - pass.x) + (pass.x - disagree.x) * (agree.y - pass.y);
+    const denominator = (negative.y - neutral.y) * (positive.x - neutral.x) + (neutral.x - negative.x) * (positive.y - neutral.y);
 
     // Avoid division by zero (degenerate triangle)
     if (Math.abs(denominator) < 1e-10) {
       // Fallback to simple distance if triangle is degenerate
-      const distanceToAgree = Math.sqrt(Math.pow(x - agree.x, 2) + Math.pow(y - agree.y, 2));
-      const distanceToDisagree = Math.sqrt(Math.pow(x - disagree.x, 2) + Math.pow(y - disagree.y, 2));
-      const distanceToPass = Math.sqrt(Math.pow(x - pass.x, 2) + Math.pow(y - pass.y, 2));
+      const distanceToPositive = Math.sqrt(Math.pow(x - positive.x, 2) + Math.pow(y - positive.y, 2));
+      const distanceToNegative = Math.sqrt(Math.pow(x - negative.x, 2) + Math.pow(y - negative.y, 2));
+      const distanceToNeutral  = Math.sqrt(Math.pow(x - neutral.x,  2) + Math.pow(y - neutral.y,  2));
 
-      const minDistance = Math.min(distanceToAgree, distanceToDisagree, distanceToPass);
-      if (minDistance === distanceToAgree) return 'agree';
-      if (minDistance === distanceToDisagree) return 'disagree';
-      if (minDistance === distanceToPass) return 'pass';
+      const minDistance = Math.min(distanceToPositive, distanceToNegative, distanceToNeutral);
+      if (minDistance === distanceToPositive) return 'positive';
+      if (minDistance === distanceToNegative) return 'negative';
+      if (minDistance === distanceToNeutral)  return 'neutral';
       return null;
     }
 
     // Calculate barycentric coordinates (weights for each vertex)
-    const wAgree = ((disagree.y - pass.y) * (x - pass.x) + (pass.x - disagree.x) * (y - pass.y)) / denominator;
-    const wDisagree = ((pass.y - agree.y) * (x - pass.x) + (agree.x - pass.x) * (y - pass.y)) / denominator;
-    const wPass = 1 - wAgree - wDisagree;
+    const wPositive = ((negative.y - neutral.y) * (x - neutral.x) + (neutral.x - negative.x) * (y - neutral.y)) / denominator;
+    const wNegative = ((neutral.y - positive.y) * (x - neutral.x) + (positive.x - neutral.x) * (y - neutral.y)) / denominator;
+    const wNeutral  = 1 - wPositive - wNegative;
 
-    // The barycentric coordinates represent the "influence" or "weight" of each vertex
     // The vertex with the highest weight is the closest in terms of triangle geometry
-    const maxWeight = Math.max(wAgree, wDisagree, wPass);
+    const maxWeight = Math.max(wPositive, wNegative, wNeutral);
 
     // Simply return the option with highest weight - no dead zones
-    if (maxWeight === wAgree) return 'agree';
-    if (maxWeight === wDisagree) return 'disagree';
-    if (maxWeight === wPass) return 'pass';
+    if (maxWeight === wPositive) return 'positive';
+    if (maxWeight === wNegative) return 'negative';
+    if (maxWeight === wNeutral)  return 'neutral';
 
     return null;
   };
@@ -204,13 +203,13 @@ export default function TouchLayer({
     sendCursorEvent('move', position);
     onTouchPosition?.(getPixelPosition(e));
 
-    // Update vote state based on cursor position
-    const voteState = getVoteFromPosition(position.x, position.y);
-    setUserVoteState(voteState);
-    currentVoteStateRef.current = voteState;
-    if (voteStateRef) voteStateRef.current = voteState;
-    onVoteStateChange(voteState);
-    onBackgroundColorChange(voteState);
+    // Update reaction state based on cursor position
+    const reactionState = getReactionFromPosition(position.x, position.y);
+    setUserReactionState(reactionState);
+    currentReactionStateRef.current = reactionState;
+    if (reactionStateRef) reactionStateRef.current = reactionState;
+    onReactionStateChange(reactionState);
+    onBackgroundColorChange(reactionState);
   };
 
   const handleMouseLeave = () => {
@@ -223,11 +222,11 @@ export default function TouchLayer({
     sendCursorEvent('remove', position);
     onTouchPosition?.(null);
 
-    // Reset vote state when mouse leaves
-    setUserVoteState(null);
-    currentVoteStateRef.current = null;
-    if (voteStateRef) voteStateRef.current = null;
-    onVoteStateChange(null);
+    // Reset reaction state when mouse leaves
+    setUserReactionState(null);
+    currentReactionStateRef.current = null;
+    if (reactionStateRef) reactionStateRef.current = null;
+    onReactionStateChange(null);
     onBackgroundColorChange(null);
   };
 
@@ -239,12 +238,12 @@ export default function TouchLayer({
     sendCursorEvent('touch', position);
     onTouchPosition?.(getPixelPosition(e));
 
-    // Update vote state without triggering React re-render during drag
-    const voteState = getVoteFromPosition(position.x, position.y);
-    currentVoteStateRef.current = voteState;
-    if (voteStateRef) voteStateRef.current = voteState;
-    onBackgroundColorChange(voteState);
-    // Don't call setUserVoteState or onVoteStateChange during drag to avoid interrupting touch
+    // Update reaction state without triggering React re-render during drag
+    const reactionState = getReactionFromPosition(position.x, position.y);
+    currentReactionStateRef.current = reactionState;
+    if (reactionStateRef) reactionStateRef.current = reactionState;
+    onBackgroundColorChange(reactionState);
+    // Don't call setUserReactionState or onReactionStateChange during drag to avoid interrupting touch
   };
 
   const handleTouchStart = (e: React.TouchEvent) => {
@@ -255,10 +254,10 @@ export default function TouchLayer({
     sendCursorEvent('touch', position);
     onTouchPosition?.(getPixelPosition(e));
 
-    const voteState = getVoteFromPosition(position.x, position.y);
-    currentVoteStateRef.current = voteState;
-    if (voteStateRef) voteStateRef.current = voteState;
-    onBackgroundColorChange(voteState);
+    const reactionState = getReactionFromPosition(position.x, position.y);
+    currentReactionStateRef.current = reactionState;
+    if (reactionStateRef) reactionStateRef.current = reactionState;
+    onBackgroundColorChange(reactionState);
   };
 
   const handleTouchEnd = (e: React.TouchEvent) => {
@@ -271,11 +270,11 @@ export default function TouchLayer({
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
     sendCursorEvent('remove', position);
 
-    currentVoteStateRef.current = null;
-    if (voteStateRef) voteStateRef.current = null;
-    setUserVoteState(null);
+    currentReactionStateRef.current = null;
+    if (reactionStateRef) reactionStateRef.current = null;
+    setUserReactionState(null);
     onBackgroundColorChange(null);
-    onVoteStateChange(null);
+    onReactionStateChange(null);
   };
 
   // Handle window resize

@@ -5,7 +5,7 @@ import TouchLayer from "./TouchLayer";
 import AdminPanelV3 from "./AdminPanelV3";
 import { getReactionLabelSet } from "../voteLabels";
 
-type VoteState = 'agree' | 'disagree' | 'pass' | null;
+type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 function getRoomParamFromUrl(): string {
   return new URLSearchParams(window.location.search).get('room') ?? 'default';
@@ -45,11 +45,11 @@ function MobileOnlyGate() {
 
 export default function ReactionCanvasAppV3() {
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
-  const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<VoteState>(null);
+  const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const voteStateRef = useRef<VoteState>(null);
+  const reactionStateRef = useRef<ReactionState>(null);
 
   if (isAdminMode()) {
     const room = getRoomParamFromUrl();
@@ -66,9 +66,9 @@ export default function ReactionCanvasAppV3() {
   return (
     <div className="v2-app-container">
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-        {labels && <div className="vote-label vote-label-agree">{labels.agree}</div>}
-        {labels && <div className="vote-label vote-label-disagree">{labels.disagree}</div>}
-        {labels && <div className="vote-label vote-label-pass">{labels.pass}</div>}
+        {labels && <div className="reaction-label reaction-label-positive">{labels.positive}</div>}
+        {labels && <div className="reaction-label reaction-label-negative">{labels.negative}</div>}
+        {labels && <div className="reaction-label reaction-label-neutral">{labels.neutral}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
         {isRecording && <div className="v3-rec-badge">● REC</div>}
         {touchPos && (
@@ -81,7 +81,7 @@ export default function ReactionCanvasAppV3() {
           room={room}
           userId={userId}
           colorCursorsByVote={true}
-          currentVoteState={canvasBackgroundVoteState}
+          currentReactionState={canvasBackgroundReactionState}
           heightOffset={0}
           onPresenceCount={setPresenceCount}
           onRecordingStateChange={setIsRecording}
@@ -90,9 +90,9 @@ export default function ReactionCanvasAppV3() {
           room={room}
           userId={userId}
           onActiveStatementChange={() => {}}
-          onVoteStateChange={() => {}}
-          voteStateRef={voteStateRef}
-          onBackgroundColorChange={setCanvasBackgroundVoteState}
+          onReactionStateChange={() => {}}
+          reactionStateRef={reactionStateRef}
+          onBackgroundColorChange={setCanvasBackgroundReactionState}
           onTouchPosition={setTouchPos}
           heightOffset={0}
         />

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import usePartySocket from "partysocket/react";
-import { computeVoteRegion } from "../utils/voteRegion";
-import type { VoteRegion } from "../utils/voteRegion";
+import { computeReactionRegion } from "../utils/voteRegion";
+import type { ReactionRegion } from "../utils/voteRegion";
 
 interface AdminPanelV4Props {
   room: string;
@@ -17,7 +17,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
   const eventsRef = useRef<object[]>([]);
   const recordingStartRef = useRef<number | null>(null);
-  const prevRegionsRef = useRef<Map<string, VoteRegion | null>>(new Map());
+  const prevRegionsRef = useRef<Map<string, ReactionRegion | null>>(new Map());
   const isRecordingRef = useRef(false);
   const modeRef = useRef<RecordingMode>('transitions');
 
@@ -52,7 +52,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             setEventCount(c => c + 1);
           } else {
             // transitions mode
-            const newRegion = computeVoteRegion(x, y);
+            const newRegion = computeReactionRegion(x, y);
             const prevRegion = prevRegionsRef.current.get(connectionId) ?? null;
             if (newRegion !== prevRegion) {
               eventsRef.current.push({ connectionId, from: prevRegion, to: newRegion, timestamp: now });

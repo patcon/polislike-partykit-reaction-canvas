@@ -1,37 +1,37 @@
-export type VoteRegion = 'agree' | 'disagree' | 'pass' | null;
+export type ReactionRegion = 'positive' | 'negative' | 'neutral' | null;
 
 // Vertices (normalized 0–100):
-// AGREE:     top-right  (100, 0)
-// DISAGREE:  bottom-left (0, 100)
-// PASS:      bottom-right (100, 100)
-export function computeVoteRegion(normalizedX: number, normalizedY: number): VoteRegion {
+// POSITIVE:  top-right  (100, 0)
+// NEGATIVE:  bottom-left (0, 100)
+// NEUTRAL:   bottom-right (100, 100)
+export function computeVoteRegion(normalizedX: number, normalizedY: number): ReactionRegion {
   const x = normalizedX / 100;
   const y = normalizedY / 100;
 
-  const agree = { x: 1, y: 0 };
-  const disagree = { x: 0, y: 1 };
-  const pass = { x: 1, y: 1 };
+  const positive = { x: 1, y: 0 };
+  const negative = { x: 0, y: 1 };
+  const neutral  = { x: 1, y: 1 };
 
-  const denominator = (disagree.y - pass.y) * (agree.x - pass.x) + (pass.x - disagree.x) * (agree.y - pass.y);
+  const denominator = (negative.y - neutral.y) * (positive.x - neutral.x) + (neutral.x - negative.x) * (positive.y - neutral.y);
 
   if (Math.abs(denominator) < 1e-10) {
-    const dAgree = Math.hypot(x - agree.x, y - agree.y);
-    const dDisagree = Math.hypot(x - disagree.x, y - disagree.y);
-    const dPass = Math.hypot(x - pass.x, y - pass.y);
-    const min = Math.min(dAgree, dDisagree, dPass);
-    if (min === dAgree) return 'agree';
-    if (min === dDisagree) return 'disagree';
-    if (min === dPass) return 'pass';
+    const dPositive = Math.hypot(x - positive.x, y - positive.y);
+    const dNegative = Math.hypot(x - negative.x, y - negative.y);
+    const dNeutral  = Math.hypot(x - neutral.x,  y - neutral.y);
+    const min = Math.min(dPositive, dNegative, dNeutral);
+    if (min === dPositive) return 'positive';
+    if (min === dNegative) return 'negative';
+    if (min === dNeutral)  return 'neutral';
     return null;
   }
 
-  const wAgree = ((disagree.y - pass.y) * (x - pass.x) + (pass.x - disagree.x) * (y - pass.y)) / denominator;
-  const wDisagree = ((pass.y - agree.y) * (x - pass.x) + (agree.x - pass.x) * (y - pass.y)) / denominator;
-  const wPass = 1 - wAgree - wDisagree;
+  const wPositive = ((negative.y - neutral.y) * (x - neutral.x) + (neutral.x - negative.x) * (y - neutral.y)) / denominator;
+  const wNegative = ((neutral.y - positive.y) * (x - neutral.x) + (positive.x - neutral.x) * (y - neutral.y)) / denominator;
+  const wNeutral  = 1 - wPositive - wNegative;
 
-  const maxWeight = Math.max(wAgree, wDisagree, wPass);
-  if (maxWeight === wAgree) return 'agree';
-  if (maxWeight === wDisagree) return 'disagree';
-  if (maxWeight === wPass) return 'pass';
+  const maxWeight = Math.max(wPositive, wNegative, wNeutral);
+  if (maxWeight === wPositive) return 'positive';
+  if (maxWeight === wNegative) return 'negative';
+  if (maxWeight === wNeutral)  return 'neutral';
   return null;
 }

@@ -3,7 +3,7 @@ import Canvas from '../app/components/Canvas';
 
 // Note: Canvas uses usePartySocket internally (mocked in Storybook).
 // Cursor dots come from real-time socket messages so won't appear here.
-// These stories focus on the background colour states driven by the currentVoteState prop.
+// These stories focus on the background colour states driven by the currentReactionState prop.
 
 const meta = {
   title: 'App/Canvas',
@@ -11,9 +11,9 @@ const meta = {
   parameters: { layout: 'fullscreen' },
   tags: ['autodocs'],
   argTypes: {
-    currentVoteState: {
+    currentReactionState: {
       control: 'select',
-      options: ['agree', 'disagree', 'pass'],
+      options: ['positive', 'negative', 'neutral'],
     },
   },
 } satisfies Meta<typeof Canvas>;
@@ -27,22 +27,22 @@ const baseArgs = {
   colorCursorsByVote: true,
 };
 
-// No vote selected — neutral transparent background.
+// No reaction selected — neutral transparent background.
 export const Default: Story = {
   args: { ...baseArgs },
 };
 
-// Cursor is in the AGREE region — green background tint.
-export const AgreeBackground: Story = {
-  args: { ...baseArgs, currentVoteState: 'agree' },
+// Cursor is in the POSITIVE region — green background tint.
+export const PositiveBackground: Story = {
+  args: { ...baseArgs, currentReactionState: 'positive' },
 };
 
-// Cursor is in the DISAGREE region — red background tint.
-export const DisagreeBackground: Story = {
-  args: { ...baseArgs, currentVoteState: 'disagree' },
+// Cursor is in the NEGATIVE region — red background tint.
+export const NegativeBackground: Story = {
+  args: { ...baseArgs, currentReactionState: 'negative' },
 };
 
-// Cursor is in the PASS region — yellow background tint.
-export const PassBackground: Story = {
-  args: { ...baseArgs, currentVoteState: 'pass' },
+// Cursor is in the NEUTRAL region — yellow background tint.
+export const NeutralBackground: Story = {
+  args: { ...baseArgs, currentReactionState: 'neutral' },
 };

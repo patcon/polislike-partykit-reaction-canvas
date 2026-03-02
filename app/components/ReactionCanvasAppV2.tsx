@@ -4,7 +4,7 @@ import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import { getReactionLabelSet } from "../voteLabels";
 
-type VoteState = 'agree' | 'disagree' | 'pass' | null;
+type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 const YOUTUBE_HEIGHT_FRACTION = 0.45; // YouTube player takes 45vh
 
@@ -45,10 +45,10 @@ function MobileOnlyGate() {
 
 export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?: string }) {
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
-  const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<VoteState>(null);
+  const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const [activeCursorCount, setActiveCursorCount] = useState<number>(0);
-  const voteStateRef = useRef<VoteState>(null);
+  const reactionStateRef = useRef<ReactionState>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
   const allTouchingRef = useRef(false);
@@ -150,9 +150,9 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         )}
       </div>
       <div className="v2-vote-canvas-container">
-        {labels && <div className="vote-label vote-label-agree">{labels.agree}</div>}
-        {labels && <div className="vote-label vote-label-disagree">{labels.disagree}</div>}
-        {labels && <div className="vote-label vote-label-pass">{labels.pass}</div>}
+        {labels && <div className="reaction-label reaction-label-positive">{labels.positive}</div>}
+        {labels && <div className="reaction-label reaction-label-negative">{labels.negative}</div>}
+        {labels && <div className="reaction-label reaction-label-neutral">{labels.neutral}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
         {touchPos && (
           <div
@@ -164,7 +164,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           room={room}
           userId={userId}
           colorCursorsByVote={true}
-          currentVoteState={canvasBackgroundVoteState}
+          currentReactionState={canvasBackgroundReactionState}
           heightOffset={youtubeHeight}
           onPresenceCount={setPresenceCount}
           onActiveCursorCountChange={setActiveCursorCount}
@@ -174,9 +174,9 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           room={room}
           userId={userId}
           onActiveStatementChange={() => {}}
-          onVoteStateChange={() => {}}
-          voteStateRef={voteStateRef}
-          onBackgroundColorChange={setCanvasBackgroundVoteState}
+          onReactionStateChange={() => {}}
+          reactionStateRef={reactionStateRef}
+          onBackgroundColorChange={setCanvasBackgroundReactionState}
           onTouchPosition={handleTouchPosition}
           heightOffset={youtubeHeight}
           getTimecode={getCurrentTimecode}

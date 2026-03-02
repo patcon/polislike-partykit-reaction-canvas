@@ -95,8 +95,8 @@ html, body {
   min-height: 0;
 }
 
-/* Vote Labels - Positioned absolutely within canvas container */
-.vote-label {
+/* Reaction Labels - Positioned absolutely within canvas container */
+.reaction-label {
   position: absolute;
   font-family: sans-serif;
   font-weight: bold;
@@ -114,20 +114,20 @@ html, body {
   text-transform: uppercase;
 }
 
-/* AGREE - Top right of vote canvas */
-.vote-label-agree {
+/* POSITIVE - Top right of canvas */
+.reaction-label-positive {
   top: 30px;
   right: 30px;
 }
 
-/* DISAGREE - Bottom left of vote canvas and page */
-.vote-label-disagree {
+/* NEGATIVE - Bottom left of canvas */
+.reaction-label-negative {
   bottom: 110px;
   left: 30px;
 }
 
-/* PASS - Bottom right */
-.vote-label-pass {
+/* NEUTRAL - Bottom right */
+.reaction-label-neutral {
   bottom: 110px;
   right: 30px;
 }
@@ -149,22 +149,22 @@ html, body {
     height: 82vh;
   }
 
-  .vote-label {
+  .reaction-label {
     font-size: 20px;
     padding: 6px 10px;
   }
 
-  .vote-label-agree {
+  .reaction-label-positive {
     top: 25px;
     right: 25px;
   }
 
-  .vote-label-disagree {
+  .reaction-label-negative {
     bottom: 130px;
     left: 25px;
   }
 
-  .vote-label-pass {
+  .reaction-label-neutral {
     bottom: 130px;
     right: 25px;
   }
@@ -672,18 +672,18 @@ body {
   border-bottom: none;
 }
 
-/* Vote status colors */
-.vote-agree {
+/* Reaction status colors */
+.reaction-positive {
   color: #28a745;
   font-weight: 600;
 }
 
-.vote-disagree {
+.reaction-negative {
   color: #dc3545;
   font-weight: 600;
 }
 
-.vote-pass {
+.reaction-neutral {
   color: #ffc107;
   font-weight: 600;
 }

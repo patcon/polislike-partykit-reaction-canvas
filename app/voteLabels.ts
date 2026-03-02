@@ -1,7 +1,7 @@
 export interface ReactionLabelSet {
-  agree: string;
-  disagree: string;
-  pass: string;
+  positive: string;
+  negative: string;
+  neutral: string;
   hint?: string;
   hintLinkText?: string;
   hintUrl?: string;
@@ -9,23 +9,23 @@ export interface ReactionLabelSet {
 
 export const REACTION_LABEL_PRESETS: Record<string, ReactionLabelSet> = {
   default: {
-    agree: 'Agree', disagree: 'Disagree', pass: 'Pass',
+    positive: 'Agree', negative: 'Disagree', neutral: 'Pass',
     hint: 'From Polis. See: ',
     hintLinkText: '"Pass button reflections"',
     hintUrl: 'https://github.com/compdemocracy/polis/discussions/774',
   },
   abu: {
-    agree: 'A', disagree: 'B', pass: 'U',
+    positive: 'A', negative: 'B', neutral: 'U',
     hint: "See: ORI's ",
     hintLinkText: 'A/B/U Review System',
     hintUrl: 'https://openresearchinstitute.org/onboarding/A_B_U.html',
   },
   atomic: {
-    agree: 'Attracted', disagree: 'Repelled', pass: 'Neutral',
+    positive: 'Attracted', negative: 'Repelled', neutral: 'Neutral',
     hint: 'Inspired by atomic forces',
   },
   valence: {
-    agree: 'Positive', disagree: 'Negative', pass: 'Neutral',
+    positive: 'Positive', negative: 'Negative', neutral: 'Neutral',
     hint: 'Inspired by ',
     hintLinkText: 'psychological valence',
     hintUrl: 'https://en.wikipedia.org/wiki/Valence_(psychology)',
@@ -34,8 +34,8 @@ export const REACTION_LABEL_PRESETS: Record<string, ReactionLabelSet> = {
 
 const STORAGE_KEY = 'polis_label_set';
 
-export function encodeCustomLabels(agree: string, disagree: string, pass: string): string {
-  const str = [agree, disagree, pass].map(encodeURIComponent).join('|');
+export function encodeCustomLabels(positive: string, negative: string, neutral: string): string {
+  const str = [positive, negative, neutral].map(encodeURIComponent).join('|');
   return btoa(str);
 }
 
@@ -43,7 +43,7 @@ export function decodeCustomLabels(encoded: string): ReactionLabelSet | null {
   try {
     const parts = atob(encoded).split('|').map(decodeURIComponent);
     if (parts.length === 3 && parts.every(p => p.length > 0)) {
-      return { agree: parts[0], disagree: parts[1], pass: parts[2] };
+      return { positive: parts[0], negative: parts[1], neutral: parts[2] };
     }
   } catch {}
   return null;

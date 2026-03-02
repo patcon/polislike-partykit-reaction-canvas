@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 ### Changed
 - All canvases: reaction label strings stored in title-case; displayed uppercase via CSS (`text-transform: uppercase`)
 - Label presets: removed `yesno` and `supportive`; added `atomic` (Attracted/Repelled/Neutral) and `valence` (Positive/Negative/Neutral); all presets have hint text
+- Internal terminology: `VoteState`/`VoteRegion` → `ReactionState`/`ReactionRegion`; values `agree/disagree/pass` → `positive/negative/neutral`; `ReactionLabelSet` properties renamed to match; CSS semantic classes renamed (e.g. `.vote-label-agree` → `.reaction-label-positive`); Polis API fields (`agree_count` etc.) unchanged
 - V4 help modal: label picker shows title-case values only (no machine key)
 - V2 & V3: `?mobile=true` replaced by `?forceView=mobile`
 - V3: new full-page reaction canvas variant (no video, no statements); supports `?room=`, `?labels=`, presence counter, blue-dot cursor, and mobile-only QR gate with `?forceView=mobile` override

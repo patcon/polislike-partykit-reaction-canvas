@@ -14,13 +14,13 @@ interface CursorEvent {
   position: CursorPosition;
 }
 
-type VoteState = 'agree' | 'disagree' | 'pass' | null;
+type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 interface CanvasProps {
   room: string;
   userId: string;
-  colorCursorsByVote?: boolean; // Optional prop to enable vote-based coloring
-  currentVoteState?: VoteState; // Current vote state for background color
+  colorCursorsByVote?: boolean; // Optional prop to enable reaction-based coloring
+  currentReactionState?: ReactionState; // Current reaction state for background color
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
   onPresenceCount?: (count: number) => void;
   onActiveCursorCountChange?: (count: number) => void;
@@ -28,7 +28,7 @@ interface CanvasProps {
   onRecordingStateChange?: (recording: boolean) => void;
 }
 
-export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange }: CanvasProps) {
+export default function Canvas({ room, userId, colorCursorsByVote = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
 
@@ -108,73 +108,72 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
     },
   });
 
-  const getVoteFromPosition = (normalizedX: number, normalizedY: number): VoteState => {
+  const getReactionFromPosition = (normalizedX: number, normalizedY: number): ReactionState => {
     // Input coordinates are already normalized (0-100), convert to 0-1 range for calculations
     const x = normalizedX / 100;
     const y = normalizedY / 100;
 
-    // Define triangle vertices based on vote label positions
-    // AGREE: top-right, DISAGREE: bottom-left, PASS: bottom-right
-    const agree = { x: 1, y: 0 };     // top-right
-    const disagree = { x: 0, y: 1 };  // bottom-left
-    const pass = { x: 1, y: 1 };      // bottom-right
+    // Define triangle vertices based on reaction label positions
+    // POSITIVE: top-right, NEGATIVE: bottom-left, NEUTRAL: bottom-right
+    const positive = { x: 1, y: 0 };  // top-right
+    const negative = { x: 0, y: 1 };  // bottom-left
+    const neutral  = { x: 1, y: 1 };  // bottom-right
 
     // Calculate barycentric coordinates for the triangle
     // This gives us the proportional "weight" of each vertex for any point in the triangle
-    const denominator = (disagree.y - pass.y) * (agree.x - pass.x) + (pass.x - disagree.x) * (agree.y - pass.y);
+    const denominator = (negative.y - neutral.y) * (positive.x - neutral.x) + (neutral.x - negative.x) * (positive.y - neutral.y);
 
     // Avoid division by zero (degenerate triangle)
     if (Math.abs(denominator) < 1e-10) {
       // Fallback to simple distance if triangle is degenerate
-      const distanceToAgree = Math.sqrt(Math.pow(x - agree.x, 2) + Math.pow(y - agree.y, 2));
-      const distanceToDisagree = Math.sqrt(Math.pow(x - disagree.x, 2) + Math.pow(y - disagree.y, 2));
-      const distanceToPass = Math.sqrt(Math.pow(x - pass.x, 2) + Math.pow(y - pass.y, 2));
+      const distanceToPositive = Math.sqrt(Math.pow(x - positive.x, 2) + Math.pow(y - positive.y, 2));
+      const distanceToNegative = Math.sqrt(Math.pow(x - negative.x, 2) + Math.pow(y - negative.y, 2));
+      const distanceToNeutral  = Math.sqrt(Math.pow(x - neutral.x,  2) + Math.pow(y - neutral.y,  2));
 
-      const minDistance = Math.min(distanceToAgree, distanceToDisagree, distanceToPass);
-      if (minDistance === distanceToAgree) return 'agree';
-      if (minDistance === distanceToDisagree) return 'disagree';
-      if (minDistance === distanceToPass) return 'pass';
+      const minDistance = Math.min(distanceToPositive, distanceToNegative, distanceToNeutral);
+      if (minDistance === distanceToPositive) return 'positive';
+      if (minDistance === distanceToNegative) return 'negative';
+      if (minDistance === distanceToNeutral)  return 'neutral';
       return null;
     }
 
     // Calculate barycentric coordinates (weights for each vertex)
-    const wAgree = ((disagree.y - pass.y) * (x - pass.x) + (pass.x - disagree.x) * (y - pass.y)) / denominator;
-    const wDisagree = ((pass.y - agree.y) * (x - pass.x) + (agree.x - pass.x) * (y - pass.y)) / denominator;
-    const wPass = 1 - wAgree - wDisagree;
+    const wPositive = ((negative.y - neutral.y) * (x - neutral.x) + (neutral.x - negative.x) * (y - neutral.y)) / denominator;
+    const wNegative = ((neutral.y - positive.y) * (x - neutral.x) + (positive.x - neutral.x) * (y - neutral.y)) / denominator;
+    const wNeutral  = 1 - wPositive - wNegative;
 
-    // The barycentric coordinates represent the "influence" or "weight" of each vertex
     // The vertex with the highest weight is the closest in terms of triangle geometry
-    const maxWeight = Math.max(wAgree, wDisagree, wPass);
+    const maxWeight = Math.max(wPositive, wNegative, wNeutral);
 
     // Simply return the option with highest weight - no dead zones
-    if (maxWeight === wAgree) return 'agree';
-    if (maxWeight === wDisagree) return 'disagree';
-    if (maxWeight === wPass) return 'pass';
+    if (maxWeight === wPositive) return 'positive';
+    if (maxWeight === wNegative) return 'negative';
+    if (maxWeight === wNeutral)  return 'neutral';
 
     return null;
   };
 
-  // Update background color based on current vote state
-  const updateBackgroundColor = (voteState: VoteState) => {
+  // Update background color based on current reaction state
+  const updateBackgroundColor = (reactionState: ReactionState) => {
     const svg = d3.select(svgRef.current);
     const backgroundRect = svg.select('rect');
 
     let backgroundColor = 'rgba(255, 255, 255, 0.1)';
-    if (voteState === 'agree') {
+    if (reactionState === 'positive') {
       backgroundColor = 'rgba(0, 255, 0, 0.2)';
-    } else if (voteState === 'disagree') {
+    } else if (reactionState === 'negative') {
       backgroundColor = 'rgba(255, 0, 0, 0.2)';
-    } else if (voteState === 'pass') {
+    } else if (reactionState === 'neutral') {
       backgroundColor = 'rgba(255, 255, 0, 0.2)';
     }
 
     backgroundRect.attr('fill', backgroundColor);
   };
 
-  // Update background color when currentVoteState changes
+  // Update background color when currentReactionState changes
   useEffect(() => {
-    updateBackgroundColor(currentVoteState || null);
-  }, [currentVoteState]);
+    updateBackgroundColor(currentReactionState || null);
+  }, [currentReactionState]);
 
   // Render with D3 SVG
   useEffect(() => {
@@ -190,9 +189,9 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
       .attr('height', dimensions.height)
       .attr('fill', 'rgba(255, 255, 255, 0.1)'); // Default transparent white
 
-    // Apply current vote state color if any
-    if (currentVoteState) {
-      updateBackgroundColor(currentVoteState);
+    // Apply current reaction state color if any
+    if (currentReactionState) {
+      updateBackgroundColor(currentReactionState);
     }
 
     // Add cursor positions as colored dots - convert normalized coordinates to pixels
@@ -202,8 +201,8 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
       y: (cursor.y / 100) * dimensions.height, // Convert from 0-100 to pixel coordinates
       timestamp: cursor.timestamp,
       userId: cursor.userId,
-      // Calculate vote state on client side for coloring
-      voteState: colorCursorsByVote ? getVoteFromPosition(cursor.x, cursor.y) : null
+      // Calculate reaction state on client side for coloring
+      reactionState: colorCursorsByVote ? getReactionFromPosition(cursor.x, cursor.y) : null
     }));
 
     const cursorGroups = svg.selectAll('.cursor-group')
@@ -219,21 +218,21 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
       .attr('cy', d => d.y)
       .attr('r', cursorRadius)
       .attr('fill', (d: any) => {
-        // Use region-based colors if enabled and vote state is available (for ghost cursors)
-        if (colorCursorsByVote && d.voteState) {
-          switch (d.voteState) {
-            case 'agree':
-              return 'rgba(0, 255, 0, 0.8)'; // Green for agree
-            case 'disagree':
-              return 'rgba(255, 0, 0, 0.8)'; // Red for disagree
-            case 'pass':
-              return 'rgba(255, 255, 0, 0.8)'; // Yellow for pass
+        // Use region-based colors if enabled and reaction state is available (for ghost cursors)
+        if (colorCursorsByVote && d.reactionState) {
+          switch (d.reactionState) {
+            case 'positive':
+              return 'rgba(0, 255, 0, 0.8)';
+            case 'negative':
+              return 'rgba(255, 0, 0, 0.8)';
+            case 'neutral':
+              return 'rgba(255, 255, 0, 0.8)';
             default:
-              return 'rgba(128, 128, 128, 0.8)'; // Gray for null/unknown
+              return 'rgba(128, 128, 128, 0.8)';
           }
         }
 
-        // Generate a consistent color for each user (for real user cursors or when vote coloring is disabled)
+        // Generate a consistent color for each user (for real user cursors or when reaction coloring is disabled)
         const hue = d.cursorUserId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 360;
         return `hsl(${hue}, 70%, 50%)`;
       })

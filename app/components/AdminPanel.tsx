@@ -426,7 +426,7 @@ export default function AdminPanel({ room }: AdminPanelProps) {
                     <tr key={index}>
                       <td>{vote.userId}</td>
                       <td>#{vote.statementId}</td>
-                      <td className={`vote-${vote.vote === 1 ? 'agree' : vote.vote === -1 ? 'disagree' : 'pass'}`}>
+                      <td className={`reaction-${vote.vote === 1 ? 'positive' : vote.vote === -1 ? 'negative' : 'neutral'}`}>
                         {getVoteText(vote.vote)}
                       </td>
                       <td>{formatTimestamp(vote.timestamp)}</td>

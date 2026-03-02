@@ -34,9 +34,9 @@ export default function SimpleReactionCanvasAppV1() {
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [activeStatementId, setActiveStatementId] = useState<number>(1);
   const [previousActiveStatementId, setPreviousActiveStatementId] = useState<number | null>(null);
-  const [currentVoteState, setCurrentVoteState] = useState<'agree' | 'disagree' | 'pass' | null>(null);
-  const canvasVoteStateRef = useRef<'agree' | 'disagree' | 'pass' | null>(null);
-  const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<'agree' | 'disagree' | 'pass' | null>(null);
+  const [currentReactionState, setCurrentReactionState] = useState<'positive' | 'negative' | 'neutral' | null>(null);
+  const canvasReactionStateRef = useRef<'positive' | 'negative' | 'neutral' | null>(null);
+  const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<'positive' | 'negative' | 'neutral' | null>(null);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(ghostCursorsFromUrl ?? false);
 
@@ -135,20 +135,20 @@ export default function SimpleReactionCanvasAppV1() {
     return 1;
   };
 
-  const submitVote = async (userId: string, statementId: number, voteState: 'agree' | 'disagree' | 'pass' | null) => {
-    if (!voteState || !statementId) {
-      console.log('Vote submission skipped: missing voteState or statementId', { voteState, statementId });
+  const submitReaction = async (userId: string, statementId: number, reactionState: 'positive' | 'negative' | 'neutral' | null) => {
+    if (!reactionState || !statementId) {
+      console.log('Reaction submission skipped: missing reactionState or statementId', { reactionState, statementId });
       return;
     }
 
     if (statementId === -1) {
-      console.log('Vote submission skipped: cannot vote on End Voting pseudo-statement', { statementId });
+      console.log('Reaction submission skipped: cannot react on End Voting pseudo-statement', { statementId });
       return;
     }
 
-    const voteValue = voteState === 'agree' ? 1 : voteState === 'disagree' ? -1 : 0;
+    const reactionValue = reactionState === 'positive' ? 1 : reactionState === 'negative' ? -1 : 0;
 
-    console.log('Attempting to submit vote:', { userId, statementId, voteState, voteValue });
+    console.log('Attempting to submit reaction:', { userId, statementId, reactionState, reactionValue });
 
     try {
       const url = `${window.location.protocol}//${window.location.host}/parties/main/${room}/vote`;
@@ -160,46 +160,46 @@ export default function SimpleReactionCanvasAppV1() {
         body: JSON.stringify({
           userId,
           statementId,
-          vote: voteValue,
+          vote: reactionValue,
           timestamp: Date.now()
         })
       });
 
       if (response.ok) {
         const result = await response.json();
-        console.log(`Vote submitted successfully: ${voteState} for statement ${statementId}`, result);
+        console.log(`Reaction submitted successfully: ${reactionState} for statement ${statementId}`, result);
       } else {
         const errorText = await response.text();
-        console.error('Failed to submit vote:', response.status, response.statusText, errorText);
+        console.error('Failed to submit reaction:', response.status, response.statusText, errorText);
       }
     } catch (error) {
-      console.error('Error submitting vote:', error);
+      console.error('Error submitting reaction:', error);
     }
   };
 
-  const handleVoteStateChange = (voteState: 'agree' | 'disagree' | 'pass' | null) => {
-    setCurrentVoteState(voteState);
+  const handleReactionStateChange = (reactionState: 'positive' | 'negative' | 'neutral' | null) => {
+    setCurrentReactionState(reactionState);
   };
 
-  const handleBackgroundColorChange = (voteState: 'agree' | 'disagree' | 'pass' | null) => {
-    setCanvasBackgroundVoteState(voteState);
+  const handleBackgroundColorChange = (reactionState: 'positive' | 'negative' | 'neutral' | null) => {
+    setCanvasBackgroundReactionState(reactionState);
   };
 
   useEffect(() => {
     const newActiveId = getCurrentActiveStatementId();
     if (newActiveId !== activeStatementId) {
-      const voteToSubmit = currentVoteState || canvasVoteStateRef.current;
+      const voteToSubmit = currentReactionState || canvasReactionStateRef.current;
       if (activeStatementId && voteToSubmit) {
         console.log(`Submitting vote via useEffect: ${voteToSubmit} for statement ${activeStatementId}`);
-        submitVote(userId, activeStatementId, voteToSubmit);
+        submitReaction(userId, activeStatementId, voteToSubmit);
       }
 
       setPreviousActiveStatementId(activeStatementId);
       setActiveStatementId(newActiveId);
-      setCurrentVoteState(null);
-      canvasVoteStateRef.current = null;
+      setCurrentReactionState(null);
+      canvasReactionStateRef.current = null;
     }
-  }, [allSelectedStatements, currentTime, currentVoteState, activeStatementId, userId]);
+  }, [allSelectedStatements, currentTime, currentReactionState, activeStatementId, userId]);
 
   useEffect(() => {
     if (adminMode) return;
@@ -210,21 +210,21 @@ export default function SimpleReactionCanvasAppV1() {
 
       const newActiveId = getCurrentActiveStatementId();
       if (newActiveId !== activeStatementId) {
-        const voteToSubmit = currentVoteState || canvasVoteStateRef.current;
+        const voteToSubmit = currentReactionState || canvasReactionStateRef.current;
         if (activeStatementId && voteToSubmit) {
           console.log(`Submitting vote via timer: ${voteToSubmit} for statement ${activeStatementId}`);
-          submitVote(userId, activeStatementId, voteToSubmit);
+          submitReaction(userId, activeStatementId, voteToSubmit);
         }
 
         setPreviousActiveStatementId(activeStatementId);
         setActiveStatementId(newActiveId);
-        setCurrentVoteState(null);
-        canvasVoteStateRef.current = null;
+        setCurrentReactionState(null);
+        canvasReactionStateRef.current = null;
       }
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [allSelectedStatements, activeStatementId, adminMode, currentVoteState, userId]);
+  }, [allSelectedStatements, activeStatementId, adminMode, currentReactionState, userId]);
 
   const handleActiveStatementChange = (_statementId: number) => {
     // Derived from queue data, no manual override needed
@@ -249,21 +249,21 @@ export default function SimpleReactionCanvasAppV1() {
         statementsPool={statementsPool}
       />
       <div className="vote-canvas-container" style={{ position: 'relative' }}>
-        {labels && <div className="vote-label vote-label-agree">{labels.agree}</div>}
-        {labels && <div className="vote-label vote-label-disagree">{labels.disagree}</div>}
-        {labels && <div className="vote-label vote-label-pass">{labels.pass}</div>}
+        {labels && <div className="reaction-label reaction-label-positive">{labels.positive}</div>}
+        {labels && <div className="reaction-label reaction-label-negative">{labels.negative}</div>}
+        {labels && <div className="reaction-label reaction-label-neutral">{labels.neutral}</div>}
         <Canvas
           room={room}
           userId={userId}
           colorCursorsByVote={true}
-          currentVoteState={canvasBackgroundVoteState}
+          currentReactionState={canvasBackgroundReactionState}
         />
         <TouchLayer
           room={room}
           onActiveStatementChange={handleActiveStatementChange}
-          onVoteStateChange={handleVoteStateChange}
+          onReactionStateChange={handleReactionStateChange}
           userId={userId}
-          voteStateRef={canvasVoteStateRef}
+          reactionStateRef={canvasReactionStateRef}
           onBackgroundColorChange={handleBackgroundColorChange}
         />
       </div>
