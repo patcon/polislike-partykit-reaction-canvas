@@ -3,7 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
-import { DEFAULT_ANCHORS } from "../utils/voteRegion";
+import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import type { ReactionLabelSet } from "../voteLabels";
 
@@ -66,45 +66,9 @@ export default function ReactionCanvasAppV4() {
   return (
     <div className="v2-app-container">
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-        {serverLabels && (
-          <div
-            className="reaction-label reaction-label-positive"
-            style={{
-              position: 'absolute',
-              left: `${anchors.positive.x}%`,
-              top: `${anchors.positive.y}%`,
-              transform: 'translate(-50%, -50%)',
-            }}
-          >
-            {serverLabels.positive}
-          </div>
-        )}
-        {serverLabels && (
-          <div
-            className="reaction-label reaction-label-negative"
-            style={{
-              position: 'absolute',
-              left: `${anchors.negative.x}%`,
-              top: `${anchors.negative.y}%`,
-              transform: 'translate(-50%, -50%)',
-            }}
-          >
-            {serverLabels.negative}
-          </div>
-        )}
-        {serverLabels && (
-          <div
-            className="reaction-label reaction-label-neutral"
-            style={{
-              position: 'absolute',
-              left: `${anchors.neutral.x}%`,
-              top: `${anchors.neutral.y}%`,
-              transform: 'translate(-50%, -50%)',
-            }}
-          >
-            {serverLabels.neutral}
-          </div>
-        )}
+        {serverLabels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{serverLabels.positive}</div>}
+        {serverLabels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{serverLabels.negative}</div>}
+        {serverLabels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{serverLabels.neutral}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
         {isRecording && <div className="v3-rec-badge">● REC</div>}
         {touchPos && (

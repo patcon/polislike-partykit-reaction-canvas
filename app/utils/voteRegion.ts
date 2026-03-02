@@ -7,14 +7,25 @@ export interface ReactionAnchors {
 }
 
 // Vertices (normalized 0–100):
-// POSITIVE:  top-right    (80, 5)
-// NEGATIVE:  bottom-left  (20, 80)
-// NEUTRAL:   bottom-right (80, 80)
+// POSITIVE:  top-right    (95, 5)
+// NEGATIVE:  bottom-left  (5, 95)
+// NEUTRAL:   bottom-right (95, 95)
 export const DEFAULT_ANCHORS: ReactionAnchors = {
-  positive: { x: 80, y: 5  },
-  negative: { x: 20, y: 80 },
-  neutral:  { x: 80, y: 80 },
+  positive: { x: 95, y: 5  },
+  negative: { x: 5,  y: 95 },
+  neutral:  { x: 95, y: 95 },
 };
+
+export function reactionLabelStyle(anchor: { x: number; y: number }): { position: 'absolute'; left: string; top: string; transform: string } {
+  const tx = anchor.x > 50 ? '-100%' : anchor.x < 50 ? '0%' : '-50%';
+  const ty = anchor.y > 50 ? '-100%' : anchor.y < 50 ? '0%' : '-50%';
+  return {
+    position: 'absolute',
+    left: `${anchor.x}%`,
+    top: `${anchor.y}%`,
+    transform: `translate(${tx}, ${ty})`,
+  };
+}
 
 export function computeReactionRegion(normalizedX: number, normalizedY: number, anchors: ReactionAnchors = DEFAULT_ANCHORS): ReactionRegion {
   const x = normalizedX / 100;

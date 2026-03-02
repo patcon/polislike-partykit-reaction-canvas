@@ -6,6 +6,7 @@ import StatementPanel from "./StatementPanel";
 import AdminPanel from "./AdminPanel";
 import type { PolisStatement, QueueItem } from "../types";
 import { getReactionLabelSet } from "../voteLabels";
+import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 
 function getRoomFromUrl(): string {
   const urlParams = new URLSearchParams(window.location.search);
@@ -249,9 +250,9 @@ export default function SimpleReactionCanvasAppV1() {
         statementsPool={statementsPool}
       />
       <div className="vote-canvas-container" style={{ position: 'relative' }}>
-        {labels && <div className="reaction-label reaction-label-positive">{labels.positive}</div>}
-        {labels && <div className="reaction-label reaction-label-negative">{labels.negative}</div>}
-        {labels && <div className="reaction-label reaction-label-neutral">{labels.neutral}</div>}
+        {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(DEFAULT_ANCHORS.positive)}>{labels.positive}</div>}
+        {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(DEFAULT_ANCHORS.negative)}>{labels.negative}</div>}
+        {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(DEFAULT_ANCHORS.neutral)}>{labels.neutral}</div>}
         <Canvas
           room={room}
           userId={userId}

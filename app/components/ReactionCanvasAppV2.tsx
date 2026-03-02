@@ -3,6 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import { getReactionLabelSet } from "../voteLabels";
+import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -150,9 +151,9 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         )}
       </div>
       <div className="v2-vote-canvas-container">
-        {labels && <div className="reaction-label reaction-label-positive">{labels.positive}</div>}
-        {labels && <div className="reaction-label reaction-label-negative">{labels.negative}</div>}
-        {labels && <div className="reaction-label reaction-label-neutral">{labels.neutral}</div>}
+        {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(DEFAULT_ANCHORS.positive)}>{labels.positive}</div>}
+        {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(DEFAULT_ANCHORS.negative)}>{labels.negative}</div>}
+        {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(DEFAULT_ANCHORS.neutral)}>{labels.neutral}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
         {touchPos && (
           <div

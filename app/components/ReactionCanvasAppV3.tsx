@@ -4,6 +4,7 @@ import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import AdminPanelV3 from "./AdminPanelV3";
 import { getReactionLabelSet } from "../voteLabels";
+import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -66,9 +67,9 @@ export default function ReactionCanvasAppV3() {
   return (
     <div className="v2-app-container">
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-        {labels && <div className="reaction-label reaction-label-positive">{labels.positive}</div>}
-        {labels && <div className="reaction-label reaction-label-negative">{labels.negative}</div>}
-        {labels && <div className="reaction-label reaction-label-neutral">{labels.neutral}</div>}
+        {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(DEFAULT_ANCHORS.positive)}>{labels.positive}</div>}
+        {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(DEFAULT_ANCHORS.negative)}>{labels.negative}</div>}
+        {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(DEFAULT_ANCHORS.neutral)}>{labels.neutral}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
         {isRecording && <div className="v3-rec-badge">● REC</div>}
         {touchPos && (
