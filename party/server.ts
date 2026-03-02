@@ -113,7 +113,7 @@ export default class Server implements Party.Server {
   private connectionUserMap = new Map<string, string>(); // connectionId -> userId
   private savedTimecode: number = 0; // Last paused timecode for the video in this room
   private recordingState: boolean = false;
-  private roomLabels: { positive: string; negative: string; neutral: string } | null = null;
+  private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
   private roomAnchors: ReactionAnchors | null = null;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
