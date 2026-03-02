@@ -4,7 +4,7 @@ export type ReactionRegion = 'positive' | 'negative' | 'neutral' | null;
 // POSITIVE:  top-right  (100, 0)
 // NEGATIVE:  bottom-left (0, 100)
 // NEUTRAL:   bottom-right (100, 100)
-export function computeVoteRegion(normalizedX: number, normalizedY: number): ReactionRegion {
+export function computeReactionRegion(normalizedX: number, normalizedY: number): ReactionRegion {
   const x = normalizedX / 100;
   const y = normalizedY / 100;
 

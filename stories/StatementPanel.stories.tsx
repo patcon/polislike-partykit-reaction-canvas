@@ -41,6 +41,7 @@ export const WithStatement: Story = {
 
 // Statement is displaying and the next one is queued (countdown bar visible).
 export const WithCountdown: Story = {
+  args: { activeStatementId: 1, statementsPool: [], queue: [], currentTime: 0 },
   render: () => {
     const now = Date.now();
     return (

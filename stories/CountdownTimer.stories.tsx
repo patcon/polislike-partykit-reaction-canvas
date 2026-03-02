@@ -22,6 +22,7 @@ export const Idle: Story = {
 
 // A statement is coming up in ~8 seconds.
 export const CountingDown: Story = {
+  args: { queue: [], currentTime: 0 },
   render: () => {
     const now = Date.now();
     return <CountdownTimer queue={[{ statementId: 2, displayTimestamp: now + 8000 }]} currentTime={now} />;
@@ -30,6 +31,7 @@ export const CountingDown: Story = {
 
 // Same countdown but with the next statement ID label shown.
 export const CountingDownWithLabel: Story = {
+  args: { queue: [], currentTime: 0 },
   render: () => {
     const now = Date.now();
     return <CountdownTimer queue={[{ statementId: 3, displayTimestamp: now + 8000 }]} currentTime={now} showNextStatementId />;
@@ -38,6 +40,7 @@ export const CountingDownWithLabel: Story = {
 
 // Bar is most of the way through — next statement arriving very soon.
 export const AlmostExpired: Story = {
+  args: { queue: [], currentTime: 0 },
   render: () => {
     const now = Date.now();
     return <CountdownTimer queue={[{ statementId: 4, displayTimestamp: now + 2000 }]} currentTime={now} showNextStatementId />;
@@ -46,6 +49,7 @@ export const AlmostExpired: Story = {
 
 // The "End Voting" pseudo-statement (id -1) is next.
 export const EndVotingNext: Story = {
+  args: { queue: [], currentTime: 0 },
   render: () => {
     const now = Date.now();
     return <CountdownTimer queue={[{ statementId: -1, displayTimestamp: now + 6000 }]} currentTime={now} showNextStatementId />;
