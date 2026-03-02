@@ -75,6 +75,11 @@ interface SetTimecodeEvent {
   timecode: number;
 }
 
+interface SetRecordingStateEvent {
+  type: 'setRecordingState';
+  recording: boolean;
+}
+
 interface Vote {
   userId: string;
   statementId: number;
@@ -82,7 +87,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent;
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
@@ -91,6 +96,7 @@ export default class Server implements Party.Server {
   private votes: Vote[] = []; // Store all votes
   private connectionUserMap = new Map<string, string>(); // connectionId -> userId
   private savedTimecode: number = 0; // Last paused timecode for the video in this room
+  private recordingState: boolean = false;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -147,6 +153,7 @@ export default class Server implements Party.Server {
       currentTime: Date.now(),
       ghostCursorsEnabled: this.ghostCursorsEnabled,
       timecode: this.savedTimecode,
+      recordingState: this.recordingState,
     }));
   }
 
@@ -200,6 +207,9 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setTimecode') {
         this.savedTimecode = event.timecode;
         this.room.broadcast(JSON.stringify({ type: 'timecodeUpdate', timecode: this.savedTimecode }));
+      } else if (event.type === 'setRecordingState') {
+        this.recordingState = event.recording;
+        this.room.broadcast(JSON.stringify({ type: 'recordingStateChanged', recording: this.recordingState }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);

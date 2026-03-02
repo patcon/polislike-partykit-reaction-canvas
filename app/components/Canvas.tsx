@@ -25,9 +25,10 @@ interface CanvasProps {
   onPresenceCount?: (count: number) => void;
   onActiveCursorCountChange?: (count: number) => void;
   onTimecodeUpdate?: (timecode: number) => void;
+  onRecordingStateChange?: (recording: boolean) => void;
 }
 
-export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate }: CanvasProps) {
+export default function Canvas({ room, userId, colorCursorsByVote = false, currentVoteState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
 
@@ -55,6 +56,16 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
 
         if (data.type === 'timecodeUpdate' || (data.type === 'connected' && data.timecode !== undefined)) {
           onTimecodeUpdate?.(data.timecode);
+          return;
+        }
+
+        if (data.type === 'recordingStateChanged') {
+          onRecordingStateChange?.(data.recording);
+          return;
+        }
+
+        if (data.type === 'connected' && data.recordingState !== undefined) {
+          onRecordingStateChange?.(data.recordingState);
           return;
         }
 

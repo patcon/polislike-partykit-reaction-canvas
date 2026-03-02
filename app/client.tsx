@@ -59,6 +59,13 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
+        <a href="?admin=true#v3" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V3: Admin (Record Reactions)</h2>
+            <p className="app-card-description">Record live audience reaction data for offline analysis. Downloads as JSON.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
       </div>
     </div>
   );

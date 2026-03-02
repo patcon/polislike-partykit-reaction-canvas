@@ -992,6 +992,63 @@ body {
   }
 }
 
+/* V3: Recording badge */
+.v3-rec-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(220, 30, 30, 0.85);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* V3: Admin panel container */
+.v3-admin-panel {
+  width: 100vw;
+  min-height: 100vh;
+  padding: 32px;
+  font-family: sans-serif;
+  background: #1a1a1a;
+  color: #eee;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* V3: Admin buttons */
+.v3-admin-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+}
+
+.v3-admin-btn-record {
+  background: #c0392b;
+  color: #fff;
+}
+
+.v3-admin-btn-record:hover {
+  background: #e74c3c;
+}
+
+.v3-admin-btn-stop {
+  background: #555;
+  color: #fff;
+}
+
+.v3-admin-btn-stop:hover {
+  background: #777;
+}
+
 /* Responsive ghost cursors control */
 @media (max-width: 768px) {
   .ghost-cursors-control {

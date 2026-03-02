@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
+import AdminPanelV3 from "./AdminPanelV3";
 import { getReactionLabelSet } from "../voteLabels";
 
 type VoteState = 'agree' | 'disagree' | 'pass' | null;
@@ -20,6 +21,10 @@ function isTouchDevice(): boolean {
 
 function isMobileOverridden(): boolean {
   return new URLSearchParams(window.location.search).get('mobile') === 'true';
+}
+
+function isAdminMode(): boolean {
+  return new URLSearchParams(window.location.search).get('admin') === 'true';
 }
 
 function MobileOnlyGate() {
@@ -43,7 +48,13 @@ export default function ReactionCanvasAppV3() {
   const [canvasBackgroundVoteState, setCanvasBackgroundVoteState] = useState<VoteState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
   const voteStateRef = useRef<VoteState>(null);
+
+  if (isAdminMode()) {
+    const room = getRoomParamFromUrl();
+    return <AdminPanelV3 room={room} />;
+  }
 
   if (!isTouchDevice() && !isMobileOverridden()) {
     return <MobileOnlyGate />;
@@ -59,6 +70,7 @@ export default function ReactionCanvasAppV3() {
         <div className="vote-label vote-label-disagree">{labels.disagree}</div>
         <div className="vote-label vote-label-pass">{labels.pass}</div>
         <div className="v2-presence-counter">{presenceCount} here</div>
+        {isRecording && <div className="v3-rec-badge">● REC</div>}
         {touchPos && (
           <div
             className="v2-touch-indicator"
@@ -72,6 +84,7 @@ export default function ReactionCanvasAppV3() {
           currentVoteState={canvasBackgroundVoteState}
           heightOffset={0}
           onPresenceCount={setPresenceCount}
+          onRecordingStateChange={setIsRecording}
         />
         <TouchLayer
           room={room}
