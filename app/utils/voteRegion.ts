@@ -7,13 +7,13 @@ export interface ReactionAnchors {
 }
 
 // Vertices (normalized 0–100):
-// POSITIVE:  top-right  (100, 0)
-// NEGATIVE:  bottom-left (0, 100)
-// NEUTRAL:   bottom-right (100, 100)
+// POSITIVE:  top-right    (80, 5)
+// NEGATIVE:  bottom-left  (20, 80)
+// NEUTRAL:   bottom-right (80, 80)
 export const DEFAULT_ANCHORS: ReactionAnchors = {
-  positive: { x: 100, y: 0   },
-  negative: { x: 0,   y: 100 },
-  neutral:  { x: 100, y: 100 },
+  positive: { x: 80, y: 5  },
+  negative: { x: 20, y: 80 },
+  neutral:  { x: 80, y: 80 },
 };
 
 export function computeReactionRegion(normalizedX: number, normalizedY: number, anchors: ReactionAnchors = DEFAULT_ANCHORS): ReactionRegion {
