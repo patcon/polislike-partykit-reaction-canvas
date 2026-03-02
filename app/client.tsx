@@ -86,6 +86,13 @@ function IndexApp() {
   );
 }
 
+const TITLES: Record<string, (admin: boolean) => string> = {
+  '#v1': (admin) => admin ? 'Statement Admin — Polislike' : 'Statement Voting — Polislike',
+  '#v2': ()      => 'YouTube Reaction (Sync) — Polislike',
+  '#v3': (admin) => admin ? 'Reaction Recorder — Polislike' : 'Reaction Canvas — Polislike',
+  '#v4': (admin) => admin ? 'Live Event Admin — Polislike' : 'Live Reaction Canvas — Polislike',
+};
+
 function App() {
   const [hash, setHash] = useState(window.location.hash);
 
@@ -94,6 +101,11 @@ function App() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  useEffect(() => {
+    const isAdmin = new URLSearchParams(window.location.search).get('admin') === 'true';
+    document.title = TITLES[hash]?.(isAdmin) ?? 'Polislike Reaction Canvas';
+  }, [hash]);
 
   if (hash === '#v1') return <SimpleReactionCanvasAppV1 />;
   if (hash === '#v2') return <ReactionCanvasAppV2 />;
