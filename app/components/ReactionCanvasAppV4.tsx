@@ -3,7 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
-import { getReactionLabelSet, REACTION_LABEL_PRESETS } from "../voteLabels";
+import { getReactionLabelSet, REACTION_LABEL_PRESETS, encodeCustomLabels, decodeCustomLabels } from "../voteLabels";
 
 type VoteState = 'agree' | 'disagree' | 'pass' | null;
 
@@ -53,9 +53,26 @@ function getCurrentLabelsParam(): string {
   return new URLSearchParams(window.location.search).get('labels') ?? 'default';
 }
 
+const PRESET_KEYS = Object.keys(REACTION_LABEL_PRESETS);
+
+function isCustomKey(key: string): boolean {
+  return key !== '' && key !== 'none' && !PRESET_KEYS.includes(key);
+}
+
 function HelpModal({ onClose }: { onClose: () => void }) {
-  const [selectedLabels, setSelectedLabels] = useState(getCurrentLabelsParam());
-  const linkHref = buildUrlWithLabels(selectedLabels);
+  const currentKey = getCurrentLabelsParam();
+  const startCustom = isCustomKey(currentKey);
+  const decodedCustom = startCustom ? decodeCustomLabels(currentKey) : null;
+
+  const [selected, setSelected] = useState(startCustom ? 'custom' : currentKey);
+  const [customAgree, setCustomAgree] = useState(decodedCustom?.agree ?? '');
+  const [customDisagree, setCustomDisagree] = useState(decodedCustom?.disagree ?? '');
+  const [customPass, setCustomPass] = useState(decodedCustom?.pass ?? '');
+
+  const labelKeyForUrl = selected === 'custom'
+    ? (customAgree && customDisagree && customPass ? encodeCustomLabels(customAgree, customDisagree, customPass) : '')
+    : selected;
+  const linkHref = labelKeyForUrl ? buildUrlWithLabels(labelKeyForUrl) : undefined;
 
   return (
     <div className="v4-help-modal-overlay" onClick={onClose}>
@@ -66,31 +83,79 @@ function HelpModal({ onClose }: { onClose: () => void }) {
           <label>Reaction labels</label>
           <div className="v4-help-modal-radios">
             {Object.entries(REACTION_LABEL_PRESETS).map(([key, set]) => (
-              <label key={key}>
+              <div key={key} className="v4-help-modal-option">
+                <label>
+                  <input
+                    type="radio"
+                    name="labels"
+                    value={key}
+                    checked={selected === key}
+                    onChange={() => setSelected(key)}
+                  />
+                  {set.agree} / {set.disagree} / {set.pass}
+                </label>
+                {set.hint && (
+                  <p className="v4-help-modal-hint">
+                    {set.hint}
+                    {set.hintLinkText && set.hintUrl && (
+                      <a href={set.hintUrl} target="_blank" rel="noopener noreferrer">{set.hintLinkText}</a>
+                    )}
+                  </p>
+                )}
+              </div>
+            ))}
+
+            <div className="v4-help-modal-option">
+              <label>
                 <input
                   type="radio"
                   name="labels"
-                  value={key}
-                  checked={selectedLabels === key}
-                  onChange={() => setSelectedLabels(key)}
+                  value="custom"
+                  checked={selected === 'custom'}
+                  onChange={() => setSelected('custom')}
                 />
-                {set.agree} / {set.disagree} / {set.pass}
+                Custom
               </label>
-            ))}
-            <label key="none">
-              <input
-                type="radio"
-                name="labels"
-                value="none"
-                checked={selectedLabels === 'none'}
-                onChange={() => setSelectedLabels('none')}
-              />
-              None (labels hidden)
-            </label>
+              {selected === 'custom' && (
+                <div className="v4-help-modal-custom-inputs">
+                  {[
+                    ['Agree', customAgree, setCustomAgree],
+                    ['Disagree', customDisagree, setCustomDisagree],
+                    ['Pass', customPass, setCustomPass],
+                  ].map(([slot, val, setter]) => (
+                    <div key={slot as string} className="v4-help-modal-custom-row">
+                      <span>{slot as string}</span>
+                      <input
+                        type="text"
+                        value={val as string}
+                        onChange={e => (setter as (v: string) => void)(e.target.value)}
+                        placeholder={`${slot} label`}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="v4-help-modal-option">
+              <label>
+                <input
+                  type="radio"
+                  name="labels"
+                  value="none"
+                  checked={selected === 'none'}
+                  onChange={() => setSelected('none')}
+                />
+                None (labels hidden)
+              </label>
+            </div>
           </div>
         </div>
 
-        <a className="v4-help-modal-link" href={linkHref}>Apply &amp; reload →</a>
+        {linkHref
+          ? <a className="v4-help-modal-link" href={linkHref}>Apply &amp; reload →</a>
+          : <span className="v4-help-modal-link v4-help-modal-link-disabled">Apply &amp; reload →</span>
+        }
         <p className="v4-help-modal-close">Press <kbd>?</kbd> or click outside to close</p>
       </div>
     </div>

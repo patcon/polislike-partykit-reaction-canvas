@@ -5,17 +5,17 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] (2026-03-01)
 
 ### Added
-- V4: help modal (press `?`) with a label-set picker that updates a reload link; no state changes until the link is clicked
-- All canvases: `?labels=none` hides all reaction labels
+- V4: help modal (press `?`) with a label-set picker; hints with links per preset; custom option encodes labels as base64 in URL; "None" hides labels
+- All canvases: `?labels=none` hides all reaction labels; `?labels=<base64>` allows arbitrary custom labels
 - V3: admin page (`?admin=true#v3`): record cursor positions or vote-region transitions in-browser; download as JSON; broadcasting recording status shows a REC badge to all participants
 
 ### Changed
 - All canvases: reaction label strings stored in title-case; displayed uppercase via CSS (`text-transform: uppercase`)
-- V4 help modal: label picker shows title-case values only (no machine key); includes "None" option
+- Label presets: removed `yesno` and `supportive`; added `atomic` (Attracted/Repelled/Neutral) and `valence` (Positive/Negative/Neutral); all presets have hint text
+- V4 help modal: label picker shows title-case values only (no machine key)
 - V2 & V3: `?mobile=true` replaced by `?forceView=mobile`
 - V3: new full-page reaction canvas variant (no video, no statements); supports `?room=`, `?labels=`, presence counter, blue-dot cursor, and mobile-only QR gate with `?forceView=mobile` override
-- V2: `?labels=` query param selects a reaction label preset (`default`, `yesno`, `supportive`, `abu`); falls back to localStorage / default if omitted or unrecognised
-- `abu` label set: agree=A, disagree=B, pass=U
+- V2: `?labels=` query param selects a reaction label preset; falls back to localStorage / default if omitted or unrecognised
 
 ### Fixed
 - Mobile taps no longer leave the cursor stuck as a persistent touch; the root cause was the browser's synthesized `mousemove` (fired ~300ms after every tap) landing in `handleMouseMove` and starting the heartbeat with no corresponding `mouseleave` to clean up — now suppressed with a 500ms post-touch guard
