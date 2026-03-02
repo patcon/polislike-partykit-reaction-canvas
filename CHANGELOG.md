@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] (2026-03-01)
 
 ### Added
+- V4: new reaction canvas variant copied from V3 as a base for further changes; accessible at `#v4` and `?admin=true#v4`
 - V3: admin page (`?admin=true#v3`): record cursor positions or vote-region transitions in-browser; download as JSON; broadcasting recording status shows a REC badge to all participants
 
 ### Changed
