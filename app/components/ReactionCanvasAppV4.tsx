@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
@@ -49,7 +49,16 @@ export default function ReactionCanvasAppV4() {
   const [isRecording, setIsRecording] = useState(false);
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
+  const [debug, setDebug] = useState(false);
   const reactionStateRef = useRef<ReactionState>(null);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'd') setDebug(prev => !prev);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   if (isAdminMode()) {
     const room = getRoomParamFromUrl();
@@ -70,6 +79,7 @@ export default function ReactionCanvasAppV4() {
         {serverLabels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{serverLabels.negative}</div>}
         {serverLabels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{serverLabels.neutral}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
+        <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         {isRecording && <div className="v3-rec-badge">● REC</div>}
         {touchPos && (
           <div
@@ -87,6 +97,7 @@ export default function ReactionCanvasAppV4() {
           onRecordingStateChange={setIsRecording}
           onRoomLabelsChange={setServerLabels}
           onRoomAnchorsChange={setServerAnchors}
+          debug={debug}
         />
         <TouchLayer
           room={room}

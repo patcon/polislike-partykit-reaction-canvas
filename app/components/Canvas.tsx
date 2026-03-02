@@ -30,9 +30,31 @@ interface CanvasProps {
   onRecordingStateChange?: (recording: boolean) => void;
   onRoomLabelsChange?: (labels: { positive: string; negative: string; neutral: string } | null) => void;
   onRoomAnchorsChange?: (anchors: ReactionAnchors | null) => void;
+  debug?: boolean;
 }
 
-export default function Canvas({ room, userId, colorCursorsByVote = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange }: CanvasProps) {
+// Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
+// Returns [x1,y1,x2,y2] pixel endpoints, or null if the line misses the rect.
+function clipLineToRect(
+  px: number, py: number, // a point on the line
+  qx: number, qy: number, // another point on the line
+  w: number, h: number
+): [number, number, number, number] | null {
+  const dx = qx - px, dy = qy - py;
+  let tMin = -Infinity, tMax = Infinity;
+  const clip = (p: number, q: number) => {
+    if (p === 0) return q >= 0;
+    const t = q / p;
+    if (p < 0) tMin = Math.max(tMin, t); else tMax = Math.min(tMax, t);
+    return true;
+  };
+  if (!clip(-dx, px) || !clip(dx, w - px)) return null;
+  if (!clip(-dy, py) || !clip(dy, h - py)) return null;
+  if (tMin > tMax) return null;
+  return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
+}
+
+export default function Canvas({ room, userId, colorCursorsByVote = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -173,6 +195,49 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
       updateBackgroundColor(currentReactionState);
     }
 
+    // Debug: draw region boundary lines and anchor markers
+    if (debug) {
+      const { positive: pos, negative: neg, neutral: neu } = anchors;
+      const centroid = {
+        x: (pos.x + neg.x + neu.x) / 3,
+        y: (pos.y + neg.y + neu.y) / 3,
+      };
+      // Each boundary line passes through the centroid AND the midpoint of the
+      // opposite edge — this is where two barycentric weights are equal.
+      const edgeMidpoints = [
+        { x: (pos.x + neg.x) / 2, y: (pos.y + neg.y) / 2 }, // pos–neg boundary
+        { x: (pos.x + neu.x) / 2, y: (pos.y + neu.y) / 2 }, // pos–neu boundary
+        { x: (neg.x + neu.x) / 2, y: (neg.y + neu.y) / 2 }, // neg–neu boundary
+      ];
+      const toX = (n: number) => (n / 100) * dimensions.width;
+      const toY = (n: number) => (n / 100) * dimensions.height;
+      const cG = { x: toX(centroid.x), y: toY(centroid.y) };
+
+      edgeMidpoints.forEach(mid => {
+        const line = clipLineToRect(
+          toX(mid.x), toY(mid.y), cG.x, cG.y,
+          dimensions.width, dimensions.height
+        );
+        if (!line) return;
+        svg.append('line')
+          .attr('x1', line[0]).attr('y1', line[1])
+          .attr('x2', line[2]).attr('y2', line[3])
+          .attr('stroke', 'rgba(128,128,128,0.6)')
+          .attr('stroke-width', 1)
+          .attr('stroke-dasharray', '6 4');
+      });
+
+      // Anchor markers
+      [pos, neg, neu].forEach(anchor => {
+        svg.append('circle')
+          .attr('cx', toX(anchor.x)).attr('cy', toY(anchor.y))
+          .attr('r', 5)
+          .attr('fill', 'none')
+          .attr('stroke', 'rgba(128,128,128,0.8)')
+          .attr('stroke-width', 1.5);
+      });
+    }
+
     // Add cursor positions as colored dots - convert normalized coordinates to pixels
     const cursorData = Array.from(cursors.entries()).map(([cursorUserId, cursor]) => ({
       cursorUserId,
@@ -229,7 +294,7 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
       .attr('fill', '#000')
       .text((d: any) => d.cursorUserId.substring(0, 6));
 
-  }, [cursors, dimensions, anchors]);
+  }, [cursors, dimensions, anchors, debug]);
 
   // Handle window resize
   useEffect(() => {

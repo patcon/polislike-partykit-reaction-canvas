@@ -848,6 +848,22 @@ body {
   user-select: none;
 }
 
+.debug-hint {
+  display: none; /* hidden on touch/mobile */
+  position: absolute;
+  bottom: 8px;
+  left: 8px;
+  z-index: 20;
+  font-size: 11px;
+  color: rgba(128, 128, 128, 0.7);
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .debug-hint { display: block; }
+}
+
 /* Index / Landing Page */
 .index-app {
   width: 100vw;
