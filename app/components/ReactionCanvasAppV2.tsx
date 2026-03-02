@@ -150,9 +150,9 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         )}
       </div>
       <div className="v2-vote-canvas-container">
-        <div className="vote-label vote-label-agree">{labels.agree}</div>
-        <div className="vote-label vote-label-disagree">{labels.disagree}</div>
-        <div className="vote-label vote-label-pass">{labels.pass}</div>
+        {labels && <div className="vote-label vote-label-agree">{labels.agree}</div>}
+        {labels && <div className="vote-label vote-label-disagree">{labels.disagree}</div>}
+        {labels && <div className="vote-label vote-label-pass">{labels.pass}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
         {touchPos && (
           <div

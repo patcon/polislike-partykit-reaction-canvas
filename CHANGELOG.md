@@ -6,9 +6,12 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - V4: help modal (press `?`) with a label-set picker that updates a reload link; no state changes until the link is clicked
+- All canvases: `?labels=none` hides all reaction labels
 - V3: admin page (`?admin=true#v3`): record cursor positions or vote-region transitions in-browser; download as JSON; broadcasting recording status shows a REC badge to all participants
 
 ### Changed
+- All canvases: reaction label strings stored in title-case; displayed uppercase via CSS (`text-transform: uppercase`)
+- V4 help modal: label picker shows title-case values only (no machine key); includes "None" option
 - V2 & V3: `?mobile=true` replaced by `?forceView=mobile`
 - V3: new full-page reaction canvas variant (no video, no statements); supports `?room=`, `?labels=`, presence counter, blue-dot cursor, and mobile-only QR gate with `?forceView=mobile` override
 - V2: `?labels=` query param selects a reaction label preset (`default`, `yesno`, `supportive`, `abu`); falls back to localStorage / default if omitted or unrecognised

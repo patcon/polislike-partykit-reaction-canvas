@@ -74,9 +74,19 @@ function HelpModal({ onClose }: { onClose: () => void }) {
                   checked={selectedLabels === key}
                   onChange={() => setSelectedLabels(key)}
                 />
-                <strong>{key}</strong> — {set.agree} / {set.disagree} / {set.pass}
+                {set.agree} / {set.disagree} / {set.pass}
               </label>
             ))}
+            <label key="none">
+              <input
+                type="radio"
+                name="labels"
+                value="none"
+                checked={selectedLabels === 'none'}
+                onChange={() => setSelectedLabels('none')}
+              />
+              None (labels hidden)
+            </label>
           </div>
         </div>
 
@@ -120,9 +130,9 @@ export default function ReactionCanvasAppV4() {
     <div className="v2-app-container">
       {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-        <div className="vote-label vote-label-agree">{labels.agree}</div>
-        <div className="vote-label vote-label-disagree">{labels.disagree}</div>
-        <div className="vote-label vote-label-pass">{labels.pass}</div>
+        {labels && <div className="vote-label vote-label-agree">{labels.agree}</div>}
+        {labels && <div className="vote-label vote-label-disagree">{labels.disagree}</div>}
+        {labels && <div className="vote-label vote-label-pass">{labels.pass}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
         {isRecording && <div className="v3-rec-badge">● REC</div>}
         {touchPos && (
