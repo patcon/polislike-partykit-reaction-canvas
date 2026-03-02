@@ -87,6 +87,16 @@ URL params are read by each sub-app independently (`?room=`, `?admin=`, `?ghostC
 |-------|--------|--------|
 | `videoId` | YouTube video ID | Embeds that video and scopes cursor room to that video ID; shows placeholder with example link if omitted |
 | `labels` | `default`, `yesno`, `supportive`, `abu` | Selects a reaction label preset; falls back to localStorage / `default` if omitted |
+| `forceView` | `mobile` | Bypasses the mobile-only QR gate; shows the canvas on desktop |
+
+## V3 URL params
+
+| Param | Values | Effect |
+|-------|--------|--------|
+| `room` | string | PartyKit room name; defaults to `"default"` |
+| `labels` | `default`, `yesno`, `supportive`, `abu` | Selects a reaction label preset; falls back to localStorage / `default` if omitted |
+| `forceView` | `mobile` | Bypasses the mobile-only QR gate; shows the canvas on desktop |
+| `admin` | `true` | Renders `AdminPanelV3` for recording reaction data |
 
 ## Storybook
 

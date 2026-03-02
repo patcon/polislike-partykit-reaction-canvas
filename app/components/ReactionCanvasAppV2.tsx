@@ -22,9 +22,9 @@ function isTouchDevice(): boolean {
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 }
 
-function isMobileOverridden(): boolean {
+function isMobileForced(): boolean {
   const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('mobile') === 'true';
+  return urlParams.get('forceView') === 'mobile';
 }
 
 function MobileOnlyGate() {
@@ -113,7 +113,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     setTouchPos(pos);
   };
 
-  if (!isTouchDevice() && !isMobileOverridden()) {
+  if (!isTouchDevice() && !isMobileForced()) {
     return <MobileOnlyGate />;
   }
 

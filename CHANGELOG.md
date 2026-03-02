@@ -6,7 +6,10 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - V3: admin page (`?admin=true#v3`): record cursor positions or vote-region transitions in-browser; download as JSON; broadcasting recording status shows a REC badge to all participants
-- V3: new full-page reaction canvas variant (no video, no statements); supports `?room=`, `?labels=`, presence counter, blue-dot cursor, and mobile-only QR gate with `?mobile=true` override
+
+### Changed
+- V2 & V3: `?mobile=true` replaced by `?forceView=mobile`
+- V3: new full-page reaction canvas variant (no video, no statements); supports `?room=`, `?labels=`, presence counter, blue-dot cursor, and mobile-only QR gate with `?forceView=mobile` override
 - V2: `?labels=` query param selects a reaction label preset (`default`, `yesno`, `supportive`, `abu`); falls back to localStorage / default if omitted or unrecognised
 - `abu` label set: agree=A, disagree=B, pass=U
 
@@ -30,7 +33,7 @@ All notable changes to this project will be documented in this file.
 - V2: presence counter badge in top-left of the reaction canvas shows how many people are in the current video room
 - V2 touch indicator: large blue circle follows finger on the reaction canvas
 - V2 video control: touching the canvas plays the YouTube video; releasing pauses it
-- V2 mobile-only gate: non-touch devices see a QR code linking to the current URL instead of the canvas; override with `?mobile=true`
+- V2 mobile-only gate: non-touch devices see a QR code linking to the current URL instead of the canvas; override with `?forceView=mobile`
 - Split V2 index card into two: "YouTube (Blank)" and "YouTube (Example)" with pre-loaded video
 - Configurable reaction label sets via `localStorage` (`polis_label_set` key) for minimal A/B testing
 - `ReactionLabelSet` interface and `REACTION_LABEL_PRESETS` with three built-in sets: `default` (AGREE / DISAGREE / PASS), `yesno` (YES / NO / SKIP), and `supportive` (SUPPORT / OPPOSE / NEUTRAL)

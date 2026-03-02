@@ -19,8 +19,8 @@ function isTouchDevice(): boolean {
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 }
 
-function isMobileOverridden(): boolean {
-  return new URLSearchParams(window.location.search).get('mobile') === 'true';
+function isMobileForced(): boolean {
+  return new URLSearchParams(window.location.search).get('forceView') === 'mobile';
 }
 
 function isAdminMode(): boolean {
@@ -56,7 +56,7 @@ export default function ReactionCanvasAppV3() {
     return <AdminPanelV3 room={room} />;
   }
 
-  if (!isTouchDevice() && !isMobileOverridden()) {
+  if (!isTouchDevice() && !isMobileForced()) {
     return <MobileOnlyGate />;
   }
 
