@@ -25,7 +25,7 @@ Participants vote on a queue of [Polis](https://pol.is) statements. A countdown 
 
 | Participation | Statement Admin |
 |:---:|:---:|
-| ![V1 participation](https://picsum.photos/seed/v1-participation/320/568) | ![V1 admin](https://picsum.photos/seed/v1-admin/600/400) |
+| <img src="docs/images/v1-participation.png" width="220"> | ![V1 admin](docs/images/v1-admin.png) |
 
 **URL:** `/#v1` · `/?admin=true#v1` for admin
 
@@ -37,7 +37,7 @@ A YouTube video plays in the top half of the screen; the reaction canvas sits be
 
 | Participation |
 |:---:|
-| ![V2 participation](https://picsum.photos/seed/v2-participation/320/568) |
+| <img src="docs/images/v2-participation.png" width="220"> |
 
 **URL:** `/?videoId=<youtube-id>#v2`
 
@@ -49,7 +49,7 @@ A standalone reaction canvas designed for live events. Labels and anchor positio
 
 | Participation | Recording Admin |
 |:---:|:---:|
-| ![V4 participation](https://picsum.photos/seed/v4-participation/320/568) | ![V4 admin](https://picsum.photos/seed/v4-admin/600/400) |
+| <img src="docs/images/v4-participation.png" width="220"> | ![V4 admin](docs/images/v4-admin.png) |
 
 **URL:** `/#v4` · `/?admin=true#v4` for admin
 
