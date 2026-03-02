@@ -40,6 +40,15 @@ export default function SimpleReactionCanvasAppV1() {
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<'positive' | 'negative' | 'neutral' | null>(null);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(ghostCursorsFromUrl ?? false);
+  const [debug, setDebug] = useState(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'd') setDebug(prev => !prev);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
@@ -253,11 +262,13 @@ export default function SimpleReactionCanvasAppV1() {
         {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(DEFAULT_ANCHORS.positive)}>{labels.positive}</div>}
         {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(DEFAULT_ANCHORS.negative)}>{labels.negative}</div>}
         {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(DEFAULT_ANCHORS.neutral)}>{labels.neutral}</div>}
+        <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         <Canvas
           room={room}
           userId={userId}
           colorCursorsByVote={true}
           currentReactionState={canvasBackgroundReactionState}
+          debug={debug}
         />
         <TouchLayer
           room={room}

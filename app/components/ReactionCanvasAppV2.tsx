@@ -52,7 +52,16 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const reactionStateRef = useRef<ReactionState>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
+  const [debug, setDebug] = useState(false);
   const allTouchingRef = useRef(false);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'd') setDebug(prev => !prev);
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   // Track video timecode locally: seek offset + elapsed play time
   const seekOffsetRef = useRef(0);
@@ -155,6 +164,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(DEFAULT_ANCHORS.negative)}>{labels.negative}</div>}
         {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(DEFAULT_ANCHORS.neutral)}>{labels.neutral}</div>}
         <div className="v2-presence-counter">{presenceCount} here</div>
+        <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         {touchPos && (
           <div
             className="v2-touch-indicator"
@@ -170,6 +180,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           onPresenceCount={setPresenceCount}
           onActiveCursorCountChange={setActiveCursorCount}
           onTimecodeUpdate={seekTo}
+          debug={debug}
         />
         <TouchLayer
           room={room}
