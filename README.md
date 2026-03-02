@@ -1,56 +1,83 @@
-# Polislike Vote Canvas
+# Polislike Reaction Canvas
 
-This is a sample project to show how websockets could be used for reaction to live events, creating polislike data.
+A real-time collaborative voting canvas built on [PartyKit](https://partykit.io) (WebSockets) and React. Participants drag or touch their cursor into **Agree / Disagree / Pass** regions of a shared canvas; positions are broadcast live so everyone can see collective reactions in real time.
 
 ## Goals
-- Prototype an interface for collecting vote data for sychronous events.
-- Prototype an interface that allows for participation without looking at phone.
-- Show how presence features can make data collection feels more "collective".
-- Provide a rough admin interface for selecting statements.
+
+- Prototype an interface for collecting vote data at synchronous events
+- Enable participation without looking at your phone
+- Use presence to make data collection feel collective
+- Provide an admin interface for selecting statements and reviewing reactions
 
 ## Non-Goals
-- Will not demo any security or authentication of data.
-- Will not do dimensional reduction on the vote data.
-- Will not store data to any sort of scalable production database.
 
-__This is a [Partykit](https://partykit.io) project, which lets you create real-time collaborative applications with minimal coding effort.__
+- No security or authentication of vote data
+- No dimensional reduction on vote data
+- No scalable production database
 
-This is the **React starter** which pairs a PartyKit server with a React client.
+---
 
-## Technologies Used
-- React
-- Partykit.io
-    - Websockets
+## Modes
 
-## Default Partykit Docs
+### V1 — Statement Voting
 
-### Usage
+Participants vote on a queue of [Polis](https://pol.is) statements. A countdown bar shows time remaining on the active statement; votes are submitted automatically on transition. Admin panel manages the statement queue.
 
-You can start developing by running `npm run dev` and opening [http://localhost:1999](http://localhost:1999) in your browser. When you're ready, you can deploy your application on to the PartyKit cloud with `npm run deploy`.
+| Participation | Statement Admin |
+|:---:|:---:|
+| ![V1 participation](https://picsum.photos/seed/v1-participation/320/568) | ![V1 admin](https://picsum.photos/seed/v1-admin/600/400) |
 
-### Finding your way around
+**URL:** `/#v1` · `/?admin=true#v1` for admin
 
-[`party/server.ts`](./party/server.ts) is the server-side code, which is responsible for handling WebSocket events and HTTP requests.
+---
 
-It implements a simple counter that can be incremented by any connected client. The latest state is broadcast to all connected clients.
+### V2 — YouTube Multiplayer (Sync)
 
-> [!NOTE]
-> The full Server API is available at [Party.Server in the PartyKit docs](https://docs.partykit.io/reference/partyserver-api/)
+A YouTube video plays in the top half of the screen; the reaction canvas sits below. Playback is gated — the video only plays when all present participants are actively touching the canvas, creating a synchronised group-watch experience.
 
-[`app/client.tsx`](./src/client.ts) is the entrypoint to client-side code.
+| Participation |
+|:---:|
+| ![V2 participation](https://picsum.photos/seed/v2-participation/320/568) |
 
-[`app/components/Counter.tsx`](./src/components/Counter.tsx) connects to the server, sends `increment` events on the WebSocket, and listens for updates.
+**URL:** `/?videoId=<youtube-id>#v2`
 
-> [!NOTE]
-> The client-side reference can be found at [PartySocket in the PartyKit docs](https://docs.partykit.io/reference/partysocket-api/)
+---
 
-As a client-side React app, the app could be hosted every. During development, for convenience, the server serves the client-side code as well.
+### V4 — Live Event
 
-This is achieved with the optional `serve` property in the [`partykit.json`](./partykit.json) config file.
+A standalone reaction canvas designed for live events. Labels and anchor positions are configurable in real time from the admin panel and broadcast to all participants instantly. Admin panel also controls recording of cursor data.
 
-> [!NOTE]
-> Learn about PartyKit config under [Configuration in the PartyKit docs](https://docs.partykit.io/reference/partykit-configuration/)
+| Participation | Recording Admin |
+|:---:|:---:|
+| ![V4 participation](https://picsum.photos/seed/v4-participation/320/568) | ![V4 admin](https://picsum.photos/seed/v4-admin/600/400) |
 
-### Next Steps
+**URL:** `/#v4` · `/?admin=true#v4` for admin
 
-Learn about deploying PartyKit applications in the [Deployment guide of the PartyKit docs](https://docs.partykit.io/guides/deploying-your-partykit-server/).
+---
+
+### Future — YouTube Multiplayer (Async)
+
+_Coming soon._ Each participant watches and reacts independently; reactions are timestamped against the video so responses can be replayed and compared across viewers.
+
+| Participation |
+|:---:|
+| _Coming soon_ |
+
+---
+
+## Dev
+
+```bash
+npm run dev        # PartyKit dev server on localhost:1999
+npm run storybook  # Storybook on localhost:6006
+npm run deploy     # Deploy to PartyKit (commits required first)
+```
+
+See [`CLAUDE.md`](./CLAUDE.md) for full architecture notes and deploy rules.
+
+## Stack
+
+- [React](https://react.dev)
+- [PartyKit](https://partykit.io) — WebSockets / serverless edge
+- [D3](https://d3js.org) — SVG canvas rendering
+- [Storybook](https://storybook.js.org) — component development
