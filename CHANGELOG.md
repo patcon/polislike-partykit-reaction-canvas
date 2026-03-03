@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-03-03)
 
+### Added
+- GitHub corner link (top-right, 50×50px black) on all app pages including the landing page
+
 ### Removed
 - V3 participation and admin components deleted; `#v3` now redirects to `#v4` and V3 cards removed from the app landing page
 
