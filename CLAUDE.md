@@ -56,7 +56,7 @@ Hash-based, managed in `App` in `client.tsx`:
 | `#v1` | `SimpleReactionCanvasAppV1` | Statement voting canvas |
 | `#v2` | `ReactionCanvasAppV2` | YouTube embed + reaction canvas |
 
-URL params are read by each sub-app independently (`?room=`, `?admin=`, `?ghostCursors=`, `?videoId=`). Do **not** use `replaceState` to normalise URL params — it breaks the browser back button.
+URL params are read by each sub-app independently (`?room=`, `?admin=`, `?ghostCursors=`). `?room=` is the canonical way to set the PartyKit room for all versions. In YouTube-style apps (V2), `?room=` also doubles as the YouTube video ID. `?videoId=` is a deprecated alias for `?room=` kept for backward compatibility. Do **not** use `replaceState` to normalise URL params — it breaks the browser back button.
 
 ## Components
 
@@ -85,9 +85,10 @@ URL params are read by each sub-app independently (`?room=`, `?admin=`, `?ghostC
 
 | Param | Values | Effect |
 |-------|--------|--------|
-| `videoId` | YouTube video ID | Embeds that video and scopes cursor room to that video ID; shows placeholder with example link if omitted |
+| `room` | YouTube video ID | Sets the PartyKit room **and** the YouTube video to embed; shows placeholder if omitted |
 | `labels` | `default`, `yesno`, `supportive`, `abu` | Selects a reaction label preset; falls back to localStorage / `default` if omitted |
 | `forceView` | `mobile` | Bypasses the mobile-only QR gate; shows the canvas on desktop |
+| `videoId` | YouTube video ID | **Deprecated** alias for `room`; still works for backward compatibility |
 
 ## V3 URL params
 

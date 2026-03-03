@@ -39,7 +39,7 @@ A YouTube video plays in the top half of the screen; the reaction canvas sits be
 |:---:|
 | <img src="docs/images/v2-participation.png" width="220"> |
 
-**URL:** `/?videoId=<youtube-id>#v2`
+**URL:** `/?room=<youtube-id>#v2`
 
 ---
 

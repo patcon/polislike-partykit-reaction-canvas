@@ -9,9 +9,10 @@ type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 const YOUTUBE_HEIGHT_FRACTION = 0.45; // YouTube player takes 45vh
 
-function getVideoIdFromUrl(): string {
+function getRoomFromUrl(): string {
   const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('videoId') ?? '';
+  // ?room= is preferred; ?videoId= is a deprecated alias kept for backward compatibility
+  return urlParams.get('room') ?? urlParams.get('videoId') ?? '';
 }
 
 function getLabelsParamFromUrl(): string | undefined {
@@ -90,7 +91,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const allTouching = presenceCount > 0 && touchPos !== null && activeCursorCount >= presenceCount - 1;
   allTouchingRef.current = allTouching;
 
-  const videoId = videoIdProp ?? getVideoIdFromUrl();
+  const videoId = videoIdProp ?? getRoomFromUrl();
   const room = videoId || 'default';
 
   const [youtubeHeight, setYoutubeHeight] = useState(
@@ -164,7 +165,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
             )}
           </>
         ) : (
-          <div className="v2-no-video">No video — add <code>?videoId=</code> to the URL (<a href="?videoId=izDAOvHz5Wc#v2">example</a>)</div>
+          <div className="v2-no-video">No video — add <code>?room=&lt;youtube-id&gt;</code> to the URL (<a href="?room=izDAOvHz5Wc#v2">example</a>)</div>
         )}
       </div>
       <div className="v2-vote-canvas-container">
