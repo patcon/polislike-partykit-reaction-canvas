@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 // process.env.* is replaced at build time by partykit.json define.
 // When secrets are not configured (local dev), the substituted identifier
@@ -12,7 +13,9 @@ try {
   // Supabase credentials not configured; all calls will be no-ops.
 }
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Only create the client if both values are present; createClient('')  throws.
+const supabase: SupabaseClient | null =
+  SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 
 export interface ReactionEvent {
   id?: number;
@@ -26,10 +29,12 @@ export interface ReactionEvent {
 }
 
 export async function insertEvent(event: Omit<ReactionEvent, 'id' | 'recorded_at'>) {
+  if (!supabase) return;
   return supabase.from('reaction_events').insert(event);
 }
 
 export async function fetchEvents(room: string): Promise<ReactionEvent[]> {
+  if (!supabase) return [];
   const { data, error } = await supabase
     .from('reaction_events')
     .select('*')
@@ -42,10 +47,12 @@ export async function fetchEvents(room: string): Promise<ReactionEvent[]> {
 }
 
 export async function clearEvents(room: string) {
+  if (!supabase) return;
   return supabase.from('reaction_events').delete().eq('room', room);
 }
 
 export async function countEvents(room: string): Promise<number> {
+  if (!supabase) return 0;
   const { count, error } = await supabase
     .from('reaction_events')
     .select('*', { count: 'exact', head: true })
