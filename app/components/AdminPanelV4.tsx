@@ -277,7 +277,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   return (
     <div
       className="v3-admin-panel"
-      style={mainTab === 'peek' ? { padding: 0, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' } : undefined}
+      style={{ padding: 0, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
       {/* Top-level tab bar */}
       <div ref={tabBarRef} style={{ display: 'flex', gap: 0, marginBottom: 0, borderBottom: '2px solid #444', flexShrink: 0 }}>
@@ -315,7 +315,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         </div>
       )}
 
-      {mainTab === 'admin' && <>
+      {mainTab === 'admin' && <div style={{ flex: 1, overflow: 'auto', padding: 32 }}>
       <h1>Reaction Canvas V4 — Admin</h1>
       <p style={{ marginTop: 8, color: '#aaa' }}>Room: <strong style={{ color: '#eee' }}>{room}</strong></p>
 
@@ -625,7 +625,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           </div>
         </div>
       )}
-      </>}
+      </div>}
     </div>
   );
 }
