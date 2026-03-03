@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - V4 admin: recorded events are displayed live in a table below the recording controls; table shows the last 200 events with columns for row number, timestamp, connectionId, from/to (transitions mode) or type/x/y (positions mode)
 - V4 admin: "Download JSON" button is now separate from stopping — it appears after recording has stopped and events are present; events accumulate across multiple recording sessions until cleared
 - V4 admin: "Clear" button erases all accumulated events and resets the recording session start time
+- All admin panels: connections from admin pages are excluded from the participant presence count shown to canvas users; admin panels pass `isAdmin=true` on their WebSocket connection; the server tracks these separately and filters them out of `presenceCount` broadcasts
 
 ### Changed
 - V2: default example video updated to `izDAOvHz5Wc` (index card link and no-video placeholder link)

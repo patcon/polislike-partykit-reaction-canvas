@@ -88,6 +88,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
     room,
+    query: { isAdmin: 'true' },
     onMessage(evt) {
       try {
         const data = JSON.parse(evt.data);
