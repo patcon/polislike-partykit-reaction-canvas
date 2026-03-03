@@ -163,9 +163,9 @@ export default function ReactionCanvasAppV5() {
     return () => clearInterval(interval);
   }, []);
 
-  // Single-user touch-to-play: play when touching, pause when not
+  // Single-user touch-to-play: play when touching, pause when not (disabled in debug mode)
   useEffect(() => {
-    if (!playerRef.current) return;
+    if (debug || !playerRef.current) return;
     try {
       if (touchPos !== null) {
         playerRef.current.playVideo();
@@ -175,7 +175,7 @@ export default function ReactionCanvasAppV5() {
     } catch {
       // player not ready yet
     }
-  }, [touchPos]);
+  }, [debug, touchPos]);
 
   // Test Supabase connection on mount
   useEffect(() => { testConnection(); }, []);
@@ -221,7 +221,7 @@ export default function ReactionCanvasAppV5() {
               id="v5-youtube-player"
               style={{ width: '100%', height: '100%' }}
             />
-            <div className="v2-youtube-overlay" />
+            {!debug && <div className="v2-youtube-overlay" />}
           </>
         ) : (
           <div className="v2-no-video">No video — add <code>?room=&lt;youtube-id&gt;</code> to the URL (<a href={(() => { const p = new URLSearchParams(window.location.search); p.set('room', 'irc6creOFGs'); return `?${p}${window.location.hash}`; })()}>example</a>)</div>
