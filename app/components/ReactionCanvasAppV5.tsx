@@ -163,13 +163,13 @@ export default function ReactionCanvasAppV5() {
     return () => clearInterval(interval);
   }, []);
 
-  // Single-user touch-to-play: play when touching, pause when not (disabled in debug mode)
+  // Touch-to-play: play on touch start; pause on touch end (pause skipped in debug mode)
   useEffect(() => {
-    if (debug || !playerRef.current) return;
+    if (!playerRef.current) return;
     try {
       if (touchPos !== null) {
         playerRef.current.playVideo();
-      } else {
+      } else if (!debug) {
         playerRef.current.pauseVideo();
       }
     } catch {
