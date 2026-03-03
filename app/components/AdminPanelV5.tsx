@@ -290,7 +290,7 @@ export default function AdminPanelV5({ room }: AdminPanelV5Props) {
               <p style={{ color: '#aaa', fontSize: 14, marginBottom: 16 }}>
                 {eventCount === null
                   ? 'Loading…'
-                  : <><span style={{ color: '#eee', fontWeight: 600 }}>{eventCount}</span> events recorded for room <code style={{ color: '#9cf', fontSize: 12 }}>{room}</code></>
+                  : <><span style={{ color: '#eee', fontWeight: 600 }}>{eventCount}</span> events recorded for room <code style={{ color: '#9cf', fontSize: 12 }}>{room}</code>{PROTECTED_ROOMS.includes(room) && <span style={{ marginLeft: 8, color: '#f90', fontSize: 12 }}>🔒 protected</span>}</>
                 }
               </p>
               <div style={{ display: 'flex', gap: 8 }}>
