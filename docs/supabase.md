@@ -35,43 +35,29 @@ In the Supabase dashboard, go to **Settings → API** and copy:
 - **Project URL** (e.g. `https://xyzxyz.supabase.co`)
 - **anon / public** key (the long `eyJ…` string)
 
-## 4. Configure Environment Variables
+## 4. Configure Credentials in `partykit.json`
 
-### For Local Dev
+A `partykit.example.json` is included in the repo with placeholder values. Copy it and fill in your credentials:
 
-Update `partykit.json` to replace the placeholder empty strings with your actual values in the `serve.build.define` section:
+```bash
+cp partykit.example.json partykit.json
+```
+
+Edit the `serve.build.define` section with your actual values:
 
 ```json
 "define": {
   "process.env.PARTYKIT_HOST": "'polislike-partykit-reaction-canvas.patcon.partykit.dev'",
-  "process.env.PARTYKIT_SUPABASE_URL": "'https://your-project.supabase.co'",
-  "process.env.PARTYKIT_SUPABASE_ANON_KEY": "'eyJ...your-anon-key...'"
+  "process.env.PARTYKIT_SUPABASE_URL": "\"https://your-project.supabase.co\"",
+  "process.env.PARTYKIT_SUPABASE_ANON_KEY": "\"eyJ...your-anon-key...\""
 }
 ```
 
-These values are bundled into the client-side JavaScript at build time. The anon key is safe to include since it only grants access to the `reaction_events` table and RLS is intentionally permissive.
+These values are bundled into the client-side JavaScript at build time — both for `npm run dev` and `npm run deploy`. The anon key is safe to commit since it only grants access to the `reaction_events` table and RLS is intentionally permissive.
 
-### For PartyKit Deploy
-
-Add secrets via the PartyKit CLI so they are available during the production build:
-
-```bash
-npx partykit env add PARTYKIT_SUPABASE_URL
-npx partykit env add PARTYKIT_SUPABASE_ANON_KEY
-```
-
-The `partykit.json` define block is already set up correctly — no changes needed:
-
-```json
-"define": {
-  "process.env.PARTYKIT_SUPABASE_URL": "PARTYKIT_SUPABASE_URL",
-  "process.env.PARTYKIT_SUPABASE_ANON_KEY": "PARTYKIT_SUPABASE_ANON_KEY"
-}
-```
-
-When secrets are set, PartyKit resolves `PARTYKIT_SUPABASE_URL` to the actual secret value at build time. When secrets are not set (local dev), `app/lib/supabase.ts` wraps the access in a `try/catch` that silently falls back to `''`, so the app loads normally — Supabase calls simply no-op.
-
-> **Note:** Until Supabase credentials are configured, V5 will load and run but Supabase calls will fail silently — no events will be saved or replayed.
+> **Note:** `npx partykit env add` does **not** work for this — PartyKit cloud env vars are only available to server-side code (`party/server.ts`), not to the client-side esbuild `define` step. Credentials must be embedded directly in `partykit.json`.
+>
+> Until credentials are configured, V5 will load and run but Supabase calls will no-op silently.
 
 ## Schema Reference
 

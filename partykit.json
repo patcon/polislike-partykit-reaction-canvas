@@ -9,8 +9,8 @@
       "entry": "app/client.tsx",
       "define": {
         "process.env.PARTYKIT_HOST": "'polislike-partykit-reaction-canvas.patcon.partykit.dev'",
-        "process.env.PARTYKIT_SUPABASE_URL": "PARTYKIT_SUPABASE_URL",
-        "process.env.PARTYKIT_SUPABASE_ANON_KEY": "PARTYKIT_SUPABASE_ANON_KEY"
+        "process.env.PARTYKIT_SUPABASE_URL": "\"https://cufrmdhkoabpwilwztym.supabase.co\"",
+        "process.env.PARTYKIT_SUPABASE_ANON_KEY": "\"sb_publishable_HoNA1ULIi6X_bW9-4UJOMQ_zUuNogkJ\""
       }
     }
   }

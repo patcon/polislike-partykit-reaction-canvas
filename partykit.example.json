@@ -1,0 +1,17 @@
+{
+  "$schema": "https://www.partykit.io/schema.json",
+  "name": "your-project-name",
+  "main": "party/server.ts",
+  "compatibilityDate": "2025-11-20",
+  "serve": {
+    "path": "public",
+    "build": {
+      "entry": "app/client.tsx",
+      "define": {
+        "process.env.PARTYKIT_HOST": "'your-project-name.your-username.partykit.dev'",
+        "process.env.PARTYKIT_SUPABASE_URL": "\"https://your-project.supabase.co\"",
+        "process.env.PARTYKIT_SUPABASE_ANON_KEY": "\"your-supabase-anon-key\""
+      }
+    }
+  }
+}

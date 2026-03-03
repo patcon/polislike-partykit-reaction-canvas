@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-03-03)
 
+### Fixed
+- Supabase credentials now correctly embedded in `partykit.json` `define` block; `npx partykit env add` does not reach the client build and was ineffective
+
+### Added
+- `partykit.example.json` with placeholder values for forking/setup
+- `docs/supabase.md`: clarified that credentials go in `partykit.json` directly, not via `partykit env add`
+
 ### Changed
 - Index page: cards now sorted reverse-chronologically (V5 → V4 → V2 → V1), with participation cards before admin cards within each version
 - Index page: YouTube app cards (V2, V5) now have a red-tinted background to distinguish them visually
