@@ -55,7 +55,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const [isViewer, setIsViewer] = useState(false);
   const [userCap, setUserCap] = useState<number | null>(null);
   const [viewerCount, setViewerCount] = useState(0);
-  const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
+  const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null | undefined>(undefined);
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const socketSendRef = useRef<((msg: string) => void) | null>(null);
   const reactionStateRef = useRef<ReactionState>(null);
@@ -143,7 +143,9 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   }
 
   const anchors = serverAnchors ?? DEFAULT_ANCHORS;
-  const labels = serverLabels ?? getReactionLabelSet(getLabelsParamFromUrl());
+  // undefined = server hasn't spoken yet → fall back to URL param
+  // null = admin explicitly hid labels → hide them
+  const labels = serverLabels !== undefined ? serverLabels : getReactionLabelSet(getLabelsParamFromUrl());
 
   return (
     <div className="v2-app-container">
