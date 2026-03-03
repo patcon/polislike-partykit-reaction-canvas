@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import usePartySocket from "partysocket/react";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
 import type { ReactionRegion, ReactionAnchors } from "../utils/voteRegion";
@@ -25,6 +25,17 @@ function anchorToLocal(anchors: ReactionAnchors) {
 
 export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [mainTab, setMainTab] = useState<'admin' | 'peek'>('admin');
+  const tabBarRef = useRef<HTMLDivElement>(null);
+  const [tabBarHeight, setTabBarHeight] = useState(46);
+
+  useEffect(() => {
+    if (!tabBarRef.current) return;
+    const ro = new ResizeObserver(entries => {
+      setTabBarHeight(entries[0].contentRect.height);
+    });
+    ro.observe(tabBarRef.current);
+    return () => ro.disconnect();
+  }, []);
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState<RecordingMode>('transitions');
   const [configTab, setConfigTab] = useState<'labels' | 'anchors'>('labels');
@@ -264,9 +275,12 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   };
 
   return (
-    <div className="v3-admin-panel">
+    <div
+      className="v3-admin-panel"
+      style={mainTab === 'peek' ? { padding: 0, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' } : undefined}
+    >
       {/* Top-level tab bar */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 0, borderBottom: '2px solid #444' }}>
+      <div ref={tabBarRef} style={{ display: 'flex', gap: 0, marginBottom: 0, borderBottom: '2px solid #444', flexShrink: 0 }}>
         {(['admin', 'peek'] as const).map(tab => (
           <button
             key={tab}
@@ -289,14 +303,16 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
       </div>
 
       {mainTab === 'peek' && (
-        <Canvas
-          room={room}
-          userId="admin-peek"
-          readOnly={true}
-          colorCursorsByVote={true}
-          debug={true}
-          heightOffset={0}
-        />
+        <div style={{ flex: 1, overflow: 'hidden' }}>
+          <Canvas
+            room={room}
+            userId="admin-peek"
+            readOnly={true}
+            colorCursorsByVote={true}
+            debug={true}
+            heightOffset={tabBarHeight}
+          />
+        </div>
       )}
 
       {mainTab === 'admin' && <>
