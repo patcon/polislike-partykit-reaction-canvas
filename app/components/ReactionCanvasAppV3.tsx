@@ -9,7 +9,8 @@ import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 function getRoomParamFromUrl(): string {
-  return new URLSearchParams(window.location.search).get('room') ?? 'default';
+  const p = new URLSearchParams(window.location.search);
+  return p.get('room') ?? p.get('videoId') ?? 'default';
 }
 
 function getLabelsParamFromUrl(): string | undefined {

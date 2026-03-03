@@ -10,7 +10,7 @@ import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 
 function getRoomFromUrl(): string {
   const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('room') ?? 'default';
+  return urlParams.get('room') ?? urlParams.get('videoId') ?? 'default';
 }
 
 function isAdminMode(): boolean {
