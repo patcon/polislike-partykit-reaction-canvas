@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - V3 participation and admin components deleted; `#v3` now redirects to `#v4` and V3 cards removed from the app landing page
 
 ### Added
+- V4 admin: recording now captures `arrival` and `departure` events when participants connect or disconnect while recording is active
 - V2: reaction labels and anchor positions are now driven by the V4 admin panel; server-set labels/anchors override the `?labels=` URL param (URL param is still the fallback when the admin has not set anything); anchor changes move both the label overlays and the TouchLayer vote regions in real time
 - Participant cap setting in V4 admin panel (above recording mode); when set, users joining a full room become read-only viewers; admin users are always exempt from the cap
 - View-only mode: users who connect to a full room see a banner warning and have no `TouchLayer` (cannot send cursor events)

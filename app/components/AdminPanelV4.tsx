@@ -150,6 +150,20 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
         const now = Date.now();
 
+        if (data.type === 'userJoined' || data.type === 'userLeft') {
+          const pushEvent = (evt: object) => {
+            eventsRef.current.push(evt);
+            setDisplayEvents(prev => [...prev, evt].slice(-MAX_TABLE_ROWS));
+            setEventCount(c => c + 1);
+          };
+          pushEvent({
+            connectionId: data.userId,
+            type: data.type === 'userJoined' ? 'arrival' : 'departure',
+            timestamp: now,
+          });
+          return;
+        }
+
         if (data.type === 'move' || data.type === 'touch') {
           const { userId: connectionId, x, y } = data.position;
 

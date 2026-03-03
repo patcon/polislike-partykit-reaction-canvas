@@ -197,6 +197,10 @@ export default class Server implements Party.Server {
     conn.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
     // Notify all other connections
     this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }), [conn.id]);
+    // Notify admins of the arrival (exclude the new connection itself)
+    if (!isAdmin) {
+      this.room.broadcast(JSON.stringify({ type: 'userJoined', userId, isViewer }), [conn.id]);
+    }
 
     // Send welcome message with current active statement, queue info, and statements pool
     conn.send(JSON.stringify({
@@ -218,9 +222,18 @@ export default class Server implements Party.Server {
   }
 
   onClose(conn: Party.Connection) {
+    const userId = this.connectionUserMap.get(conn.id);
+    const isAdmin = this.adminConnectionIds.has(conn.id);
+    const wasViewer = this.viewerConnectionIds.has(conn.id);
+
     this.adminConnectionIds.delete(conn.id);
     this.viewerConnectionIds.delete(conn.id);
     this.connectionUserMap.delete(conn.id);
+
+    if (!isAdmin && userId) {
+      this.room.broadcast(JSON.stringify({ type: 'userLeft', userId, wasViewer }));
+    }
+
     const count = this.participantCount();
     this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: this.viewerCount() }));
   }
