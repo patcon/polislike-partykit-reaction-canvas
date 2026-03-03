@@ -869,6 +869,11 @@ body {
   border-radius: 12px;
   pointer-events: none;
   user-select: none;
+  white-space: nowrap;
+}
+
+.v2-counter-num {
+  font-variant-numeric: tabular-nums;
 }
 
 .debug-hint {

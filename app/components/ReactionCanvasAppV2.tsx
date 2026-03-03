@@ -168,7 +168,9 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(DEFAULT_ANCHORS.positive)}>{labels.positive}</div>}
         {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(DEFAULT_ANCHORS.negative)}>{labels.negative}</div>}
         {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(DEFAULT_ANCHORS.neutral)}>{labels.neutral}</div>}
-        <div className="v2-presence-counter">{presenceCount} here</div>
+        <div className="v2-presence-counter">
+          <span className="v2-counter-num">{presenceCount}</span> here · <span className="v2-counter-num">{activeCursorCount + (touchPos !== null ? 1 : 0)}</span> touching {allTouching ? '▶️' : '⏸️'}
+        </div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         {touchPos && (
           <div
