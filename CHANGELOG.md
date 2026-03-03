@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - V2/V3/V4: presence counter now shows "X here · Y touching" (plus ▶️/⏸️ play state on V2) — participant count and active touching count (others' cursors + own touch if active)
+- V2: paused overlay now shows a QR code beside the instructional text so others can scan to join; QR code encodes the current page URL
 - V2: when the video is paused (no one touching the canvas), a semi-transparent overlay on the video area instructs users to put their finger on the space below to start and keep the video playing
 - V4 admin: recorded events are displayed live in a table below the recording controls; table shows the last 200 events with columns for row number, timestamp, connectionId, from/to (transitions mode) or type/x/y (positions mode)
 - V4 admin: "Download JSON" button is now separate from stopping — it appears after recording has stopped and events are present; events accumulate across multiple recording sessions until cleared
