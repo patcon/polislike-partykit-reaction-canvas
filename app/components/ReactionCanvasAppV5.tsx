@@ -127,7 +127,7 @@ export default function ReactionCanvasAppV5() {
     window.onYouTubeIframeAPIReady = () => {
       playerRef.current = new window.YT.Player('v5-youtube-player', {
         videoId,
-        playerVars: { controls: 0, modestbranding: 1, rel: 0, iv_load_policy: 3, cc_load_policy: 0 },
+        playerVars: { controls: debug ? 1 : 0, modestbranding: 1, rel: 0, iv_load_policy: 3, cc_load_policy: 0 },
         events: {
           onReady: (event) => { event.target.pauseVideo(); },
         },
