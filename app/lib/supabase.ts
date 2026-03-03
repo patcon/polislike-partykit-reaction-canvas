@@ -1,7 +1,16 @@
 import { createClient } from '@supabase/supabase-js';
 
-const SUPABASE_URL = process.env.PARTYKIT_SUPABASE_URL as string ?? '';
-const SUPABASE_ANON_KEY = process.env.PARTYKIT_SUPABASE_ANON_KEY as string ?? '';
+// process.env.* is replaced at build time by partykit.json define.
+// When secrets are not configured (local dev), the substituted identifier
+// is undeclared — ReferenceError. try/catch handles that gracefully.
+let SUPABASE_URL = '';
+let SUPABASE_ANON_KEY = '';
+try {
+  SUPABASE_URL = process.env.PARTYKIT_SUPABASE_URL ?? '';
+  SUPABASE_ANON_KEY = process.env.PARTYKIT_SUPABASE_ANON_KEY ?? '';
+} catch {
+  // Supabase credentials not configured; all calls will be no-ops.
+}
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 

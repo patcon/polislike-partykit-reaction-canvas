@@ -60,16 +60,16 @@ npx partykit env add PARTYKIT_SUPABASE_URL
 npx partykit env add PARTYKIT_SUPABASE_ANON_KEY
 ```
 
-The `partykit.json` define block already uses the correct `typeof` guard syntax, so it works in both environments:
+The `partykit.json` define block is already set up correctly — no changes needed:
 
 ```json
 "define": {
-  "process.env.PARTYKIT_SUPABASE_URL": "typeof PARTYKIT_SUPABASE_URL !== 'undefined' ? PARTYKIT_SUPABASE_URL : ''",
-  "process.env.PARTYKIT_SUPABASE_ANON_KEY": "typeof PARTYKIT_SUPABASE_ANON_KEY !== 'undefined' ? PARTYKIT_SUPABASE_ANON_KEY : ''"
+  "process.env.PARTYKIT_SUPABASE_URL": "PARTYKIT_SUPABASE_URL",
+  "process.env.PARTYKIT_SUPABASE_ANON_KEY": "PARTYKIT_SUPABASE_ANON_KEY"
 }
 ```
 
-The `typeof` guard prevents a `ReferenceError` when secrets are not set (e.g. local dev), falling back to an empty string.
+When secrets are set, PartyKit resolves `PARTYKIT_SUPABASE_URL` to the actual secret value at build time. When secrets are not set (local dev), `app/lib/supabase.ts` wraps the access in a `try/catch` that silently falls back to `''`, so the app loads normally — Supabase calls simply no-op.
 
 > **Note:** Until Supabase credentials are configured, V5 will load and run but Supabase calls will fail silently — no events will be saved or replayed.
 
