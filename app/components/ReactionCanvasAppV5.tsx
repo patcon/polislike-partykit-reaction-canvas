@@ -8,7 +8,7 @@ import { getReactionLabelSet } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
-import { insertEvent, fetchEvents, isSupabaseConfigured } from "../lib/supabase";
+import { insertEvent, fetchEvents, isSupabaseConfigured, testConnection } from "../lib/supabase";
 import type { ReactionEvent } from "../lib/supabase";
 
 declare global {
@@ -176,6 +176,9 @@ export default function ReactionCanvasAppV5() {
       // player not ready yet
     }
   }, [touchPos]);
+
+  // Test Supabase connection on mount
+  useEffect(() => { testConnection(); }, []);
 
   // Fetch recorded events on mount
   useEffect(() => {

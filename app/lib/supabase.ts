@@ -19,6 +19,24 @@ const supabase: SupabaseClient | null =
 
 export const isSupabaseConfigured = supabase !== null;
 
+console.log('[Supabase] URL:', SUPABASE_URL ? `${SUPABASE_URL.slice(0, 30)}...` : '(empty)');
+console.log('[Supabase] anon key set:', SUPABASE_ANON_KEY ? 'yes' : 'no');
+console.log('[Supabase] client created:', supabase !== null);
+
+export async function testConnection(): Promise<boolean> {
+  if (!supabase) {
+    console.log('[Supabase] testConnection: no client — credentials missing at build time');
+    return false;
+  }
+  const { error } = await supabase.from('reaction_events').select('id', { count: 'exact', head: true });
+  if (error) {
+    console.error('[Supabase] testConnection failed:', error);
+    return false;
+  }
+  console.log('[Supabase] testConnection: OK — database reachable');
+  return true;
+}
+
 export interface ReactionEvent {
   id?: number;
   room: string;
