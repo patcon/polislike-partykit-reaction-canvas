@@ -4,6 +4,7 @@ import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
 import type { ReactionRegion, ReactionAnchors } from "../utils/voteRegion";
 import { REACTION_LABEL_PRESETS } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
+import Canvas from "./Canvas";
 
 interface AdminPanelV4Props {
   room: string;
@@ -23,6 +24,7 @@ function anchorToLocal(anchors: ReactionAnchors) {
 }
 
 export default function AdminPanelV4({ room }: AdminPanelV4Props) {
+  const [mainTab, setMainTab] = useState<'admin' | 'peek'>('admin');
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState<RecordingMode>('transitions');
   const [configTab, setConfigTab] = useState<'labels' | 'anchors'>('labels');
@@ -263,6 +265,41 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
   return (
     <div className="v3-admin-panel">
+      {/* Top-level tab bar */}
+      <div style={{ display: 'flex', gap: 0, marginBottom: 0, borderBottom: '2px solid #444' }}>
+        {(['admin', 'peek'] as const).map(tab => (
+          <button
+            key={tab}
+            onClick={() => setMainTab(tab)}
+            style={{
+              padding: '10px 24px',
+              background: mainTab === tab ? '#333' : 'transparent',
+              color: mainTab === tab ? '#eee' : '#888',
+              border: 'none',
+              borderBottom: mainTab === tab ? '2px solid #aaa' : '2px solid transparent',
+              marginBottom: -2,
+              cursor: 'pointer',
+              fontSize: 15,
+              fontWeight: mainTab === tab ? 600 : 400,
+            }}
+          >
+            {tab === 'admin' ? 'Admin' : 'Peek Canvas'}
+          </button>
+        ))}
+      </div>
+
+      {mainTab === 'peek' && (
+        <Canvas
+          room={room}
+          userId="admin-peek"
+          readOnly={true}
+          colorCursorsByVote={true}
+          debug={true}
+          heightOffset={0}
+        />
+      )}
+
+      {mainTab === 'admin' && <>
       <h1>Reaction Canvas V4 — Admin</h1>
       <p style={{ marginTop: 8, color: '#aaa' }}>Room: <strong style={{ color: '#eee' }}>{room}</strong></p>
 
@@ -572,6 +609,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           </div>
         </div>
       )}
+      </>}
     </div>
   );
 }

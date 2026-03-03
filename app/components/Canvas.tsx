@@ -21,6 +21,7 @@ type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 interface CanvasProps {
   room: string;
   userId: string;
+  readOnly?: boolean; // When true, connects as admin (excluded from presence count, no cursor sent)
   colorCursorsByVote?: boolean; // Optional prop to enable reaction-based coloring
   currentReactionState?: ReactionState; // Current reaction state for background color
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
@@ -54,7 +55,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, colorCursorsByVote = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -71,7 +72,7 @@ export default function Canvas({ room, userId, colorCursorsByVote = false, curre
   const socket = usePartySocket({
     host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
     room: room,
-    query: { userId },
+    query: readOnly ? { isAdmin: 'true' } : { userId },
     onMessage(evt) {
       try {
         const data = JSON.parse(evt.data);
