@@ -60,14 +60,16 @@ npx partykit env add PARTYKIT_SUPABASE_URL
 npx partykit env add PARTYKIT_SUPABASE_ANON_KEY
 ```
 
-Then update `partykit.json` to reference the secrets in the define block:
+The `partykit.json` define block already uses the correct `typeof` guard syntax, so it works in both environments:
 
 ```json
 "define": {
-  "process.env.PARTYKIT_SUPABASE_URL": "PARTYKIT_SUPABASE_URL",
-  "process.env.PARTYKIT_SUPABASE_ANON_KEY": "PARTYKIT_SUPABASE_ANON_KEY"
+  "process.env.PARTYKIT_SUPABASE_URL": "typeof PARTYKIT_SUPABASE_URL !== 'undefined' ? PARTYKIT_SUPABASE_URL : ''",
+  "process.env.PARTYKIT_SUPABASE_ANON_KEY": "typeof PARTYKIT_SUPABASE_ANON_KEY !== 'undefined' ? PARTYKIT_SUPABASE_ANON_KEY : ''"
 }
 ```
+
+The `typeof` guard prevents a `ReferenceError` when secrets are not set (e.g. local dev), falling back to an empty string.
 
 > **Note:** Until Supabase credentials are configured, V5 will load and run but Supabase calls will fail silently — no events will be saved or replayed.
 
