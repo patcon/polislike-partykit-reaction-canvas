@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-03-03)
 
+### Changed
+- Default example video updated to `irc6creOFGs` across all apps (landing page cards and no-video placeholder links)
+- V2/V5: "example" link in the no-video placeholder now preserves existing query params (e.g. `?forceView=mobile`) when navigating to the example video
+
 ### Added
 - V5: REC badge always visible in the canvas — grey when Supabase is not configured, red when connected and recording
 - V4: REC badge now always visible — grey when recording is off, red when active (was hidden entirely when not recording)

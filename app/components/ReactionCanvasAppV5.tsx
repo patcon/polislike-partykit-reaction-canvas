@@ -219,7 +219,7 @@ export default function ReactionCanvasAppV5() {
             <div className="v2-youtube-overlay" />
           </>
         ) : (
-          <div className="v2-no-video">No video — add <code>?room=&lt;youtube-id&gt;</code> to the URL (<a href="?room=izDAOvHz5Wc#v5">example</a>)</div>
+          <div className="v2-no-video">No video — add <code>?room=&lt;youtube-id&gt;</code> to the URL (<a href={(() => { const p = new URLSearchParams(window.location.search); p.set('room', 'irc6creOFGs'); return `?${p}${window.location.hash}`; })()}>example</a>)</div>
         )}
       </div>
       <div className="v5-vote-canvas-container">

@@ -182,7 +182,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
             )}
           </>
         ) : (
-          <div className="v2-no-video">No video — add <code>?room=&lt;youtube-id&gt;</code> to the URL (<a href="?room=izDAOvHz5Wc#v2">example</a>)</div>
+          <div className="v2-no-video">No video — add <code>?room=&lt;youtube-id&gt;</code> to the URL (<a href={(() => { const p = new URLSearchParams(window.location.search); p.set('room', 'irc6creOFGs'); return `?${p}${window.location.hash}`; })()}>example</a>)</div>
         )}
       </div>
       <div className="v2-vote-canvas-container">

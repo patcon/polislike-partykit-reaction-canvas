@@ -46,7 +46,7 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="?room=izDAOvHz5Wc#v2" className="app-card">
+        <a href="?room=irc6creOFGs#v2" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V2: YouTube (Example)</h2>
             <p className="app-card-description">YouTube embed + reaction canvas with an example video pre-loaded.</p>
@@ -74,7 +74,7 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="?room=izDAOvHz5Wc#v5" className="app-card">
+        <a href="?room=irc6creOFGs#v5" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V5: YouTube (Example)</h2>
             <p className="app-card-description">Async YouTube + reaction canvas with an example video. Past reactions replay as cursors in sync with the video timecode.</p>
