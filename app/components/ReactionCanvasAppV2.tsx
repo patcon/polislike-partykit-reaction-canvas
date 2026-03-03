@@ -145,9 +145,9 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   }
 
   const anchors = serverAnchors ?? DEFAULT_ANCHORS;
-  // undefined = server hasn't spoken yet → fall back to URL param
-  // null = admin explicitly hid labels → hide them
-  const labels = serverLabels !== undefined ? serverLabels : getReactionLabelSet(getLabelsParamFromUrl());
+  // URL param overrides server; server overrides default; null = admin explicitly hid labels
+  const urlLabelParam = getLabelsParamFromUrl();
+  const labels = urlLabelParam ? getReactionLabelSet(urlLabelParam) : (serverLabels !== undefined ? serverLabels : getReactionLabelSet());
 
   return (
     <div className="v2-app-container">

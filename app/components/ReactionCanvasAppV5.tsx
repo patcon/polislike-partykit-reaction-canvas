@@ -210,7 +210,9 @@ export default function ReactionCanvasAppV5() {
   }
 
   const anchors = serverAnchors ?? DEFAULT_ANCHORS;
-  const labels = serverLabels !== undefined ? serverLabels : getReactionLabelSet(getLabelsParamFromUrl());
+  // URL param overrides server; server overrides default; null = admin explicitly hid labels
+  const urlLabelParam = getLabelsParamFromUrl();
+  const labels = urlLabelParam ? getReactionLabelSet(urlLabelParam) : (serverLabels !== undefined ? serverLabels : getReactionLabelSet());
 
   return (
     <div className="v5-app-container">

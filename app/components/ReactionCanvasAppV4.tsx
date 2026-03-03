@@ -5,6 +5,7 @@ import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
+import { getReactionLabelSet } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
@@ -24,6 +25,10 @@ function isMobileForced(): boolean {
 
 function isAdminMode(): boolean {
   return new URLSearchParams(window.location.search).get('admin') === 'true';
+}
+
+function getLabelsParamFromUrl(): string | undefined {
+  return new URLSearchParams(window.location.search).get('labels') ?? undefined;
 }
 
 function MobileOnlyGate() {
@@ -85,13 +90,16 @@ export default function ReactionCanvasAppV4() {
 
   const room = getRoomParamFromUrl();
   const anchors = serverAnchors ?? DEFAULT_ANCHORS;
+  // URL param overrides server; server overrides default; null = admin explicitly hid labels
+  const urlLabelParam = getLabelsParamFromUrl();
+  const labels = urlLabelParam ? getReactionLabelSet(urlLabelParam) : serverLabels;
 
   return (
     <div className="v2-app-container">
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-        {serverLabels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{serverLabels.positive}</div>}
-        {serverLabels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{serverLabels.negative}</div>}
-        {serverLabels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{serverLabels.neutral}</div>}
+        {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
+        {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
+        {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
         {isViewer && (
           <div className="viewer-mode-banner">
             This room is full — you are watching in view-only mode.

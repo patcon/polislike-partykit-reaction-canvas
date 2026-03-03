@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file.
 - V5: in debug mode, YouTube player controls (timeline, play/pause) are enabled; overlay removed so controls and scrubber are tappable; touch-to-play behaviour unchanged
 
 ### Changed
+- V2/V4/V5: `?labels=` URL param now overrides the admin-set room label for that participant only (previously it was only a fallback when no server label was set)
+
+### Changed
 - V4/V5 Admin: destructive buttons now use consistent bright-red style (`v3-admin-btn--destructive`) instead of dark maroon inline styles
 - V4/V5 Admin: previously hidden buttons (Download JSON, Clear, Clear all recordings) are now always visible and shown as disabled when unavailable
 
