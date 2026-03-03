@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-03-03)
 
+### Added
+- V2/V4/V5: dim "bypass" link in the bottom-right of the mobile-only QR gate screen; navigates to the current URL with `?forceView=mobile` added, preserving all other query params
+
 ### Changed
 - Default example video updated to `irc6creOFGs` across all apps (landing page cards and no-video placeholder links)
 - V2/V5: "example" link in the no-video placeholder now preserves existing query params (e.g. `?forceView=mobile`) when navigating to the example video

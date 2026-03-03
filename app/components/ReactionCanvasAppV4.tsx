@@ -28,6 +28,7 @@ function isAdminMode(): boolean {
 
 function MobileOnlyGate() {
   const url = window.location.href;
+  const bypassHref = (() => { const p = new URLSearchParams(window.location.search); p.set('forceView', 'mobile'); return `?${p}${window.location.hash}`; })();
   return (
     <div className="v2-mobile-gate">
       <div className="v2-mobile-gate-content">
@@ -38,6 +39,7 @@ function MobileOnlyGate() {
         </div>
         <p className="v2-mobile-gate-url">{url}</p>
       </div>
+      <a href={bypassHref} className="v2-mobile-gate-bypass">bypass</a>
     </div>
   );
 }

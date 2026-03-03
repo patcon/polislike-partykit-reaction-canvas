@@ -721,6 +721,7 @@ body {
 .v2-mobile-gate {
   width: 100vw;
   height: 100vh;
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -764,6 +765,20 @@ body {
   color: #666;
   word-break: break-all;
   font-family: monospace;
+}
+
+.v2-mobile-gate-bypass {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  font-size: 11px;
+  color: #444;
+  text-decoration: none;
+  opacity: 0.5;
+}
+
+.v2-mobile-gate-bypass:hover {
+  opacity: 0.85;
 }
 
 /* V2: YouTube + Reaction Canvas */
