@@ -7,6 +7,9 @@ import type { ReactionLabelSet } from "../voteLabels";
 import Canvas from "./Canvas";
 import { countEvents, clearEvents } from "../lib/supabase";
 
+// Rooms whose recordings are protected from deletion via the admin UI.
+const PROTECTED_ROOMS = ['irc6creOFGs'];
+
 interface AdminPanelV5Props {
   room: string;
 }
@@ -298,7 +301,7 @@ export default function AdminPanelV5({ room }: AdminPanelV5Props) {
                 >
                   Refresh count
                 </button>
-                {(eventCount ?? 0) > 0 && (
+                {(eventCount ?? 0) > 0 && !PROTECTED_ROOMS.includes(room) && (
                   <button
                     className="v3-admin-btn"
                     style={{ padding: '6px 14px', fontSize: 13, background: '#5a1a1a', borderColor: '#a33' }}

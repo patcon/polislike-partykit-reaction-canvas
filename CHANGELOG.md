@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - V5: in debug mode, YouTube player controls (timeline, play/pause) are enabled; overlay removed so controls and scrubber are tappable; touch-to-play behaviour unchanged
 
 ### Fixed
+- V5 Admin: "Clear all recordings" button is hidden for rooms listed in `PROTECTED_ROOMS` (currently `irc6creOFGs`)
 - Supabase credentials now correctly embedded in `partykit.json` `define` block; `npx partykit env add` does not reach the client build and was ineffective
 
 ### Added
