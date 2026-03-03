@@ -428,20 +428,16 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                 ■ Stop Recording
               </button>
             )}
-            {!isRecording && eventCount > 0 && (
-              <button className="v3-admin-btn" onClick={downloadEvents}>
-                ↓ Download JSON
-              </button>
-            )}
-            {eventCount > 0 && (
-              <button
-                className="v3-admin-btn"
-                style={{ background: '#5a1a1a', borderColor: '#a33' }}
-                onClick={clearEvents}
-              >
-                ✕ Clear
-              </button>
-            )}
+            <button className="v3-admin-btn" onClick={downloadEvents} disabled={isRecording || eventCount === 0}>
+              ↓ Download JSON
+            </button>
+            <button
+              className="v3-admin-btn v3-admin-btn--destructive"
+              onClick={clearEvents}
+              disabled={eventCount === 0}
+            >
+              ✕ Clear
+            </button>
           </div>
 
           <div style={{ marginTop: 16, color: '#aaa' }}>

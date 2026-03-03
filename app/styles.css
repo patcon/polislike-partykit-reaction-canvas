@@ -1088,6 +1088,11 @@ body {
   letter-spacing: 0.5px;
 }
 
+.v3-admin-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .v3-admin-btn-record {
   background: #c0392b;
   color: #fff;
@@ -1104,6 +1109,20 @@ body {
 
 .v3-admin-btn-stop:hover {
   background: #777;
+}
+
+.v3-admin-btn--destructive {
+  background: #dc3545;
+  color: #fff;
+}
+
+.v3-admin-btn--destructive:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.v3-admin-btn--destructive:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 

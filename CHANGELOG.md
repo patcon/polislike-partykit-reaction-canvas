@@ -8,6 +8,10 @@ All notable changes to this project will be documented in this file.
 - V1/V2/V4/V5: `?debug=1` URL param enables debug mode on load (in addition to the existing `d` key toggle)
 - V5: in debug mode, YouTube player controls (timeline, play/pause) are enabled; overlay removed so controls and scrubber are tappable; touch-to-play behaviour unchanged
 
+### Changed
+- V4/V5 Admin: destructive buttons now use consistent bright-red style (`v3-admin-btn--destructive`) instead of dark maroon inline styles
+- V4/V5 Admin: previously hidden buttons (Download JSON, Clear, Clear all recordings) are now always visible and shown as disabled when unavailable
+
 ### Fixed
 - V5 Admin: "Clear all recordings" button is hidden for rooms listed in `PROTECTED_ROOMS` (currently `irc6creOFGs`)
 - Supabase credentials now correctly embedded in `partykit.json` `define` block; `npx partykit env add` does not reach the client build and was ineffective

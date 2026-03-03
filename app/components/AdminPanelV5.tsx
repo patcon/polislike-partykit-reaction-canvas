@@ -301,16 +301,14 @@ export default function AdminPanelV5({ room }: AdminPanelV5Props) {
                 >
                   Refresh count
                 </button>
-                {(eventCount ?? 0) > 0 && !PROTECTED_ROOMS.includes(room) && (
-                  <button
-                    className="v3-admin-btn"
-                    style={{ padding: '6px 14px', fontSize: 13, background: '#5a1a1a', borderColor: '#a33' }}
-                    onClick={handleClearEvents}
-                    disabled={clearingEvents}
-                  >
-                    {clearingEvents ? 'Clearing…' : '✕ Clear all recordings'}
-                  </button>
-                )}
+                <button
+                  className="v3-admin-btn v3-admin-btn--destructive"
+                  style={{ padding: '6px 14px', fontSize: 13 }}
+                  onClick={handleClearEvents}
+                  disabled={clearingEvents || (eventCount ?? 0) === 0 || PROTECTED_ROOMS.includes(room)}
+                >
+                  {clearingEvents ? 'Clearing…' : '✕ Clear all recordings'}
+                </button>
               </div>
             </div>
           </div>
