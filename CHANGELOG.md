@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-03-03)
 
+### Fixed
+- V5: YouTube video now loads on arrival (missing `videoId` in `YT.Player` constructor)
+- V5: touching the canvas now plays the video; lifting pauses it (single-user touch-to-play)
+- V5: live cursors from other connected users are no longer shown; only Supabase replay cursors appear
+- Canvas: new `hideCursors` prop suppresses cursor rendering while keeping labels/anchors sync active
+
 ### Added
 - V5: new async YouTube reaction canvas (`#v5`) — each user watches independently at their own timecode; touch events are recorded to Supabase keyed to the video timecode; past recordings replay as animated purple cursor dots in sync with the video on any future watch session
 - V5: `ReplayCanvas` component — lightweight SVG overlay (no D3, no WebSocket) that renders recorded cursors at the correct position for the current video timecode, with position interpolation (linear lerp) and opacity fade (0.25–0.5s staleness window)

@@ -23,6 +23,7 @@ interface CanvasProps {
   userId: string;
   readOnly?: boolean; // When true, connects as admin (excluded from presence count, no cursor sent)
   colorCursorsByVote?: boolean; // Optional prop to enable reaction-based coloring
+  hideCursors?: boolean; // When true, other users' cursors are not rendered (labels/anchors still sync)
   currentReactionState?: ReactionState; // Current reaction state for background color
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
   onPresenceCount?: (count: number) => void;
@@ -60,7 +61,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -263,6 +264,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
     }
 
     // Add cursor positions as colored dots - convert normalized coordinates to pixels
+    if (hideCursors) return;
     const cursorData = Array.from(cursors.entries()).map(([cursorUserId, cursor]) => ({
       cursorUserId,
       x: (cursor.x / 100) * dimensions.width, // Convert from 0-100 to pixel coordinates
@@ -318,7 +320,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       .attr('fill', '#000')
       .text((d: any) => d.cursorUserId.substring(0, 6));
 
-  }, [cursors, dimensions, anchors, debug]);
+  }, [cursors, dimensions, anchors, debug, hideCursors]);
 
   // Handle window resize
   useEffect(() => {

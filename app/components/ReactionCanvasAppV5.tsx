@@ -17,6 +17,7 @@ declare global {
       Player: new (
         elementId: string,
         config: {
+          videoId?: string;
           events?: {
             onReady?: (event: { target: YTPlayer }) => void;
             onStateChange?: (event: { data: number }) => void;
@@ -32,6 +33,8 @@ declare global {
 interface YTPlayer {
   getCurrentTime(): number;
   getPlayerState(): number;
+  playVideo(): void;
+  pauseVideo(): void;
 }
 
 const YT_PLAYING = 1;
@@ -121,11 +124,10 @@ export default function ReactionCanvasAppV5() {
 
     window.onYouTubeIframeAPIReady = () => {
       playerRef.current = new window.YT.Player('v5-youtube-player', {
+        videoId,
         playerVars: { controls: 0, modestbranding: 1, rel: 0, iv_load_policy: 3, cc_load_policy: 0 },
         events: {
-          onStateChange: (event) => {
-            if (event.data !== YT_PLAYING) return;
-          },
+          onReady: (event) => { event.target.pauseVideo(); },
         },
       });
     };
@@ -158,6 +160,20 @@ export default function ReactionCanvasAppV5() {
     }, 100);
     return () => clearInterval(interval);
   }, []);
+
+  // Single-user touch-to-play: play when touching, pause when not
+  useEffect(() => {
+    if (!playerRef.current) return;
+    try {
+      if (touchPos !== null) {
+        playerRef.current.playVideo();
+      } else {
+        playerRef.current.pauseVideo();
+      }
+    } catch {
+      // player not ready yet
+    }
+  }, [touchPos]);
 
   // Fetch recorded events on mount
   useEffect(() => {
@@ -226,6 +242,7 @@ export default function ReactionCanvasAppV5() {
           room={room}
           userId={userId}
           colorCursorsByVote={false}
+          hideCursors={true}
           currentReactionState={canvasBackgroundReactionState}
           heightOffset={youtubeHeight}
           onRoomLabelsChange={setServerLabels}
