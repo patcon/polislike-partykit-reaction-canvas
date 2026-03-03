@@ -156,7 +156,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
             <div className="v2-youtube-overlay" />
           </>
         ) : (
-          <div className="v2-no-video">No video — add <code>?videoId=</code> to the URL (<a href="?videoId=s-ONlhskCrA#v2">example</a>)</div>
+          <div className="v2-no-video">No video — add <code>?videoId=</code> to the URL (<a href="?videoId=izDAOvHz5Wc#v2">example</a>)</div>
         )}
       </div>
       <div className="v2-vote-canvas-container">
