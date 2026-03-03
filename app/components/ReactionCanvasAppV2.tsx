@@ -154,6 +154,11 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
               }}
             />
             <div className="v2-youtube-overlay" />
+            {!allTouching && (
+              <div className="v2-video-paused-overlay">
+                <p>Everyone watching must keep a finger on the space below to keep the video playing</p>
+              </div>
+            )}
           </>
         ) : (
           <div className="v2-no-video">No video — add <code>?videoId=</code> to the URL (<a href="?videoId=izDAOvHz5Wc#v2">example</a>)</div>

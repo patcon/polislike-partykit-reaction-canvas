@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] (2026-03-02)
 
 ### Added
+- V2: when the video is paused (no one touching the canvas), a semi-transparent overlay on the video area instructs users to put their finger on the space below to start and keep the video playing
 - V4 admin: recorded events are displayed live in a table below the recording controls; table shows the last 200 events with columns for row number, timestamp, connectionId, from/to (transitions mode) or type/x/y (positions mode)
 - V4 admin: "Download JSON" button is now separate from stopping — it appears after recording has stopped and events are present; events accumulate across multiple recording sessions until cleared
 - V4 admin: "Clear" button erases all accumulated events and resets the recording session start time

@@ -787,6 +787,29 @@ body {
   z-index: 1;
 }
 
+.v2-video-paused-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.65);
+  pointer-events: none;
+}
+
+.v2-video-paused-overlay p {
+  color: #fff;
+  font-size: 1.1rem;
+  line-height: 1.5;
+  text-align: center;
+  max-width: 260px;
+  margin: 0;
+  background: rgba(0, 0, 0, 0.75);
+  padding: 0.6em 1em;
+  border-radius: 8px;
+}
+
 .v2-youtube-container iframe {
   width: 100%;
   height: 100%;
