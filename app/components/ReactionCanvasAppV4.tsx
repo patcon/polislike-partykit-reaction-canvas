@@ -45,6 +45,7 @@ export default function ReactionCanvasAppV4() {
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
+  const [activeCursorCount, setActiveCursorCount] = useState<number>(0);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
@@ -78,7 +79,9 @@ export default function ReactionCanvasAppV4() {
         {serverLabels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{serverLabels.positive}</div>}
         {serverLabels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{serverLabels.negative}</div>}
         {serverLabels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{serverLabels.neutral}</div>}
-        <div className="v2-presence-counter">{presenceCount} here</div>
+        <div className="v2-presence-counter">
+          <span className="v2-counter-num">{presenceCount}</span> here · <span className="v2-counter-num">{activeCursorCount + (touchPos !== null ? 1 : 0)}</span> touching
+        </div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         {isRecording && <div className="v3-rec-badge">● REC</div>}
         {touchPos && (
@@ -94,6 +97,7 @@ export default function ReactionCanvasAppV4() {
           currentReactionState={canvasBackgroundReactionState}
           heightOffset={0}
           onPresenceCount={setPresenceCount}
+          onActiveCursorCountChange={setActiveCursorCount}
           onRecordingStateChange={setIsRecording}
           onRoomLabelsChange={setServerLabels}
           onRoomAnchorsChange={setServerAnchors}
