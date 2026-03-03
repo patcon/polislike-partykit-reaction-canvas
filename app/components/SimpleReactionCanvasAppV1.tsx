@@ -40,7 +40,7 @@ export default function SimpleReactionCanvasAppV1() {
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<'positive' | 'negative' | 'neutral' | null>(null);
   const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
   const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(ghostCursorsFromUrl ?? false);
-  const [debug, setDebug] = useState(false);
+  const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

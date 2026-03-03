@@ -89,7 +89,7 @@ export default function ReactionCanvasAppV5() {
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null | undefined>(undefined);
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
-  const [debug, setDebug] = useState(false);
+  const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const [recordedEvents, setRecordedEvents] = useState<ReactionEvent[]>([]);
   const [currentTimecode, setCurrentTimecode] = useState(0);
   const currentTimecodeRef = useRef(0);

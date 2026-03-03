@@ -63,7 +63,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const reactionStateRef = useRef<ReactionState>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
-  const [debug, setDebug] = useState(false);
+  const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const allTouchingRef = useRef(false);
 
   useEffect(() => {

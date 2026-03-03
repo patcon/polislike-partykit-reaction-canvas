@@ -57,7 +57,7 @@ export default function ReactionCanvasAppV4() {
   const [isRecording, setIsRecording] = useState(false);
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
-  const [debug, setDebug] = useState(false);
+  const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
 
   useEffect(() => {
