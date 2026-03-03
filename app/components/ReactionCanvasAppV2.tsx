@@ -3,7 +3,9 @@ import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import { getReactionLabelSet } from "../voteLabels";
+import type { ReactionLabelSet } from "../voteLabels";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
+import type { ReactionAnchors } from "../utils/voteRegion";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -53,6 +55,8 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const [isViewer, setIsViewer] = useState(false);
   const [userCap, setUserCap] = useState<number | null>(null);
   const [viewerCount, setViewerCount] = useState(0);
+  const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
+  const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const socketSendRef = useRef<((msg: string) => void) | null>(null);
   const reactionStateRef = useRef<ReactionState>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -138,7 +142,8 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     return <MobileOnlyGate />;
   }
 
-  const labels = getReactionLabelSet(getLabelsParamFromUrl());
+  const anchors = serverAnchors ?? DEFAULT_ANCHORS;
+  const labels = serverLabels ?? getReactionLabelSet(getLabelsParamFromUrl());
 
   return (
     <div className="v2-app-container">
@@ -179,9 +184,9 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         )}
       </div>
       <div className="v2-vote-canvas-container">
-        {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(DEFAULT_ANCHORS.positive)}>{labels.positive}</div>}
-        {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(DEFAULT_ANCHORS.negative)}>{labels.negative}</div>}
-        {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(DEFAULT_ANCHORS.neutral)}>{labels.neutral}</div>}
+        {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
+        {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
+        {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
         {isViewer && (
           <div className="viewer-mode-banner">
             This room is full — you are watching in view-only mode.
@@ -216,6 +221,8 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           onUserCapChanged={setUserCap}
           onJoinApproved={() => setIsViewer(false)}
           onSocketReady={(send) => { socketSendRef.current = send; }}
+          onRoomLabelsChange={setServerLabels}
+          onRoomAnchorsChange={setServerAnchors}
           debug={debug}
         />
         {!isViewer && (
@@ -229,6 +236,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
             onTouchPosition={handleTouchPosition}
             heightOffset={youtubeHeight}
             getTimecode={getCurrentTimecode}
+            anchors={anchors}
           />
         )}
       </div>
