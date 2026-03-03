@@ -13,9 +13,11 @@ try {
   // Supabase credentials not configured; all calls will be no-ops.
 }
 
-// Only create the client if both values are present; createClient('')  throws.
+// Only create the client if both values are present; createClient('') throws.
 const supabase: SupabaseClient | null =
   SUPABASE_URL && SUPABASE_ANON_KEY ? createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+
+export const isSupabaseConfigured = supabase !== null;
 
 export interface ReactionEvent {
   id?: number;

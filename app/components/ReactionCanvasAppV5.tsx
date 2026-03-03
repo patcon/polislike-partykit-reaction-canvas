@@ -8,7 +8,7 @@ import { getReactionLabelSet } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
-import { insertEvent, fetchEvents } from "../lib/supabase";
+import { insertEvent, fetchEvents, isSupabaseConfigured } from "../lib/supabase";
 import type { ReactionEvent } from "../lib/supabase";
 
 declare global {
@@ -226,6 +226,7 @@ export default function ReactionCanvasAppV5() {
         {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
         {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
         {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
+        <div className={`v3-rec-badge v3-rec-badge--left${isSupabaseConfigured ? '' : ' v3-rec-badge--off'}`}>● REC</div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         {touchPos && (
           <div

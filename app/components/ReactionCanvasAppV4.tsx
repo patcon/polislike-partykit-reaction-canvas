@@ -104,7 +104,7 @@ export default function ReactionCanvasAppV4() {
           {viewerCount > 0 && <> · <span className="v2-counter-num">{viewerCount}</span> watching</>}
         </div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
-        {isRecording && <div className="v3-rec-badge">● REC</div>}
+        <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
         {touchPos && (
           <div
             className="v2-touch-indicator"

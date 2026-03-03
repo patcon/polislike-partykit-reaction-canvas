@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-03-03)
 
+### Added
+- V5: REC badge always visible in the canvas — grey when Supabase is not configured, red when connected and recording
+- V4: REC badge now always visible — grey when recording is off, red when active (was hidden entirely when not recording)
+- `isSupabaseConfigured` export from `app/lib/supabase.ts`
+- `.v3-rec-badge--off` CSS modifier: grey, dimmed version of the recording badge
+
 ### Fixed
 - V5: YouTube video now loads on arrival (missing `videoId` in `YT.Player` constructor)
 - V5: touching the canvas now plays the video; lifting pauses it (single-user touch-to-play)
