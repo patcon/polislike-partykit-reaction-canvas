@@ -970,6 +970,16 @@ body {
   transform: translateY(-2px);
 }
 
+.app-card--youtube {
+  background: #fff5f5;
+  border-color: #f5c6c6;
+}
+
+.app-card--youtube:hover {
+  border-color: #e53935;
+  box-shadow: 0 6px 20px rgba(229, 57, 53, 0.15);
+}
+
 .app-card-content {
   flex: 1;
 }

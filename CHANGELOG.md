@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased] (2026-03-03)
 
+### Changed
+- Index page: cards now sorted reverse-chronologically (V5 → V4 → V2 → V1), with participation cards before admin cards within each version
+- Index page: YouTube app cards (V2, V5) now have a red-tinted background to distinguish them visually
+- Index page: removed blank YouTube cards (V2 and V5 without a video set)
+
 ### Added
 - V2/V4/V5: dim "bypass" link in the bottom-right of the mobile-only QR gate screen; navigates to the current URL with `?forceView=mobile` added, preserving all other query params
 

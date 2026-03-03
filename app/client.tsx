@@ -11,6 +11,41 @@ function IndexApp() {
     <div className="index-app">
       <h1 className="index-title">Polislike Reaction Canvas Apps</h1>
       <div className="app-cards">
+        <a href="?room=irc6creOFGs#v5" className="app-card app-card--youtube">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V5: YouTube (Example)</h2>
+            <p className="app-card-description">Async YouTube + reaction canvas with an example video. Past reactions replay as cursors in sync with the video timecode.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="?admin=true#v5" className="app-card app-card--youtube">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V5: Admin</h2>
+            <p className="app-card-description">Manage labels, anchors, and participant cap. View and clear Supabase reaction recordings.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="#v4" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V4: Reaction Canvas</h2>
+            <p className="app-card-description">Full-page canvas, no video, no statements. Mobile-only with QR gate on desktop.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="?admin=true#v4" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V4: Admin (Record Reactions)</h2>
+            <p className="app-card-description">Record live audience reaction data for offline analysis. Downloads as JSON.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="?room=irc6creOFGs#v2" className="app-card app-card--youtube">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V2: YouTube (Example)</h2>
+            <p className="app-card-description">YouTube embed + reaction canvas with an example video pre-loaded.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
         <a href="#v1" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V1: Participant View (Default)</h2>
@@ -36,55 +71,6 @@ function IndexApp() {
           <div className="app-card-content">
             <h2 className="app-card-title">V1: Admin View (Polis Statements)</h2>
             <p className="app-card-description">Admin view pre-loaded with statements from the pol.is/3ntrtcehas conversation.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="#v2" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V2: YouTube (Blank)</h2>
-            <p className="app-card-description">YouTube embed + reaction canvas. No video set — add <code>?room=&lt;youtube-id&gt;</code> to the URL.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?room=irc6creOFGs#v2" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V2: YouTube (Example)</h2>
-            <p className="app-card-description">YouTube embed + reaction canvas with an example video pre-loaded.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="#v4" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V4: Reaction Canvas</h2>
-            <p className="app-card-description">Full-page canvas, no video, no statements. Mobile-only with QR gate on desktop.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?admin=true#v4" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V4: Admin (Record Reactions)</h2>
-            <p className="app-card-description">Record live audience reaction data for offline analysis. Downloads as JSON.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="#v5" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V5: YouTube (Blank)</h2>
-            <p className="app-card-description">Async YouTube + reaction canvas. Reactions saved to Supabase and replay in sync with video timecode. Add <code>?room=&lt;youtube-id&gt;</code> to the URL.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?room=irc6creOFGs#v5" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V5: YouTube (Example)</h2>
-            <p className="app-card-description">Async YouTube + reaction canvas with an example video. Past reactions replay as cursors in sync with the video timecode.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?admin=true#v5" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V5: Admin</h2>
-            <p className="app-card-description">Manage labels, anchors, and participant cap. View and clear Supabase reaction recordings.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
