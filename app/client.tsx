@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import SimpleReactionCanvasAppV1 from "./components/SimpleReactionCanvasAppV1";
 import ReactionCanvasAppV2 from "./components/ReactionCanvasAppV2";
 import ReactionCanvasAppV4 from "./components/ReactionCanvasAppV4";
+import ReactionCanvasAppV5 from "./components/ReactionCanvasAppV5";
 
 function IndexApp() {
   return (
@@ -66,6 +67,27 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
+        <a href="#v5" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V5: YouTube (Blank)</h2>
+            <p className="app-card-description">Async YouTube + reaction canvas. Reactions saved to Supabase and replay in sync with video timecode. Add <code>?room=&lt;youtube-id&gt;</code> to the URL.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="?room=izDAOvHz5Wc#v5" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V5: YouTube (Example)</h2>
+            <p className="app-card-description">Async YouTube + reaction canvas with an example video. Past reactions replay as cursors in sync with the video timecode.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="?admin=true#v5" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">V5: Admin</h2>
+            <p className="app-card-description">Manage labels, anchors, and participant cap. View and clear Supabase reaction recordings.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
       </div>
     </div>
   );
@@ -75,6 +97,7 @@ const TITLES: Record<string, (admin: boolean) => string> = {
   '#v1': (admin) => admin ? 'Statement Admin — Polislike' : 'Statement Voting — Polislike',
   '#v2': ()      => 'YouTube Reaction (Sync) — Polislike',
   '#v4': (admin) => admin ? 'Live Event Admin — Polislike' : 'Live Reaction Canvas — Polislike',
+  '#v5': (admin) => admin ? 'YouTube Reaction Admin — Polislike' : 'YouTube Reaction (Async) — Polislike',
 };
 
 function GithubCorner() {
@@ -108,6 +131,7 @@ function App() {
   else if (hash === '#v2') page = <ReactionCanvasAppV2 />;
   else if (hash === '#v3') { window.location.hash = '#v4'; return null; }
   else if (hash === '#v4') page = <ReactionCanvasAppV4 />;
+  else if (hash === '#v5') page = <ReactionCanvasAppV5 />;
   else page = <IndexApp />;
 
   return <>{page}<GithubCorner /></>;

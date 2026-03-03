@@ -8,8 +8,10 @@
     "build": {
       "entry": "app/client.tsx",
       "define": {
-        "process.env.PARTYKIT_HOST": "'polislike-partykit-reaction-canvas.patcon.partykit.dev'"
+        "process.env.PARTYKIT_HOST": "'polislike-partykit-reaction-canvas.patcon.partykit.dev'",
+        "process.env.PARTYKIT_SUPABASE_URL": "PARTYKIT_SUPABASE_URL",
+        "process.env.PARTYKIT_SUPABASE_ANON_KEY": "PARTYKIT_SUPABASE_ANON_KEY"
       }
     }
-  },
+  }
 }

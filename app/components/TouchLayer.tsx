@@ -35,6 +35,7 @@ interface TouchLayerProps {
   onTouchPosition?: (pos: { x: number; y: number } | null) => void; // Pixel coords relative to layer
   getTimecode?: () => number; // Returns current video timecode to send on lift
   anchors?: ReactionAnchors;
+  onCursorEvent?: (type: 'move' | 'touch' | 'remove', pos: { x: number; y: number }) => void;
 }
 
 export default function TouchLayer({
@@ -48,6 +49,7 @@ export default function TouchLayer({
   onTouchPosition,
   getTimecode,
   anchors,
+  onCursorEvent,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [userReactionState, setUserReactionState] = useState<ReactionState>(null);
@@ -160,6 +162,7 @@ export default function TouchLayer({
     lastPositionRef.current = position;
     setIsMouseOver(true);
     sendCursorEvent('move', position);
+    onCursorEvent?.('move', { x: position.x, y: position.y });
     onTouchPosition?.(getPixelPosition(e));
 
     // Update reaction state based on cursor position
@@ -179,6 +182,7 @@ export default function TouchLayer({
     // Send remove event when mouse leaves the canvas
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
     sendCursorEvent('remove', position);
+    onCursorEvent?.('remove', { x: 0, y: 0 });
     onTouchPosition?.(null);
 
     // Reset reaction state when mouse leaves
@@ -195,6 +199,7 @@ export default function TouchLayer({
     const position = getCursorPosition(e);
     lastPositionRef.current = position;
     sendCursorEvent('touch', position);
+    onCursorEvent?.('touch', { x: position.x, y: position.y });
     onTouchPosition?.(getPixelPosition(e));
 
     // Update reaction state without triggering React re-render during drag
@@ -211,6 +216,7 @@ export default function TouchLayer({
     const position = getCursorPosition(e);
     lastPositionRef.current = position;
     sendCursorEvent('touch', position);
+    onCursorEvent?.('touch', { x: position.x, y: position.y });
     onTouchPosition?.(getPixelPosition(e));
 
     const reactionState = computeReactionRegion(position.x, position.y, anchors ?? DEFAULT_ANCHORS);
@@ -228,6 +234,7 @@ export default function TouchLayer({
 
     const position: CursorPosition = { x: 0, y: 0, timestamp: Date.now(), userId };
     sendCursorEvent('remove', position);
+    onCursorEvent?.('remove', { x: 0, y: 0 });
 
     currentReactionStateRef.current = null;
     if (reactionStateRef) reactionStateRef.current = null;

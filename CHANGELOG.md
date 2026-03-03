@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] (2026-03-03)
 
 ### Added
+- V5: new async YouTube reaction canvas (`#v5`) — each user watches independently at their own timecode; touch events are recorded to Supabase keyed to the video timecode; past recordings replay as animated purple cursor dots in sync with the video on any future watch session
+- V5: `ReplayCanvas` component — lightweight SVG overlay (no D3, no WebSocket) that renders recorded cursors at the correct position for the current video timecode, with position interpolation (linear lerp) and opacity fade (0.25–0.5s staleness window)
+- V5: `AdminPanelV5` — admin view with Labels, Anchors, and Peek Canvas tabs (from V4) plus a Recordings section showing Supabase event count and a "Clear all recordings" button
+- V5: three landing page cards — "V5: YouTube (Blank)", "V5: YouTube (Example)", and "V5: Admin"
+- `app/lib/supabase.ts` — typed Supabase client helpers: `insertEvent`, `fetchEvents`, `clearEvents`, `countEvents`
+- `TouchLayer`: new optional `onCursorEvent` prop (non-breaking); called on every move/touch/remove with normalized coords; used by V5 for Supabase recording
+- `docs/supabase.md` — setup guide: table schema, credential configuration for local dev and PartyKit deploy
+
+### Added
 - GitHub corner link (top-right, 50×50px black) on all app pages including the landing page
 
 ### Removed
