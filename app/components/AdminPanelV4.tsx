@@ -74,6 +74,9 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     setNeutralY(local.neutralY);
   };
 
+  const [displayEvents, setDisplayEvents] = useState<object[]>([]);
+  const MAX_TABLE_ROWS = 200;
+
   const eventsRef = useRef<object[]>([]);
   const recordingStartRef = useRef<number | null>(null);
   const prevRegionsRef = useRef<Map<string, ReactionRegion | null>>(new Map());
@@ -118,16 +121,20 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         if (data.type === 'move' || data.type === 'touch') {
           const { userId: connectionId, x, y } = data.position;
 
-          if (modeRef.current === 'positions') {
-            eventsRef.current.push({ connectionId, type: data.type, x, y, timestamp: now });
+          const pushEvent = (evt: object) => {
+            eventsRef.current.push(evt);
+            setDisplayEvents(prev => [...prev, evt].slice(-MAX_TABLE_ROWS));
             setEventCount(c => c + 1);
+          };
+
+          if (modeRef.current === 'positions') {
+            pushEvent({ connectionId, type: data.type, x, y, timestamp: now });
           } else {
             // transitions mode
             const newRegion = computeReactionRegion(x, y);
             const prevRegion = prevRegionsRef.current.get(connectionId) ?? null;
             if (newRegion !== prevRegion) {
-              eventsRef.current.push({ connectionId, from: prevRegion, to: newRegion, timestamp: now });
-              setEventCount(c => c + 1);
+              pushEvent({ connectionId, from: prevRegion, to: newRegion, timestamp: now });
               prevRegionsRef.current.set(connectionId, newRegion);
             }
           }
@@ -136,16 +143,20 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         if (data.type === 'remove') {
           const { userId: connectionId } = data.position;
 
+          const pushEvent = (evt: object) => {
+            eventsRef.current.push(evt);
+            setDisplayEvents(prev => [...prev, evt].slice(-MAX_TABLE_ROWS));
+            setEventCount(c => c + 1);
+          };
+
           if (modeRef.current === 'transitions') {
             const prevRegion = prevRegionsRef.current.get(connectionId) ?? null;
             if (prevRegion !== null) {
-              eventsRef.current.push({ connectionId, from: prevRegion, to: null, timestamp: now });
-              setEventCount(c => c + 1);
+              pushEvent({ connectionId, from: prevRegion, to: null, timestamp: now });
             }
             prevRegionsRef.current.set(connectionId, null);
           } else {
-            eventsRef.current.push({ connectionId, type: 'remove', x: 0, y: 0, timestamp: now });
-            setEventCount(c => c + 1);
+            pushEvent({ connectionId, type: 'remove', x: 0, y: 0, timestamp: now });
           }
         }
       } catch (e) {
@@ -155,20 +166,22 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   });
 
   const startRecording = () => {
-    eventsRef.current = [];
+    if (recordingStartRef.current === null) {
+      recordingStartRef.current = Date.now();
+    }
     prevRegionsRef.current = new Map();
-    recordingStartRef.current = Date.now();
-    setEventCount(0);
     setIsRecording(true);
     isRecordingRef.current = true;
     socket.send(JSON.stringify({ type: 'setRecordingState', recording: true }));
   };
 
-  const stopAndDownload = () => {
+  const stopRecording = () => {
     setIsRecording(false);
     isRecordingRef.current = false;
     socket.send(JSON.stringify({ type: 'setRecordingState', recording: false }));
+  };
 
+  const downloadEvents = () => {
     const payload = {
       recordingStart: recordingStartRef.current,
       recordingEnd: Date.now(),
@@ -184,6 +197,14 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     a.download = `reactions-${room}-${new Date(recordingStartRef.current!).toISOString().replace(/[:.]/g, '-')}.json`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  const clearEvents = () => {
+    eventsRef.current = [];
+    prevRegionsRef.current = new Map();
+    recordingStartRef.current = null;
+    setDisplayEvents([]);
+    setEventCount(0);
   };
 
   const handleModeChange = (newMode: RecordingMode) => {
@@ -275,14 +296,28 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             Raw positions — log every move/touch/remove event
           </label>
 
-          <div style={{ marginTop: 24 }}>
+          <div style={{ marginTop: 24, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {!isRecording ? (
               <button className="v3-admin-btn v3-admin-btn-record" onClick={startRecording}>
                 ● Start Recording
               </button>
             ) : (
-              <button className="v3-admin-btn v3-admin-btn-stop" onClick={stopAndDownload}>
-                ■ Stop &amp; Download
+              <button className="v3-admin-btn v3-admin-btn-stop" onClick={stopRecording}>
+                ■ Stop Recording
+              </button>
+            )}
+            {!isRecording && eventCount > 0 && (
+              <button className="v3-admin-btn" onClick={downloadEvents}>
+                ↓ Download JSON
+              </button>
+            )}
+            {eventCount > 0 && (
+              <button
+                className="v3-admin-btn"
+                style={{ background: '#5a1a1a', borderColor: '#a33' }}
+                onClick={clearEvents}
+              >
+                ✕ Clear
               </button>
             )}
           </div>
@@ -291,7 +326,9 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             Status:{' '}
             {isRecording
               ? <span style={{ color: '#f55', fontWeight: 700 }}>RECORDING — {eventCount} events logged</span>
-              : <span>Not recording</span>
+              : eventCount > 0
+                ? <span style={{ color: '#aaa' }}>Stopped — {eventCount} events</span>
+                : <span>Not recording</span>
             }
           </div>
 
@@ -483,6 +520,57 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
         </div>{/* end right column */}
       </div>{/* end two-column row */}
+
+      {/* Events table */}
+      {displayEvents.length > 0 && (
+        <div style={{ marginTop: 40 }}>
+          <p style={{ fontWeight: 600, marginBottom: 8 }}>
+            Recorded events
+            {eventCount > MAX_TABLE_ROWS && (
+              <span style={{ fontWeight: 400, color: '#888', fontSize: 13, marginLeft: 8 }}>
+                (showing last {MAX_TABLE_ROWS} of {eventCount})
+              </span>
+            )}
+          </p>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontFamily: 'monospace' }}>
+              <thead>
+                <tr style={{ background: '#222', color: '#aaa', textAlign: 'left' }}>
+                  <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>#</th>
+                  <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>time</th>
+                  <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>connectionId</th>
+                  <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>from</th>
+                  <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>to</th>
+                  <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>type</th>
+                  <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>x</th>
+                  <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>y</th>
+                </tr>
+              </thead>
+              <tbody>
+                {displayEvents.map((evt, i) => {
+                  const e = evt as Record<string, unknown>;
+                  const offset = eventCount - displayEvents.length;
+                  const ts = typeof e.timestamp === 'number'
+                    ? new Date(e.timestamp).toISOString().slice(11, 23)
+                    : '';
+                  return (
+                    <tr key={i} style={{ background: i % 2 === 0 ? '#1a1a1a' : '#111' }}>
+                      <td style={{ padding: '4px 10px', color: '#555' }}>{offset + i + 1}</td>
+                      <td style={{ padding: '4px 10px', color: '#888' }}>{ts}</td>
+                      <td style={{ padding: '4px 10px', color: '#ccc' }}>{String(e.connectionId ?? '')}</td>
+                      <td style={{ padding: '4px 10px', color: '#f99' }}>{e.from !== undefined ? String(e.from ?? 'null') : ''}</td>
+                      <td style={{ padding: '4px 10px', color: '#9f9' }}>{e.to !== undefined ? String(e.to ?? 'null') : ''}</td>
+                      <td style={{ padding: '4px 10px', color: '#99f' }}>{e.type !== undefined ? String(e.type) : ''}</td>
+                      <td style={{ padding: '4px 10px', color: '#aaa' }}>{e.x !== undefined ? String((e.x as number).toFixed(2)) : ''}</td>
+                      <td style={{ padding: '4px 10px', color: '#aaa' }}>{e.y !== undefined ? String((e.y as number).toFixed(2)) : ''}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
