@@ -13,64 +13,57 @@ function IndexApp() {
       <div className="app-cards">
         <a href="?room=irc6creOFGs#v5" className="app-card app-card--youtube">
           <div className="app-card-content">
-            <h2 className="app-card-title">V5: YouTube (Example)</h2>
+            <h2 className="app-card-title">V5 Participation: YouTube Async</h2>
             <p className="app-card-description">Async YouTube + reaction canvas with an example video. Past reactions replay as cursors in sync with the video timecode.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="?admin=true#v5" className="app-card app-card--youtube">
+        <a href="?admin=true#v5" className="app-card">
           <div className="app-card-content">
-            <h2 className="app-card-title">V5: Admin</h2>
+            <h2 className="app-card-title">V5 Admin: Database</h2>
             <p className="app-card-description">Manage labels, anchors, and participant cap. View and clear Supabase reaction recordings.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
         <a href="#v4" className="app-card">
           <div className="app-card-content">
-            <h2 className="app-card-title">V4: Reaction Canvas</h2>
+            <h2 className="app-card-title">V4 Participation: Basic Realtime</h2>
             <p className="app-card-description">Full-page canvas, no video, no statements. Mobile-only with QR gate on desktop.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
         <a href="?admin=true#v4" className="app-card">
           <div className="app-card-content">
-            <h2 className="app-card-title">V4: Admin (Record Reactions)</h2>
+            <h2 className="app-card-title">V4 Admin: No Database</h2>
             <p className="app-card-description">Record live audience reaction data for offline analysis. Downloads as JSON.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
         <a href="?room=irc6creOFGs#v2" className="app-card app-card--youtube">
           <div className="app-card-content">
-            <h2 className="app-card-title">V2: YouTube (Example)</h2>
+            <h2 className="app-card-title">V2 Participation: YouTube Realtime</h2>
             <p className="app-card-description">YouTube embed + reaction canvas with an example video pre-loaded.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="#v1" className="app-card">
+        <a href="?room=3ntrtcehas#v1" className="app-card">
           <div className="app-card-content">
-            <h2 className="app-card-title">V1: Participant View (Default)</h2>
+            <h2 className="app-card-title">V1 Participation: Statements (Polis)</h2>
             <p className="app-card-description">Collaborative voting canvas with real-time cursor tracking and Polis statement display.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
         <a href="?ghostCursors=true#v1" className="app-card">
           <div className="app-card-content">
-            <h2 className="app-card-title">V1: Participant View (Fake Users)</h2>
+            <h2 className="app-card-title">V1 Participation: Fake Users Demo</h2>
             <p className="app-card-description">Same as above, with 10 simulated ghost cursors moving between voting regions.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?admin=true#v1" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V1: Admin View (Default)</h2>
-            <p className="app-card-description">Queue statements for display and monitor submitted votes.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
         <a href="?room=3ntrtcehas&admin=true#v1" className="app-card">
           <div className="app-card-content">
-            <h2 className="app-card-title">V1: Admin View (Polis Statements)</h2>
-            <p className="app-card-description">Admin view pre-loaded with statements from the pol.is/3ntrtcehas conversation.</p>
+            <h2 className="app-card-title">V1 Admin: Statement Queue</h2>
+            <p className="app-card-description">Queue statements for display and monitor submitted votes.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
