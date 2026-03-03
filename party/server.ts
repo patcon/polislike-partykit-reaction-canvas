@@ -96,6 +96,15 @@ interface SetRoomAnchorsEvent {
   anchors: ReactionAnchors | null;
 }
 
+interface SetUserCapEvent {
+  type: 'setUserCap';
+  cap: number | null;
+}
+
+interface RequestJoinEvent {
+  type: 'requestJoin';
+}
+
 interface Vote {
   userId: string;
   statementId: number;
@@ -103,7 +112,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetUserCapEvent | RequestJoinEvent;
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
@@ -112,6 +121,8 @@ export default class Server implements Party.Server {
   private votes: Vote[] = []; // Store all votes
   private connectionUserMap = new Map<string, string>(); // connectionId -> userId
   private adminConnectionIds = new Set<string>(); // connectionIds that are admin panels
+  private viewerConnectionIds = new Set<string>(); // connectionIds that are viewers (cap exceeded)
+  private userCap: number | null = null;
   private savedTimecode: number = 0; // Last paused timecode for the video in this room
   private recordingState: boolean = false;
   private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
@@ -147,9 +158,13 @@ export default class Server implements Party.Server {
   private participantCount(): number {
     return new Set(
       [...this.connectionUserMap.entries()]
-        .filter(([connId]) => !this.adminConnectionIds.has(connId))
+        .filter(([connId]) => !this.adminConnectionIds.has(connId) && !this.viewerConnectionIds.has(connId))
         .map(([, userId]) => userId)
     ).size;
+  }
+
+  private viewerCount(): number {
+    return this.viewerConnectionIds.size;
   }
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
@@ -162,17 +177,26 @@ export default class Server implements Party.Server {
   url: ${url.pathname}`
     );
 
-    if (url.searchParams.get('isAdmin') === 'true') {
+    const isAdmin = url.searchParams.get('isAdmin') === 'true';
+    if (isAdmin) {
       this.adminConnectionIds.add(conn.id);
     }
 
+    // Determine viewer status before adding to connectionUserMap
+    const isViewer = !isAdmin && this.userCap !== null && this.participantCount() >= this.userCap;
+
     const userId = url.searchParams.get('userId') ?? conn.id;
     this.connectionUserMap.set(conn.id, userId);
+    if (isViewer) {
+      this.viewerConnectionIds.add(conn.id);
+    }
+
     const count = this.participantCount();
+    const vCount = this.viewerCount();
     // Send directly to new connection (broadcast may not include it)
-    conn.send(JSON.stringify({ type: 'presenceCount', count }));
+    conn.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
     // Notify all other connections
-    this.room.broadcast(JSON.stringify({ type: 'presenceCount', count }), [conn.id]);
+    this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }), [conn.id]);
 
     // Send welcome message with current active statement, queue info, and statements pool
     conn.send(JSON.stringify({
@@ -187,14 +211,18 @@ export default class Server implements Party.Server {
       recordingState: this.recordingState,
       roomLabels: this.roomLabels,
       roomAnchors: this.roomAnchors,
+      isViewer,
+      userCap: this.userCap,
+      viewerCount: vCount,
     }));
   }
 
   onClose(conn: Party.Connection) {
     this.adminConnectionIds.delete(conn.id);
+    this.viewerConnectionIds.delete(conn.id);
     this.connectionUserMap.delete(conn.id);
     const count = this.participantCount();
-    this.room.broadcast(JSON.stringify({ type: 'presenceCount', count }));
+    this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: this.viewerCount() }));
   }
 
   onMessage(message: string, sender: Party.Connection) {
@@ -250,6 +278,22 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setRoomAnchors') {
         this.roomAnchors = event.anchors;
         this.room.broadcast(JSON.stringify({ type: 'roomAnchorsChanged', anchors: this.roomAnchors }));
+      } else if (event.type === 'setUserCap') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        this.userCap = event.cap;
+        this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
+      } else if (event.type === 'requestJoin') {
+        if (!this.viewerConnectionIds.has(sender.id)) return;
+        if (this.userCap !== null && this.participantCount() >= this.userCap) {
+          sender.send(JSON.stringify({ type: 'joinDenied' }));
+          return;
+        }
+        this.viewerConnectionIds.delete(sender.id);
+        const count = this.participantCount();
+        const vCount = this.viewerCount();
+        sender.send(JSON.stringify({ type: 'joinApproved' }));
+        this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }), [sender.id]);
+        sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);

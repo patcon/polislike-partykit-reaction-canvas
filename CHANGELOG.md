@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased] (2026-03-03)
 
 ### Added
+- Participant cap setting in V4 admin panel (above recording mode); when set, users joining a full room become read-only viewers; admin users are always exempt from the cap
+- View-only mode: users who connect to a full room see a banner warning and have no `TouchLayer` (cannot send cursor events)
+- "Join" button appears in the viewer banner when a participant slot opens up; clicking it upgrades the viewer to a full participant without reconnecting
+- Connection counter shows viewer count (e.g. `· 2 watching`) when at least one viewer is present; participant count shows `N/cap` when a cap is active
+- Applies to V2 and V4 participant-facing apps
 - V4 admin: "Peek Canvas" top-level tab shows a live read-only canvas of all participant cursors, colored by vote region with debug region lines; admin connects as `isAdmin: 'true'` so the presence counter shown to participants is unaffected
 
 ## [Unreleased] (2026-03-02)

@@ -31,6 +31,11 @@ interface CanvasProps {
   onRecordingStateChange?: (recording: boolean) => void;
   onRoomLabelsChange?: (labels: { positive: string; negative: string; neutral: string } | null) => void;
   onRoomAnchorsChange?: (anchors: ReactionAnchors | null) => void;
+  onViewerCount?: (count: number) => void;
+  onConnectedAsViewer?: (isViewer: boolean, userCap: number | null) => void;
+  onUserCapChanged?: (cap: number | null) => void;
+  onJoinApproved?: () => void;
+  onSocketReady?: (send: (msg: string) => void) => void;
   debug?: boolean;
 }
 
@@ -55,7 +60,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -79,6 +84,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
         if (data.type === 'presenceCount') {
           onPresenceCount?.(data.count);
+          onViewerCount?.(data.viewerCount ?? 0);
           return;
         }
 
@@ -91,6 +97,18 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
             setAnchors(incoming ?? DEFAULT_ANCHORS);
             onRoomAnchorsChange?.(incoming);
           }
+          onConnectedAsViewer?.(data.isViewer ?? false, data.userCap ?? null);
+          onViewerCount?.(data.viewerCount ?? 0);
+          return;
+        }
+
+        if (data.type === 'userCapChanged') {
+          onUserCapChanged?.(data.cap);
+          return;
+        }
+
+        if (data.type === 'joinApproved') {
+          onJoinApproved?.();
           return;
         }
 
@@ -154,6 +172,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       }
     },
   });
+
+  // Expose socket.send to parent via onSocketReady
+  useEffect(() => {
+    onSocketReady?.((msg) => socket.send(msg));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update background color based on current reaction state
   const updateBackgroundColor = (reactionState: ReactionState) => {

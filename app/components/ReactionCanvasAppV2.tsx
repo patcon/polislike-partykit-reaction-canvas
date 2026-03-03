@@ -50,6 +50,10 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const [activeCursorCount, setActiveCursorCount] = useState<number>(0);
+  const [isViewer, setIsViewer] = useState(false);
+  const [userCap, setUserCap] = useState<number | null>(null);
+  const [viewerCount, setViewerCount] = useState(0);
+  const socketSendRef = useRef<((msg: string) => void) | null>(null);
   const reactionStateRef = useRef<ReactionState>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
@@ -124,6 +128,12 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
     setTouchPos(pos);
   };
 
+  const roomHasSpace = userCap === null || presenceCount < userCap;
+
+  const handleJoinRequest = () => {
+    socketSendRef.current?.(JSON.stringify({ type: 'requestJoin' }));
+  };
+
   if (!isTouchDevice() && !isMobileForced()) {
     return <MobileOnlyGate />;
   }
@@ -172,8 +182,18 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(DEFAULT_ANCHORS.positive)}>{labels.positive}</div>}
         {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(DEFAULT_ANCHORS.negative)}>{labels.negative}</div>}
         {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(DEFAULT_ANCHORS.neutral)}>{labels.neutral}</div>}
+        {isViewer && (
+          <div className="viewer-mode-banner">
+            This room is full — you are watching in view-only mode.
+            {roomHasSpace && (
+              <button className="viewer-join-btn" onClick={handleJoinRequest}>Join</button>
+            )}
+          </div>
+        )}
         <div className="v2-presence-counter">
-          <span className="v2-counter-num">{presenceCount}</span> here · <span className="v2-counter-num">{activeCursorCount + (touchPos !== null ? 1 : 0)}</span> touching {allTouching ? '▶️' : '⏸️'}
+          <span className="v2-counter-num">{presenceCount}</span>
+          {userCap !== null && <span className="v2-counter-dim">/{userCap}</span>} here · <span className="v2-counter-num">{activeCursorCount + (touchPos !== null ? 1 : 0)}</span> touching {allTouching ? '▶️' : '⏸️'}
+          {viewerCount > 0 && <> · <span className="v2-counter-num">{viewerCount}</span> watching</>}
         </div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         {touchPos && (
@@ -191,19 +211,26 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           onPresenceCount={setPresenceCount}
           onActiveCursorCountChange={setActiveCursorCount}
           onTimecodeUpdate={seekTo}
+          onViewerCount={setViewerCount}
+          onConnectedAsViewer={(viewer, cap) => { setIsViewer(viewer); setUserCap(cap); }}
+          onUserCapChanged={setUserCap}
+          onJoinApproved={() => setIsViewer(false)}
+          onSocketReady={(send) => { socketSendRef.current = send; }}
           debug={debug}
         />
-        <TouchLayer
-          room={room}
-          userId={userId}
-          onActiveStatementChange={() => {}}
-          onReactionStateChange={() => {}}
-          reactionStateRef={reactionStateRef}
-          onBackgroundColorChange={setCanvasBackgroundReactionState}
-          onTouchPosition={handleTouchPosition}
-          heightOffset={youtubeHeight}
-          getTimecode={getCurrentTimecode}
-        />
+        {!isViewer && (
+          <TouchLayer
+            room={room}
+            userId={userId}
+            onActiveStatementChange={() => {}}
+            onReactionStateChange={() => {}}
+            reactionStateRef={reactionStateRef}
+            onBackgroundColorChange={setCanvasBackgroundReactionState}
+            onTouchPosition={handleTouchPosition}
+            heightOffset={youtubeHeight}
+            getTimecode={getCurrentTimecode}
+          />
+        )}
       </div>
     </div>
   );

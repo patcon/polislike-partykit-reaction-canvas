@@ -1087,3 +1087,37 @@ body {
     font-size: 12px;
   }
 }
+
+/* Viewer mode */
+.v2-counter-dim {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.viewer-mode-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.viewer-join-btn {
+  background: #4a7;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}

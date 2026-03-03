@@ -41,6 +41,9 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [configTab, setConfigTab] = useState<'labels' | 'anchors'>('labels');
   const [eventCount, setEventCount] = useState(0);
   const [serverRecording, setServerRecording] = useState(false);
+  const [userCap, setUserCap] = useState<number | null>(null);
+  const [capInput, setCapInput] = useState<string>('');
+  const [presenceCount, setPresenceCount] = useState<number>(0);
 
   // Labels config state
   const [labelSelected, setLabelSelected] = useState<string>('default');
@@ -106,6 +109,11 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
       try {
         const data = JSON.parse(evt.data);
 
+        if (data.type === 'presenceCount') {
+          setPresenceCount(data.count);
+          return;
+        }
+
         if (data.type === 'recordingStateChanged') {
           setServerRecording(data.recording);
           return;
@@ -115,6 +123,10 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           if (data.recordingState !== undefined) setServerRecording(data.recordingState);
           if ('roomLabels' in data) applyServerLabels(data.roomLabels);
           if ('roomAnchors' in data) applyServerAnchors(data.roomAnchors);
+          if (data.userCap !== undefined) {
+            setUserCap(data.userCap);
+            setCapInput(data.userCap !== null ? String(data.userCap) : '');
+          }
           return;
         }
 
@@ -125,6 +137,12 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
         if (data.type === 'roomAnchorsChanged') {
           applyServerAnchors(data.anchors);
+          return;
+        }
+
+        if (data.type === 'userCapChanged') {
+          setUserCap(data.cap);
+          setCapInput(data.cap !== null ? String(data.cap) : '');
           return;
         }
 
@@ -226,6 +244,12 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     modeRef.current = newMode;
   };
 
+  const sendUserCap = () => {
+    const parsed = parseInt(capInput, 10);
+    const cap = capInput === '' || parsed <= 0 ? null : parsed;
+    socket.send(JSON.stringify({ type: 'setUserCap', cap }));
+  };
+
   const sendLabels = () => {
     let labels: ReactionLabelSet | null;
     if (labelSelected === 'none') {
@@ -324,6 +348,36 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
         {/* Left: recording */}
         <div style={{ flexShrink: 0 }}>
+          <div style={{ marginBottom: 24 }}>
+            <p style={{ marginBottom: 8, fontWeight: 600 }}>Participant cap:</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input
+                type="number"
+                min={1}
+                value={capInput}
+                placeholder="No cap"
+                onChange={e => setCapInput(e.target.value)}
+                style={{ ...inputStyle, width: 88 }}
+              />
+              <button className="v3-admin-btn" style={{ padding: '4px 12px' }} onClick={sendUserCap}>
+                Apply
+              </button>
+              {userCap !== null && (
+                <button
+                  className="v3-admin-btn"
+                  style={{ padding: '4px 12px' }}
+                  onClick={() => { setCapInput(''); socket.send(JSON.stringify({ type: 'setUserCap', cap: null })); }}
+                >
+                  Remove cap
+                </button>
+              )}
+            </div>
+            {userCap !== null && (
+              <p style={{ marginTop: 6, color: '#aaa', fontSize: 13 }}>
+                {presenceCount} / {userCap} participants active
+              </p>
+            )}
+          </div>
           <p style={{ marginBottom: 12, fontWeight: 600 }}>Recording mode:</p>
           <label style={{ display: 'block', marginBottom: 8, cursor: isRecording ? 'not-allowed' : 'pointer' }}>
             <input

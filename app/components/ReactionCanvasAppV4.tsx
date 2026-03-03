@@ -47,6 +47,10 @@ export default function ReactionCanvasAppV4() {
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const [activeCursorCount, setActiveCursorCount] = useState<number>(0);
+  const [isViewer, setIsViewer] = useState(false);
+  const [userCap, setUserCap] = useState<number | null>(null);
+  const [viewerCount, setViewerCount] = useState(0);
+  const socketSendRef = useRef<((msg: string) => void) | null>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
@@ -61,6 +65,12 @@ export default function ReactionCanvasAppV4() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const roomHasSpace = userCap === null || presenceCount < userCap;
+
+  const handleJoinRequest = () => {
+    socketSendRef.current?.(JSON.stringify({ type: 'requestJoin' }));
+  };
 
   if (isAdminMode()) {
     const room = getRoomParamFromUrl();
@@ -80,8 +90,18 @@ export default function ReactionCanvasAppV4() {
         {serverLabels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{serverLabels.positive}</div>}
         {serverLabels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{serverLabels.negative}</div>}
         {serverLabels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{serverLabels.neutral}</div>}
+        {isViewer && (
+          <div className="viewer-mode-banner">
+            This room is full — you are watching in view-only mode.
+            {roomHasSpace && (
+              <button className="viewer-join-btn" onClick={handleJoinRequest}>Join</button>
+            )}
+          </div>
+        )}
         <div className="v2-presence-counter">
-          <span className="v2-counter-num">{presenceCount}</span> here · <span className="v2-counter-num">{activeCursorCount + (touchPos !== null ? 1 : 0)}</span> touching
+          <span className="v2-counter-num">{presenceCount}</span>
+          {userCap !== null && <span className="v2-counter-dim">/{userCap}</span>} here · <span className="v2-counter-num">{activeCursorCount + (touchPos !== null ? 1 : 0)}</span> touching
+          {viewerCount > 0 && <> · <span className="v2-counter-num">{viewerCount}</span> watching</>}
         </div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         {isRecording && <div className="v3-rec-badge">● REC</div>}
@@ -102,19 +122,26 @@ export default function ReactionCanvasAppV4() {
           onRecordingStateChange={setIsRecording}
           onRoomLabelsChange={setServerLabels}
           onRoomAnchorsChange={setServerAnchors}
+          onViewerCount={setViewerCount}
+          onConnectedAsViewer={(viewer, cap) => { setIsViewer(viewer); setUserCap(cap); }}
+          onUserCapChanged={setUserCap}
+          onJoinApproved={() => setIsViewer(false)}
+          onSocketReady={(send) => { socketSendRef.current = send; }}
           debug={debug}
         />
-        <TouchLayer
-          room={room}
-          userId={userId}
-          onActiveStatementChange={() => {}}
-          onReactionStateChange={() => {}}
-          reactionStateRef={reactionStateRef}
-          onBackgroundColorChange={setCanvasBackgroundReactionState}
-          onTouchPosition={setTouchPos}
-          heightOffset={0}
-          anchors={anchors}
-        />
+        {!isViewer && (
+          <TouchLayer
+            room={room}
+            userId={userId}
+            onActiveStatementChange={() => {}}
+            onReactionStateChange={() => {}}
+            reactionStateRef={reactionStateRef}
+            onBackgroundColorChange={setCanvasBackgroundReactionState}
+            onTouchPosition={setTouchPos}
+            heightOffset={0}
+            anchors={anchors}
+          />
+        )}
       </div>
     </div>
   );
