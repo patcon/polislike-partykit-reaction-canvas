@@ -3,7 +3,6 @@ import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
 import SimpleReactionCanvasAppV1 from "./components/SimpleReactionCanvasAppV1";
 import ReactionCanvasAppV2 from "./components/ReactionCanvasAppV2";
-import ReactionCanvasAppV3 from "./components/ReactionCanvasAppV3";
 import ReactionCanvasAppV4 from "./components/ReactionCanvasAppV4";
 
 function IndexApp() {
@@ -53,20 +52,6 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="#v3" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V3: Reaction Canvas</h2>
-            <p className="app-card-description">Full-page canvas, no video, no statements. Mobile-only with QR gate on desktop.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?admin=true#v3" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V3: Admin (Record Reactions)</h2>
-            <p className="app-card-description">Record live audience reaction data for offline analysis. Downloads as JSON.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
         <a href="#v4" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V4: Reaction Canvas</h2>
@@ -89,7 +74,6 @@ function IndexApp() {
 const TITLES: Record<string, (admin: boolean) => string> = {
   '#v1': (admin) => admin ? 'Statement Admin — Polislike' : 'Statement Voting — Polislike',
   '#v2': ()      => 'YouTube Reaction (Sync) — Polislike',
-  '#v3': (admin) => admin ? 'Reaction Recorder — Polislike' : 'Reaction Canvas — Polislike',
   '#v4': (admin) => admin ? 'Live Event Admin — Polislike' : 'Live Reaction Canvas — Polislike',
 };
 
@@ -109,7 +93,7 @@ function App() {
 
   if (hash === '#v1') return <SimpleReactionCanvasAppV1 />;
   if (hash === '#v2') return <ReactionCanvasAppV2 />;
-  if (hash === '#v3') return <ReactionCanvasAppV3 />;
+  if (hash === '#v3') { window.location.hash = '#v4'; return null; }
   if (hash === '#v4') return <ReactionCanvasAppV4 />;
   return <IndexApp />;
 }
