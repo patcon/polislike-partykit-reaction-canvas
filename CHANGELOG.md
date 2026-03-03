@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - V1/V2/V4/V5: `?debug=1` URL param enables debug mode on load (in addition to the existing `d` key toggle)
-- V5: in debug mode, YouTube player controls (timeline, play/pause) are enabled; overlay removed so controls are tappable; canvas touch still starts playback but releasing touch no longer pauses, so the scrubber can be used freely
+- V5: in debug mode, YouTube player controls (timeline, play/pause) are enabled; overlay removed so controls and scrubber are tappable; touch-to-play behaviour unchanged
 
 ### Fixed
 - Supabase credentials now correctly embedded in `partykit.json` `define` block; `npx partykit env add` does not reach the client build and was ineffective

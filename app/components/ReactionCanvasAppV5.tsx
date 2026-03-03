@@ -163,19 +163,19 @@ export default function ReactionCanvasAppV5() {
     return () => clearInterval(interval);
   }, []);
 
-  // Touch-to-play: play on touch start; pause on touch end (pause skipped in debug mode)
+  // Single-user touch-to-play: play when touching, pause when not
   useEffect(() => {
     if (!playerRef.current) return;
     try {
       if (touchPos !== null) {
         playerRef.current.playVideo();
-      } else if (!debug) {
+      } else {
         playerRef.current.pauseVideo();
       }
     } catch {
       // player not ready yet
     }
-  }, [debug, touchPos]);
+  }, [touchPos]);
 
   // Test Supabase connection on mount
   useEffect(() => { testConnection(); }, []);
