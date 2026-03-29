@@ -38,6 +38,7 @@ interface CanvasProps {
   onJoinApproved?: () => void;
   onSocketReady?: (send: (msg: string) => void) => void;
   debug?: boolean;
+  onRoomAvatarStyleChange?: (style: string | null) => void;
 }
 
 // Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
@@ -61,10 +62,11 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
+  const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
 
   useEffect(() => {
     onActiveCursorCountChange?.(cursors.size);
@@ -97,6 +99,10 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
             const incoming = data.roomAnchors ?? null;
             setAnchors(incoming ?? DEFAULT_ANCHORS);
             onRoomAnchorsChange?.(incoming);
+          }
+          if ('roomAvatarStyle' in data) {
+            setAvatarStyle(data.roomAvatarStyle ?? null);
+            onRoomAvatarStyleChange?.(data.roomAvatarStyle ?? null);
           }
           onConnectedAsViewer?.(data.isViewer ?? false, data.userCap ?? null);
           onViewerCount?.(data.viewerCount ?? 0);
@@ -132,6 +138,12 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           const incoming = data.anchors ?? null;
           setAnchors(incoming ?? DEFAULT_ANCHORS);
           onRoomAnchorsChange?.(incoming);
+          return;
+        }
+
+        if (data.type === 'roomAvatarStyleChanged') {
+          setAvatarStyle(data.avatarStyle ?? null);
+          onRoomAvatarStyleChange?.(data.avatarStyle ?? null);
           return;
         }
 
@@ -275,52 +287,83 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       reactionState: colorCursorsByVote ? computeReactionRegion(cursor.x, cursor.y, anchors) : null
     }));
 
+    // Add cursor circles with responsive radius
+    const smallerDim = Math.min(dimensions.width, dimensions.height);
+    const cursorRadius = avatarStyle
+      ? smallerDim * 0.03  // 3% when showing avatars (needs to be recognizable)
+      : smallerDim * 0.01; // 1% for default colored dots (original size)
+
+    const cursorColor = (d: any): string => {
+      if (colorCursorsByVote && d.reactionState) {
+        switch (d.reactionState) {
+          case 'positive': return 'rgba(0, 255, 0, 0.8)';
+          case 'negative': return 'rgba(255, 0, 0, 0.8)';
+          case 'neutral': return 'rgba(255, 255, 0, 0.8)';
+          default: return 'rgba(128, 128, 128, 0.8)';
+        }
+      }
+      const hue = d.cursorUserId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 360;
+      return `hsl(${hue}, 70%, 50%)`;
+    };
+
     const cursorGroups = svg.selectAll('.cursor-group')
       .data(cursorData, (d: any) => d.cursorUserId)
       .enter()
       .append('g')
       .attr('class', 'cursor-group');
 
-    // Add cursor circles with responsive radius
-    const cursorRadius = Math.min(dimensions.width, dimensions.height) * 0.01; // 1% of smaller dimension
-    cursorGroups.append('circle')
-      .attr('cx', d => d.x)
-      .attr('cy', d => d.y)
-      .attr('r', cursorRadius)
-      .attr('fill', (d: any) => {
-        // Use region-based colors if enabled and reaction state is available (for ghost cursors)
-        if (colorCursorsByVote && d.reactionState) {
-          switch (d.reactionState) {
-            case 'positive':
-              return 'rgba(0, 255, 0, 0.8)';
-            case 'negative':
-              return 'rgba(255, 0, 0, 0.8)';
-            case 'neutral':
-              return 'rgba(255, 255, 0, 0.8)';
-            default:
-              return 'rgba(128, 128, 128, 0.8)';
-          }
-        }
+    if (avatarStyle) {
+      // Add clip paths to defs for circular avatar masking
+      const defs = svg.append('defs');
+      cursorData.forEach(d => {
+        defs.append('clipPath')
+          .attr('id', `avatar-clip-${d.cursorUserId}`)
+          .append('circle')
+          .attr('cx', d.x)
+          .attr('cy', d.y)
+          .attr('r', cursorRadius);
+      });
 
-        // Generate a consistent color for each user (for real user cursors or when reaction coloring is disabled)
-        const hue = d.cursorUserId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 360;
-        return `hsl(${hue}, 70%, 50%)`;
-      })
-      .attr('stroke', '#000000') // Black border
-      .attr('stroke-width', 2); // 2px border width
+      // Colored border ring
+      cursorGroups.append('circle')
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y)
+        .attr('r', cursorRadius + 2)
+        .attr('fill', cursorColor)
+        .attr('stroke', '#000000')
+        .attr('stroke-width', 1.5);
 
-    // Add user ID labels with responsive font size and positioning
-    const cursorLabelFontSize = Math.min(dimensions.width, dimensions.height) * 0.015; // 1.5% of smaller dimension
-    const labelOffset = Math.min(dimensions.width, dimensions.height) * 0.015; // Responsive offset
-    cursorGroups.append('text')
-      .attr('x', (d: any) => d.x + labelOffset)
-      .attr('y', (d: any) => d.y - labelOffset * 0.5)
-      .attr('font-family', 'sans-serif')
-      .attr('font-size', `${cursorLabelFontSize}px`)
-      .attr('fill', '#000')
-      .text((d: any) => d.cursorUserId.substring(0, 6));
+      // DiceBear avatar image clipped to circle
+      const avatarSize = cursorRadius * 2;
+      cursorGroups.append('image')
+        .attr('href', (d: any) => `https://api.dicebear.com/9.x/${avatarStyle}/svg?seed=${encodeURIComponent(d.cursorUserId)}`)
+        .attr('x', (d: any) => d.x - cursorRadius)
+        .attr('y', (d: any) => d.y - cursorRadius)
+        .attr('width', avatarSize)
+        .attr('height', avatarSize)
+        .attr('clip-path', (d: any) => `url(#avatar-clip-${d.cursorUserId})`);
+    } else {
+      cursorGroups.append('circle')
+        .attr('cx', d => d.x)
+        .attr('cy', d => d.y)
+        .attr('r', cursorRadius)
+        .attr('fill', cursorColor)
+        .attr('stroke', '#000000')
+        .attr('stroke-width', 2);
 
-  }, [cursors, dimensions, anchors, debug, hideCursors]);
+      // Add user ID labels with responsive font size and positioning
+      const cursorLabelFontSize = Math.min(dimensions.width, dimensions.height) * 0.015; // 1.5% of smaller dimension
+      const labelOffset = Math.min(dimensions.width, dimensions.height) * 0.015; // Responsive offset
+      cursorGroups.append('text')
+        .attr('x', (d: any) => d.x + labelOffset)
+        .attr('y', (d: any) => d.y - labelOffset * 0.5)
+        .attr('font-family', 'sans-serif')
+        .attr('font-size', `${cursorLabelFontSize}px`)
+        .attr('fill', '#000')
+        .text((d: any) => d.cursorUserId.substring(0, 6));
+    }
+
+  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle]);
 
   // Handle window resize
   useEffect(() => {

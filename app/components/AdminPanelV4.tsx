@@ -38,7 +38,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   }, []);
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState<RecordingMode>('transitions');
-  const [configTab, setConfigTab] = useState<'labels' | 'anchors'>('labels');
+  const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars'>('labels');
   const [eventCount, setEventCount] = useState(0);
   const [serverRecording, setServerRecording] = useState(false);
   const [userCap, setUserCap] = useState<number | null>(null);
@@ -50,6 +50,9 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [customPositive, setCustomPositive] = useState('');
   const [customNegative, setCustomNegative] = useState('');
   const [customNeutral, setCustomNeutral] = useState('');
+
+  // Avatar config state
+  const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
 
   // Anchor config state (local editing)
   const defaults = anchorToLocal(DEFAULT_ANCHORS);
@@ -123,6 +126,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           if (data.recordingState !== undefined) setServerRecording(data.recordingState);
           if ('roomLabels' in data) applyServerLabels(data.roomLabels);
           if ('roomAnchors' in data) applyServerAnchors(data.roomAnchors);
+          if ('roomAvatarStyle' in data) setAvatarStyle(data.roomAvatarStyle ?? null);
           if (data.userCap !== undefined) {
             setUserCap(data.userCap);
             setCapInput(data.userCap !== null ? String(data.userCap) : '');
@@ -137,6 +141,11 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
         if (data.type === 'roomAnchorsChanged') {
           applyServerAnchors(data.anchors);
+          return;
+        }
+
+        if (data.type === 'roomAvatarStyleChanged') {
+          setAvatarStyle(data.avatarStyle ?? null);
           return;
         }
 
@@ -289,6 +298,11 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const resetAnchors = () => {
     applyServerAnchors(null);
     socket.send(JSON.stringify({ type: 'setRoomAnchors', anchors: null }));
+  };
+
+  const sendAvatarStyle = (style: string | null) => {
+    setAvatarStyle(style);
+    socket.send(JSON.stringify({ type: 'setRoomAvatarStyle', avatarStyle: style }));
   };
 
   const selectPreset = (key: string) => {
@@ -464,7 +478,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid #444' }}>
-        {(['labels', 'anchors'] as const).map(tab => (
+        {(['labels', 'anchors', 'avatars'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setConfigTab(tab)}
@@ -481,7 +495,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               textTransform: 'capitalize',
             }}
           >
-            {tab === 'labels' ? 'Labels' : 'Anchors'}
+            {tab === 'labels' ? 'Labels' : tab === 'anchors' ? 'Anchors' : 'Avatars'}
           </button>
         ))}
       </div>
@@ -633,6 +647,57 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           >
             Apply Anchors
           </button>
+        </div>
+      )}
+
+      {configTab === 'avatars' && (
+        <div>
+          <p style={{ marginBottom: 4, fontWeight: 600 }}>Avatar style (shown to all participants):</p>
+          <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Avatars are generated from each user's ID using <a href="https://www.dicebear.com" target="_blank" rel="noopener noreferrer" style={{ color: '#69f' }}>DiceBear</a>.</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+              <input
+                type="radio"
+                name="avatarStyle"
+                value=""
+                checked={avatarStyle === null}
+                onChange={() => sendAvatarStyle(null)}
+                style={{ marginRight: 4 }}
+              />
+              <span style={{ color: '#aaa' }}>None (show colored dots)</span>
+            </label>
+            {[
+              { id: 'adventurer', label: 'Adventurer' },
+              { id: 'avataaars', label: 'Avataaars' },
+              { id: 'bottts', label: 'Bottts (Robots)' },
+              { id: 'fun-emoji', label: 'Fun Emoji' },
+              { id: 'identicon', label: 'Identicon' },
+              { id: 'lorelei', label: 'Lorelei' },
+              { id: 'micah', label: 'Micah' },
+              { id: 'open-peeps', label: 'Open Peeps' },
+              { id: 'pixel-art', label: 'Pixel Art' },
+              { id: 'thumbs', label: 'Thumbs' },
+            ].map(({ id, label }) => (
+              <label key={id} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="avatarStyle"
+                  value={id}
+                  checked={avatarStyle === id}
+                  onChange={() => sendAvatarStyle(id)}
+                  style={{ marginRight: 4 }}
+                />
+                <img
+                  src={`https://api.dicebear.com/9.x/${id}/svg?seed=preview`}
+                  alt={label}
+                  width={36}
+                  height={36}
+                  style={{ borderRadius: '50%', border: '2px solid #555', background: '#222' }}
+                />
+                <span>{label}</span>
+              </label>
+            ))}
+          </div>
         </div>
       )}
 

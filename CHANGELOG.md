@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+### Added
+- V4 Admin: new "Avatars" config tab lets the admin select a DiceBear avatar style (adventurer, avataaars, bottts, fun-emoji, identicon, lorelei, micah, open-peeps, pixel-art, thumbs) or revert to colored dots; the choice is broadcast to all participants in the room
+- Canvas: when an avatar style is set by the admin, each participant's cursor is rendered as a circular DiceBear avatar (seeded from their user ID) with a colored border ring; selecting "None" restores the original colored dot + label display
+
 ## [Unreleased] (2026-03-03)
 
 ### Added

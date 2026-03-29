@@ -96,6 +96,11 @@ interface SetRoomAnchorsEvent {
   anchors: ReactionAnchors | null;
 }
 
+interface SetRoomAvatarStyleEvent {
+  type: 'setRoomAvatarStyle';
+  avatarStyle: string | null;
+}
+
 interface SetUserCapEvent {
   type: 'setUserCap';
   cap: number | null;
@@ -112,7 +117,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetUserCapEvent | RequestJoinEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetUserCapEvent | RequestJoinEvent;
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
@@ -127,6 +132,7 @@ export default class Server implements Party.Server {
   private recordingState: boolean = false;
   private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
   private roomAnchors: ReactionAnchors | null = null;
+  private roomAvatarStyle: string | null = null;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -215,6 +221,7 @@ export default class Server implements Party.Server {
       recordingState: this.recordingState,
       roomLabels: this.roomLabels,
       roomAnchors: this.roomAnchors,
+      roomAvatarStyle: this.roomAvatarStyle,
       isViewer,
       userCap: this.userCap,
       viewerCount: vCount,
@@ -291,6 +298,9 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setRoomAnchors') {
         this.roomAnchors = event.anchors;
         this.room.broadcast(JSON.stringify({ type: 'roomAnchorsChanged', anchors: this.roomAnchors }));
+      } else if (event.type === 'setRoomAvatarStyle') {
+        this.roomAvatarStyle = event.avatarStyle;
+        this.room.broadcast(JSON.stringify({ type: 'roomAvatarStyleChanged', avatarStyle: this.roomAvatarStyle }));
       } else if (event.type === 'setUserCap') {
         if (!this.adminConnectionIds.has(sender.id)) return;
         this.userCap = event.cap;
