@@ -555,8 +555,7 @@ function computeAudienceMood() {
 function applyAudienceMood() {
   if (!audienceSync) return;
   const m = computeAudienceMood();
-  if (m === null) return;
-  const clamped = Math.round(clamp(m, 0, 100));
+  const clamped = Math.round(clamp(m === null ? 50 : m, 0, 100));
   mood = clamped;
   moodSlider.value = clamped;
   updateDisplay(clamped / 100);
