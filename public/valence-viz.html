@@ -1199,11 +1199,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   }
 
   function liveStepTick() {
-    if (liveStep >= TOTAL_STEPS) {
-      clearInterval(liveClockTimer);
-      document.getElementById('live-badge').textContent = '■ live (buffer full)';
-      return;
-    }
+    if (liveStep >= TOTAL_STEPS) liveStep = HISTORY_STEPS; // wrap: overwrite oldest live data
     writeLiveStep(liveStep);
     liveStep++;
     tNorm = Math.min(1, (liveStep - HISTORY_STEPS) / LIVE_STEPS);
@@ -1225,7 +1221,6 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     clearInterval(liveClockTimer);
     document.getElementById('row-scrub').style.display = '';
     document.getElementById('live-badge').classList.remove('visible');
-    document.getElementById('live-badge').textContent = '● live';
     playing = true;
     lastTs = null;
   }
