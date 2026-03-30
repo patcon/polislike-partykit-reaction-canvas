@@ -530,14 +530,40 @@ function computeRegion(nx, ny) {
   return 'neutral';
 }
 
+// Returns a continuous mood value 0–100 for a cursor position using
+// barycentric weights: positive→100, negative→0, neutral→50
+function cursorMoodValue(nx, ny) {
+  const x = nx / 100;
+  const y = ny / 100;
+  const pos = { x: ANCHORS.positive.x / 100, y: ANCHORS.positive.y / 100 };
+  const neg = { x: ANCHORS.negative.x / 100, y: ANCHORS.negative.y / 100 };
+  const neu = { x: ANCHORS.neutral.x  / 100, y: ANCHORS.neutral.y  / 100 };
+  const denom = (neg.y - neu.y) * (pos.x - neu.x) + (neu.x - neg.x) * (pos.y - neu.y);
+  if (Math.abs(denom) < 1e-10) {
+    const dp = Math.hypot(x - pos.x, y - pos.y);
+    const dn = Math.hypot(x - neg.x, y - neg.y);
+    const dz = Math.hypot(x - neu.x, y - neu.y);
+    const total = dp + dn + dz || 1;
+    // Invert distances to weights
+    const wPos = (1 / (dp || 1e-9)) / (1/(dp||1e-9) + 1/(dn||1e-9) + 1/(dz||1e-9));
+    const wNeg = (1 / (dn || 1e-9)) / (1/(dp||1e-9) + 1/(dn||1e-9) + 1/(dz||1e-9));
+    const wNeu = 1 - wPos - wNeg;
+    return clamp(wPos * 100 + wNeg * 0 + wNeu * 50, 0, 100);
+  }
+  const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
+  const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
+  const wNeu = 1 - wPos - wNeg;
+  return clamp(wPos * 100 + wNeg * 0 + wNeu * 50, 0, 100);
+}
+
 // ── Audience mood computation ────────────────────────────────────
 function computeAudienceMood() {
   if (cursors.size === 0) return null;
 
   if (valenceMode === 'continuous') {
-    // Average of raw x-positions (0–100)
+    // Average of barycentric mood values: positive→100, negative→0, neutral→50
     let sum = 0;
-    for (const [, c] of cursors) sum += c.x;
+    for (const [, c] of cursors) sum += cursorMoodValue(c.x, c.y);
     return sum / cursors.size;
   } else {
     // Unit mode: each cursor maps to -1/0/+1 by region, then average → 0–100
