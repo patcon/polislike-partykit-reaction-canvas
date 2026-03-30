@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mood Sounds</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: system-ui, sans-serif;
+    background: #0f0f13;
+    color: #e8e8ec;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+  }
+  .app { width: 100%; max-width: 560px; }
+
+  .header {
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: #606080;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 1.25rem;
+  }
+
+  .card {
+    background: #1a1a24;
+    border: 1px solid #2a2a38;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* ── Preset selector ── */
+  .presets {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+  }
+  .preset-btn {
+    flex: 1;
+    min-width: 100px;
+    padding: 0.6rem 0.8rem;
+    border-radius: 10px;
+    border: 1px solid #2a2a3a;
+    background: #141420;
+    color: #7070a0;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+    line-height: 1.4;
+  }
+  .preset-btn:hover { background: #1e1e2e; border-color: #4a4a70; color: #a0a0c0; }
+  .preset-btn.active {
+    background: #1e1e30;
+    border-color: #5050a0;
+    color: #c0c0ff;
+  }
+  .preset-btn .p-emoji { font-size: 1.1rem; display: block; margin-bottom: 2px; }
+  .preset-btn .p-label { font-size: 0.7rem; color: inherit; opacity: 0.75; }
+
+  /* ── Emoji + slider ── */
+  .emoji-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1.25rem;
+  }
+  .emoji-end { font-size: 1.6rem; flex-shrink: 0; }
+  .slider-wrap { flex: 1; position: relative; }
+
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    cursor: pointer;
+  }
+  input[type=range]:disabled::-webkit-slider-thumb {
+    cursor: not-allowed;
+  }
+
+  .slider-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 5px;
+    font-size: 0.7rem;
+    color: #505070;
+  }
+
+  /* ── Center emoji ── */
+  .emoji-display {
+    text-align: center;
+    font-size: 2.6rem;
+    margin-bottom: 1rem;
+    transition: all 0.25s ease;
+    line-height: 1;
+  }
+
+  /* ── Viz bars ── */
+  .viz {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 56px;
+    margin-bottom: 1.25rem;
+    padding: 0 2px;
+  }
+  .bar {
+    flex: 1;
+    border-radius: 3px 3px 0 0;
+    transition: height 0.1s ease, background 0.35s ease;
+    min-height: 3px;
+  }
+
+  /* ── Note chips ── */
+  .note-chips {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    margin-bottom: 1.25rem;
+    min-height: 26px;
+  }
+  .chip {
+    font-size: 0.72rem;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: #222230;
+    color: #6060a0;
+    border: 1px solid #303050;
+    transition: all 0.12s ease;
+    font-weight: 500;
+  }
+  .chip.lit {
+    background: #2a3860;
+    color: #90b0ff;
+    border-color: #4060b0;
+  }
+
+  /* ── Stats ── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 6px;
+    margin-bottom: 1.25rem;
+  }
+  .stat {
+    background: #141420;
+    border-radius: 8px;
+    padding: 0.5rem 0.6rem;
+    text-align: center;
+  }
+  .stat-label {
+    font-size: 0.6rem;
+    color: #505070;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 3px;
+  }
+  .stat-value {
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: #b0b0d0;
+    transition: color 0.3s;
+  }
+
+  /* ── Buttons ── */
+  .btn-row { display: flex; gap: 8px; }
+  button.ctrl {
+    flex: 1;
+    padding: 0.7rem 0.8rem;
+    border-radius: 10px;
+    border: 1px solid #3a3a50;
+    background: #1a1a28;
+    color: #b0b0d0;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  button.ctrl:hover { background: #242434; border-color: #5050a0; }
+  button.ctrl:active { transform: scale(0.98); }
+  button.ctrl.playing { background: #1a3020; border-color: #30a060; color: #60e090; }
+  button.ctrl.connected { background: #1a2030; border-color: #3060a0; color: #60a0e0; }
+  button.ctrl.disconnecting { background: #301a1a; border-color: #a03030; color: #e06060; }
+
+  /* ── Explain ── */
+  .explain-card {
+    background: #141420;
+    border: 1px solid #1e1e32;
+    border-radius: 12px;
+    padding: 0.9rem 1.1rem;
+    font-size: 0.8rem;
+    color: #6060a0;
+    line-height: 1.65;
+    min-height: 44px;
+    transition: color 0.3s;
+  }
+
+  /* ── Connection card ── */
+  .conn-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  .conn-row label {
+    font-size: 0.72rem;
+    color: #6060a0;
+    white-space: nowrap;
+  }
+  .conn-row input[type=text] {
+    flex: 1;
+    background: #141420;
+    border: 1px solid #2a2a3a;
+    border-radius: 8px;
+    color: #c0c0e0;
+    font-size: 0.85rem;
+    padding: 0.4rem 0.6rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .conn-row input[type=text]:focus { border-color: #5050a0; }
+
+  .conn-status {
+    font-size: 0.7rem;
+    color: #404058;
+    margin-top: 0.5rem;
+  }
+  .conn-status.ok   { color: #40a060; }
+  .conn-status.warn { color: #c07030; }
+  .conn-status.connecting { color: #6060a0; }
+
+  /* ── Audience sync controls ── */
+  .sync-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .toggle-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .toggle-label {
+    font-size: 0.7rem;
+    color: #505070;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  /* pill toggle */
+  .pill-toggle {
+    display: flex;
+    background: #141420;
+    border: 1px solid #2a2a3a;
+    border-radius: 20px;
+    overflow: hidden;
+  }
+  .pill-toggle button {
+    padding: 0.3rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    color: #505070;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    border-radius: 20px;
+  }
+  .pill-toggle button.active {
+    background: #2a2a48;
+    color: #a0a0e0;
+  }
+  .pill-toggle button:hover:not(.active) { color: #8080b0; }
+
+  .valence-group { display: none; }
+  .valence-group.visible { display: flex; }
+
+  .audience-count {
+    font-size: 0.72rem;
+    color: #505070;
+    margin-left: auto;
+  }
+  .audience-count span { color: #8080b0; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">mood sounds · facilitator</div>
+
+  <!-- Connection card -->
+  <div class="card">
+    <div class="conn-row">
+      <label for="room-input">room</label>
+      <input type="text" id="room-input" placeholder="default" autocomplete="off" spellcheck="false">
+      <button class="ctrl" id="btn-connect" style="flex:0 0 auto; padding: 0.4rem 1rem;">connect</button>
+    </div>
+    <div class="conn-status" id="conn-status">not connected · open in a separate tab from participants</div>
+  </div>
+
+  <div class="card">
+
+    <!-- Preset selector -->
+    <div class="presets" id="presets"></div>
+
+    <!-- Big emoji -->
+    <div class="emoji-display" id="emoji">😢</div>
+
+    <!-- Slider with emoji ends -->
+    <div class="emoji-row">
+      <span class="emoji-end" id="emoji-lo">😢</span>
+      <div class="slider-wrap">
+        <input type="range" id="mood" min="0" max="100" value="0" step="1">
+        <div class="slider-labels">
+          <span id="label-lo">sad</span>
+          <span id="label-hi">happy</span>
+        </div>
+      </div>
+      <span class="emoji-end" id="emoji-hi">😄</span>
+    </div>
+
+    <!-- Audience sync controls -->
+    <div class="sync-row">
+      <div class="toggle-group">
+        <span class="toggle-label">audience sync</span>
+        <div class="pill-toggle" id="sync-toggle">
+          <button id="sync-off" class="active">off</button>
+          <button id="sync-on">on</button>
+        </div>
+      </div>
+      <div class="toggle-group valence-group" id="valence-group">
+        <span class="toggle-label">valence</span>
+        <div class="pill-toggle" id="valence-toggle">
+          <button id="valence-continuous" class="active">continuous</button>
+          <button id="valence-unit">unit</button>
+        </div>
+      </div>
+      <div class="audience-count" id="audience-count" style="display:none">
+        audience: <span id="audience-n">0</span>
+      </div>
+    </div>
+
+    <!-- Viz -->
+    <div class="viz" id="viz" style="margin-top:1.25rem;"></div>
+
+    <!-- Note chips -->
+    <div class="note-chips" id="chips"></div>
+
+    <!-- Stats -->
+    <div class="stats">
+      <div class="stat"><div class="stat-label">chord</div><div class="stat-value" id="stat-chord">—</div></div>
+      <div class="stat"><div class="stat-label">velocity</div><div class="stat-value" id="stat-vel">—</div></div>
+      <div class="stat"><div class="stat-label">tempo</div><div class="stat-value" id="stat-tempo">—</div></div>
+      <div class="stat"><div class="stat-label">octave</div><div class="stat-value" id="stat-oct">—</div></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="ctrl" id="btn-play">▶ start</button>
+    </div>
+  </div>
+
+  <div class="explain-card" id="explain">Select a preset and drag the slider.</div>
+</div>
+
+<script>
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+function noteName(n) { return NOTE_NAMES[n % 12] + Math.floor(n / 12 - 1); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+// ── Preset definitions ───────────────────────────────────────────
+const PRESETS = [
+  {
+    id: 'sad-happy',
+    emoji: '😢→😄',
+    label: 'sad → happy',
+    sliderGradient: 'linear-gradient(to right, #4466bb, #e8a030)',
+    waypoints: [
+      { t: 0,   chord: [48,51,55,60], velocity: 38,  tempo: 640, pitchBend: -0.35, oscType: 'triangle', octShift: 0,
+        emoji: '😢', chordName: 'C min', color: [60,100,200],
+        explain: 'C minor, hushed (vel 38), slow (640ms). Pitch bent flat.' },
+      { t: 0.5, chord: [48,51,55,60], velocity: 72,  tempo: 430, pitchBend: 0,     oscType: 'triangle', octShift: 0,
+        emoji: '😐', chordName: 'C min', color: [130,130,160],
+        explain: 'Midpoint — still minor but warming up, tempo picking up.' },
+      { t: 1,   chord: [48,52,55,60], velocity: 112, tempo: 270, pitchBend:  0.35, oscType: 'triangle',     octShift: 0,
+        emoji: '😄', chordName: 'C maj', color: [220,160,40],
+        explain: 'C major, bright (vel 112), fast (270ms). Pitch bent sharp.' },
+    ]
+  },
+  {
+    id: 'angry-happy',
+    emoji: '😡→😄',
+    label: 'angry → happy',
+    sliderGradient: 'linear-gradient(to right, #cc3030, #e8a030)',
+    waypoints: [
+      { t: 0,   chord: [36,39,43,48], velocity: 82,  tempo: 240, pitchBend: 0,  oscType: 'angry',    octShift: 0,
+        emoji: '😡', chordName: 'C dim', color: [200,40,40],
+        explain: 'Detuned unison + noise FM + inharmonic modulator. Evil via instability, not volume.' },
+      { t: 0.35,chord: [43,46,50,55], velocity: 74,  tempo: 360, pitchBend: 0,  oscType: 'angry',    octShift: 0,
+        emoji: '😤', chordName: 'G min', color: [160,90,60],
+        explain: 'Anger easing — still detuned and unstable, but opening up.' },
+      { t: 0.55,chord: [43,46,50,55], velocity: 64,  tempo: 430, pitchBend: 0,  oscType: 'triangle', octShift: 0,
+        emoji: '😐', chordName: 'G min', color: [130,110,130],
+        explain: 'Same chord, instability fading — evil drains without a pitch jump.' },
+      { t: 0.75,chord: [45,48,52,57], velocity: 72,  tempo: 370, pitchBend: 0.1,oscType: 'triangle', octShift: 0,
+        emoji: '🙂', chordName: 'A min', color: [160,130,80],
+        explain: 'A minor now — chord moves only after instability is already gone.' },
+      { t: 1,   chord: [48,52,55,60], velocity: 108, tempo: 290, pitchBend: 0.3,oscType: 'triangle',     octShift: 0,
+        emoji: '😄', chordName: 'C maj', color: [220,160,40],
+        explain: 'C major, bright and fast. Anger fully resolved into joy.' },
+    ]
+  },
+  {
+    id: 'tense-serene',
+    emoji: '😰→😌',
+    label: 'tense → serene',
+    sliderGradient: 'linear-gradient(to right, #8833aa, #30aa88)',
+    waypoints: [
+      { t: 0,   chord: [48,53,56,62], velocity: 95,  tempo: 220, pitchBend: 0.5,   oscType: 'sawtooth', octShift: 0,
+        emoji: '😰', chordName: 'C sus4♭7', color: [160,40,200],
+        explain: 'Suspended dissonant cluster, fast and tense. Pitch bent high.' },
+      { t: 0.35,chord: [48,51,55,58], velocity: 72,  tempo: 400, pitchBend: 0.2,   oscType: 'triangle', octShift: 0,
+        emoji: '😟', chordName: 'C min7', color: [130,70,160],
+        explain: 'Minor 7th — still unsettled but the urgency is easing.' },
+      { t: 0.65,chord: [48,52,55,59], velocity: 52,  tempo: 560, pitchBend: 0,     oscType: 'triangle', octShift: 0,
+        emoji: '🙂', chordName: 'Cmaj7', color: [60,150,130],
+        explain: 'Major 7th — warm, floating. Tension mostly released.' },
+      { t: 1,   chord: [48,52,55,60], velocity: 36,  tempo: 800, pitchBend: -0.1,  oscType: 'triangle',     octShift: 0,
+        emoji: '😌', chordName: 'C maj', color: [40,180,140],
+        explain: 'Pure sine tone, very soft (vel 36), slow (800ms). Total serenity.' },
+    ]
+  },
+  {
+    id: 'eerie-wonder',
+    emoji: '👻→🤩',
+    label: 'eerie → wonder',
+    sliderGradient: 'linear-gradient(to right, #224466, #aa6600)',
+    waypoints: [
+      { t: 0,   chord: [42,45,48,54], velocity: 44,  tempo: 700, pitchBend: -0.2,  oscType: 'sawtooth', octShift: 0,
+        emoji: '👻', chordName: 'F# dim', color: [40,80,130],
+        explain: 'F# diminished — unsettling, sparse, low velocity. Slow and hollow.' },
+      { t: 0.5, chord: [48,51,55,62], velocity: 65,  tempo: 450, pitchBend: 0.15,  oscType: 'triangle', octShift: 0,
+        emoji: '😮', chordName: 'C min9', color: [100,100,160],
+        explain: 'Minor 9 chord — mysterious but opening up. Something approaching.' },
+      { t: 1,   chord: [48,52,55,64], velocity: 100, tempo: 260, pitchBend: 0.4,   oscType: 'triangle',     octShift: 1,
+        emoji: '🤩', chordName: 'C maj9', color: [200,140,30],
+        explain: 'Major 9, bright velocity, fast — full revelation. Octave up.' },
+    ]
+  },
+];
+
+// ── State ────────────────────────────────────────────────────────
+let activePreset = PRESETS[0];
+let playing = false;
+let mood = 0;
+let currentChord = [];
+let schedTimer = null;
+let noteIndex = 0;
+let activeNotes = new Set();
+let audioCtx = null;
+let masterBus = null;
+let bars = [];
+
+// ── Audience sync state ─────────────────────────────────────────
+let audienceSync = false;
+let valenceMode = 'continuous'; // 'continuous' | 'unit'
+let ws = null;
+let wsConnected = false;
+let wsReconnectTimer = null;
+// Map<userId, { x, y, region }>
+// region: 'positive' | 'negative' | 'neutral' (cached for unit mode)
+const cursors = new Map();
+// Unit mode: track each cursor's last region to detect transitions
+const cursorRegions = new Map();
+
+// ── Vote region logic (ported from app/utils/voteRegion.ts) ──────
+const ANCHORS = {
+  positive: { x: 95, y: 5  },
+  negative: { x: 5,  y: 95 },
+  neutral:  { x: 95, y: 95 },
+};
+
+function computeRegion(nx, ny) {
+  const x = nx / 100;
+  const y = ny / 100;
+  const pos = { x: ANCHORS.positive.x / 100, y: ANCHORS.positive.y / 100 };
+  const neg = { x: ANCHORS.negative.x / 100, y: ANCHORS.negative.y / 100 };
+  const neu = { x: ANCHORS.neutral.x  / 100, y: ANCHORS.neutral.y  / 100 };
+
+  const denom = (neg.y - neu.y) * (pos.x - neu.x) + (neu.x - neg.x) * (pos.y - neu.y);
+  if (Math.abs(denom) < 1e-10) {
+    const dp = Math.hypot(x - pos.x, y - pos.y);
+    const dn = Math.hypot(x - neg.x, y - neg.y);
+    const dz = Math.hypot(x - neu.x, y - neu.y);
+    const m  = Math.min(dp, dn, dz);
+    if (m === dp) return 'positive';
+    if (m === dn) return 'negative';
+    return 'neutral';
+  }
+  const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
+  const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
+  const wNeu = 1 - wPos - wNeg;
+  const mx = Math.max(wPos, wNeg, wNeu);
+  if (mx === wPos) return 'positive';
+  if (mx === wNeg) return 'negative';
+  return 'neutral';
+}
+
+// ── Audience mood computation ────────────────────────────────────
+function computeAudienceMood() {
+  if (cursors.size === 0) return null;
+
+  if (valenceMode === 'continuous') {
+    // Average of raw x-positions (0–100)
+    let sum = 0;
+    for (const [, c] of cursors) sum += c.x;
+    return sum / cursors.size;
+  } else {
+    // Unit mode: each cursor maps to -1/0/+1 by region, then average → 0–100
+    let sum = 0;
+    for (const [, c] of cursors) {
+      if (c.region === 'positive') sum += 1;
+      else if (c.region === 'negative') sum += -1;
+      // neutral → 0
+    }
+    const avg = sum / cursors.size; // -1 to +1
+    return (avg + 1) / 2 * 100;    // map to 0–100
+  }
+}
+
+function applyAudienceMood() {
+  if (!audienceSync) return;
+  const m = computeAudienceMood();
+  if (m === null) return;
+  const clamped = Math.round(clamp(m, 0, 100));
+  mood = clamped;
+  moodSlider.value = clamped;
+  updateDisplay(clamped / 100);
+}
+
+// ── DOM refs ─────────────────────────────────────────────────────
+const moodSlider   = document.getElementById('mood');
+const emojiEl      = document.getElementById('emoji');
+const emojiLoEl    = document.getElementById('emoji-lo');
+const emojiHiEl    = document.getElementById('emoji-hi');
+const labelLoEl    = document.getElementById('label-lo');
+const labelHiEl    = document.getElementById('label-hi');
+const explainEl    = document.getElementById('explain');
+const chipsEl      = document.getElementById('chips');
+const vizEl        = document.getElementById('viz');
+const statChord    = document.getElementById('stat-chord');
+const statVel      = document.getElementById('stat-vel');
+const statTempo    = document.getElementById('stat-tempo');
+const statOct      = document.getElementById('stat-oct');
+const btnPlay      = document.getElementById('btn-play');
+const btnConnect   = document.getElementById('btn-connect');
+const connStatus   = document.getElementById('conn-status');
+const roomInput    = document.getElementById('room-input');
+const syncOff      = document.getElementById('sync-off');
+const syncOn       = document.getElementById('sync-on');
+const valenceCont  = document.getElementById('valence-continuous');
+const valenceUnit  = document.getElementById('valence-unit');
+const valenceGroup = document.getElementById('valence-group');
+const audienceCount= document.getElementById('audience-count');
+const audienceN    = document.getElementById('audience-n');
+const presetsEl    = document.getElementById('presets');
+
+// ── Room URL param ───────────────────────────────────────────────
+const DEFAULT_HOST = 'polislike-partykit-reaction-canvas.patcon.partykit.dev';
+
+function getUrlParam(key) {
+  return new URLSearchParams(window.location.search).get(key);
+}
+
+const initialRoom = getUrlParam('room') || 'default';
+roomInput.value = initialRoom;
+
+roomInput.addEventListener('input', () => {
+  const params = new URLSearchParams(window.location.search);
+  const val = roomInput.value.trim();
+  if (val && val !== 'default') {
+    params.set('room', val);
+  } else {
+    params.delete('room');
+  }
+  const newSearch = params.toString() ? '?' + params.toString() : '';
+  history.replaceState(null, '', window.location.pathname + newSearch);
+});
+
+// ── Build viz bars ───────────────────────────────────────────────
+for (let i = 0; i < 4; i++) {
+  const b = document.createElement('div');
+  b.className = 'bar';
+  b.style.cssText = 'height:3px; background:#2a2a40;';
+  vizEl.appendChild(b);
+  bars.push(b);
+}
+
+// ── Build preset buttons ─────────────────────────────────────────
+PRESETS.forEach(p => {
+  const btn = document.createElement('button');
+  btn.className = 'preset-btn';
+  btn.dataset.id = p.id;
+  btn.innerHTML = `<span class="p-emoji">${p.emoji}</span><span class="p-label">${p.label}</span>`;
+  btn.addEventListener('click', () => selectPreset(p));
+  presetsEl.appendChild(btn);
+});
+
+function selectPreset(p) {
+  activePreset = p;
+  mood = 0;
+  moodSlider.value = 0;
+  noteIndex = 0;
+  currentChord = [];
+
+  document.querySelectorAll('.preset-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.id === p.id);
+  });
+
+  const wp = p.waypoints;
+  emojiLoEl.textContent = wp[0].emoji;
+  emojiHiEl.textContent = wp[wp.length - 1].emoji;
+  labelLoEl.textContent = wp[0].chordName.toLowerCase();
+  labelHiEl.textContent = wp[wp.length - 1].chordName.toLowerCase();
+  moodSlider.style.background = p.sliderGradient;
+
+  updateDisplay(0);
+}
+
+// ── Interpolate between waypoints ───────────────────────────────
+function interpolateWaypoints(t) {
+  const wps = activePreset.waypoints;
+  let lo = wps[0], hi = wps[wps.length - 1];
+  for (let i = 0; i < wps.length - 1; i++) {
+    if (t >= wps[i].t && t <= wps[i + 1].t) { lo = wps[i]; hi = wps[i + 1]; break; }
+  }
+  const span = hi.t - lo.t || 1;
+  const f = clamp((t - lo.t) / span, 0, 1);
+
+  const nearest = f < 0.5 ? lo : hi;
+
+  const loEvil = lo.oscType === 'angry' ? 1 : 0;
+  const hiEvil = hi.oscType === 'angry' ? 1 : 0;
+  const evilAmount = lerp(loEvil, hiEvil, f);
+
+  const chordsMatch = JSON.stringify(lo.chord) === JSON.stringify(hi.chord);
+  const chordBlend  = chordsMatch ? 0 : f;
+
+  return {
+    chordLo:    lo.chord,
+    chordHi:    hi.chord,
+    chordBlend: chordBlend,
+    chord:      nearest.chord,
+    velocity:   Math.round(lerp(lo.velocity, hi.velocity, f)),
+    tempo:      Math.round(lerp(lo.tempo,    hi.tempo,    f)),
+    pitchBend:  lerp(lo.pitchBend, hi.pitchBend, f),
+    oscTypeA:   lo.oscType === 'angry' ? 'triangle' : lo.oscType,
+    oscTypeB:   hi.oscType === 'angry' ? 'triangle' : hi.oscType,
+    oscBlend:   lo.oscType === hi.oscType ? 0 : f,
+    evilAmount: evilAmount,
+    octShift:   nearest.octShift,
+    chordName:  nearest.chordName,
+    emoji:      nearest.emoji,
+    color:      lo.color.map((c, i) => Math.round(lerp(c, hi.color[i], f))),
+    explain:    nearest.explain,
+  };
+}
+
+// ── UI update ────────────────────────────────────────────────────
+function updateDisplay(t) {
+  const p = interpolateWaypoints(t);
+  emojiEl.textContent    = p.emoji;
+  statChord.textContent  = p.chordName;
+  statVel.textContent    = p.velocity;
+  statTempo.textContent  = p.tempo + 'ms';
+  statOct.textContent    = p.octShift === 0 ? '±0' : (p.octShift > 0 ? '+' : '') + p.octShift;
+  explainEl.textContent  = p.explain;
+}
+
+// ── Chips ────────────────────────────────────────────────────────
+function buildChips(chord) {
+  chipsEl.innerHTML = '';
+  chord.forEach(n => {
+    const c = document.createElement('span');
+    c.className = 'chip';
+    c.id = 'chip-' + n;
+    c.textContent = noteName(n);
+    chipsEl.appendChild(c);
+  });
+}
+
+function lightChip(note) {
+  chipsEl.querySelectorAll('.chip').forEach(c => c.classList.remove('lit'));
+  const el = document.getElementById('chip-' + note);
+  if (el) el.classList.add('lit');
+}
+
+// ── Bar animation ─────────────────────────────────────────────────
+function animateBars(activeIdx, color, velocity) {
+  const maxH = 52;
+  bars.forEach((b, i) => {
+    const isActive = i === activeIdx % bars.length;
+    const h = isActive ? Math.round(lerp(16, maxH, velocity / 127)) : Math.round(velocity / 127 * 14);
+    b.style.height = h + 'px';
+    b.style.background = `rgb(${color[0]},${color[1]},${color[2]})`;
+    b.style.opacity = isActive ? '1' : '0.35';
+  });
+}
+
+// ── Web Audio ────────────────────────────────────────────────────
+function midiToFreq(note, bendSemitones) {
+  return 440 * Math.pow(2, (note - 69 + bendSemitones) / 12);
+}
+const OSC_GAIN = { sawtooth: 0.032, square: 0.05, triangle: 0.10, sine: 0.20 };
+function makeSawFilter(freq, vel) {
+  const f = audioCtx.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.value = clamp(freq * (1.2 + (vel / 127) * 2.5), 200, 3200);
+  f.Q.value = 0.8;
+  return f;
+}
+
+function playAngryTone(freq, vel, durMs, evilAmount) {
+  if (!audioCtx) return;
+  const evil = clamp(evilAmount, 0, 1);
+  if (evil < 0.001) return;
+  const velNorm  = clamp(vel / 127, 0, 1);
+  const amp      = 0.07 * velNorm * evil;
+  const durSec   = durMs / 1000;
+  const now      = audioCtx.currentTime;
+  const end      = now + durSec;
+  const sustainEnd = now + durSec * 0.72;
+  const masterGain = audioCtx.createGain();
+  masterGain.gain.setValueAtTime(0.0001, now);
+  masterGain.gain.exponentialRampToValueAtTime(Math.max(amp, 0.0001), now + 0.01);
+  masterGain.gain.setValueAtTime(amp, now + 0.01);
+  masterGain.gain.exponentialRampToValueAtTime(0.0001, sustainEnd);
+  masterGain.connect(masterBus);
+
+  const detuneCents = evil * 18;
+  [-detuneCents, detuneCents].forEach((detune) => {
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.value = freq * Math.pow(2, detune / 1200);
+    gain.gain.value = 0.45;
+    osc.connect(gain);
+    gain.connect(masterGain);
+    osc.start(now);
+    osc.stop(end);
+  });
+
+  if (evil > 0.05) {
+    const lfoRate  = 1.8 + Math.random() * 1.2;
+    const lfoDepth = evil * freq * 0.008;
+    const lfo      = audioCtx.createOscillator();
+    const lfoGain  = audioCtx.createGain();
+    lfo.type = 'sine';
+    lfo.frequency.value = lfoRate;
+    lfoGain.gain.value  = lfoDepth;
+    const modCarrier = audioCtx.createOscillator();
+    const modGain    = audioCtx.createGain();
+    modCarrier.type = 'triangle';
+    modCarrier.frequency.value = freq * 1.003;
+    lfo.connect(lfoGain);
+    lfoGain.connect(modCarrier.frequency);
+    modGain.gain.value = 0.18 * evil;
+    modCarrier.connect(modGain);
+    modGain.connect(masterGain);
+    lfo.start(now); lfo.stop(end);
+    modCarrier.start(now); modCarrier.stop(end);
+  }
+
+  if (evil > 0.1) {
+    const fmRatio  = 2.13 + evil * 0.4;
+    const fmDepth  = evil * freq * 0.06;
+    const fmMod    = audioCtx.createOscillator();
+    const fmModGain= audioCtx.createGain();
+    const fmCarrier= audioCtx.createOscillator();
+    const fmCarGain= audioCtx.createGain();
+    fmMod.type = 'sine';
+    fmMod.frequency.value  = freq * fmRatio;
+    fmModGain.gain.value   = fmDepth;
+    fmCarrier.type = 'sine';
+    fmCarrier.frequency.value = freq;
+    fmCarGain.gain.value = 0.22 * evil;
+    fmMod.connect(fmModGain);
+    fmModGain.connect(fmCarrier.frequency);
+    fmCarrier.connect(fmCarGain);
+    fmCarGain.connect(masterGain);
+    fmMod.start(now); fmMod.stop(end);
+    fmCarrier.start(now); fmCarrier.stop(end);
+  }
+}
+
+function playTone(freq, vel, durMs, oscTypeA, oscTypeB, blend) {
+  if (!audioCtx) return;
+  if (vel < 0.5) return;
+  const velNorm = vel / 127;
+  const durSec  = durMs / 1000;
+  const now     = audioCtx.currentTime;
+  const end     = now + durSec;
+
+  function makeOsc(type, gainScale) {
+    if (gainScale < 0.005) return;
+    const baseAmp = (OSC_GAIN[type] || 0.10) * velNorm * gainScale;
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.value = freq;
+
+    if (type === 'sine' || type === 'triangle') {
+      gain.gain.setValueAtTime(Math.max(baseAmp, 0.0001), now);
+      gain.gain.exponentialRampToValueAtTime(0.0001, now + durSec * 0.92);
+    } else {
+      const attackEnd  = now + 0.008;
+      const sustainEnd = now + durSec * 0.45;
+      gain.gain.setValueAtTime(0.0001, now);
+      gain.gain.exponentialRampToValueAtTime(Math.max(baseAmp, 0.0001), attackEnd);
+      gain.gain.setValueAtTime(Math.max(baseAmp, 0.0001), attackEnd);
+      gain.gain.exponentialRampToValueAtTime(0.0001, sustainEnd);
+    }
+
+    if (type === 'sawtooth') {
+      const filter = makeSawFilter(freq, vel);
+      osc.connect(filter);
+      filter.connect(gain);
+    } else {
+      osc.connect(gain);
+    }
+    gain.connect(masterBus);
+    osc.start(now);
+    osc.stop(end);
+  }
+
+  const b = clamp(blend || 0, 0, 1);
+  makeOsc(oscTypeA, 1 - b);
+  if (oscTypeB && oscTypeB !== oscTypeA && b > 0.01) makeOsc(oscTypeB, b);
+}
+
+// ── Main tick ────────────────────────────────────────────────────
+function tick() {
+  if (!playing) return;
+  const t = mood / 100;
+  const p = interpolateWaypoints(t);
+
+  const chordLo = p.chordLo.map(n => n + p.octShift * 12);
+  const chordHi = p.chordHi.map(n => n + p.octShift * 12);
+  const useHi   = Math.random() < p.chordBlend;
+  const activeChord = useHi ? chordHi : chordLo;
+
+  const displayChord = p.chordBlend > 0.5 ? chordHi : chordLo;
+  if (JSON.stringify(displayChord) !== JSON.stringify(currentChord)) {
+    currentChord = [...displayChord];
+    buildChips(currentChord);
+    noteIndex = 0;
+  }
+
+  const idx  = noteIndex % activeChord.length;
+  const note = activeChord[idx];
+  noteIndex++;
+
+  const freq = midiToFreq(note, p.pitchBend * 2);
+  playAngryTone(freq, p.velocity, p.tempo * 0.8, p.evilAmount);
+  playTone(freq, p.velocity * (1 - p.evilAmount), p.tempo * 0.8, p.oscTypeA, p.oscTypeB, p.oscBlend);
+
+  lightChip(note);
+  animateBars(idx, p.color, p.velocity);
+  updateDisplay(t);
+
+  schedTimer = setTimeout(tick, p.tempo);
+}
+
+// ── Controls ─────────────────────────────────────────────────────
+moodSlider.addEventListener('input', () => {
+  if (audienceSync) return;
+  mood = parseInt(moodSlider.value);
+  updateDisplay(mood / 100);
+});
+
+btnPlay.addEventListener('click', () => {
+  if (!playing) {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterBus = audioCtx.createDynamicsCompressor();
+      masterBus.threshold.value = -18;
+      masterBus.knee.value      = 12;
+      masterBus.ratio.value     = 6;
+      masterBus.attack.value    = 0.003;
+      masterBus.release.value   = 0.15;
+      masterBus.connect(audioCtx.destination);
+    }
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    playing = true;
+    noteIndex = 0;
+    btnPlay.textContent = '■ stop';
+    btnPlay.classList.add('playing');
+    tick();
+  } else {
+    playing = false;
+    clearTimeout(schedTimer);
+    btnPlay.textContent = '▶ start';
+    btnPlay.classList.remove('playing');
+    chipsEl.querySelectorAll('.chip').forEach(c => c.classList.remove('lit'));
+    bars.forEach(b => { b.style.height = '3px'; b.style.background = '#2a2a40'; b.style.opacity = '1'; });
+  }
+});
+
+// ── Audience sync toggles ────────────────────────────────────────
+syncOff.addEventListener('click', () => {
+  audienceSync = false;
+  syncOff.classList.add('active');
+  syncOn.classList.remove('active');
+  moodSlider.disabled = false;
+  valenceGroup.classList.remove('visible');
+  audienceCount.style.display = 'none';
+});
+
+syncOn.addEventListener('click', () => {
+  audienceSync = true;
+  syncOn.classList.add('active');
+  syncOff.classList.remove('active');
+  moodSlider.disabled = true;
+  valenceGroup.classList.add('visible');
+  audienceCount.style.display = '';
+  applyAudienceMood();
+});
+
+valenceCont.addEventListener('click', () => {
+  valenceMode = 'continuous';
+  valenceCont.classList.add('active');
+  valenceUnit.classList.remove('active');
+  applyAudienceMood();
+});
+
+valenceUnit.addEventListener('click', () => {
+  valenceMode = 'unit';
+  valenceUnit.classList.add('active');
+  valenceCont.classList.remove('active');
+  applyAudienceMood();
+});
+
+// ── WebSocket ────────────────────────────────────────────────────
+function wsUrl(room) {
+  const host = window.location.hostname === 'localhost'
+    ? 'localhost:1999'
+    : DEFAULT_HOST;
+  const proto = host.startsWith('localhost') ? 'ws' : 'wss';
+  const userId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+  return `${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`;
+}
+
+function setConnStatus(text, cls) {
+  connStatus.textContent = text;
+  connStatus.className = 'conn-status' + (cls ? ' ' + cls : '');
+}
+
+function connectWs() {
+  if (ws) {
+    ws.onclose = null;
+    ws.close();
+    ws = null;
+  }
+  clearTimeout(wsReconnectTimer);
+  const room = roomInput.value.trim() || 'default';
+  setConnStatus('connecting…', 'connecting');
+  btnConnect.textContent = 'connecting…';
+  btnConnect.disabled = true;
+
+  ws = new WebSocket(wsUrl(room));
+
+  ws.onopen = () => {
+    wsConnected = true;
+    setConnStatus(`connected · room: ${room}`, 'ok');
+    btnConnect.textContent = 'disconnect';
+    btnConnect.disabled = false;
+    btnConnect.classList.add('disconnecting');
+  };
+
+  ws.onmessage = (evt) => {
+    let data;
+    try { data = JSON.parse(evt.data); } catch { return; }
+
+    if (data.type === 'presenceCount') {
+      const n = data.count ?? 0;
+      audienceN.textContent = n;
+      setConnStatus(`connected · room: ${room} · ${n} participant${n !== 1 ? 's' : ''}`, 'ok');
+    } else if (data.type === 'move' || data.type === 'touch') {
+      const { userId, x, y } = data.position;
+      const region = computeRegion(x, y);
+      const prevRegion = cursorRegions.get(userId);
+      cursors.set(userId, { x, y, region });
+      // Unit mode: only recalculate on zone transition or new cursor
+      if (valenceMode === 'continuous' || region !== prevRegion) {
+        cursorRegions.set(userId, region);
+        applyAudienceMood();
+      }
+      audienceN.textContent = cursors.size;
+    } else if (data.type === 'remove') {
+      const { userId } = data.position;
+      cursors.delete(userId);
+      cursorRegions.delete(userId);
+      applyAudienceMood();
+      audienceN.textContent = cursors.size;
+    }
+  };
+
+  ws.onerror = () => {
+    setConnStatus('connection error', 'warn');
+  };
+
+  ws.onclose = () => {
+    wsConnected = false;
+    cursors.clear();
+    cursorRegions.clear();
+    if (btnConnect.classList.contains('disconnecting')) {
+      // deliberate disconnect
+      setConnStatus('disconnected', '');
+      btnConnect.textContent = 'connect';
+      btnConnect.disabled = false;
+      btnConnect.classList.remove('disconnecting');
+    } else {
+      // unexpected — reconnect after 3s
+      setConnStatus('reconnecting…', 'warn');
+      btnConnect.textContent = 'connect';
+      btnConnect.disabled = false;
+      btnConnect.classList.remove('disconnecting');
+      wsReconnectTimer = setTimeout(connectWs, 3000);
+    }
+  };
+}
+
+function disconnectWs() {
+  clearTimeout(wsReconnectTimer);
+  if (ws) {
+    ws.onclose = () => {
+      wsConnected = false;
+      cursors.clear();
+      cursorRegions.clear();
+      setConnStatus('disconnected', '');
+      btnConnect.textContent = 'connect';
+      btnConnect.disabled = false;
+      btnConnect.classList.remove('disconnecting');
+    };
+    ws.close();
+    ws = null;
+  }
+}
+
+btnConnect.addEventListener('click', () => {
+  if (wsConnected || btnConnect.classList.contains('disconnecting')) {
+    disconnectWs();
+  } else {
+    connectWs();
+  }
+});
+
+// ── Init ─────────────────────────────────────────────────────────
+selectPreset(PRESETS[0]);
+</script>
+</body>
+</html>

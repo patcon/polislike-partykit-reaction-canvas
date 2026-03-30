@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Experience: Mood Sounds — facilitator tool (`mood-sounds.html`) for ambient generative sound tied to live audience cursor positions. Connects as admin (invisible to participant count). Audience Sync toggle drives the mood slider from WebSocket cursor data; Valence toggle switches between Continuous (raw x-position average) and Unit (each cursor snapped to zone −1/0/+1 before averaging) modes. Room input updates the `?room=` URL param for shareability.
+- Index: added card linking to Mood Sounds.
 - V4 Admin: new "Activities" config tab — switch the room between Canvas (default reaction canvas) and Soccer modes; activity change is broadcast to all participants in real time
 - Soccer mode: top-down physics ball with cursor-based kicking (move your cursor near the ball), goals on the left and right edges, per-room score tracking, and a Reset Score button in admin; ball physics run server-side so all participants see the same state
 - V4 Admin: new "Avatars" config tab lets the admin select a DiceBear avatar style (adventurer, avataaars, bottts, fun-emoji, identicon, lorelei, micah, open-peeps, pixel-art, thumbs) or revert to colored dots; the choice is broadcast to all participants in the room

@@ -53,6 +53,13 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
+        <a href="/mood-sounds.html" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">Experience: Mood Sounds</h2>
+            <p className="app-card-description">Facilitator tool: ambient generative sound driven by live audience cursor positions. Open in a separate tab — invisible to participant count.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
         <a href="?ghostCursors=true#v1" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V1 Participation: Fake Users Demo</h2>
