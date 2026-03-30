@@ -38,7 +38,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   }, []);
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState<RecordingMode>('transitions');
-  const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars'>('labels');
+  const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars' | 'activities'>('labels');
   const [eventCount, setEventCount] = useState(0);
   const [serverRecording, setServerRecording] = useState(false);
   const [userCap, setUserCap] = useState<number | null>(null);
@@ -53,6 +53,10 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
   // Avatar config state
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
+
+  // Activity state
+  const [activity, setActivity] = useState<'canvas' | 'soccer'>('canvas');
+  const [soccerScore, setSoccerScore] = useState({ left: 0, right: 0 });
 
   // Anchor config state (local editing)
   const defaults = anchorToLocal(DEFAULT_ANCHORS);
@@ -127,6 +131,8 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           if ('roomLabels' in data) applyServerLabels(data.roomLabels);
           if ('roomAnchors' in data) applyServerAnchors(data.roomAnchors);
           if ('roomAvatarStyle' in data) setAvatarStyle(data.roomAvatarStyle ?? null);
+          if ('currentActivity' in data) setActivity(data.currentActivity ?? 'canvas');
+          if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore);
           if (data.userCap !== undefined) {
             setUserCap(data.userCap);
             setCapInput(data.userCap !== null ? String(data.userCap) : '');
@@ -146,6 +152,16 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
         if (data.type === 'roomAvatarStyleChanged') {
           setAvatarStyle(data.avatarStyle ?? null);
+          return;
+        }
+
+        if (data.type === 'activityChanged') {
+          setActivity(data.activity ?? 'canvas');
+          return;
+        }
+
+        if (data.type === 'goalScored') {
+          setSoccerScore(data.score);
           return;
         }
 
@@ -303,6 +319,15 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const sendAvatarStyle = (style: string | null) => {
     setAvatarStyle(style);
     socket.send(JSON.stringify({ type: 'setRoomAvatarStyle', avatarStyle: style }));
+  };
+
+  const sendActivity = (act: 'canvas' | 'soccer') => {
+    setActivity(act);
+    socket.send(JSON.stringify({ type: 'setActivity', activity: act }));
+  };
+
+  const resetSoccerScore = () => {
+    socket.send(JSON.stringify({ type: 'resetSoccerScore' }));
   };
 
   const selectPreset = (key: string) => {
@@ -478,7 +503,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid #444' }}>
-        {(['labels', 'anchors', 'avatars'] as const).map(tab => (
+        {(['labels', 'anchors', 'avatars', 'activities'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setConfigTab(tab)}
@@ -495,7 +520,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               textTransform: 'capitalize',
             }}
           >
-            {tab === 'labels' ? 'Labels' : tab === 'anchors' ? 'Anchors' : 'Avatars'}
+            {tab === 'labels' ? 'Labels' : tab === 'anchors' ? 'Anchors' : tab === 'avatars' ? 'Avatars' : 'Activities'}
           </button>
         ))}
       </div>
@@ -698,6 +723,48 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               </label>
             ))}
           </div>
+        </div>
+      )}
+
+      {configTab === 'activities' && (
+        <div>
+          <p style={{ marginBottom: 12, fontWeight: 600 }}>Activity (shared for all participants):</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {([
+              { id: 'canvas', label: 'Canvas', desc: 'Standard reaction canvas' },
+              { id: 'soccer', label: 'Soccer', desc: 'Top-down physics ball — kick with your cursor' },
+            ] as const).map(({ id, label, desc }) => (
+              <label key={id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+                <input
+                  type="radio"
+                  name="activity"
+                  value={id}
+                  checked={activity === id}
+                  onChange={() => sendActivity(id)}
+                  style={{ marginTop: 3 }}
+                />
+                <div>
+                  <span style={{ fontWeight: activity === id ? 600 : 400 }}>{label}</span>
+                  <span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>{desc}</span>
+                </div>
+              </label>
+            ))}
+          </div>
+
+          {activity === 'soccer' && (
+            <div style={{ marginTop: 24, borderTop: '1px solid #444', paddingTop: 20 }}>
+              <p style={{ marginBottom: 10, fontWeight: 600 }}>Soccer settings:</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 12 }}>
+                <span style={{ color: '#aaa', fontSize: 15 }}>Score:</span>
+                <span style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 700, color: '#eee' }}>
+                  {soccerScore.left} – {soccerScore.right}
+                </span>
+              </div>
+              <button className="v3-admin-btn v3-admin-btn--destructive" onClick={resetSoccerScore}>
+                Reset Score
+              </button>
+            </div>
+          )}
         </div>
       )}
 

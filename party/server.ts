@@ -101,6 +101,15 @@ interface SetRoomAvatarStyleEvent {
   avatarStyle: string | null;
 }
 
+interface SetActivityEvent {
+  type: 'setActivity';
+  activity: 'canvas' | 'soccer';
+}
+
+interface ResetSoccerScoreEvent {
+  type: 'resetSoccerScore';
+}
+
 interface SetUserCapEvent {
   type: 'setUserCap';
   cap: number | null;
@@ -117,7 +126,17 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetUserCapEvent | RequestJoinEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent;
+
+// ===== SOCCER PHYSICS CONSTANTS =====
+const SOCCER_BALL_R = 2;      // % of canvas
+const SOCCER_DAMPING = 0.7;   // energy retained on wall bounce
+const SOCCER_FRICTION = 0.991; // per-tick speed decay
+const SOCCER_GOAL_MIN_Y = 33; // % — top of goal opening
+const SOCCER_GOAL_MAX_Y = 67; // % — bottom of goal opening
+const SOCCER_KICK_RADIUS = 8; // % — cursor influence range
+const SOCCER_KICK_FORCE = 2.5; // max impulse per tick
+const SOCCER_TICK_MS = 50;    // physics tick rate
 
 export default class Server implements Party.Server {
   private activeStatementId: number = 1; // Default to statement 1
@@ -133,6 +152,11 @@ export default class Server implements Party.Server {
   private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
   private roomAnchors: ReactionAnchors | null = null;
   private roomAvatarStyle: string | null = null;
+  private currentActivity: 'canvas' | 'soccer' = 'canvas';
+  private ballState = { x: 50, y: 50, vx: 2, vy: 1 };
+  private soccerScore = { left: 0, right: 0 };
+  private soccerInterval?: NodeJS.Timeout;
+  private cursorPositions = new Map<string, { x: number; y: number }>();
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -222,6 +246,9 @@ export default class Server implements Party.Server {
       roomLabels: this.roomLabels,
       roomAnchors: this.roomAnchors,
       roomAvatarStyle: this.roomAvatarStyle,
+      currentActivity: this.currentActivity,
+      ballState: this.currentActivity === 'soccer' ? this.ballState : null,
+      soccerScore: this.soccerScore,
       isViewer,
       userCap: this.userCap,
       viewerCount: vCount,
@@ -236,6 +263,7 @@ export default class Server implements Party.Server {
     this.adminConnectionIds.delete(conn.id);
     this.viewerConnectionIds.delete(conn.id);
     this.connectionUserMap.delete(conn.id);
+    if (userId) this.cursorPositions.delete(userId);
 
     if (!isAdmin && userId) {
       this.room.broadcast(JSON.stringify({ type: 'userLeft', userId, wasViewer }));
@@ -252,6 +280,12 @@ export default class Server implements Party.Server {
       if ('position' in event) {
         // Handle cursor events
         console.log(`Cursor event from ${sender.id}:`, event.type, event.position);
+        // Track cursor positions for soccer physics
+        if (event.type === 'move' || event.type === 'touch') {
+          this.cursorPositions.set(event.position.userId, { x: event.position.x, y: event.position.y });
+        } else if (event.type === 'remove') {
+          this.cursorPositions.delete(event.position.userId);
+        }
         // Broadcast the cursor event to all other connections
         this.room.broadcast(message, [sender.id]);
       } else if (event.type === 'setActiveStatement') {
@@ -301,6 +335,22 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setRoomAvatarStyle') {
         this.roomAvatarStyle = event.avatarStyle;
         this.room.broadcast(JSON.stringify({ type: 'roomAvatarStyleChanged', avatarStyle: this.roomAvatarStyle }));
+      } else if (event.type === 'setActivity') {
+        this.currentActivity = event.activity;
+        if (event.activity === 'soccer') {
+          this.startSoccerPhysics();
+        } else {
+          this.stopSoccerPhysics();
+        }
+        this.room.broadcast(JSON.stringify({
+          type: 'activityChanged',
+          activity: this.currentActivity,
+          ball: this.currentActivity === 'soccer' ? this.ballState : null,
+          score: this.soccerScore,
+        }));
+      } else if (event.type === 'resetSoccerScore') {
+        this.soccerScore = { left: 0, right: 0 };
+        this.room.broadcast(JSON.stringify({ type: 'goalScored', score: this.soccerScore }));
       } else if (event.type === 'setUserCap') {
         if (!this.adminConnectionIds.has(sender.id)) return;
         this.userCap = event.cap;
@@ -322,6 +372,88 @@ export default class Server implements Party.Server {
       console.error('Failed to parse event:', e);
     }
   }
+
+  // ===== SOCCER PHYSICS =====
+  private startSoccerPhysics() {
+    if (this.soccerInterval) clearInterval(this.soccerInterval);
+    this.resetBall();
+    this.soccerInterval = setInterval(() => this.updateBallPhysics(), SOCCER_TICK_MS);
+  }
+
+  private stopSoccerPhysics() {
+    if (this.soccerInterval) {
+      clearInterval(this.soccerInterval);
+      this.soccerInterval = undefined;
+    }
+    this.room.broadcast(JSON.stringify({ type: 'ballHidden' }));
+  }
+
+  private resetBall() {
+    const dir = Math.random() > 0.5 ? 1 : -1;
+    this.ballState = {
+      x: 50,
+      y: 50,
+      vx: dir * (1.5 + Math.random()),
+      vy: (Math.random() - 0.5) * 2,
+    };
+  }
+
+  private updateBallPhysics() {
+    const b = this.ballState;
+
+    // Friction
+    b.vx *= SOCCER_FRICTION;
+    b.vy *= SOCCER_FRICTION;
+
+    // Cursor kicks
+    for (const [, pos] of this.cursorPositions) {
+      const dx = b.x - pos.x;
+      const dy = b.y - pos.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < SOCCER_KICK_RADIUS && dist > 0.1) {
+        const force = SOCCER_KICK_FORCE * (1 - dist / SOCCER_KICK_RADIUS);
+        b.vx += (dx / dist) * force;
+        b.vy += (dy / dist) * force;
+      }
+    }
+
+    // Move
+    b.x += b.vx;
+    b.y += b.vy;
+
+    // Top/bottom wall bounce
+    if (b.y - SOCCER_BALL_R < 0) { b.y = SOCCER_BALL_R; b.vy = Math.abs(b.vy) * SOCCER_DAMPING; }
+    if (b.y + SOCCER_BALL_R > 100) { b.y = 100 - SOCCER_BALL_R; b.vy = -Math.abs(b.vy) * SOCCER_DAMPING; }
+
+    // Left wall
+    if (b.x - SOCCER_BALL_R <= 0) {
+      if (b.y >= SOCCER_GOAL_MIN_Y && b.y <= SOCCER_GOAL_MAX_Y) {
+        // Goal for right team
+        this.soccerScore.right++;
+        this.room.broadcast(JSON.stringify({ type: 'goalScored', scorer: 'right', score: this.soccerScore }));
+        this.resetBall();
+        return;
+      }
+      b.x = SOCCER_BALL_R;
+      b.vx = Math.abs(b.vx) * SOCCER_DAMPING;
+    }
+
+    // Right wall
+    if (b.x + SOCCER_BALL_R >= 100) {
+      if (b.y >= SOCCER_GOAL_MIN_Y && b.y <= SOCCER_GOAL_MAX_Y) {
+        // Goal for left team
+        this.soccerScore.left++;
+        this.room.broadcast(JSON.stringify({ type: 'goalScored', scorer: 'left', score: this.soccerScore }));
+        this.resetBall();
+        return;
+      }
+      b.x = 100 - SOCCER_BALL_R;
+      b.vx = -Math.abs(b.vx) * SOCCER_DAMPING;
+    }
+
+    this.room.broadcast(JSON.stringify({ type: 'ballUpdate', x: b.x, y: b.y }));
+  }
+  // ===== END SOCCER PHYSICS =====
 
   private queueStatement(statementId: number) {
     const now = Date.now();

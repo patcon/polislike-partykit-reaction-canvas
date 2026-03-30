@@ -67,6 +67,9 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
+  const [activity, setActivity] = useState<'canvas' | 'soccer'>('canvas');
+  const [ballPos, setBallPos] = useState<{ x: number; y: number } | null>(null);
+  const [soccerScore, setSoccerScore] = useState({ left: 0, right: 0 });
 
   useEffect(() => {
     onActiveCursorCountChange?.(cursors.size);
@@ -104,6 +107,9 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
             setAvatarStyle(data.roomAvatarStyle ?? null);
             onRoomAvatarStyleChange?.(data.roomAvatarStyle ?? null);
           }
+          if ('currentActivity' in data) setActivity(data.currentActivity ?? 'canvas');
+          if ('ballState' in data && data.ballState) setBallPos({ x: data.ballState.x, y: data.ballState.y });
+          if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore);
           onConnectedAsViewer?.(data.isViewer ?? false, data.userCap ?? null);
           onViewerCount?.(data.viewerCount ?? 0);
           return;
@@ -144,6 +150,29 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         if (data.type === 'roomAvatarStyleChanged') {
           setAvatarStyle(data.avatarStyle ?? null);
           onRoomAvatarStyleChange?.(data.avatarStyle ?? null);
+          return;
+        }
+
+        if (data.type === 'activityChanged') {
+          setActivity(data.activity ?? 'canvas');
+          if (data.ball) setBallPos({ x: data.ball.x, y: data.ball.y });
+          if (data.score) setSoccerScore(data.score);
+          if (data.activity !== 'soccer') setBallPos(null);
+          return;
+        }
+
+        if (data.type === 'ballUpdate') {
+          setBallPos({ x: data.x, y: data.y });
+          return;
+        }
+
+        if (data.type === 'goalScored') {
+          setSoccerScore(data.score);
+          return;
+        }
+
+        if (data.type === 'ballHidden') {
+          setBallPos(null);
           return;
         }
 
@@ -275,6 +304,75 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       });
     }
 
+    // ===== SOCCER FIELD RENDERING =====
+    if (activity === 'soccer') {
+      const W = dimensions.width;
+      const H = dimensions.height;
+      const goalTopPx = (33 / 100) * H;
+      const goalBotPx = (67 / 100) * H;
+      const goalDepthPx = 18; // pixel depth of goal boxes
+
+      // Green pitch background
+      svg.select('rect').attr('fill', 'rgba(34, 120, 40, 0.85)');
+
+      // Centre line
+      svg.append('line')
+        .attr('x1', W / 2).attr('y1', 0).attr('x2', W / 2).attr('y2', H)
+        .attr('stroke', 'rgba(255,255,255,0.5)').attr('stroke-width', 2).attr('stroke-dasharray', '8 6');
+
+      // Centre circle
+      const centreR = Math.min(W, H) * 0.12;
+      svg.append('circle')
+        .attr('cx', W / 2).attr('cy', H / 2).attr('r', centreR)
+        .attr('fill', 'none').attr('stroke', 'rgba(255,255,255,0.4)').attr('stroke-width', 2);
+
+      // Centre dot
+      svg.append('circle')
+        .attr('cx', W / 2).attr('cy', H / 2).attr('r', 4)
+        .attr('fill', 'rgba(255,255,255,0.6)');
+
+      // Left goal box
+      svg.append('rect')
+        .attr('x', 0).attr('y', goalTopPx)
+        .attr('width', goalDepthPx).attr('height', goalBotPx - goalTopPx)
+        .attr('fill', 'rgba(255,255,100,0.25)').attr('stroke', 'rgba(255,255,255,0.8)').attr('stroke-width', 2);
+
+      // Right goal box
+      svg.append('rect')
+        .attr('x', W - goalDepthPx).attr('y', goalTopPx)
+        .attr('width', goalDepthPx).attr('height', goalBotPx - goalTopPx)
+        .attr('fill', 'rgba(255,255,100,0.25)').attr('stroke', 'rgba(255,255,255,0.8)').attr('stroke-width', 2);
+
+      // Scores
+      const scoreFontSize = Math.max(20, Math.min(W, H) * 0.06);
+      svg.append('text')
+        .attr('x', goalDepthPx + 10).attr('y', goalTopPx - 10)
+        .attr('font-family', 'monospace').attr('font-size', scoreFontSize)
+        .attr('fill', 'white').attr('font-weight', 'bold')
+        .text(String(soccerScore.left));
+
+      svg.append('text')
+        .attr('x', W - goalDepthPx - 10).attr('y', goalTopPx - 10)
+        .attr('text-anchor', 'end')
+        .attr('font-family', 'monospace').attr('font-size', scoreFontSize)
+        .attr('fill', 'white').attr('font-weight', 'bold')
+        .text(String(soccerScore.right));
+
+      // Ball
+      if (ballPos) {
+        const bx = (ballPos.x / 100) * W;
+        const by = (ballPos.y / 100) * H;
+        const br = Math.min(W, H) * 0.025;
+        svg.append('circle')
+          .attr('cx', bx).attr('cy', by).attr('r', br)
+          .attr('fill', 'white').attr('stroke', '#222').attr('stroke-width', 2);
+        // Simple pentagon pattern hint
+        svg.append('circle')
+          .attr('cx', bx).attr('cy', by).attr('r', br * 0.35)
+          .attr('fill', '#333');
+      }
+    }
+
     // Add cursor positions as colored dots - convert normalized coordinates to pixels
     if (hideCursors) return;
     const cursorData = Array.from(cursors.entries()).map(([cursorUserId, cursor]) => ({
@@ -363,7 +461,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .text((d: any) => d.cursorUserId.substring(0, 6));
     }
 
-  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle]);
+  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, activity, ballPos, soccerScore]);
 
   // Handle window resize
   useEffect(() => {
