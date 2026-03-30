@@ -1097,7 +1097,6 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   // ── Audience sync state ───────────────────────────────────────────────────
   let audienceSync = false;
-  let liveStep = HISTORY_STEPS;
   let liveClockTimer = null;
 
   // cursors: userId → { x, y }
@@ -1145,64 +1144,48 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     return (cursorMoodValue(nx, ny) - 50) / 50;
   }
 
-  // Write one live step into all geometry buffers
-  function writeLiveStep(si) {
+  // Sliding-window live tick: shift vals left by 1, write new head, rewrite visible geometry.
+  // The write head is always TOTAL_STEPS; oldest live data is pruned each tick.
+  function liveStepTick() {
+    const si     = TOTAL_STEPS;
+    const fromSi = si - HISTORY_STEPS;
+
+    // 1. Shift vals left by 1 in the live region — drops the oldest sample
+    persons.forEach(p => p.vals.copyWithin(HISTORY_STEPS, HISTORY_STEPS + 1));
+
+    // 2. Sample current cursor valence and write at the head
     persons.forEach((p, pi) => {
       const userId = liveSlotUserIds[pi];
       const cursor = userId ? cursors.get(userId) : null;
-      const v = cursor ? cursorValence(cursor.x, cursor.y) : 0;
-
-      p.vals[si] = v;
-
-      // Update light-wave baked arrays
-      const w = lightWorld(si, p, v);
-      p.ptsLight[si*3] = w.x; p.ptsLight[si*3+1] = w.y; p.ptsLight[si*3+2] = w.z;
-      const gc = GROUP_COLS[p.gi];
-      const vc = valCol(v);
-      p.colGroup[si*3] = gc.r; p.colGroup[si*3+1] = gc.g; p.colGroup[si*3+2] = gc.b;
-      p.colVal[si*3] = vc.r; p.colVal[si*3+1] = vc.g; p.colVal[si*3+2] = vc.b;
-
-      // Update trail geometry buffer for this step
-      const t = trails[pi];
-      const tw = (vizMode === 'light') ? w : getWorld(si, p, v);
-      t.posBuf.array[si*3] = tw.x; t.posBuf.array[si*3+1] = tw.y; t.posBuf.array[si*3+2] = tw.z;
-      const col = (trailMode === 'group') ? gc : vc;
-      t.colBuf.array[si*3] = col.r; t.colBuf.array[si*3+1] = col.g; t.colBuf.array[si*3+2] = col.b;
-      t.posBuf.needsUpdate = true;
-      t.colBuf.needsUpdate = true;
-
-      // Update fill geometry buffer for this step
-      const f = fills[pi];
-      const sp = pathPos[si];
-      f.posBuf.array[si*6+0] = tw.x; f.posBuf.array[si*6+1] = tw.y; f.posBuf.array[si*6+2] = tw.z;
-      f.posBuf.array[si*6+3] = sp.x; f.posBuf.array[si*6+4] = sp.y; f.posBuf.array[si*6+5] = sp.z;
-      const fc = (fillMode === 'group') ? gc : vc;
-      const fcs = (fillMode === 'group') ? gc : C_NEUTRAL;
-      f.colBuf.array[si*6] = fc.r; f.colBuf.array[si*6+1] = fc.g; f.colBuf.array[si*6+2] = fc.b;
-      f.colBuf.array[si*6+3] = fcs.r; f.colBuf.array[si*6+4] = fcs.g; f.colBuf.array[si*6+5] = fcs.b;
-      f.posBuf.needsUpdate = true;
-      f.colBuf.needsUpdate = true;
+      p.vals[si] = cursor ? cursorValence(cursor.x, cursor.y) : 0;
     });
 
-    // Update base spine for this step
-    baseSpines.forEach(({posBuf, fp, gi}) => {
-      const bt = baseTraces[gi];
-      const bw = (vizMode === 'light') ? lightWorld(si, fp, bt[si]) : particleWorldDof1(si, fp, bt[si]);
-      posBuf.array[si*3] = bw.x; posBuf.array[si*3+1] = bw.y; posBuf.array[si*3+2] = bw.z;
-      posBuf.needsUpdate = true;
-    });
+    // 3. Rewrite trail and fill geometry for the entire visible window
+    for (let s = fromSi; s <= si; s++) {
+      const sp = pathPos[s];
+      persons.forEach((p, pi) => {
+        const v   = p.vals[s];
+        const gc  = GROUP_COLS[p.gi];
+        const vc  = valCol(v);
+        const w   = getWorld(s, p, v);
+        const col = (trailMode === 'group') ? gc : vc;
+        const fc  = (fillMode  === 'group') ? gc : vc;
+        const fcs = (fillMode  === 'group') ? gc : C_NEUTRAL;
 
-    // Particle mode: also update writeParticleRange for this step
-    if (vizMode === 'particle') {
-      writeParticleRange(si, si);
+        const t = trails[pi];
+        t.posBuf.array[s*3]   = w.x;   t.posBuf.array[s*3+1]  = w.y;   t.posBuf.array[s*3+2]  = w.z;
+        t.colBuf.array[s*3]   = col.r; t.colBuf.array[s*3+1]  = col.g; t.colBuf.array[s*3+2]  = col.b;
+
+        const f = fills[pi];
+        f.posBuf.array[s*6]   = w.x;   f.posBuf.array[s*6+1]  = w.y;   f.posBuf.array[s*6+2]  = w.z;
+        f.posBuf.array[s*6+3] = sp.x;  f.posBuf.array[s*6+4]  = sp.y;  f.posBuf.array[s*6+5]  = sp.z;
+        f.colBuf.array[s*6]   = fc.r;  f.colBuf.array[s*6+1]  = fc.g;  f.colBuf.array[s*6+2]  = fc.b;
+        f.colBuf.array[s*6+3] = fcs.r; f.colBuf.array[s*6+4]  = fcs.g; f.colBuf.array[s*6+5]  = fcs.b;
+      });
     }
-  }
 
-  function liveStepTick() {
-    if (liveStep >= TOTAL_STEPS) liveStep = HISTORY_STEPS; // wrap: overwrite oldest live data
-    writeLiveStep(liveStep);
-    liveStep++;
-    tNorm = Math.min(1, (liveStep - HISTORY_STEPS) / LIVE_STEPS);
+    trails.forEach(t => { t.posBuf.needsUpdate = true; t.colBuf.needsUpdate = true; });
+    fills.forEach(f  => { f.posBuf.needsUpdate = true; f.colBuf.needsUpdate = true; });
   }
 
   function enableAudienceSync() {
@@ -1211,7 +1194,6 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     document.getElementById('btnPlay').textContent = 'Play';
     document.getElementById('row-scrub').style.display = 'none';
     document.getElementById('live-badge').classList.add('visible');
-    liveStep = HISTORY_STEPS;
     tNorm = 0;
     liveClockTimer = setInterval(liveStepTick, 100);
   }
@@ -1391,7 +1373,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
     let si;
     if (audienceSync) {
-      si = Math.min(Math.max(HISTORY_STEPS, liveStep - 1), TOTAL_STEPS);
+      si = TOTAL_STEPS;
     } else {
       if (playing) {
         if(lastTs==null) lastTs=ts;
@@ -1403,9 +1385,6 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         tNorm=parseInt(document.getElementById('scrub').value)/1000;
         lastTs=null;
       }
-    }
-
-    if (!audienceSync) {
       si = HISTORY_STEPS + Math.min(Math.round(tNorm*LIVE_STEPS), LIVE_STEPS);
     }
 
@@ -1416,10 +1395,18 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
       updateParticlePositions(si);
     }
 
-    trails.forEach(({geo})=>geo.setDrawRange(0,si+1));
-    if(vizMode==='particle') setTubeDrawRange(si);
-    baseSpines.forEach(({geo})=>geo.setDrawRange(0,si+1));
-    fills.forEach(({geo})=>geo.setDrawRange(0,Math.max(0,si-1)*6));
+    if (audienceSync) {
+      const fromSi = TOTAL_STEPS - HISTORY_STEPS;
+      trails.forEach(({geo})=>geo.setDrawRange(fromSi, HISTORY_STEPS + 1));
+      if(vizMode==='particle') setTubeDrawRange(si);
+      baseSpines.forEach(({geo})=>geo.setDrawRange(fromSi, HISTORY_STEPS + 1));
+      fills.forEach(({geo})=>geo.setDrawRange(fromSi * 6, HISTORY_STEPS * 6));
+    } else {
+      trails.forEach(({geo})=>geo.setDrawRange(0,si+1));
+      if(vizMode==='particle') setTubeDrawRange(si);
+      baseSpines.forEach(({geo})=>geo.setDrawRange(0,si+1));
+      fills.forEach(({geo})=>geo.setDrawRange(0,Math.max(0,si-1)*6));
+    }
     updateRing(si);
 
     dots.forEach(({mesh,mat,p})=>{
