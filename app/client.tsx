@@ -60,6 +60,13 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
+        <a href="/valence-viz.html" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">Experience: Valence Viz</h2>
+            <p className="app-card-description">Facilitator tool: 3D particle/wave visualization of audience sentiment. Synthetic demo by default; Audience Sync drives it live from cursor positions.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
         <a href="?ghostCursors=true#v1" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V1 Participation: Fake Users Demo</h2>
