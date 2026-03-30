@@ -1,0 +1,1091 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Valence Traces</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; background: #08080e; overflow: hidden; font-family: monospace; }
+#wrap { position: relative; width: 100%; height: 100%; touch-action: none; }
+canvas { width: 100%; height: 100%; display: block; }
+
+#hud {
+  position: absolute; top: 14px; left: 14px;
+  font-size: 11px; color: rgba(255,255,255,0.4);
+  line-height: 1.9; pointer-events: none;
+}
+#hud .hint { margin-top: 4px; color: rgba(255,255,255,0.2); font-size: 10px; }
+
+/* ── top mode bar ── */
+#modebar {
+  position: absolute; top: 12px; right: 14px;
+  display: flex; flex-direction: column; gap: 5px;
+  align-items: flex-end;
+}
+#modebar-row {
+  display: flex; gap: 0;
+  border: 0.5px solid rgba(255,255,255,0.15);
+  border-radius: 5px; overflow: hidden;
+}
+#modebar-row.hidden { display: none; }
+#modebar button {
+  background: rgba(255,255,255,0.05);
+  border: none; color: rgba(255,255,255,0.5);
+  padding: 5px 14px; font-size: 11px; font-family: monospace;
+  cursor: pointer; transition: background 0.12s, color 0.12s;
+  border-right: 0.5px solid rgba(255,255,255,0.12);
+}
+#modebar button:last-child { border-right: none; }
+#modebar button:hover { background: rgba(255,255,255,0.1); color: #fff; }
+#modebar button.active { background: rgba(255,255,255,0.18); color: #fff; }
+
+/* ── bottom controls ── */
+#controls {
+  position: absolute; bottom: 12px; left: 14px; right: 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+#row-scrub { display: flex; align-items: center; gap: 8px; }
+#scrub { flex: 1; accent-color: rgba(255,255,255,0.45); cursor: pointer; }
+#btnPlay {
+  background: rgba(255,255,255,0.07); border: 0.5px solid rgba(255,255,255,0.18);
+  color: #fff; padding: 4px 12px; border-radius: 4px;
+  cursor: pointer; font-size: 11px; font-family: monospace; flex-shrink: 0;
+}
+#btnPlay:hover { background: rgba(255,255,255,0.14); }
+
+#row-toggles {
+  display: flex; align-items: stretch;
+  border: 0.5px solid rgba(255,255,255,0.12); border-radius: 5px; overflow: hidden;
+}
+.tcol {
+  display: flex; flex-direction: column;
+  border-right: 0.5px solid rgba(255,255,255,0.1);
+}
+.tcol:last-child { border-right: none; flex: 1; }
+.tcol-lbl {
+  font-size: 10px; color: rgba(255,255,255,0.28);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 5px 12px 4px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.08); white-space: nowrap;
+}
+.tcol button {
+  display: block; width: 100%; text-align: left;
+  background: rgba(255,255,255,0.04); border: none; border-radius: 0;
+  border-bottom: 0.5px solid rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.5); padding: 4px 12px;
+  cursor: pointer; font-size: 11px; font-family: monospace;
+  transition: background 0.12s, color 0.12s;
+}
+.tcol button:last-of-type { border-bottom: none; }
+.tcol button:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.tcol button.active { background: rgba(255,255,255,0.16); color: #fff; }
+.tcol-flex { justify-content: center; gap: 5px; padding: 6px 12px; }
+.tcol-flex .tcol-lbl { padding: 0; border: none; margin-bottom: 2px; }
+input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: pointer; }
+
+/* particle-only controls row */
+#row-particle { display: none; }
+#row-particle.visible { display: flex; }
+#row-particle {
+  align-items: stretch;
+  border: 0.5px solid rgba(255,255,255,0.12); border-radius: 5px; overflow: hidden;
+}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <canvas id="c"></canvas>
+
+  <div id="hud">
+    <div id="tdisp">t = 0:00</div>
+    <div id="leg-group" style="margin-top:3px">
+      <span style="color:#38bdf8">■</span> A (60)&nbsp;
+      <span style="color:#fbbf24">■</span> B (30)&nbsp;
+      <span style="color:#a78bfa">■</span> C (10)
+    </div>
+    <div id="leg-val" style="margin-top:3px;display:none">
+      <span style="color:#ff2222">■</span> disagree&nbsp;
+      <span style="color:#1e293b">■</span> neutral&nbsp;
+      <span style="color:#00ff7f">■</span> agree
+    </div>
+    <div class="hint">drag to orbit</div>
+  </div>
+
+  <!-- mode selector top-right: stacked rows -->
+  <div id="modebar">
+    <!-- row 1: viz mode -->
+    <div id="modebar-row" id="mrow-mode">
+      <button id="btnLight" class="active">light waves</button>
+      <button id="btnParticle">charged particles</button>
+    </div>
+    <!-- row 2: particle mode (particle only) -->
+    <div id="mrow-dof" class="hidden" style="display:none">
+      <div id="modebar-row">
+        <button id="btnDof1" class="active">pinned</button>
+        <button id="btnDof2">orbital</button>
+        <button id="btnDof3">charged</button>
+      </div>
+    </div>
+    <!-- row 3: forces (orbital + charged only) -->
+    <div id="mrow-attract" style="display:none">
+      <div id="modebar-row">
+        <button id="btnAttractOff" class="active">forces off</button>
+        <button id="btnAttractOn">forces between groups</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="controls">
+    <div id="row-scrub">
+      <button id="btnPlay">Pause</button>
+      <input id="scrub" type="range" min="0" max="1000" value="0">
+    </div>
+
+    <!-- shared color/fill toggles -->
+    <div id="row-toggles">
+      <div class="tcol">
+        <div class="tcol-lbl">cursor</div>
+        <button id="btnDotGroup" class="active">group</button>
+        <button id="btnDotVal">valence</button>
+      </div>
+      <div class="tcol">
+        <div class="tcol-lbl">trail</div>
+        <button id="btnTrailGroup" class="active">group</button>
+        <button id="btnTrailVal">valence</button>
+      </div>
+      <div class="tcol">
+        <div class="tcol-lbl">fill</div>
+        <button id="btnFillGroup" class="active">group</button>
+        <button id="btnFillVal">valence</button>
+      </div>
+      <div class="tcol tcol-flex">
+        <div class="tcol-lbl">fill opacity</div>
+        <input id="fillAlpha" type="range" min="0" max="100" value="12">
+      </div>
+      <div class="tcol tcol-flex">
+        <div class="tcol-lbl">radius</div>
+        <input id="tubeRadius" type="range" min="5" max="60" value="22">
+      </div>
+    </div>
+
+    <!-- particle-only row (no radius here anymore) -->
+    <div id="row-particle">
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function () {
+
+  const canvas = document.getElementById('c');
+  const wrap   = document.getElementById('wrap');
+  const W = wrap.clientWidth, H = wrap.clientHeight;
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(W, H);
+  renderer.setClearColor(0x08080e, 1);
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(52, W / H, 0.01, 100);
+
+  // ── constants ─────────────────────────────────────────────────────────────
+  const LIVE_STEPS    = 800;
+  const HISTORY_STEPS = 200;
+  const TOTAL_STEPS   = LIVE_STEPS + HISTORY_STEPS;
+  const TOTAL         = 100;
+  let MAX_R           = 0.22;   // light wave max displacement — driven by radius slider
+  const DURATION      = 300;
+
+  // Particle mode: baseline tube radius (neutral position). Agree pulls inward, disagree pushes out.
+  // tubeR is the neutral radius — valence=0 sits on the tube surface.
+  let tubeR        = 0.20;   // updated by slider in particle mode
+  const TUBE_RANGE = 0.18;   // max radial change from valence (agree: -TUBE_RANGE, disagree: +TUBE_RANGE)
+
+  // ── colors ────────────────────────────────────────────────────────────────
+  const GROUP_COLS = [
+    new THREE.Color(0x38bdf8),
+    new THREE.Color(0xfbbf24),
+    new THREE.Color(0xa78bfa),
+  ];
+  const C_AGREE    = new THREE.Color(0x00ff7f);
+  const C_NEUTRAL  = new THREE.Color(0x1e293b);
+  const C_DISAGREE = new THREE.Color(0xff2222);
+
+  function valCol(v) {
+    const c = new THREE.Color();
+    if (v >= 0) c.lerpColors(C_NEUTRAL, C_AGREE,    v);
+    else        c.lerpColors(C_NEUTRAL, C_DISAGREE, -v);
+    return c;
+  }
+
+  // ── bezier path ───────────────────────────────────────────────────────────
+  const BEZ = [
+    new THREE.Vector3(-0.4,  0.15, -1.8),
+    new THREE.Vector3( 0.5, -0.2,  -0.6),
+    new THREE.Vector3(-0.3,  0.25,  0.6),
+    new THREE.Vector3( 0.35,-0.1,   1.8),
+  ];
+  function bezPt(t) {
+    const mt = 1 - t;
+    return new THREE.Vector3(
+      mt*mt*mt*BEZ[0].x+3*mt*mt*t*BEZ[1].x+3*mt*t*t*BEZ[2].x+t*t*t*BEZ[3].x,
+      mt*mt*mt*BEZ[0].y+3*mt*mt*t*BEZ[1].y+3*mt*t*t*BEZ[2].y+t*t*t*BEZ[3].y,
+      mt*mt*mt*BEZ[0].z+3*mt*mt*t*BEZ[1].z+3*mt*t*t*BEZ[2].z+t*t*t*BEZ[3].z,
+    );
+  }
+  function bezTan(t) {
+    const mt = 1 - t;
+    return new THREE.Vector3(
+      3*(mt*mt*(BEZ[1].x-BEZ[0].x)+2*mt*t*(BEZ[2].x-BEZ[1].x)+t*t*(BEZ[3].x-BEZ[2].x)),
+      3*(mt*mt*(BEZ[1].y-BEZ[0].y)+2*mt*t*(BEZ[2].y-BEZ[1].y)+t*t*(BEZ[3].y-BEZ[2].y)),
+      3*(mt*mt*(BEZ[1].z-BEZ[0].z)+2*mt*t*(BEZ[2].z-BEZ[1].z)+t*t*(BEZ[3].z-BEZ[2].z)),
+    ).normalize();
+  }
+
+  const N_PATH = TOTAL_STEPS + 1;
+  const pathPos = [], pathTan = [], pathNorm = [], pathBi = [];
+  for (let i = 0; i < N_PATH; i++) {
+    const t = i / (N_PATH - 1);
+    pathPos.push(bezPt(t)); pathTan.push(bezTan(t));
+  }
+  const b0 = new THREE.Vector3().crossVectors(pathTan[0], new THREE.Vector3(0,1,0)).normalize();
+  pathNorm.push(new THREE.Vector3().crossVectors(b0, pathTan[0]).normalize());
+  pathBi.push(b0);
+  for (let i = 1; i < N_PATH; i++) {
+    const tan = pathTan[i];
+    const n = pathNorm[i-1].clone().addScaledVector(tan, -pathNorm[i-1].dot(tan)).normalize();
+    pathNorm.push(n);
+    pathBi.push(new THREE.Vector3().crossVectors(tan, n).normalize());
+  }
+
+  // ── rng / smooth ──────────────────────────────────────────────────────────
+  function mkRng(s) { let seed=s>>>0; return ()=>{ seed=(seed*1664525+1013904223)>>>0; return seed/0xffffffff; }; }
+  function smooth(a, w) {
+    const o = new Float32Array(a.length);
+    for (let i = 0; i < a.length; i++) {
+      let s=0, c=0;
+      for (let j=Math.max(0,i-w); j<=Math.min(a.length-1,i+w); j++) { s+=a[j]; c++; }
+      o[i]=s/c;
+    }
+    return o;
+  }
+
+  // ── events ────────────────────────────────────────────────────────────────
+  const rngE = mkRng(999);
+  const events = Array.from({length:8}, (_,i) => ({
+    t: 0.05+(i/8)*0.88+(rngE()-0.5)*0.06, strength: 0.5+rngE()*0.5,
+  }));
+  const GEP = [
+    [ 1, 1,-1, 1, 1,-1, 1, 1],
+    [-1,-1, 1,-1, 1, 1,-1, 1],
+    [-1, 1, 1,-1,-1,-1, 1,-1],
+  ];
+
+  function genBase(gi, rng) {
+    const b = new Float32Array(TOTAL_STEPS+1);
+    let v = [0.2,-0.15,0.05][gi]+(rng()-0.5)*0.1; b[0]=v;
+    const df=[0.8,1.1,0.6][gi], dp=rng()*Math.PI*2, da=[0.15,0.2,0.12][gi];
+    for (let i=1; i<=TOTAL_STEPS; i++) {
+      const tl=(i-HISTORY_STEPS)/LIVE_STEPS;
+      const drift=Math.sin(tl*Math.PI*2*df+dp)*da;
+      let imp=0;
+      if (tl>=0) events.forEach((ev,e)=>{ const dt=tl-ev.t; if(dt>-0.01&&dt<0.12){ const sh=dt<0?Math.exp(dt*80):Math.exp(-dt*18); imp+=GEP[gi][e]*ev.strength*sh*0.7; } });
+      v+=([0.2,-0.15,0.0][gi]-v)*0.025+(drift-v)*0.008+imp*0.07;
+      v=Math.max(-1,Math.min(1,v)); b[i]=v;
+    }
+    return smooth(b,4);
+  }
+  function genMember(base, rng, gi) {
+    const nm=[0.12,0.18,0.25][gi], lm=[8,14,20][gi];
+    const pb=(rng()-0.5)*0.18, lag=Math.floor(rng()*lm);
+    const o=new Float32Array(TOTAL_STEPS+1);
+    let v=base[0]+pb+(rng()-0.5)*0.1; v=Math.max(-1,Math.min(1,v)); o[0]=v;
+    for (let i=1; i<=TOTAL_STEPS; i++) {
+      v+=(base[Math.max(0,i-lag)]+pb-v)*0.06+(rng()-0.5)*nm*0.35;
+      v=Math.max(-1,Math.min(1,v)); o[i]=v;
+    }
+    return smooth(o,3);
+  }
+
+  const baseTraces = [0,1,2].map(gi=>genBase(gi,mkRng(gi*31337+1)));
+
+  const persons = [];
+  [60,30,10].forEach((sz,gi)=>{
+    for (let pi=0; pi<sz; pi++) {
+      const rng=mkRng(gi*10000+pi*97+7);
+      persons.push({gi, vals:genMember(baseTraces[gi],rng,gi)});
+    }
+  });
+  const rngS=mkRng(42);
+  for (let i=persons.length-1; i>0; i--) { const j=Math.floor(rngS()*(i+1)); [persons[i],persons[j]]=[persons[j],persons[i]]; }
+
+  // Assign angles for both modes
+  const rngAngle = mkRng(77);
+  persons.forEach((p,i)=>{
+    // Light wave: spread over half-circle (0→π)
+    p.angle = (i/(TOTAL-1))*Math.PI;
+    p.dy = Math.cos(p.angle);
+    p.dx = Math.sin(p.angle);
+    // Particle DOF-1: evenly spread over FULL circle (0→2π)
+    p.ringAngle = (i/TOTAL)*Math.PI*2;
+    // Particle DOF-2: drift slowly around the ring (constant radius, angle drifts)
+    p.orbitAngles = new Float32Array(TOTAL_STEPS+1);
+    let oa = p.ringAngle + (rngAngle()-0.5)*0.3;
+    p.orbitAngles[0] = oa;
+    const orbitSpeed = (rngAngle()-0.5)*0.004;  // gentle drift: ~2 rad total over full run
+    for (let s=1; s<=TOTAL_STEPS; s++) {
+      oa += orbitSpeed + (rngAngle()-0.5)*0.002;
+      p.orbitAngles[s] = oa;
+    }
+  });
+
+  // ── bake DOF-3 "charged" positions — Ventrella Clusters style ───────────────
+  //
+  // Inspired by Jeffrey Ventrella's Clusters algorithm:
+  //   - TRUE PAIRWISE FORCES between every pair of particles within view horizon
+  //   - ASYMMETRIC: particle A's force on B ≠ B's force on A (breaks Newton 3rd law)
+  //     This creates perpetual motion — particles are "self-propelled" social agents
+  //   - PIECEWISE FORCE FIELD per species pair:
+  //       d < R_REPEL  → strong repulsion (prevents stacking/clumping)
+  //       R_REPEL ≤ d < R_ATTRACT → species-matrix attraction or repulsion (flat zone)
+  //       d ≥ R_ATTRACT → no force (outside view horizon)
+  //   - VALENCE shifts each particle's personal equilibrium radius (centripetal spring)
+  //       v=0 → sits on baseline tubeR; v=+1 → pulled inward; v=-1 → pushed outward
+  //   - FRICTION damps velocity each step (keeps energy bounded)
+  //   - Two simulations baked: without group forces, and with them
+  //
+  // Asymmetric species force matrix (row = who receives force, col = who exerts it).
+  // Positive = attraction, negative = repulsion. NOT required to be symmetric.
+  // A(blue,60) ↔ B(amber,30): mild mutual repulsion.
+  // C(purple,10) strongly repels A and B; A and B mildly repel C back.
+  // Each group attracts its own members (self-cohesion).
+  const CHARGED_FM = [
+  //   exerted by A    by B    by C(purple)
+    [  0.40,          -0.15,  -0.90 ],  // received by A (blue)
+    [ -0.15,           0.40,  -0.90 ],  // received by B (amber)
+    [ -0.60,          -0.60,   0.50 ],  // received by C (purple) — repels others less strongly back
+  ];
+
+  (function bakeCharged() {
+    const FRICTION     = 0.85;   // velocity × FRICTION each step (Ventrella uses friction)
+    const R_REPEL      = 0.028;  // inner zone: universal short-range repulsion
+    const R_ATTRACT    = 0.18;   // outer zone / view horizon: beyond this, no force
+    const REPEL_F      = 0.0035; // force magnitude in repulsion zone
+    const ATTRACT_F    = 0.0018; // base force magnitude in attraction/repulsion zone
+    const VALENCE_PULL = 0.65;   // agree +1 → target radius = tubeR*(1-PULL)
+    const VALENCE_PUSH = 0.80;   // disagree -1 → target = tubeR*(1+PUSH)
+    const SPRING_K     = 0.04;   // centripetal spring strength toward target radius
+    const WANDER       = 0.0003; // tiny tangential jitter so identical particles don't stack
+
+    function runSim(useForces) {
+      const xKey = useForces ? 'chargedFX' : 'chargedX';
+      const yKey = useForces ? 'chargedFY' : 'chargedY';
+      const rng  = mkRng(useForces ? 77777 : 33333);
+
+      // Initialise on tube surface at each person's ring angle
+      persons.forEach(p => {
+        p[xKey] = new Float32Array(TOTAL_STEPS + 1);
+        p[yKey] = new Float32Array(TOTAL_STEPS + 1);
+        p[xKey][0] = Math.cos(p.ringAngle) * tubeR;
+        p[yKey][0] = Math.sin(p.ringAngle) * tubeR;
+      });
+
+      const vx = new Float32Array(persons.length);
+      const vy = new Float32Array(persons.length);
+
+      for (let si = 1; si <= TOTAL_STEPS; si++) {
+        // Accumulate pairwise forces
+        const fx = new Float32Array(persons.length);
+        const fy = new Float32Array(persons.length);
+
+        if (useForces) {
+          for (let a = 0; a < persons.length; a++) {
+            const pa = persons[a];
+            const ax = pa[xKey][si-1], ay = pa[yKey][si-1];
+            for (let b = 0; b < persons.length; b++) {
+              if (a === b) continue;
+              const pb = persons[b];
+              const bx = pb[xKey][si-1], by = pb[yKey][si-1];
+              const dx = bx - ax, dy = by - ay;
+              const d  = Math.sqrt(dx*dx + dy*dy) || 0.0001;
+              if (d >= R_ATTRACT) continue; // outside view horizon — no force
+
+              const ux = dx/d, uy = dy/d; // unit vec from a toward b
+
+              if (d < R_REPEL) {
+                // Universal short-range repulsion (same for all pairs, symmetric)
+                // Force pushes a AWAY from b
+                fx[a] -= ux * REPEL_F * (1 - d/R_REPEL);
+                fy[a] -= uy * REPEL_F * (1 - d/R_REPEL);
+              } else {
+                // Species-determined force in flat zone (asymmetric — Ventrella's key idea)
+                // CHARGED_FM[a's group][b's group]: positive = a attracted toward b
+                const k = CHARGED_FM[pa.gi][pb.gi] * ATTRACT_F;
+                fx[a] += ux * k;
+                fy[a] += uy * k;
+              }
+            }
+          }
+        }
+
+        // Centripetal spring + valence + jitter for each person
+        persons.forEach((p, pi) => {
+          const cx = p[xKey][si-1], cy = p[yKey][si-1];
+          const v  = p.vals[si];
+          const d  = Math.sqrt(cx*cx + cy*cy) || 0.0001;
+          const ux = cx/d, uy = cy/d;
+
+          // Valence sets target radius
+          const targetR = v >= 0
+            ? tubeR * (1 - v * VALENCE_PULL)
+            : tubeR * (1 + (-v) * VALENCE_PUSH);
+
+          // Spring toward target (along current radial)
+          const sf = (targetR - d) * SPRING_K;
+          fx[pi] += ux * sf;
+          fy[pi] += uy * sf;
+
+          // Tangential jitter
+          fx[pi] += -uy * (rng()-0.5) * WANDER;
+          fy[pi] +=  ux * (rng()-0.5) * WANDER;
+
+          // Integrate with friction
+          vx[pi] = (vx[pi] + fx[pi]) * FRICTION;
+          vy[pi] = (vy[pi] + fy[pi]) * FRICTION;
+          p[xKey][si] = cx + vx[pi];
+          p[yKey][si] = cy + vy[pi];
+        });
+      }
+    }
+
+    runSim(false); // no inter-particle forces → chargedX/Y
+    runSim(true);  // with Clusters-style pairwise forces → chargedFX/FY
+  })();
+
+  // ── world position functions ───────────────────────────────────────────────
+
+  // LIGHT WAVE MODE: transverse oscillation in fixed plane
+  function lightWorld(si, p, v) {
+    const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
+    return new THREE.Vector3(
+      pos.x+(p.dx*norm.x+p.dy*bi.x)*v*MAX_R,
+      pos.y+(p.dx*norm.y+p.dy*bi.y)*v*MAX_R,
+      pos.z+(p.dx*norm.z+p.dy*bi.z)*v*MAX_R,
+    );
+  }
+
+  // PARTICLE MODE DOF-1: fixed radian on full circle, radius varies with valence
+  function particleWorldDof1(si, p, v) {
+    const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
+    const r = tubeR - v * TUBE_RANGE;
+    const ca=Math.cos(p.ringAngle), sa=Math.sin(p.ringAngle);
+    return new THREE.Vector3(
+      pos.x+(ca*norm.x+sa*bi.x)*r,
+      pos.y+(ca*norm.y+sa*bi.y)*r,
+      pos.z+(ca*norm.z+sa*bi.z)*r,
+    );
+  }
+
+  // PARTICLE MODE DOF-2: angle drifts around ring, but radius still varies with valence
+  // Both DOF modes sit on the same ring — DOF-2 just isn't pinned to a fixed radian
+  function particleWorldDof2(si, p, v) {
+    const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
+    const r = tubeR - v * TUBE_RANGE;
+    const oa = p.orbitAngles[si];
+    const ca=Math.cos(oa), sa=Math.sin(oa);
+    return new THREE.Vector3(
+      pos.x+(ca*norm.x+sa*bi.x)*r,
+      pos.y+(ca*norm.y+sa*bi.y)*r,
+      pos.z+(ca*norm.z+sa*bi.z)*r,
+    );
+  }
+
+  // PARTICLE MODE DOF-3 (charged): 2D disc, valence = centripetal force
+  function particleWorldDof3(si, p) {
+    const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
+    const cx = attracted ? p.chargedFX[si] : p.chargedX[si];
+    const cy = attracted ? p.chargedFY[si] : p.chargedY[si];
+    return new THREE.Vector3(
+      pos.x + cx*norm.x + cy*bi.x,
+      pos.y + cx*norm.y + cy*bi.y,
+      pos.z + cx*norm.z + cy*bi.z,
+    );
+  }
+
+  // ── mode state ────────────────────────────────────────────────────────────
+  let vizMode   = 'light';  // 'light' | 'particle'
+  let dof       = 1;        // 1 | 2 | 3 (particle: pinned / orbital / charged)
+  let attracted = false;    // group force field in orbital + charged
+
+  // Inter-group force matrix (angular push/pull between group means).
+  // Positive = attraction, negative = repulsion.
+  // Groups: 0=blue(A,60), 1=amber(B,30), 2=purple(C,10)
+  // A↔B: mild repulsion. A↔C and B↔C: strong repulsion. Self: mild attraction.
+  // Values are total-journey forces, divided by TOTAL_STEPS per step so they
+  // don't compound into wild oscillation.
+  const FORCE_SCALE = 1 / TOTAL_STEPS;
+  const FORCE_MATRIX = [
+  //  gi=0    gi=1    gi=2
+    [ 0.8,   -0.3,   -1.2],  // forces ON gi=0 from cols
+    [-0.3,    0.8,   -1.2],  // forces ON gi=1 from cols
+    [-1.2,   -1.2,    1.0],  // forces ON gi=2 from cols
+  ];
+
+  function wrapAngle(a) {
+    while (a >  Math.PI) a -= Math.PI*2;
+    while (a < -Math.PI) a += Math.PI*2;
+    return a;
+  }
+
+  function bakeAttractedAngles() {
+    persons.forEach(p => {
+      if (!p.orbitAnglesAttracted) p.orbitAnglesAttracted = new Float32Array(TOTAL_STEPS+1);
+      p.orbitAnglesAttracted[0] = p.orbitAngles[0];
+    });
+    for (let si = 1; si <= TOTAL_STEPS; si++) {
+      // Circular mean angle per group at previous step
+      const groupMeans = [0,1,2].map(gi => {
+        const gp = persons.filter(p => p.gi === gi);
+        const sx = gp.reduce((s,p) => s + Math.cos(p.orbitAnglesAttracted[si-1]), 0);
+        const sy = gp.reduce((s,p) => s + Math.sin(p.orbitAnglesAttracted[si-1]), 0);
+        return Math.atan2(sy, sx);
+      });
+      persons.forEach(p => {
+        const prev = p.orbitAnglesAttracted[si-1];
+        const drift = p.orbitAngles[si] - p.orbitAngles[si-1];
+        // Sum forces from all three group means
+        let force = 0;
+        for (let other = 0; other < 3; other++) {
+          const k = FORCE_MATRIX[p.gi][other];
+          if (k === 0) continue;
+          // Angular diff from this person toward other group's mean
+          const diff = wrapAngle(groupMeans[other] - prev);
+        force += diff * k * FORCE_SCALE;
+        }
+        p.orbitAnglesAttracted[si] = prev + drift + force;
+      });
+    }
+  }
+  bakeAttractedAngles();
+
+  function getOrbitAngle(si, p) {
+    return attracted ? p.orbitAnglesAttracted[si] : p.orbitAngles[si];
+  }
+
+  function getWorld(si, p, v) {
+    if (vizMode === 'light') return lightWorld(si, p, v);
+    if (dof === 1)           return particleWorldDof1(si, p, v);
+    if (dof === 3)           return particleWorldDof3(si, p);
+    // DOF-2 orbital: use attracted or natural orbit angle
+    const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
+    const r = tubeR - v * TUBE_RANGE;
+    const oa = getOrbitAngle(si, p);
+    const ca=Math.cos(oa), sa=Math.sin(oa);
+    return new THREE.Vector3(
+      pos.x+(ca*norm.x+sa*bi.x)*r,
+      pos.y+(ca*norm.y+sa*bi.y)*r,
+      pos.z+(ca*norm.z+sa*bi.z)*r,
+    );
+  }
+
+  // ── bake light-wave positions + colors ────────────────────────────────────
+  // We bake light wave positions upfront. Particle positions are computed live per frame.
+  persons.forEach(p => {
+    const N = TOTAL_STEPS+1;
+    p.ptsLight  = new Float32Array(N*3);
+    p.colGroup  = new Float32Array(N*3);
+    p.colVal    = new Float32Array(N*3);
+    const gc = GROUP_COLS[p.gi];
+    for (let i=0; i<N; i++) {
+      const v=p.vals[i], w=lightWorld(i,p,v);
+      p.ptsLight[i*3]=w.x; p.ptsLight[i*3+1]=w.y; p.ptsLight[i*3+2]=w.z;
+      p.colGroup[i*3]=gc.r; p.colGroup[i*3+1]=gc.g; p.colGroup[i*3+2]=gc.b;
+      const vc=valCol(v);
+      p.colVal[i*3]=vc.r; p.colVal[i*3+1]=vc.g; p.colVal[i*3+2]=vc.b;
+    }
+  });
+
+  // ── trail lines ───────────────────────────────────────────────────────────
+  // Positions are DynamicDraw so we can overwrite them when switching modes
+  const trails = persons.map(p => {
+    const posBuf = new THREE.BufferAttribute(p.ptsLight.slice(), 3);
+    posBuf.setUsage(THREE.DynamicDrawUsage);
+    const colBuf = new THREE.BufferAttribute(p.colGroup.slice(), 3);
+    colBuf.setUsage(THREE.DynamicDrawUsage);
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', posBuf);
+    geo.setAttribute('color', colBuf);
+    geo.setDrawRange(0, HISTORY_STEPS+1);
+    const alpha = p.gi===0?0.22:p.gi===1?0.44:0.88;
+    const mat = new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, opacity:alpha });
+    scene.add(new THREE.Line(geo, mat));
+    return { geo, posBuf, colBuf, p };
+  });
+
+  // ── fill ribbons ──────────────────────────────────────────────────────────
+  let fillAlphaVal = 0.12, fillMode = 'group';
+
+  // Fill positions are also dynamic (ribbon from trace to spine)
+  const fills = persons.map(p => {
+    const N = TOTAL_STEPS+1;
+    const posBuf = new THREE.BufferAttribute(new Float32Array(N*2*3), 3);
+    posBuf.setUsage(THREE.DynamicDrawUsage);
+    // Bake initial positions (light wave)
+    const colGroupF = new Float32Array(N*2*3);
+    const colValF   = new Float32Array(N*2*3);
+    const gc = GROUP_COLS[p.gi];
+    for (let i=0; i<N; i++) {
+      const v=p.vals[i], w=lightWorld(i,p,v), sp=pathPos[i];
+      posBuf.array[i*6+0]=w.x; posBuf.array[i*6+1]=w.y; posBuf.array[i*6+2]=w.z;
+      posBuf.array[i*6+3]=sp.x; posBuf.array[i*6+4]=sp.y; posBuf.array[i*6+5]=sp.z;
+      colGroupF[i*6]=gc.r; colGroupF[i*6+1]=gc.g; colGroupF[i*6+2]=gc.b;
+      colGroupF[i*6+3]=gc.r; colGroupF[i*6+4]=gc.g; colGroupF[i*6+5]=gc.b;
+      const vc=valCol(v);
+      colValF[i*6]=vc.r; colValF[i*6+1]=vc.g; colValF[i*6+2]=vc.b;
+      colValF[i*6+3]=C_NEUTRAL.r; colValF[i*6+4]=C_NEUTRAL.g; colValF[i*6+5]=C_NEUTRAL.b;
+    }
+    const colBuf = new THREE.BufferAttribute(colGroupF.slice(), 3);
+    colBuf.setUsage(THREE.DynamicDrawUsage);
+    const indices = new Uint32Array((N-1)*6);
+    for (let i=0; i<N-1; i++) {
+      const a=i*2,b=i*2+1,c=(i+1)*2,d=(i+1)*2+1;
+      indices[i*6]=a; indices[i*6+1]=b; indices[i*6+2]=c;
+      indices[i*6+3]=b; indices[i*6+4]=d; indices[i*6+5]=c;
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', posBuf);
+    geo.setAttribute('color', colBuf);
+    geo.setIndex(new THREE.BufferAttribute(indices,1));
+    geo.setDrawRange(0, HISTORY_STEPS*6);
+    const mat = new THREE.MeshBasicMaterial({ vertexColors:true, transparent:true, opacity:fillAlphaVal, side:THREE.DoubleSide, depthWrite:false });
+    scene.add(new THREE.Mesh(geo, mat));
+    return { geo, posBuf, colBuf, mat, colGroupF, colValF, p };
+  });
+
+  // ── base spines ───────────────────────────────────────────────────────────
+  const baseSpines = [0,1,2].map(gi => {
+    const bt=baseTraces[gi], ba=[Math.PI*0.5,Math.PI*0.25,Math.PI*0.75][gi];
+    const fp={dx:Math.sin(ba),dy:Math.cos(ba)};
+    const posBuf = new THREE.BufferAttribute(new Float32Array((TOTAL_STEPS+1)*3),3);
+    posBuf.setUsage(THREE.DynamicDrawUsage);
+    for (let i=0; i<=TOTAL_STEPS; i++) {
+      const w=lightWorld(i,fp,bt[i]);
+      posBuf.array[i*3]=w.x; posBuf.array[i*3+1]=w.y; posBuf.array[i*3+2]=w.z;
+    }
+    const geo=new THREE.BufferGeometry(); geo.setAttribute('position',posBuf); geo.setDrawRange(0,HISTORY_STEPS+1);
+    const line=new THREE.Line(geo,new THREE.LineBasicMaterial({color:GROUP_COLS[gi],transparent:true,opacity:0.9}));
+    scene.add(line);
+    return {line,geo,posBuf,fp,gi};
+  });
+
+  // ── narrative spine ───────────────────────────────────────────────────────
+  {
+    const pts=new Float32Array((TOTAL_STEPS+1)*3);
+    for (let i=0; i<=TOTAL_STEPS; i++) { pts[i*3]=pathPos[i].x; pts[i*3+1]=pathPos[i].y; pts[i*3+2]=pathPos[i].z; }
+    const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
+    scene.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.08})));
+  }
+
+  // ── baseline tube traces (particle mode) ──────────────────────────────────
+  // 12 white reference traces on the tube circumference, with fill ribbons back
+  // to the spine — same visual language as participant trails, but static/white.
+  const TUBE_N = 12;
+  let tubeTraces = [];  // {line, fillMesh, geo, fillGeo, lineMat, fillMat}
+  let tubeMesh  = { visible: false }; // shim — real visibility via setTubeVisible
+  let tubeMesh2 = { visible: false }; // shim
+
+  function rebuildTube() {
+    tubeTraces.forEach(({line, fillMesh}) => { scene.remove(line); scene.remove(fillMesh); });
+    tubeTraces = [];
+    const N = TOTAL_STEPS + 1;
+    for (let ti = 0; ti < TUBE_N; ti++) {
+      const ang = (ti / TUBE_N) * Math.PI * 2;
+      const ca = Math.cos(ang), sa = Math.sin(ang);
+
+      // Trail line pts: trace stays at tubeR (neutral, valence=0)
+      const pts = new Float32Array(N * 3);
+      for (let i = 0; i < N; i++) {
+        const pos=pathPos[i], norm=pathNorm[i], bi=pathBi[i];
+        pts[i*3]   = pos.x + (ca*norm.x + sa*bi.x) * tubeR;
+        pts[i*3+1] = pos.y + (ca*norm.y + sa*bi.y) * tubeR;
+        pts[i*3+2] = pos.z + (ca*norm.z + sa*bi.z) * tubeR;
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
+      geo.setDrawRange(0, 0);
+      const lineMat = new THREE.LineBasicMaterial({
+        color: 0xffffff, transparent: true,
+        opacity: 0.35, depthWrite: false
+      });
+      const line = new THREE.Line(geo, lineMat);
+      line.visible = false;
+      scene.add(line);
+
+      // Fill ribbon: trace point → spine, same pattern as participant fills
+      const fpos = new Float32Array(N * 2 * 3);
+      for (let i = 0; i < N; i++) {
+        const pos=pathPos[i], norm=pathNorm[i], bi=pathBi[i], sp=pathPos[i];
+        fpos[i*6]   = pos.x + (ca*norm.x + sa*bi.x) * tubeR;
+        fpos[i*6+1] = pos.y + (ca*norm.y + sa*bi.y) * tubeR;
+        fpos[i*6+2] = pos.z + (ca*norm.z + sa*bi.z) * tubeR;
+        fpos[i*6+3] = sp.x; fpos[i*6+4] = sp.y; fpos[i*6+5] = sp.z;
+      }
+      const findices = new Uint32Array((N-1)*6);
+      for (let i = 0; i < N-1; i++) {
+        const a=i*2,b=i*2+1,c=(i+1)*2,d=(i+1)*2+1;
+        findices[i*6]=a; findices[i*6+1]=b; findices[i*6+2]=c;
+        findices[i*6+3]=b; findices[i*6+4]=d; findices[i*6+5]=c;
+      }
+      const fillGeo = new THREE.BufferGeometry();
+      fillGeo.setAttribute('position', new THREE.BufferAttribute(fpos, 3));
+      fillGeo.setIndex(new THREE.BufferAttribute(findices, 1));
+      fillGeo.setDrawRange(0, 0);
+      const fillMat = new THREE.MeshBasicMaterial({
+        color: 0xffffff, transparent: true,
+        opacity: fillAlphaVal * 0.6,
+        side: THREE.DoubleSide, depthWrite: false
+      });
+      const fillMesh = new THREE.Mesh(fillGeo, fillMat);
+      fillMesh.visible = false;
+      scene.add(fillMesh);
+
+      tubeTraces.push({ line, fillMesh, geo, fillGeo, lineMat, fillMat });
+    }
+  }
+
+  function setTubeVisible(v) {
+    tubeTraces.forEach(({line, fillMesh}) => { line.visible = v; fillMesh.visible = v; });
+  }
+  function setTubeOpacity(alpha) {
+    tubeTraces.forEach(({lineMat, fillMat}) => {
+      lineMat.opacity = 0.35;           // keep line opacity fixed — white reads fine
+      fillMat.opacity = alpha * 0.6;
+    });
+  }
+  function setTubeDrawRange(si) {
+    tubeTraces.forEach(({geo, fillGeo}) => {
+      geo.setDrawRange(0, si + 1);
+      fillGeo.setDrawRange(0, Math.max(0, si - 1) * 6);
+    });
+  }
+  rebuildTube();
+
+  // ── ring ──────────────────────────────────────────────────────────────────
+  const RING_SEGS=96;
+  const ringPosBuf=new THREE.BufferAttribute(new Float32Array((RING_SEGS+1)*3),3);
+  ringPosBuf.setUsage(THREE.DynamicDrawUsage);
+  const ringGeo=new THREE.BufferGeometry(); ringGeo.setAttribute('position',ringPosBuf);
+  const ring=new THREE.Line(ringGeo,new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.12}));
+  scene.add(ring);
+
+  function updateRing(si) {
+    const norm=pathNorm[si],bi=pathBi[si],pos=pathPos[si];
+    const r = vizMode==='light' ? MAX_R*1.1 : tubeR;
+    for (let i=0; i<=RING_SEGS; i++) {
+      const a=(i/RING_SEGS)*Math.PI*2, ca=Math.cos(a), sa=Math.sin(a);
+      ringPosBuf.array[i*3]=pos.x+(norm.x*ca+bi.x*sa)*r;
+      ringPosBuf.array[i*3+1]=pos.y+(norm.y*ca+bi.y*sa)*r;
+      ringPosBuf.array[i*3+2]=pos.z+(norm.z*ca+bi.z*sa)*r;
+    }
+    ringPosBuf.needsUpdate=true;
+  }
+  updateRing(HISTORY_STEPS);
+
+  // ── cursor dots ───────────────────────────────────────────────────────────
+  const dots = persons.map(p => {
+    const geo=new THREE.SphereGeometry(0.009,7,7);
+    const mat=new THREE.MeshBasicMaterial({color:GROUP_COLS[p.gi].clone(),transparent:true,opacity:0.97});
+    const mesh=new THREE.Mesh(geo,mat); scene.add(mesh);
+    return {mesh,mat,p};
+  });
+
+  // ── position rebuild ──────────────────────────────────────────────────────
+  // Write all particle positions up to si. We write the full buffer once on
+  // mode/dof/attraction switch, then only write the newly-revealed steps each
+  // frame as si advances. This avoids per-frame full-buffer uploads.
+
+  let particleWrittenTo = -1; // highest step index already written into buffers
+
+  function writeParticleRange(from, to) {
+    trails.forEach(({posBuf,p})=>{
+      for (let i=from; i<=to; i++) {
+        const v=p.vals[i], w=getWorld(i,p,v);
+        posBuf.array[i*3]=w.x; posBuf.array[i*3+1]=w.y; posBuf.array[i*3+2]=w.z;
+      }
+      posBuf.needsUpdate=true;
+    });
+    fills.forEach(({posBuf,p})=>{
+      for (let i=from; i<=to; i++) {
+        const v=p.vals[i], w=getWorld(i,p,v), sp=pathPos[i];
+        posBuf.array[i*6+0]=w.x; posBuf.array[i*6+1]=w.y; posBuf.array[i*6+2]=w.z;
+        posBuf.array[i*6+3]=sp.x; posBuf.array[i*6+4]=sp.y; posBuf.array[i*6+5]=sp.z;
+      }
+      posBuf.needsUpdate=true;
+    });
+  }
+
+  function rebuildAllPositions() {
+    if (vizMode === 'light') {
+      // Restore pre-baked light positions
+      trails.forEach(({posBuf,p})=>{ posBuf.array.set(p.ptsLight); posBuf.needsUpdate=true; });
+      fills.forEach(({posBuf,p})=>{
+        const N=TOTAL_STEPS+1;
+        for (let i=0;i<N;i++){
+          const v=p.vals[i],w=lightWorld(i,p,v),sp=pathPos[i];
+          posBuf.array[i*6+0]=w.x;posBuf.array[i*6+1]=w.y;posBuf.array[i*6+2]=w.z;
+          posBuf.array[i*6+3]=sp.x;posBuf.array[i*6+4]=sp.y;posBuf.array[i*6+5]=sp.z;
+        }
+        posBuf.needsUpdate=true;
+      });
+      particleWrittenTo = TOTAL_STEPS;
+    } else {
+      // Particle mode: write all steps up to current si immediately
+      const curSi = HISTORY_STEPS + Math.min(Math.round(tNorm*LIVE_STEPS), LIVE_STEPS);
+      writeParticleRange(0, curSi);
+      particleWrittenTo = curSi;
+    }
+    // Rewrite base spines (cheap)
+    baseSpines.forEach(({posBuf,fp,gi})=>{
+      const bt=baseTraces[gi];
+      for (let i=0; i<=TOTAL_STEPS; i++) {
+        const w = vizMode==='light' ? lightWorld(i,fp,bt[i]) : particleWorldDof1(i,fp,bt[i]);
+        posBuf.array[i*3]=w.x; posBuf.array[i*3+1]=w.y; posBuf.array[i*3+2]=w.z;
+      }
+      posBuf.needsUpdate=true;
+    });
+  }
+
+  // Called every frame in particle mode: extend written range to si if needed,
+  // or rewrite fully if scrubbed backward.
+  function updateParticlePositions(si) {
+    if (vizMode === 'light') return;
+    if (si < particleWrittenTo - 5) {
+      // Scrubbed significantly backward — rewrite from 0
+      writeParticleRange(0, si);
+      particleWrittenTo = si;
+    } else if (si > particleWrittenTo) {
+      // Playhead advanced — write only new steps
+      writeParticleRange(particleWrittenTo + 1, si);
+      particleWrittenTo = si;
+    }
+  }
+
+  // ── toggle logic ──────────────────────────────────────────────────────────
+  let dotMode='group', trailMode='group';
+
+  function setActive(ids,active) { ids.forEach(id=>document.getElementById(id).classList.toggle('active',id===active)); }
+  function updateLegend() {
+    const sg=dotMode==='group'||trailMode==='group'||fillMode==='group';
+    const sv=dotMode==='valence'||trailMode==='valence'||fillMode==='valence';
+    document.getElementById('leg-group').style.display=sg?'':'none';
+    document.getElementById('leg-val').style.display=sv?'':'none';
+  }
+  function applyFillColors() {
+    fills.forEach(({colBuf,colGroupF,colValF})=>{
+      colBuf.array.set(fillMode==='group'?colGroupF:colValF); colBuf.needsUpdate=true;
+    });
+  }
+
+  // helpers to show/hide top rows
+  function showEl(id,v){ document.getElementById(id).style.display=v?'':'none'; }
+
+  // Mode switch
+  document.getElementById('btnLight').addEventListener('click',()=>{
+    vizMode='light';
+    setActive(['btnLight','btnParticle'],'btnLight');
+    document.getElementById('row-particle').classList.remove('visible');
+    showEl('mrow-dof',false); showEl('mrow-attract',false);
+    setTubeVisible(false);
+    baseSpines.forEach(({line})=>{ if(trailMode==='group') line.visible=true; });
+    rebuildAllPositions();
+  });
+  document.getElementById('btnParticle').addEventListener('click',()=>{
+    vizMode='particle';
+    setActive(['btnLight','btnParticle'],'btnParticle');
+    document.getElementById('row-particle').classList.add('visible');
+    showEl('mrow-dof',true);
+    showEl('mrow-attract', dof===2||dof===3);
+    setTubeVisible(true);
+    baseSpines.forEach(({line})=>{ line.visible=false; });
+    rebuildAllPositions();
+  });
+
+  // DOF
+  document.getElementById('btnDof1').addEventListener('click',()=>{
+    dof=1; setActive(['btnDof1','btnDof2','btnDof3'],'btnDof1');
+    showEl('mrow-attract',false);
+    if(vizMode==='particle') rebuildAllPositions();
+  });
+  document.getElementById('btnDof2').addEventListener('click',()=>{
+    dof=2; setActive(['btnDof1','btnDof2','btnDof3'],'btnDof2');
+    showEl('mrow-attract',true);
+    if(vizMode==='particle') rebuildAllPositions();
+  });
+  document.getElementById('btnDof3').addEventListener('click',()=>{
+    dof=3; setActive(['btnDof1','btnDof2','btnDof3'],'btnDof3');
+    showEl('mrow-attract',true);
+    if(vizMode==='particle') rebuildAllPositions();
+  });
+
+  // Attraction
+  document.getElementById('btnAttractOff').addEventListener('click',()=>{
+    attracted=false; setActive(['btnAttractOff','btnAttractOn'],'btnAttractOff');
+    if(vizMode==='particle'&&dof===2) rebuildAllPositions();
+  });
+  document.getElementById('btnAttractOn').addEventListener('click',()=>{
+    attracted=true; setActive(['btnAttractOff','btnAttractOn'],'btnAttractOn');
+    if(vizMode==='particle'&&dof===2) rebuildAllPositions();
+  });
+
+  // Radius slider — controls MAX_R in light mode, tubeR in particle mode
+  document.getElementById('tubeRadius').addEventListener('input',function(){
+    const val = parseInt(this.value)/100;
+    if (vizMode === 'light') {
+      MAX_R = val;
+      // Rewrite all light-wave positions (they use MAX_R)
+      persons.forEach(p => {
+        const N = TOTAL_STEPS+1;
+        for (let i=0; i<N; i++) {
+          const v=p.vals[i], w=lightWorld(i,p,v);
+          p.ptsLight[i*3]=w.x; p.ptsLight[i*3+1]=w.y; p.ptsLight[i*3+2]=w.z;
+        }
+      });
+      rebuildAllPositions(); // restores ptsLight into trail/fill buffers
+    } else {
+      tubeR = val;
+      rebuildTube();
+      rebuildAllPositions();
+    }
+  });
+
+  // Color toggles
+  document.getElementById('btnDotGroup').addEventListener('click',()=>{ dotMode='group'; setActive(['btnDotGroup','btnDotVal'],'btnDotGroup'); updateLegend(); });
+  document.getElementById('btnDotVal').addEventListener('click',()=>{ dotMode='valence'; setActive(['btnDotGroup','btnDotVal'],'btnDotVal'); updateLegend(); });
+  document.getElementById('btnTrailGroup').addEventListener('click',()=>{
+    trailMode='group'; setActive(['btnTrailGroup','btnTrailVal'],'btnTrailGroup');
+    trails.forEach(({colBuf,p})=>{ colBuf.array.set(p.colGroup); colBuf.needsUpdate=true; });
+    if(vizMode==='light') baseSpines.forEach(({line})=>{ line.visible=true; });
+    updateLegend();
+  });
+  document.getElementById('btnTrailVal').addEventListener('click',()=>{
+    trailMode='valence'; setActive(['btnTrailGroup','btnTrailVal'],'btnTrailVal');
+    trails.forEach(({colBuf,p})=>{ colBuf.array.set(p.colVal); colBuf.needsUpdate=true; });
+    baseSpines.forEach(({line})=>{ line.visible=false; });
+    updateLegend();
+  });
+  document.getElementById('btnFillGroup').addEventListener('click',()=>{ fillMode='group'; setActive(['btnFillGroup','btnFillVal'],'btnFillGroup'); applyFillColors(); updateLegend(); });
+  document.getElementById('btnFillVal').addEventListener('click',()=>{ fillMode='valence'; setActive(['btnFillGroup','btnFillVal'],'btnFillVal'); applyFillColors(); updateLegend(); });
+  document.getElementById('fillAlpha').addEventListener('input',function(){
+    fillAlphaVal=parseInt(this.value)/100;
+    fills.forEach(({mat})=>{ mat.opacity=fillAlphaVal; }); setTubeOpacity(fillAlphaVal);
+  });
+
+  // ── orbit ─────────────────────────────────────────────────────────────────
+  let orbitTheta=0, orbitPhi=0.18, dragActive=false, lastX=0, lastY=0;
+  let camDist=0.9;  // zoom distance, updated by scroll/pinch
+  let pinchDist0=null;
+  function onDown(x,y) { dragActive=true; lastX=x; lastY=y; }
+  function onMove(x,y) {
+    if(!dragActive) return;
+    orbitTheta-=(x-lastX)*0.008; orbitPhi-=(y-lastY)*0.006;
+    orbitPhi=Math.max(-Math.PI/2+0.05,Math.min(Math.PI/2-0.05,orbitPhi));
+    lastX=x; lastY=y;
+  }
+  function onUp() { dragActive=false; }
+  canvas.addEventListener('mousedown',  e=>onDown(e.clientX,e.clientY));
+  canvas.addEventListener('mousemove',  e=>onMove(e.clientX,e.clientY));
+  canvas.addEventListener('mouseup',    onUp);
+  canvas.addEventListener('mouseleave', onUp);
+  canvas.addEventListener('touchstart', e=>{ e.preventDefault(); onDown(e.touches[0].clientX,e.touches[0].clientY); },{passive:false});
+  canvas.addEventListener('touchmove',  e=>{ e.preventDefault(); onMove(e.touches[0].clientX,e.touches[0].clientY); },{passive:false});
+  canvas.addEventListener('touchend',   onUp);
+  // Zoom: scroll wheel
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    camDist = Math.max(0.15, Math.min(5.0, camDist * (1 + e.deltaY * 0.001)));
+  }, { passive: false });
+  // Zoom: pinch (touch)
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 2) {
+      pinchDist0 = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchmove', e => {
+    if (e.touches.length === 2 && pinchDist0 !== null) {
+      const d = Math.hypot(
+        e.touches[0].clientX - e.touches[1].clientX,
+        e.touches[0].clientY - e.touches[1].clientY
+      );
+      camDist = Math.max(0.15, Math.min(5.0, camDist * (pinchDist0 / d)));
+      pinchDist0 = d;
+    }
+  }, { passive: true });
+  canvas.addEventListener('touchend', e => { if (e.touches.length < 2) pinchDist0 = null; }, { passive: true });
+
+  // ── playback ──────────────────────────────────────────────────────────────
+  let tNorm=0, playing=true, lastTs=null;
+  const SPEED=1/70;
+  document.getElementById('btnPlay').addEventListener('click',function(){
+    playing=!playing; this.textContent=playing?'Pause':'Play'; if(playing) lastTs=null;
+  });
+  document.getElementById('scrub').addEventListener('input',function(){ tNorm=parseInt(this.value)/1000; });
+
+  // ── render loop ───────────────────────────────────────────────────────────
+  function animate(ts) {
+    requestAnimationFrame(animate);
+    if (playing) {
+      if(lastTs==null) lastTs=ts;
+      tNorm=Math.min(1,tNorm+(ts-lastTs)/1000*SPEED);
+      if(tNorm>=1) tNorm=0;
+      lastTs=ts;
+      document.getElementById('scrub').value=Math.round(tNorm*1000);
+    } else {
+      tNorm=parseInt(document.getElementById('scrub').value)/1000;
+      lastTs=null;
+    }
+
+    const sec=Math.round(tNorm*DURATION);
+    document.getElementById('tdisp').textContent='t='+Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0');
+
+    const si=HISTORY_STEPS+Math.min(Math.round(tNorm*LIVE_STEPS),LIVE_STEPS);
+
+    // Extend or rewrite particle positions to match current si
+    updateParticlePositions(si);
+
+    trails.forEach(({geo})=>geo.setDrawRange(0,si+1));
+    if(vizMode==='particle') setTubeDrawRange(si);
+    baseSpines.forEach(({geo})=>geo.setDrawRange(0,si+1));
+    fills.forEach(({geo})=>geo.setDrawRange(0,Math.max(0,si-1)*6));
+    updateRing(si);
+
+    dots.forEach(({mesh,mat,p})=>{
+      const v=p.vals[si], w=getWorld(si,p,v);
+      mesh.position.copy(w);
+      mat.color.copy(dotMode==='group'?GROUP_COLS[p.gi]:valCol(v));
+    });
+
+    // Camera
+    const lt=pathPos[si].clone();
+    const tan=pathTan[si], norm=pathNorm[si], bi=pathBi[si];
+    const CAM_DIST=camDist;
+    const fwd=tan.clone().negate();
+    const rotated=new THREE.Vector3()
+      .addScaledVector(fwd,  Math.cos(orbitPhi)*Math.cos(orbitTheta))
+      .addScaledVector(norm, Math.sin(orbitPhi))
+      .addScaledVector(bi,   Math.cos(orbitPhi)*Math.sin(orbitTheta))
+      .normalize().multiplyScalar(CAM_DIST);
+    camera.position.copy(lt).add(rotated);
+    camera.lookAt(lt);
+    camera.up.copy(norm);
+
+    renderer.render(scene,camera);
+  }
+
+  requestAnimationFrame(animate);
+})();
+</script>
+</body>
+</html>
