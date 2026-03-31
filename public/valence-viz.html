@@ -75,7 +75,7 @@ html, body { width: 100%; height: 100%; background: #08080e; font-family: monosp
 #conn-status.warn { color: rgba(200,140,40,0.9); }
 #conn-status.connecting { color: rgba(100,100,200,0.7); }
 
-#strip-sync {
+#strip-sync, #strip-sim {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -222,11 +222,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   </div>
   <div id="conn-status">not connected</div>
 
-  <div id="strip-sync">
-    <span id="strip-sync-label">audience sync</span>
+  <div id="strip-sim">
+    <span id="strip-sync-label">include simulated</span>
     <div class="pill-toggle">
-      <button id="sync-off" class="active">off</button>
-      <button id="sync-on">on</button>
+      <button id="sim-on" class="active">on</button>
+      <button id="sim-off">off</button>
     </div>
   </div>
   <div id="audience-count" style="display:none">
@@ -458,6 +458,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   });
   const rngS=mkRng(42);
   for (let i=persons.length-1; i>0; i--) { const j=Math.floor(rngS()*(i+1)); [persons[i],persons[j]]=[persons[j],persons[i]]; }
+  persons.forEach(p => { p.isLive = false; p.liveUserId = null; });
 
   // Assign angles for both modes
   const rngAngle = mkRng(77);
@@ -1090,25 +1091,19 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   let tNorm=0, playing=true, lastTs=null;
   const SPEED=1/70;
   document.getElementById('btnPlay').addEventListener('click',function(){
-    if (audienceSync) return; // scrub not active in live mode
     playing=!playing; this.textContent=playing?'Pause':'Play'; if(playing) lastTs=null;
   });
   document.getElementById('scrub').addEventListener('input',function(){
-    if (audienceSync) return;
     tNorm=parseInt(this.value)/1000;
   });
 
-  // ── Audience sync state ───────────────────────────────────────────────────
-  let audienceSync = false;
-  let liveClockTimer = null;
+  // ── Live state ────────────────────────────────────────────────────────────
+  let includeSim = true;
 
-  // cursors: userId → { x, y }
+  // cursors: userId → { x, y } — only present when thumb is down
   const cursors = new Map();
-  // slot mapping: persona index → userId (null if free)
-  const liveSlotUserIds = new Array(TOTAL).fill(null);
-  // reverse: userId → slot index
-  const userSlotMap = new Map();
-  let nextFreeSlot = 0;
+  // liveUsers: userId → person slot index (persists across thumb lifts)
+  const liveUsers = new Map();
 
   // ── Valence computation (from mood-sounds.html) ───────────────────────────
   function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
@@ -1147,78 +1142,43 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     return (cursorMoodValue(nx, ny) - 50) / 50;
   }
 
-  // Sliding-window live tick: shift vals left by 1, write new head, rewrite visible geometry.
-  // The write head is always TOTAL_STEPS; oldest live data is pruned each tick.
-  function liveStepTick() {
-    const si     = TOTAL_STEPS;
-    const fromSi = si - HISTORY_STEPS;
-
-    // 1. Shift vals left by 1 in the live region — drops the oldest sample
-    persons.forEach(p => p.vals.copyWithin(HISTORY_STEPS, HISTORY_STEPS + 1));
-
-    // 2. Sample current cursor valence and write at the head
-    persons.forEach((p, pi) => {
-      const userId = liveSlotUserIds[pi];
-      const cursor = userId ? cursors.get(userId) : null;
-      p.vals[si] = cursor ? cursorValence(cursor.x, cursor.y) : 0;
-    });
-
-    // 3. Rewrite trail and fill geometry for the entire visible window
-    for (let s = fromSi; s <= si; s++) {
-      const sp = pathPos[s];
-      persons.forEach((p, pi) => {
-        const v   = p.vals[s];
-        const gc  = GROUP_COLS[p.gi];
-        const vc  = valCol(v);
-        const w   = getWorld(s, p, v);
-        const col = (trailMode === 'group') ? gc : vc;
-        const fc  = (fillMode  === 'group') ? gc : vc;
-        const fcs = (fillMode  === 'group') ? gc : C_NEUTRAL;
-
-        const t = trails[pi];
-        t.posBuf.array[s*3]   = w.x;   t.posBuf.array[s*3+1]  = w.y;   t.posBuf.array[s*3+2]  = w.z;
-        t.colBuf.array[s*3]   = col.r; t.colBuf.array[s*3+1]  = col.g; t.colBuf.array[s*3+2]  = col.b;
-
-        const f = fills[pi];
-        f.posBuf.array[s*6]   = w.x;   f.posBuf.array[s*6+1]  = w.y;   f.posBuf.array[s*6+2]  = w.z;
-        f.posBuf.array[s*6+3] = sp.x;  f.posBuf.array[s*6+4]  = sp.y;  f.posBuf.array[s*6+5]  = sp.z;
-        f.colBuf.array[s*6]   = fc.r;  f.colBuf.array[s*6+1]  = fc.g;  f.colBuf.array[s*6+2]  = fc.b;
-        f.colBuf.array[s*6+3] = fcs.r; f.colBuf.array[s*6+4]  = fcs.g; f.colBuf.array[s*6+5]  = fcs.b;
-      });
-    }
-
-    trails.forEach(t => { t.posBuf.needsUpdate = true; t.colBuf.needsUpdate = true; });
-    fills.forEach(f  => { f.posBuf.needsUpdate = true; f.colBuf.needsUpdate = true; });
+  // Assign a random free synthetic slot to a new live user.
+  function assignLiveSlot(userId) {
+    if (liveUsers.has(userId)) return;
+    const free = persons.map((p, i) => (!p.isLive ? i : -1)).filter(i => i >= 0);
+    if (free.length === 0) return;
+    const slot = free[Math.floor(Math.random() * free.length)];
+    persons[slot].isLive = true;
+    persons[slot].liveUserId = userId;
+    liveUsers.set(userId, slot);
+    if (liveUsers.size > 0) document.getElementById('live-badge').classList.add('visible');
   }
 
-  function enableAudienceSync() {
-    audienceSync = true;
-    playing = false;
-    document.getElementById('btnPlay').textContent = 'Play';
-    document.getElementById('row-scrub').style.display = 'none';
-    document.getElementById('live-badge').classList.add('visible');
-    tNorm = 0;
-    liveClockTimer = setInterval(liveStepTick, 100);
+  // Return a slot to the synthetic pool.
+  function freeLiveSlot(userId) {
+    const slot = liveUsers.get(userId);
+    if (slot === undefined) return;
+    persons[slot].isLive = false;
+    persons[slot].liveUserId = null;
+    liveUsers.delete(userId);
+    if (liveUsers.size === 0) document.getElementById('live-badge').classList.remove('visible');
   }
 
-  function disableAudienceSync() {
-    audienceSync = false;
-    clearInterval(liveClockTimer);
-    document.getElementById('row-scrub').style.display = '';
-    document.getElementById('live-badge').classList.remove('visible');
-    playing = true;
-    lastTs = null;
+  // Free all live slots (called on full disconnect).
+  function freeAllLiveSlots() {
+    for (const userId of [...liveUsers.keys()]) freeLiveSlot(userId);
+    cursors.clear();
   }
 
-  document.getElementById('sync-on').addEventListener('click', () => {
-    document.getElementById('sync-on').classList.add('active');
-    document.getElementById('sync-off').classList.remove('active');
-    enableAudienceSync();
+  document.getElementById('sim-on').addEventListener('click', () => {
+    document.getElementById('sim-on').classList.add('active');
+    document.getElementById('sim-off').classList.remove('active');
+    includeSim = true;
   });
-  document.getElementById('sync-off').addEventListener('click', () => {
-    document.getElementById('sync-off').classList.add('active');
-    document.getElementById('sync-on').classList.remove('active');
-    disableAudienceSync();
+  document.getElementById('sim-off').addEventListener('click', () => {
+    document.getElementById('sim-off').classList.add('active');
+    document.getElementById('sim-on').classList.remove('active');
+    includeSim = false;
   });
 
   // ── WebSocket ─────────────────────────────────────────────────────────────
@@ -1260,30 +1220,6 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     connStatus.className = cls ? cls : '';
   }
 
-  function assignSlot(userId) {
-    if (userSlotMap.has(userId)) return;
-    // Find a free slot (try sequential first, then scan for reclaimed ones)
-    let slot = -1;
-    if (nextFreeSlot < TOTAL) {
-      slot = nextFreeSlot++;
-    } else {
-      // Scan for a reclaimed slot
-      for (let i = 0; i < TOTAL; i++) {
-        if (liveSlotUserIds[i] === null) { slot = i; break; }
-      }
-    }
-    if (slot < 0) return; // all 100 slots full
-    liveSlotUserIds[slot] = userId;
-    userSlotMap.set(userId, slot);
-  }
-
-  function freeSlot(userId) {
-    const slot = userSlotMap.get(userId);
-    if (slot === undefined) return;
-    liveSlotUserIds[slot] = null;
-    userSlotMap.delete(userId);
-  }
-
   function connectWs() {
     if (ws) { ws.onclose = null; ws.close(); ws = null; }
     clearTimeout(wsReconnectTimer);
@@ -1314,12 +1250,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
       } else if (data.type === 'move' || data.type === 'touch') {
         const { userId, x, y } = data.position;
         cursors.set(userId, { x, y });
-        assignSlot(userId);
+        assignLiveSlot(userId);  // no-op if already assigned
         audienceN.textContent = cursors.size;
       } else if (data.type === 'remove') {
         const { userId } = data.position;
-        cursors.delete(userId);
-        freeSlot(userId);
+        cursors.delete(userId);  // thumb lift: keep slot, just freeze valence at 0
         audienceN.textContent = cursors.size;
       }
     };
@@ -1353,7 +1288,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
       ws = null;
     }
     wsConnected = false;
-    cursors.clear();
+    freeAllLiveSlots();
     setConnStatus('disconnected', '');
     btnConnect.textContent = 'connect';
     btnConnect.disabled = false;
@@ -1373,45 +1308,65 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   function animate(ts) {
     requestAnimationFrame(animate);
 
-    let si;
-    if (audienceSync) {
-      si = TOTAL_STEPS;
+    if (playing) {
+      if(lastTs==null) lastTs=ts;
+      tNorm=Math.min(1,tNorm+(ts-lastTs)/1000*SPEED);
+      if(tNorm>=1) tNorm=0;
+      lastTs=ts;
+      document.getElementById('scrub').value=Math.round(tNorm*1000);
     } else {
-      if (playing) {
-        if(lastTs==null) lastTs=ts;
-        tNorm=Math.min(1,tNorm+(ts-lastTs)/1000*SPEED);
-        if(tNorm>=1) tNorm=0;
-        lastTs=ts;
-        document.getElementById('scrub').value=Math.round(tNorm*1000);
-      } else {
-        tNorm=parseInt(document.getElementById('scrub').value)/1000;
-        lastTs=null;
-      }
-      si = HISTORY_STEPS + Math.min(Math.round(tNorm*LIVE_STEPS), LIVE_STEPS);
+      tNorm=parseInt(document.getElementById('scrub').value)/1000;
+      lastTs=null;
     }
+    const si = HISTORY_STEPS + Math.min(Math.round(tNorm*LIVE_STEPS), LIVE_STEPS);
 
     const sec=Math.round(tNorm*DURATION);
-    document.getElementById('tdisp').textContent=(audienceSync?'live ':'t=')+(audienceSync?'':(Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0')));
+    document.getElementById('tdisp').textContent='t='+(Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'));
 
-    if (!audienceSync) {
-      updateParticlePositions(si);
-    }
+    // Write live cursor valences into vals[si] for each live person,
+    // and update trail/fill buffers at that step.
+    persons.forEach((p, pi) => {
+      if (!p.isLive) return;
+      const cursor = cursors.get(p.liveUserId);
+      const v = cursor ? cursorValence(cursor.x, cursor.y) : 0;
+      p.vals[si] = v;
 
-    if (audienceSync) {
-      const fromSi = TOTAL_STEPS - HISTORY_STEPS;
-      trails.forEach(({geo})=>geo.setDrawRange(fromSi, HISTORY_STEPS + 1));
-      if(vizMode==='particle') setTubeDrawRange(si);
-      baseSpines.forEach(({geo})=>geo.setDrawRange(fromSi, HISTORY_STEPS + 1));
-      fills.forEach(({geo})=>geo.setDrawRange(fromSi * 6, HISTORY_STEPS * 6));
-    } else {
-      trails.forEach(({geo})=>geo.setDrawRange(0,si+1));
-      if(vizMode==='particle') setTubeDrawRange(si);
-      baseSpines.forEach(({geo})=>geo.setDrawRange(0,si+1));
-      fills.forEach(({geo})=>geo.setDrawRange(0,Math.max(0,si-1)*6));
-    }
+      const gc  = GROUP_COLS[p.gi], vc = valCol(v);
+      const col = trailMode === 'group' ? gc : vc;
+      const fc  = fillMode  === 'group' ? gc : vc;
+      const fcs = fillMode  === 'group' ? gc : C_NEUTRAL;
+
+      // Colors apply in all viz modes
+      const t = trails[pi];
+      t.colBuf.array[si*3]   = col.r; t.colBuf.array[si*3+1] = col.g; t.colBuf.array[si*3+2] = col.b;
+      t.colBuf.needsUpdate = true;
+      const f = fills[pi];
+      f.colBuf.array[si*6]   = fc.r;  f.colBuf.array[si*6+1]  = fc.g;  f.colBuf.array[si*6+2]  = fc.b;
+      f.colBuf.array[si*6+3] = fcs.r; f.colBuf.array[si*6+4]  = fcs.g; f.colBuf.array[si*6+5]  = fcs.b;
+      f.colBuf.needsUpdate = true;
+
+      // Position: light wave requires manual buffer write; particle mode uses vals[] via updateParticlePositions
+      if (vizMode === 'light') {
+        const w = lightWorld(si, p, v), sp = pathPos[si];
+        t.posBuf.array[si*3]   = w.x; t.posBuf.array[si*3+1]   = w.y; t.posBuf.array[si*3+2]   = w.z;
+        t.posBuf.needsUpdate = true;
+        f.posBuf.array[si*6]   = w.x; f.posBuf.array[si*6+1]   = w.y; f.posBuf.array[si*6+2]   = w.z;
+        f.posBuf.array[si*6+3] = sp.x; f.posBuf.array[si*6+4]  = sp.y; f.posBuf.array[si*6+5]  = sp.z;
+        f.posBuf.needsUpdate = true;
+      }
+    });
+
+    updateParticlePositions(si);
+
+    trails.forEach(({geo,p})=>geo.setDrawRange(0, (includeSim||p.isLive)?si+1:0));
+    if(vizMode==='particle') setTubeDrawRange(includeSim?si:0);
+    baseSpines.forEach(({geo})=>geo.setDrawRange(0,includeSim?si+1:0));
+    fills.forEach(({geo,p})=>geo.setDrawRange(0, (includeSim||p.isLive)?Math.max(0,si-1)*6:0));
     updateRing(si);
 
     dots.forEach(({mesh,mat,p})=>{
+      if (!includeSim && !p.isLive) { mesh.visible=false; return; }
+      mesh.visible=true;
       const v=p.vals[si], w=getWorld(si,p,v);
       mesh.position.copy(w);
       mat.color.copy(dotMode==='group'?GROUP_COLS[p.gi]:valCol(v));
