@@ -109,7 +109,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   // Keep refs in sync with state so the socket handler can access current values
   // without stale closures
   const socket = usePartySocket({
-    host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
+    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : process.env.PARTYKIT_HOST,
     room,
     query: { isAdmin: 'true' },
     onMessage(evt) {

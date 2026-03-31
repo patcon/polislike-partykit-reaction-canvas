@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- Local dev now works without deploying: WebSocket host is now detected by port (1999 = local server) instead of hostname, so accessing via a local network IP (e.g. `10.x.x.x:1999`) correctly connects to the local PartyKit server rather than the deployed one.
+
 ### Added
 - Experience: Valence Viz — facilitator tool (`valence-viz.html`) wrapping the Three.js particle/wave valence visualization. Runs synthetic data by default (scrub bar + play/pause). "Audience Sync" toggle connects to a PartyKit room via WebSocket and drives valence values from live cursor positions using barycentric region weighting. Supports light-wave and charged-particle modes, group/valence coloring, and orbit camera. Index card added to landing page.
 - Experience: Mood Sounds — facilitator tool (`mood-sounds.html`) for ambient generative sound tied to live audience cursor positions. Connects as admin (invisible to participant count). Audience Sync toggle drives the mood slider from WebSocket cursor data; Valence toggle switches between Continuous (raw x-position average) and Unit (each cursor snapped to zone −1/0/+1 before averaging) modes. Room input updates the `?room=` URL param for shareability.

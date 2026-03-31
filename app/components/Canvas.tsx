@@ -81,7 +81,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   });
 
   const socket = usePartySocket({
-    host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
+    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : process.env.PARTYKIT_HOST,
     room: room,
     query: readOnly ? { isAdmin: 'true' } : { userId },
     onMessage(evt) {

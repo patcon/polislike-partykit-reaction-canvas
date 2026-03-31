@@ -106,7 +106,7 @@ export default function AdminPanelV5({ room }: AdminPanelV5Props) {
   };
 
   const socket = usePartySocket({
-    host: window.location.hostname === 'localhost' ? 'localhost:1999' : process.env.PARTYKIT_HOST,
+    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : process.env.PARTYKIT_HOST,
     room,
     query: { isAdmin: 'true' },
     onMessage(evt) {
