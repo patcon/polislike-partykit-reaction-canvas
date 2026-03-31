@@ -9,7 +9,7 @@ import ReactionCanvasAppV5 from "./components/ReactionCanvasAppV5";
 function IndexApp() {
   return (
     <div className="index-app">
-      <h1 className="index-title">Polislike Reaction Canvas Apps</h1>
+      <h1 className="index-title">Polislike Reaction Canvas Apps [test]</h1>
       <div className="app-cards">
         <a href="?room=irc6creOFGs#v5" className="app-card app-card--youtube">
           <div className="app-card-content">
