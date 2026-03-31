@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Fixed
+- CI: PR preview deploy and cleanup workflows now use `npx partykit` instead of bare `partykit`, which isn't on PATH after `npm ci`
+- CI: PR preview workflow now has `pull-requests: write` permission so it can post the preview URL comment
+
+
 ### Added
 - Deploy: `npm run deploy:staging` script deploys a persistent staging environment to `staging.polislike-partykit-reaction-canvas.patcon.partykit.dev`
 - CI: PR preview environments — opening or pushing to a PR auto-deploys a preview at `pr-{N}.polislike-partykit-reaction-canvas.patcon.partykit.dev` and posts a comment with the URL; preview is deleted when the PR is closed

@@ -14,7 +14,7 @@ jobs:
           node-version: 18
           cache: "npm"
       - run: npm ci
-      - run: partykit delete --preview pr-${{ github.event.pull_request.number }} --yes
+      - run: npx partykit delete --preview pr-${{ github.event.pull_request.number }} --yes
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
