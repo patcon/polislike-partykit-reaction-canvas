@@ -223,10 +223,12 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   <div id="conn-status">not connected</div>
 
   <div id="strip-sim">
-    <span id="strip-sync-label">include simulated</span>
+    <span id="strip-sync-label">simulated users</span>
     <div class="pill-toggle">
-      <button id="sim-on" class="active">on</button>
-      <button id="sim-off">off</button>
+      <button id="sim-100" class="active">100</button>
+      <button id="sim-50">50</button>
+      <button id="sim-25">25</button>
+      <button id="sim-0">0</button>
     </div>
   </div>
   <div id="audience-count" style="display:none">
@@ -458,7 +460,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   });
   const rngS=mkRng(42);
   for (let i=persons.length-1; i>0; i--) { const j=Math.floor(rngS()*(i+1)); [persons[i],persons[j]]=[persons[j],persons[i]]; }
-  persons.forEach(p => { p.isLive = false; p.liveUserId = null; });
+  persons.forEach((p, i) => { p.isLive = false; p.liveUserId = null; p.simSlot = i; });
 
   // Assign angles for both modes
   const rngAngle = mkRng(77);
@@ -1098,7 +1100,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   });
 
   // ── Live state ────────────────────────────────────────────────────────────
-  let includeSim = true;
+  let simCount = 100;
 
   // cursors: userId → { x, y } — only present when thumb is down
   const cursors = new Map();
@@ -1170,15 +1172,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     cursors.clear();
   }
 
-  document.getElementById('sim-on').addEventListener('click', () => {
-    document.getElementById('sim-on').classList.add('active');
-    document.getElementById('sim-off').classList.remove('active');
-    includeSim = true;
-  });
-  document.getElementById('sim-off').addEventListener('click', () => {
-    document.getElementById('sim-off').classList.add('active');
-    document.getElementById('sim-on').classList.remove('active');
-    includeSim = false;
+  ['100','50','25','0'].forEach(n => {
+    document.getElementById(`sim-${n}`).addEventListener('click', () => {
+      ['100','50','25','0'].forEach(m => document.getElementById(`sim-${m}`).classList.toggle('active', m === n));
+      simCount = parseInt(n);
+    });
   });
 
   // ── WebSocket ─────────────────────────────────────────────────────────────
@@ -1358,14 +1356,14 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
     updateParticlePositions(si);
 
-    trails.forEach(({geo,p})=>geo.setDrawRange(0, (includeSim||p.isLive)?si+1:0));
-    if(vizMode==='particle') setTubeDrawRange(includeSim?si:0);
-    baseSpines.forEach(({geo})=>geo.setDrawRange(0,includeSim?si+1:0));
-    fills.forEach(({geo,p})=>geo.setDrawRange(0, (includeSim||p.isLive)?Math.max(0,si-1)*6:0));
+    trails.forEach(({geo,p})=>geo.setDrawRange(0, (p.isLive||p.simSlot<simCount)?si+1:0));
+    if(vizMode==='particle') setTubeDrawRange(simCount>0?si:0);
+    baseSpines.forEach(({geo})=>geo.setDrawRange(0,simCount>0?si+1:0));
+    fills.forEach(({geo,p})=>geo.setDrawRange(0, (p.isLive||p.simSlot<simCount)?Math.max(0,si-1)*6:0));
     updateRing(si);
 
     dots.forEach(({mesh,mat,p})=>{
-      if (!includeSim && !p.isLive) { mesh.visible=false; return; }
+      if (!p.isLive && p.simSlot>=simCount) { mesh.visible=false; return; }
       mesh.visible=true;
       const v=p.vals[si], w=getWorld(si,p,v);
       mesh.position.copy(w);
