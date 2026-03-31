@@ -1348,18 +1348,17 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   function disconnectWs() {
     clearTimeout(wsReconnectTimer);
     if (ws) {
-      ws.onclose = () => {
-        wsConnected = false;
-        cursors.clear();
-        setConnStatus('disconnected', '');
-        btnConnect.textContent = 'connect';
-        btnConnect.disabled = false;
-        btnConnect.classList.remove('disconnecting');
-        audienceCount.style.display = 'none';
-      };
+      ws.onclose = null;
       ws.close();
       ws = null;
     }
+    wsConnected = false;
+    cursors.clear();
+    setConnStatus('disconnected', '');
+    btnConnect.textContent = 'connect';
+    btnConnect.disabled = false;
+    btnConnect.classList.remove('disconnecting');
+    audienceCount.style.display = 'none';
   }
 
   btnConnect.addEventListener('click', () => {
