@@ -75,7 +75,7 @@ html, body { width: 100%; height: 100%; background: #08080e; font-family: monosp
 #conn-status.warn { color: rgba(200,140,40,0.9); }
 #conn-status.connecting { color: rgba(100,100,200,0.7); }
 
-#strip-sync, #strip-dummy {
+#strip-sync {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -227,13 +227,6 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     <div class="pill-toggle">
       <button id="sync-off" class="active">off</button>
       <button id="sync-on">on</button>
-    </div>
-  </div>
-  <div id="strip-dummy" style="display:none">
-    <span id="strip-sync-label">include dummy data</span>
-    <div class="pill-toggle">
-      <button id="dummy-off" class="active">off</button>
-      <button id="dummy-on">on</button>
     </div>
   </div>
   <div id="audience-count" style="display:none">
@@ -764,44 +757,6 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     return { geo, posBuf, colBuf, mat, colGroupF, colValF, p };
   });
 
-  // ── live overlay geometry (ring buffer → audience sync) ──────────────────
-  // Separate from trails/fills so synthetic data can coexist in hybrid mode.
-  const liveOverlayTrails = persons.map(p => {
-    const posBuf = new THREE.BufferAttribute(new Float32Array(RING_SIZE * 3), 3);
-    posBuf.setUsage(THREE.DynamicDrawUsage);
-    const colBuf = new THREE.BufferAttribute(new Float32Array(RING_SIZE * 3), 3);
-    colBuf.setUsage(THREE.DynamicDrawUsage);
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', posBuf);
-    geo.setAttribute('color', colBuf);
-    geo.setDrawRange(0, 0);
-    const alpha = p.gi===0?0.22:p.gi===1?0.44:0.88;
-    const mat = new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, opacity:alpha });
-    scene.add(new THREE.Line(geo, mat));
-    return { geo, posBuf, colBuf, p };
-  });
-
-  const liveOverlayFills = persons.map(p => {
-    const posBuf = new THREE.BufferAttribute(new Float32Array(RING_SIZE * 6), 3);
-    posBuf.setUsage(THREE.DynamicDrawUsage);
-    const colBuf = new THREE.BufferAttribute(new Float32Array(RING_SIZE * 6), 3);
-    colBuf.setUsage(THREE.DynamicDrawUsage);
-    const indices = new Uint32Array((RING_SIZE - 1) * 6);
-    for (let i = 0; i < RING_SIZE - 1; i++) {
-      const a=i*2, b=i*2+1, c=(i+1)*2, d=(i+1)*2+1;
-      indices[i*6]=a; indices[i*6+1]=b; indices[i*6+2]=c;
-      indices[i*6+3]=b; indices[i*6+4]=d; indices[i*6+5]=c;
-    }
-    const geo = new THREE.BufferGeometry();
-    geo.setAttribute('position', posBuf);
-    geo.setAttribute('color', colBuf);
-    geo.setIndex(new THREE.BufferAttribute(indices, 1));
-    geo.setDrawRange(0, 0);
-    const mat = new THREE.MeshBasicMaterial({ vertexColors:true, transparent:true, opacity:fillAlphaVal, side:THREE.DoubleSide, depthWrite:false });
-    scene.add(new THREE.Mesh(geo, mat));
-    return { geo, posBuf, colBuf, mat, p };
-  });
-
   // ── base spines ───────────────────────────────────────────────────────────
   const baseSpines = [0,1,2].map(gi => {
     const bt=baseTraces[gi], ba=[Math.PI*0.5,Math.PI*0.25,Math.PI*0.75][gi];
@@ -1109,9 +1064,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   });
   document.getElementById('fillAlpha').addEventListener('input',function(){
     fillAlphaVal=parseInt(this.value)/100;
-    fills.forEach(({mat})=>{ mat.opacity=fillAlphaVal; });
-    liveOverlayFills.forEach(({mat})=>{ mat.opacity=fillAlphaVal; });
-    setTubeOpacity(fillAlphaVal);
+    fills.forEach(({mat})=>{ mat.opacity=fillAlphaVal; }); setTubeOpacity(fillAlphaVal);
   });
 
   // ── orbit ─────────────────────────────────────────────────────────────────
@@ -1171,7 +1124,6 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   // ── Audience sync state ───────────────────────────────────────────────────
   let audienceSync = false;
-  let includeDummyData = false;
   let liveClockTimer = null;
 
   // cursors: userId → { x, y }
@@ -1251,8 +1203,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     geometryDirty = true;
   }
 
-  // Copy ring buffers to live overlay geometry in temporal order (oldest → newest).
-  // Writes to liveOverlayTrails/Fills (separate from synthetic trails/fills).
+  // Copy ring buffers to display geometry in temporal order (oldest → newest).
   // Pure typed-array set() — no getWorld() calls at render time.
   function copyRingsToDisplay() {
     const count  = ringFillLevel;
@@ -1264,7 +1215,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     const part2 = count - part1;
 
     persons.forEach((p, pi) => {
-      const t = liveOverlayTrails[pi], f = liveOverlayFills[pi];
+      const t = trails[pi], f = fills[pi];
       t.posBuf.array.set(p.worldRingPos.subarray(oldest*3, (oldest+part1)*3), 0);
       t.colBuf.array.set(p.worldRingCol.subarray(oldest*3, (oldest+part1)*3), 0);
       f.posBuf.array.set(p.fillRingPos.subarray(oldest*6, (oldest+part1)*6), 0);
@@ -1308,20 +1259,16 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   function enableAudienceSync() {
     audienceSync = true;
+    playing = false;
+    document.getElementById('btnPlay').textContent = 'Play';
+    document.getElementById('row-scrub').style.display = 'none';
     document.getElementById('live-badge').classList.add('visible');
-    document.getElementById('strip-dummy').style.display = 'flex';
-    if (!includeDummyData) {
-      playing = false;
-      document.getElementById('btnPlay').textContent = 'Play';
-      document.getElementById('row-scrub').style.display = 'none';
-    }
+    tNorm = 0;
     ringHead = RING_SIZE - 1;
     ringFillLevel = 0;
     pathStepCtr = 0;
     geometryDirty = false;
     pathRingSi.fill(0);
-    liveOverlayTrails.forEach(({geo}) => geo.setDrawRange(0, 0));
-    liveOverlayFills.forEach(({geo}) => geo.setDrawRange(0, 0));
     liveClockTimer = setInterval(liveStepTick, 100);
   }
 
@@ -1330,9 +1277,6 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     clearInterval(liveClockTimer);
     document.getElementById('row-scrub').style.display = '';
     document.getElementById('live-badge').classList.remove('visible');
-    document.getElementById('strip-dummy').style.display = 'none';
-    liveOverlayTrails.forEach(({geo}) => geo.setDrawRange(0, 0));
-    liveOverlayFills.forEach(({geo}) => geo.setDrawRange(0, 0));
     playing = true;
     lastTs = null;
   }
@@ -1346,25 +1290,6 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     document.getElementById('sync-off').classList.add('active');
     document.getElementById('sync-on').classList.remove('active');
     disableAudienceSync();
-  });
-
-  document.getElementById('dummy-on').addEventListener('click', () => {
-    document.getElementById('dummy-on').classList.add('active');
-    document.getElementById('dummy-off').classList.remove('active');
-    includeDummyData = true;
-    // Show scrub bar and resume playback
-    document.getElementById('row-scrub').style.display = '';
-    playing = true;
-    lastTs = null;
-  });
-  document.getElementById('dummy-off').addEventListener('click', () => {
-    document.getElementById('dummy-off').classList.add('active');
-    document.getElementById('dummy-on').classList.remove('active');
-    includeDummyData = false;
-    // Hide scrub bar and suppress synthetic trails
-    document.getElementById('row-scrub').style.display = 'none';
-    playing = false;
-    document.getElementById('btnPlay').textContent = 'Play';
   });
 
   // ── WebSocket ─────────────────────────────────────────────────────────────
@@ -1521,8 +1446,9 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     requestAnimationFrame(animate);
 
     let si;
-    // Scrub advances in: non-sync mode, and hybrid (audienceSync + includeDummyData)
-    if (!audienceSync || includeDummyData) {
+    if (audienceSync) {
+      // si is set below in the audienceSync geometry block
+    } else {
       if (playing) {
         if(lastTs==null) lastTs=ts;
         tNorm=Math.min(1,tNorm+(ts-lastTs)/1000*SPEED);
@@ -1544,27 +1470,12 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     }
 
     if (audienceSync) {
+      si = HISTORY_STEPS + pathStepCtr;
       if (geometryDirty) copyRingsToDisplay();
-      // Live overlay always shown in audienceSync
-      liveOverlayTrails.forEach(({geo}) => geo.setDrawRange(0, ringFillLevel));
-      liveOverlayFills.forEach(({geo})  => geo.setDrawRange(0, Math.max(0, ringFillLevel - 1) * 6));
-
-      if (includeDummyData) {
-        // Hybrid: synthetic data plays via scrub + live overlay on top
-        // si is already set from the scrub calculation above
-        updateParticlePositions(si);
-        trails.forEach(({geo}) => geo.setDrawRange(0, si + 1));
-        baseSpines.forEach(({geo}) => geo.setDrawRange(0, si + 1));
-        fills.forEach(({geo}) => geo.setDrawRange(0, Math.max(0, si - 1) * 6));
-        if (vizMode === 'particle') setTubeDrawRange(si);
-      } else {
-        // Pure sync: only live overlay, no synthetic
-        si = HISTORY_STEPS + pathStepCtr;
-        trails.forEach(({geo}) => geo.setDrawRange(0, 0));
-        fills.forEach(({geo})  => geo.setDrawRange(0, 0));
-        baseSpines.forEach(({geo}) => geo.setDrawRange(0, 0));
-        if (vizMode === 'particle') setTubeDrawRange(si);
-      }
+      trails.forEach(({geo}) => geo.setDrawRange(0, ringFillLevel));
+      fills.forEach(({geo})  => geo.setDrawRange(0, Math.max(0, ringFillLevel - 1) * 6));
+      baseSpines.forEach(({geo}) => geo.setDrawRange(0, 0));
+      if (vizMode === 'particle') setTubeDrawRange(si);
     } else {
       trails.forEach(({geo})=>geo.setDrawRange(0,si+1));
       if(vizMode==='particle') setTubeDrawRange(si);
