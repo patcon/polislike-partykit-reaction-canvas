@@ -1,0 +1,34 @@
+name: Deploy PR Preview
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  deploy-preview:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: "npm"
+      - run: npm ci
+      - run: npm run cachebust && partykit deploy --preview pr-${{ github.event.pull_request.number }} --with-vars
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+          PARTYKIT_LOGIN: patcon
+          PARTYKIT_HOST: pr-${{ github.event.pull_request.number }}.polislike-partykit-reaction-canvas.patcon.partykit.dev
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const num = context.payload.pull_request.number;
+            const url = `https://pr-${num}.polislike-partykit-reaction-canvas.patcon.partykit.dev`;
+            github.rest.issues.createComment({
+              issue_number: num,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: `Preview deployed: ${url}`,
+            });
