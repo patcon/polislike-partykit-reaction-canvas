@@ -119,6 +119,12 @@ interface RequestJoinEvent {
   type: 'requestJoin';
 }
 
+interface PlaybackCursorBroadcastEvent {
+  type: 'playbackCursorBroadcast';
+  cursorType: 'move' | 'touch' | 'remove';
+  position: CursorPosition;
+}
+
 interface Vote {
   userId: string;
   statementId: number;
@@ -126,7 +132,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent;
 
 // ===== SOCCER PHYSICS CONSTANTS =====
 const SOCCER_BALL_R = 2;      // % of canvas
@@ -277,7 +283,17 @@ export default class Server implements Party.Server {
     try {
       const event: ClientEvent = JSON.parse(message);
 
-      if ('position' in event) {
+      if (event.type === 'playbackCursorBroadcast') {
+        // Admin replaying recorded events — broadcast to ALL clients (including sender)
+        // so the admin's own "Peek Canvas" tab also sees playback cursors
+        this.room.broadcast(JSON.stringify({
+          type: event.cursorType,
+          position: {
+            ...event.position,
+            isPlayback: true,
+          },
+        }));
+      } else if ('position' in event) {
         // Handle cursor events
         console.log(`Cursor event from ${sender.id}:`, event.type, event.position);
         // Track cursor positions for soccer physics

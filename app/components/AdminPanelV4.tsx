@@ -12,6 +12,14 @@ interface AdminPanelV4Props {
 
 type RecordingMode = 'transitions' | 'positions';
 
+interface PlaybackFile {
+  recordingStart: number;
+  recordingEnd: number;
+  room: string;
+  mode: RecordingMode;
+  events: object[];
+}
+
 function anchorToLocal(anchors: ReactionAnchors) {
   return {
     positiveX: String(anchors.positive.x),
@@ -105,6 +113,12 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const prevRegionsRef = useRef<Map<string, ReactionRegion | null>>(new Map());
   const isRecordingRef = useRef(false);
   const modeRef = useRef<RecordingMode>('transitions');
+
+  // Playback state
+  const [playbackData, setPlaybackData] = useState<PlaybackFile | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const playbackIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activePlaybackUserIds = useRef<Set<string>>(new Set());
 
   // Keep refs in sync with state so the socket handler can access current values
   // without stale closures
@@ -281,6 +295,112 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const handleModeChange = (newMode: RecordingMode) => {
     setMode(newMode);
     modeRef.current = newMode;
+  };
+
+  const handlePlaybackFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    file.text().then(text => {
+      try {
+        const data = JSON.parse(text) as PlaybackFile;
+        setPlaybackData(data);
+      } catch {
+        alert('Failed to parse JSON file.');
+      }
+    });
+  };
+
+  const anchorForRegion = (region: string, userId: string): { x: number; y: number } => {
+    const anchors: Record<string, { x: number; y: number }> = {
+      positive: { x: parseFloat(positiveX), y: parseFloat(positiveY) },
+      negative: { x: parseFloat(negativeX), y: parseFloat(negativeY) },
+      neutral:  { x: parseFloat(neutralX),  y: parseFloat(neutralY)  },
+    };
+    const base = anchors[region] ?? { x: 50, y: 50 };
+    // Deterministic jitter ±4 units seeded by userId so users don't pile up on the same pixel
+    const h = userId.split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0);
+    return {
+      x: base.x + ((Math.abs(h) % 9) - 4),
+      y: base.y + ((Math.abs(h >> 4) % 9) - 4),
+    };
+  };
+
+  const sendPlaybackEvent = (evt: Record<string, unknown>, mode: RecordingMode) => {
+    const fakeUserId = `replay_${evt.connectionId}`;
+    if (mode === 'positions') {
+      if (evt.type === 'remove') {
+        socket.send(JSON.stringify({
+          type: 'playbackCursorBroadcast',
+          cursorType: 'remove',
+          position: { x: 0, y: 0, userId: fakeUserId, timestamp: Date.now() },
+        }));
+        activePlaybackUserIds.current.delete(fakeUserId);
+      } else {
+        socket.send(JSON.stringify({
+          type: 'playbackCursorBroadcast',
+          cursorType: evt.type,
+          position: { x: evt.x, y: evt.y, userId: fakeUserId, timestamp: Date.now() },
+        }));
+        activePlaybackUserIds.current.add(fakeUserId);
+      }
+    } else {
+      // transitions mode
+      if (evt.to === null || evt.to === undefined) {
+        socket.send(JSON.stringify({
+          type: 'playbackCursorBroadcast',
+          cursorType: 'remove',
+          position: { x: 0, y: 0, userId: fakeUserId, timestamp: Date.now() },
+        }));
+        activePlaybackUserIds.current.delete(fakeUserId);
+      } else {
+        const { x, y } = anchorForRegion(String(evt.to), fakeUserId);
+        socket.send(JSON.stringify({
+          type: 'playbackCursorBroadcast',
+          cursorType: 'move',
+          position: { x, y, userId: fakeUserId, timestamp: Date.now() },
+        }));
+        activePlaybackUserIds.current.add(fakeUserId);
+      }
+    }
+  };
+
+  const stopPlayback = () => {
+    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = null;
+    setIsPlaying(false);
+    // Send remove for all active playback cursors so they vanish immediately
+    activePlaybackUserIds.current.forEach(uid => {
+      socket.send(JSON.stringify({
+        type: 'playbackCursorBroadcast',
+        cursorType: 'remove',
+        position: { x: 0, y: 0, userId: uid, timestamp: Date.now() },
+      }));
+    });
+    activePlaybackUserIds.current.clear();
+  };
+
+  const startPlayback = () => {
+    if (!playbackData || playbackData.events.length === 0) return;
+    const mode = playbackData.mode;
+    const sorted = [...playbackData.events].sort(
+      (a, b) => (a as Record<string, number>).timestamp - (b as Record<string, number>).timestamp
+    );
+    const originTs = (sorted[0] as Record<string, number>).timestamp;
+    const wallStart = Date.now();
+    let idx = 0;
+    activePlaybackUserIds.current = new Set();
+    setIsPlaying(true);
+
+    playbackIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - wallStart;
+      while (idx < sorted.length) {
+        const evt = sorted[idx] as Record<string, unknown>;
+        if ((evt.timestamp as number) - originTs > elapsed) break;
+        sendPlaybackEvent(evt, mode);
+        idx++;
+      }
+      if (idx >= sorted.length) stopPlayback();
+    }, 50);
   };
 
   const sendUserCap = () => {
@@ -495,6 +615,58 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               ? <span style={{ color: '#f55' }}>REC active (participants see badge)</span>
               : <span>inactive</span>
             }
+          </div>
+
+          {/* Playback section */}
+          <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 24 }}>
+            <p style={{ marginBottom: 12, fontWeight: 600 }}>Playback</p>
+            <label style={{ display: 'inline-block', cursor: 'pointer' }}>
+              <span className="v3-admin-btn" style={{ display: 'inline-block' }}>
+                ↑ Load JSON file
+              </span>
+              <input
+                type="file"
+                accept="application/json,.json"
+                onChange={handlePlaybackFile}
+                style={{ display: 'none' }}
+              />
+            </label>
+            {playbackData && (
+              <div style={{ marginTop: 12, color: '#aaa', fontSize: 13 }}>
+                <div style={{ color: '#eee', marginBottom: 4 }}>
+                  {(() => {
+                    const events = playbackData.events as Record<string, unknown>[];
+                    const uniqueUsers = new Set(events.map(e => e.connectionId)).size;
+                    const durationMs = playbackData.recordingEnd - playbackData.recordingStart;
+                    const mins = Math.floor(durationMs / 60000);
+                    const secs = Math.floor((durationMs % 60000) / 1000);
+                    return `${events.length} events · ${uniqueUsers} users · ${mins}m${String(secs).padStart(2, '0')}s`;
+                  })()}
+                </div>
+                <div style={{ color: '#888' }}>Mode: {playbackData.mode} · Room: {playbackData.room}</div>
+              </div>
+            )}
+            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+              {!isPlaying ? (
+                <button
+                  className="v3-admin-btn v3-admin-btn-record"
+                  onClick={startPlayback}
+                  disabled={!playbackData}
+                  style={{ background: playbackData ? undefined : '#333' }}
+                >
+                  ▶ Play
+                </button>
+              ) : (
+                <button className="v3-admin-btn v3-admin-btn-stop" onClick={stopPlayback}>
+                  ■ Stop
+                </button>
+              )}
+            </div>
+            {isPlaying && (
+              <div style={{ marginTop: 8, color: '#f55', fontSize: 13, fontWeight: 600 }}>
+                PLAYING — playback cursors visible to all participants
+              </div>
+            )}
           </div>
         </div>
 
