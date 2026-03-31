@@ -16,7 +16,7 @@ jobs:
           node-version: 18
           cache: "npm"
       - run: npm ci
-      - run: npm run cachebust && partykit deploy --preview pr-${{ github.event.pull_request.number }} --with-vars
+      - run: npm run cachebust && npx partykit deploy --preview pr-${{ github.event.pull_request.number }} --with-vars
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
