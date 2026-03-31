@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Fixed
 - CI: PR preview deploy and cleanup workflows now use `npx partykit` instead of bare `partykit`, which isn't on PATH after `npm ci`
+- CI: PR preview workflow now has `pull-requests: write` permission so it can post the preview URL comment
 
 ### Changed
 - Index: added `[test]` suffix to landing page title to verify PR preview deploy pipeline
