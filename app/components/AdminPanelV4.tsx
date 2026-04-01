@@ -117,8 +117,14 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   // Playback state
   const [playbackData, setPlaybackData] = useState<PlaybackFile | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackElapsed, setPlaybackElapsed] = useState(0);
   const playbackIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activePlaybackUserIds = useRef<Set<string>>(new Set());
+  // Refs shared between startPlayback and seekPlayback
+  const sortedEventsRef = useRef<Record<string, unknown>[]>([]);
+  const originTsRef = useRef<number>(0);
+  const wallStartRef = useRef<number>(0);
+  const idxRef = useRef<number>(0);
 
   // Keep refs in sync with state so the socket handler can access current values
   // without stale closures
@@ -364,11 +370,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     }
   };
 
-  const stopPlayback = () => {
-    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
-    playbackIntervalRef.current = null;
-    setIsPlaying(false);
-    // Send remove for all active playback cursors so they vanish immediately
+  const clearActiveCursors = () => {
     activePlaybackUserIds.current.forEach(uid => {
       socket.send(JSON.stringify({
         type: 'playbackCursorBroadcast',
@@ -379,28 +381,81 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     activePlaybackUserIds.current.clear();
   };
 
+  const stopPlayback = () => {
+    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = null;
+    setIsPlaying(false);
+    clearActiveCursors();
+  };
+
+  const runInterval = (mode: RecordingMode) => {
+    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - wallStartRef.current;
+      const sorted = sortedEventsRef.current;
+      while (idxRef.current < sorted.length) {
+        const evt = sorted[idxRef.current];
+        if ((evt.timestamp as number) - originTsRef.current > elapsed) break;
+        sendPlaybackEvent(evt, mode);
+        idxRef.current++;
+      }
+      setPlaybackElapsed(elapsed);
+      if (idxRef.current >= sorted.length) stopPlayback();
+    }, 50);
+  };
+
   const startPlayback = () => {
     if (!playbackData || playbackData.events.length === 0) return;
     const mode = playbackData.mode;
     const sorted = [...playbackData.events].sort(
       (a, b) => (a as Record<string, number>).timestamp - (b as Record<string, number>).timestamp
     );
-    const originTs = (sorted[0] as Record<string, number>).timestamp;
-    const wallStart = Date.now();
-    let idx = 0;
+    sortedEventsRef.current = sorted as Record<string, unknown>[];
+    originTsRef.current = (sorted[0] as Record<string, number>).timestamp;
+    wallStartRef.current = Date.now();
+    idxRef.current = 0;
     activePlaybackUserIds.current = new Set();
+    setPlaybackElapsed(0);
     setIsPlaying(true);
+    runInterval(mode);
+  };
 
-    playbackIntervalRef.current = setInterval(() => {
-      const elapsed = Date.now() - wallStart;
-      while (idx < sorted.length) {
-        const evt = sorted[idx] as Record<string, unknown>;
-        if ((evt.timestamp as number) - originTs > elapsed) break;
-        sendPlaybackEvent(evt, mode);
-        idx++;
+  // Seek to a specific elapsed time (ms from recording start). Works while playing or paused.
+  const seekPlayback = (targetElapsed: number) => {
+    if (!playbackData) return;
+    const mode = playbackData.mode;
+    const sorted = sortedEventsRef.current;
+    if (!sorted.length) return;
+
+    // Clear all active cursors before repositioning
+    clearActiveCursors();
+
+    // Find the index of the first event after targetElapsed
+    const newIdx = sorted.findIndex(
+      e => (e.timestamp as number) - originTsRef.current > targetElapsed
+    );
+    idxRef.current = newIdx === -1 ? sorted.length : newIdx;
+
+    // Compute each user's last known position/state up to targetElapsed and send it
+    const lastState = new Map<string, Record<string, unknown>>();
+    for (const evt of sorted.slice(0, idxRef.current)) {
+      const uid = String(evt.connectionId);
+      if (mode === 'positions') {
+        lastState.set(uid, evt);
+      } else {
+        // transitions: track last non-null region
+        if (evt.to !== undefined) lastState.set(uid, evt);
       }
-      if (idx >= sorted.length) stopPlayback();
-    }, 50);
+    }
+    lastState.forEach((evt, _uid) => {
+      sendPlaybackEvent(evt, mode);
+    });
+
+    // Adjust wall start so elapsed continues from targetElapsed
+    wallStartRef.current = Date.now() - targetElapsed;
+    setPlaybackElapsed(targetElapsed);
+
+    if (isPlaying) runInterval(mode);
   };
 
   const sendUserCap = () => {
@@ -631,42 +686,63 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                 style={{ display: 'none' }}
               />
             </label>
-            {playbackData && (
-              <div style={{ marginTop: 12, color: '#aaa', fontSize: 13 }}>
-                <div style={{ color: '#eee', marginBottom: 4 }}>
-                  {(() => {
-                    const events = playbackData.events as Record<string, unknown>[];
-                    const uniqueUsers = new Set(events.map(e => e.connectionId)).size;
-                    const durationMs = playbackData.recordingEnd - playbackData.recordingStart;
-                    const mins = Math.floor(durationMs / 60000);
-                    const secs = Math.floor((durationMs % 60000) / 1000);
-                    return `${events.length} events · ${uniqueUsers} users · ${mins}m${String(secs).padStart(2, '0')}s`;
-                  })()}
-                </div>
-                <div style={{ color: '#888' }}>Mode: {playbackData.mode} · Room: {playbackData.room}</div>
-              </div>
-            )}
-            <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
-              {!isPlaying ? (
-                <button
-                  className="v3-admin-btn v3-admin-btn-record"
-                  onClick={startPlayback}
-                  disabled={!playbackData}
-                  style={{ background: playbackData ? undefined : '#333' }}
-                >
-                  ▶ Play
-                </button>
-              ) : (
-                <button className="v3-admin-btn v3-admin-btn-stop" onClick={stopPlayback}>
-                  ■ Stop
-                </button>
-              )}
-            </div>
-            {isPlaying && (
-              <div style={{ marginTop: 8, color: '#f55', fontSize: 13, fontWeight: 600 }}>
-                PLAYING — playback cursors visible to all participants
-              </div>
-            )}
+            {playbackData && (() => {
+              const events = playbackData.events as Record<string, unknown>[];
+              const uniqueUsers = new Set(events.map(e => e.connectionId)).size;
+              const sorted = [...events].sort((a, b) => (a.timestamp as number) - (b.timestamp as number));
+              const durationMs = sorted.length > 1
+                ? (sorted[sorted.length - 1].timestamp as number) - (sorted[0].timestamp as number)
+                : playbackData.recordingEnd - playbackData.recordingStart;
+              const clampedElapsed = Math.min(playbackElapsed, durationMs);
+              const fmtTime = (ms: number) => {
+                const m = Math.floor(ms / 60000);
+                const s = Math.floor((ms % 60000) / 1000);
+                return `${m}:${String(s).padStart(2, '0')}`;
+              };
+              return (
+                <>
+                  <div style={{ marginTop: 12, color: '#aaa', fontSize: 13 }}>
+                    <div style={{ color: '#eee', marginBottom: 4 }}>
+                      {events.length} events · {uniqueUsers} users · {fmtTime(durationMs)}
+                    </div>
+                    <div style={{ color: '#888' }}>Mode: {playbackData.mode} · Room: {playbackData.room}</div>
+                  </div>
+
+                  {/* Timeline scrubber */}
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888', marginBottom: 4 }}>
+                      <span>{fmtTime(clampedElapsed)}</span>
+                      <span>{fmtTime(durationMs)}</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={0}
+                      max={durationMs}
+                      value={clampedElapsed}
+                      onChange={e => seekPlayback(Number(e.target.value))}
+                      style={{ width: '100%', accentColor: 'hsl(270, 70%, 65%)', cursor: 'pointer' }}
+                    />
+                  </div>
+
+                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                    {!isPlaying ? (
+                      <button className="v3-admin-btn v3-admin-btn-record" onClick={startPlayback}>
+                        ▶ Play
+                      </button>
+                    ) : (
+                      <button className="v3-admin-btn v3-admin-btn-stop" onClick={stopPlayback}>
+                        ■ Stop
+                      </button>
+                    )}
+                  </div>
+                  {isPlaying && (
+                    <div style={{ marginTop: 8, color: '#f55', fontSize: 13, fontWeight: 600 }}>
+                      PLAYING — playback cursors visible to all participants
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
