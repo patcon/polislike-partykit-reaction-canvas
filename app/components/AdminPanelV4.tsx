@@ -733,17 +733,27 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           {/* Playback section */}
           <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 24 }}>
             <p style={{ marginBottom: 12, fontWeight: 600 }}>Playback</p>
-            <label style={{ display: 'inline-block', cursor: 'pointer' }}>
-              <span className="v3-admin-btn" style={{ display: 'inline-block' }}>
-                ↑ Load JSON file
-              </span>
-              <input
-                type="file"
-                accept="application/json,.json"
-                onChange={handlePlaybackFile}
-                style={{ display: 'none' }}
-              />
-            </label>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <label style={{ display: 'inline-block', cursor: 'pointer' }}>
+                <span className="v3-admin-btn" style={{ display: 'inline-block' }}>
+                  ↑ Load JSON file
+                </span>
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={handlePlaybackFile}
+                  style={{ display: 'none' }}
+                />
+              </label>
+              <a
+                href="https://drive.google.com/drive/folders/12ujr5MKjs2q0vzDViyG_1U-SEyVOJZO_"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#69f', fontSize: 13 }}
+              >
+                Valence traces ↗
+              </a>
+            </div>
             {playbackData && (() => {
               const events = playbackData.events as Record<string, unknown>[];
               const uniqueUsers = new Set(events.map(e => e.connectionId)).size;
