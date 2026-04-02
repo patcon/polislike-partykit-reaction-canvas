@@ -344,6 +344,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   const TOTAL_STEPS   = LIVE_STEPS + HISTORY_STEPS;
   const TOTAL         = 100;
   let MAX_R           = 0.22;   // light wave max displacement — driven by radius slider
+  let radiusScale     = 1.0;    // per-path-mode multiplier (1.0 = simple, 0.1 = semantic)
   let DURATION        = 300;
 
   // Particle mode: baseline tube radius (neutral position). Agree pulls inward, disagree pushes out.
@@ -602,15 +603,15 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   function lightWorld(si, p, v) {
     const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
     return new THREE.Vector3(
-      pos.x+(p.dx*norm.x+p.dy*bi.x)*v*MAX_R,
-      pos.y+(p.dx*norm.y+p.dy*bi.y)*v*MAX_R,
-      pos.z+(p.dx*norm.z+p.dy*bi.z)*v*MAX_R,
+      pos.x+(p.dx*norm.x+p.dy*bi.x)*v*MAX_R*radiusScale,
+      pos.y+(p.dx*norm.y+p.dy*bi.y)*v*MAX_R*radiusScale,
+      pos.z+(p.dx*norm.z+p.dy*bi.z)*v*MAX_R*radiusScale,
     );
   }
 
   function particleWorldDof1(si, p, v) {
     const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
-    const r = tubeR - v * TUBE_RANGE;
+    const r = (tubeR - v * TUBE_RANGE) * radiusScale;
     const ca=Math.cos(p.ringAngle), sa=Math.sin(p.ringAngle);
     return new THREE.Vector3(
       pos.x+(ca*norm.x+sa*bi.x)*r,
@@ -621,7 +622,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   function particleWorldDof2(si, p, v) {
     const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
-    const r = tubeR - v * TUBE_RANGE;
+    const r = (tubeR - v * TUBE_RANGE) * radiusScale;
     const oa = p.orbitAngles[si];
     const ca=Math.cos(oa), sa=Math.sin(oa);
     return new THREE.Vector3(
@@ -633,8 +634,8 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   function particleWorldDof3(si, p) {
     const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
-    const cx = attracted ? p.chargedFX[si] : p.chargedX[si];
-    const cy = attracted ? p.chargedFY[si] : p.chargedY[si];
+    const cx = (attracted ? p.chargedFX[si] : p.chargedX[si]) * radiusScale;
+    const cy = (attracted ? p.chargedFY[si] : p.chargedY[si]) * radiusScale;
     return new THREE.Vector3(
       pos.x + cx*norm.x + cy*bi.x,
       pos.y + cx*norm.y + cy*bi.y,
@@ -697,7 +698,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     if (dof === 1)           return particleWorldDof1(si, p, v);
     if (dof === 3)           return particleWorldDof3(si, p);
     const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
-    const r = tubeR - v * TUBE_RANGE;
+    const r = (tubeR - v * TUBE_RANGE) * radiusScale;
     const oa = getOrbitAngle(si, p);
     const ca=Math.cos(oa), sa=Math.sin(oa);
     return new THREE.Vector3(
@@ -819,9 +820,9 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
       const pts = new Float32Array(N * 3);
       for (let i = 0; i < N; i++) {
         const pos=pathPos[i], norm=pathNorm[i], bi=pathBi[i];
-        pts[i*3]   = pos.x + (ca*norm.x + sa*bi.x) * tubeR;
-        pts[i*3+1] = pos.y + (ca*norm.y + sa*bi.y) * tubeR;
-        pts[i*3+2] = pos.z + (ca*norm.z + sa*bi.z) * tubeR;
+        pts[i*3]   = pos.x + (ca*norm.x + sa*bi.x) * tubeR * radiusScale;
+        pts[i*3+1] = pos.y + (ca*norm.y + sa*bi.y) * tubeR * radiusScale;
+        pts[i*3+2] = pos.z + (ca*norm.z + sa*bi.z) * tubeR * radiusScale;
       }
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
@@ -836,9 +837,9 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
       const fpos = new Float32Array(N * 2 * 3);
       for (let i = 0; i < N; i++) {
         const pos=pathPos[i], norm=pathNorm[i], bi=pathBi[i], sp=pathPos[i];
-        fpos[i*6]   = pos.x + (ca*norm.x + sa*bi.x) * tubeR;
-        fpos[i*6+1] = pos.y + (ca*norm.y + sa*bi.y) * tubeR;
-        fpos[i*6+2] = pos.z + (ca*norm.z + sa*bi.z) * tubeR;
+        fpos[i*6]   = pos.x + (ca*norm.x + sa*bi.x) * tubeR * radiusScale;
+        fpos[i*6+1] = pos.y + (ca*norm.y + sa*bi.y) * tubeR * radiusScale;
+        fpos[i*6+2] = pos.z + (ca*norm.z + sa*bi.z) * tubeR * radiusScale;
         fpos[i*6+3] = sp.x; fpos[i*6+4] = sp.y; fpos[i*6+5] = sp.z;
       }
       const findices = new Uint32Array((N-1)*6);
@@ -890,7 +891,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   function updateRing(si) {
     const norm=pathNorm[si],bi=pathBi[si],pos=pathPos[si];
-    const r = vizMode==='light' ? MAX_R*1.1 : tubeR;
+    const r = (vizMode==='light' ? MAX_R*1.1 : tubeR) * radiusScale;
     for (let i=0; i<=RING_SEGS; i++) {
       const a=(i/RING_SEGS)*Math.PI*2, ca=Math.cos(a), sa=Math.sin(a);
       ringPosBuf.array[i*3]=pos.x+(norm.x*ca+bi.x*sa)*r;
@@ -991,10 +992,10 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     pathMode=mode;
     if (mode==='simple') {
       buildPathFrames(bezPt,bezTan);
-      DURATION=300;
+      DURATION=300; radiusScale=1.0;
     } else {
       buildSemanticFrames(semanticPts);
-      DURATION=471;
+      DURATION=471; radiusScale=0.1;
     }
     tNorm=0; lastTs=null;
     document.getElementById('scrub').value=0;
