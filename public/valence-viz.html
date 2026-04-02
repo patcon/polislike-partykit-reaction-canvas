@@ -1245,6 +1245,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         const n = data.count ?? 0;
         audienceN.textContent = n;
         setConnStatus(`connected · room: ${room} · ${n} participant${n !== 1 ? 's' : ''}`, 'ok');
+      } else if (data.type === 'userJoined') {
+        assignLiveSlot(data.userId);
+      } else if (data.type === 'userLeft') {
+        cursors.delete(data.userId);
+        freeLiveSlot(data.userId);
       } else if (data.type === 'move' || data.type === 'touch') {
         const { userId, x, y } = data.position;
         cursors.set(userId, { x, y });
@@ -1254,9 +1259,9 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         const { userId } = data.position;
         cursors.delete(userId);
         if (userId.startsWith('replay_')) {
-          freeLiveSlot(userId);  // playback cursor ended — fully release slot
+          freeLiveSlot(userId);
         }
-        // real users: keep slot alive, valence freezes at 0 (thumb lift)
+        // real users: thumb lift only — slot stays until userLeft
         audienceN.textContent = cursors.size;
       }
     };
