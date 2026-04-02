@@ -1000,6 +1000,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     tNorm=0; lastTs=null;
     document.getElementById('scrub').value=0;
     rebuildPathDependentData();
+    dots.forEach(({mesh}) => mesh.scale.setScalar(radiusScale));
   }
 
   // ── toggle logic ──────────────────────────────────────────────────────────
