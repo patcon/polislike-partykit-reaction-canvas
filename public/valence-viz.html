@@ -427,9 +427,9 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     const cx=(minX+maxX)/2,cy=(minY+maxY)/2,cz=(minZ+maxZ)/2;
     const scale=3.6/range;
     const vecs=rawPts.map(([x,y,z])=>new THREE.Vector3((x-cx)*scale,(y-cy)*scale,(z-cz)*scale));
-    const n=vecs.length;
-    const posFn=t=>{ const idx=t*(n-1),i=Math.floor(idx),j=Math.min(i+1,n-1),f=idx-i; return vecs[i].clone().lerp(vecs[j],f); };
-    const tanFn=t=>{ const idx=t*(n-1),i=Math.floor(idx); return vecs[Math.min(n-1,i+1)].clone().sub(vecs[Math.max(0,i-1)]).normalize(); };
+    const curve=new THREE.CatmullRomCurve3(vecs);
+    const posFn=t=>curve.getPoint(t);
+    const tanFn=t=>curve.getTangent(t);
     buildPathFrames(posFn,tanFn);
   }
 
