@@ -1261,7 +1261,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
     ws.onclose = () => {
       wsConnected = false;
-      cursors.clear();
+      freeAllLiveSlots();
       if (btnConnect.classList.contains('disconnecting')) {
         setConnStatus('disconnected', '');
         btnConnect.textContent = 'connect';
