@@ -45,7 +45,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     return () => ro.disconnect();
   }, []);
   const [isRecording, setIsRecording] = useState(false);
-  const [mode, setMode] = useState<RecordingMode>('transitions');
+  const [mode, setMode] = useState<RecordingMode>('positions');
   const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars' | 'activities'>('labels');
   const [eventCount, setEventCount] = useState(0);
   const [serverRecording, setServerRecording] = useState(false);
@@ -112,7 +112,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const recordingStartRef = useRef<number | null>(null);
   const prevRegionsRef = useRef<Map<string, ReactionRegion | null>>(new Map());
   const isRecordingRef = useRef(false);
-  const modeRef = useRef<RecordingMode>('transitions');
+  const modeRef = useRef<RecordingMode>('positions');
 
   // Playback state
   const [playbackData, setPlaybackData] = useState<PlaybackFile | null>(null);
