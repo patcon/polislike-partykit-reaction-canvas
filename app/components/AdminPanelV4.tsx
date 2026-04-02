@@ -117,14 +117,16 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   // Playback state
   const [playbackData, setPlaybackData] = useState<PlaybackFile | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [playbackElapsed, setPlaybackElapsed] = useState(0);
   const playbackIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activePlaybackUserIds = useRef<Set<string>>(new Set());
-  // Refs shared between startPlayback and seekPlayback
+  // Refs shared between playback functions
   const sortedEventsRef = useRef<Record<string, unknown>[]>([]);
   const originTsRef = useRef<number>(0);
   const wallStartRef = useRef<number>(0);
   const idxRef = useRef<number>(0);
+  const playbackModeRef = useRef<RecordingMode>('positions');
 
   // Keep refs in sync with state so the socket handler can access current values
   // without stale closures
@@ -309,6 +311,18 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     file.text().then(text => {
       try {
         const data = JSON.parse(text) as PlaybackFile;
+        // Pre-sort and store refs so scrubber works before first play
+        const sorted = [...data.events].sort(
+          (a, b) => (a as Record<string, number>).timestamp - (b as Record<string, number>).timestamp
+        ) as Record<string, unknown>[];
+        sortedEventsRef.current = sorted;
+        originTsRef.current = sorted.length > 0 ? (sorted[0].timestamp as number) : 0;
+        playbackModeRef.current = data.mode;
+        idxRef.current = 0;
+        setPlaybackElapsed(0);
+        setIsPlaying(false);
+        setIsPaused(false);
+        clearActiveCursors();
         setPlaybackData(data);
       } catch {
         alert('Failed to parse JSON file.');
@@ -381,18 +395,12 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     activePlaybackUserIds.current.clear();
   };
 
-  const stopPlayback = () => {
-    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
-    playbackIntervalRef.current = null;
-    setIsPlaying(false);
-    clearActiveCursors();
-  };
-
-  const runInterval = (mode: RecordingMode) => {
+  const runInterval = () => {
     if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
     playbackIntervalRef.current = setInterval(() => {
       const elapsed = Date.now() - wallStartRef.current;
       const sorted = sortedEventsRef.current;
+      const mode = playbackModeRef.current;
       while (idxRef.current < sorted.length) {
         const evt = sorted[idxRef.current];
         if ((evt.timestamp as number) - originTsRef.current > elapsed) break;
@@ -400,34 +408,59 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         idxRef.current++;
       }
       setPlaybackElapsed(elapsed);
-      if (idxRef.current >= sorted.length) stopPlayback();
+      if (idxRef.current >= sorted.length) {
+        // Reached end — stop cleanly
+        if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+        playbackIntervalRef.current = null;
+        setIsPlaying(false);
+        setIsPaused(false);
+        clearActiveCursors();
+      }
     }, 50);
   };
 
-  const startPlayback = () => {
-    if (!playbackData || playbackData.events.length === 0) return;
-    const mode = playbackData.mode;
-    const sorted = [...playbackData.events].sort(
-      (a, b) => (a as Record<string, number>).timestamp - (b as Record<string, number>).timestamp
-    );
-    sortedEventsRef.current = sorted as Record<string, unknown>[];
-    originTsRef.current = (sorted[0] as Record<string, number>).timestamp;
-    wallStartRef.current = Date.now();
-    idxRef.current = 0;
-    activePlaybackUserIds.current = new Set();
-    setPlaybackElapsed(0);
+  const playPlayback = () => {
+    if (!playbackData || sortedEventsRef.current.length === 0) return;
+    if (isPaused) {
+      // Resume from current position
+      wallStartRef.current = Date.now() - playbackElapsed;
+    } else {
+      // Fresh start from beginning
+      idxRef.current = 0;
+      activePlaybackUserIds.current = new Set();
+      setPlaybackElapsed(0);
+      wallStartRef.current = Date.now();
+    }
     setIsPlaying(true);
-    runInterval(mode);
+    setIsPaused(false);
+    runInterval();
+  };
+
+  const pausePlayback = () => {
+    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = null;
+    setIsPlaying(false);
+    setIsPaused(true);
+    // Leave cursors visible and elapsed/idx intact
+  };
+
+  const stopPlayback = () => {
+    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = null;
+    setIsPlaying(false);
+    setIsPaused(false);
+    setPlaybackElapsed(0);
+    idxRef.current = 0;
+    clearActiveCursors();
   };
 
   // Seek to a specific elapsed time (ms from recording start). Works while playing or paused.
   const seekPlayback = (targetElapsed: number) => {
     if (!playbackData) return;
-    const mode = playbackData.mode;
+    const mode = playbackModeRef.current;
     const sorted = sortedEventsRef.current;
     if (!sorted.length) return;
 
-    // Clear all active cursors before repositioning
     clearActiveCursors();
 
     // Find the index of the first event after targetElapsed
@@ -436,26 +469,22 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     );
     idxRef.current = newIdx === -1 ? sorted.length : newIdx;
 
-    // Compute each user's last known position/state up to targetElapsed and send it
+    // Snapshot each user's last known state up to targetElapsed and send it
     const lastState = new Map<string, Record<string, unknown>>();
     for (const evt of sorted.slice(0, idxRef.current)) {
       const uid = String(evt.connectionId);
       if (mode === 'positions') {
         lastState.set(uid, evt);
       } else {
-        // transitions: track last non-null region
         if (evt.to !== undefined) lastState.set(uid, evt);
       }
     }
-    lastState.forEach((evt, _uid) => {
-      sendPlaybackEvent(evt, mode);
-    });
+    lastState.forEach(evt => sendPlaybackEvent(evt, mode));
 
-    // Adjust wall start so elapsed continues from targetElapsed
     wallStartRef.current = Date.now() - targetElapsed;
     setPlaybackElapsed(targetElapsed);
 
-    if (isPlaying) runInterval(mode);
+    if (isPlaying) runInterval();
   };
 
   const sendUserCap = () => {
@@ -689,60 +718,80 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             {playbackData && (() => {
               const events = playbackData.events as Record<string, unknown>[];
               const uniqueUsers = new Set(events.map(e => e.connectionId)).size;
-              const sorted = [...events].sort((a, b) => (a.timestamp as number) - (b.timestamp as number));
+              return (
+                <div style={{ marginTop: 12, color: '#aaa', fontSize: 13 }}>
+                  <div style={{ color: '#eee', marginBottom: 2 }}>
+                    {events.length} events · {uniqueUsers} users
+                  </div>
+                  <div style={{ color: '#888' }}>Mode: {playbackData.mode} · Room: {playbackData.room}</div>
+                </div>
+              );
+            })()}
+
+            {/* Timeline scrubber — always visible */}
+            {(() => {
+              const sorted = sortedEventsRef.current;
               const durationMs = sorted.length > 1
                 ? (sorted[sorted.length - 1].timestamp as number) - (sorted[0].timestamp as number)
-                : playbackData.recordingEnd - playbackData.recordingStart;
-              const clampedElapsed = Math.min(playbackElapsed, durationMs);
+                : 0;
+              const clampedElapsed = Math.min(playbackElapsed, durationMs || 1);
               const fmtTime = (ms: number) => {
                 const m = Math.floor(ms / 60000);
                 const s = Math.floor((ms % 60000) / 1000);
                 return `${m}:${String(s).padStart(2, '0')}`;
               };
+              const hasData = !!playbackData && durationMs > 0;
               return (
-                <>
-                  <div style={{ marginTop: 12, color: '#aaa', fontSize: 13 }}>
-                    <div style={{ color: '#eee', marginBottom: 4 }}>
-                      {events.length} events · {uniqueUsers} users · {fmtTime(durationMs)}
-                    </div>
-                    <div style={{ color: '#888' }}>Mode: {playbackData.mode} · Room: {playbackData.room}</div>
+                <div style={{ marginTop: 16, opacity: hasData ? 1 : 0.35 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888', marginBottom: 4 }}>
+                    <span>{fmtTime(hasData ? clampedElapsed : 0)}</span>
+                    <span>{fmtTime(hasData ? durationMs : 0)}</span>
                   </div>
-
-                  {/* Timeline scrubber */}
-                  <div style={{ marginTop: 16 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888', marginBottom: 4 }}>
-                      <span>{fmtTime(clampedElapsed)}</span>
-                      <span>{fmtTime(durationMs)}</span>
-                    </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={durationMs}
-                      value={clampedElapsed}
-                      onChange={e => seekPlayback(Number(e.target.value))}
-                      style={{ width: '100%', accentColor: 'hsl(270, 70%, 65%)', cursor: 'pointer' }}
-                    />
-                  </div>
-
-                  <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                    {!isPlaying ? (
-                      <button className="v3-admin-btn v3-admin-btn-record" onClick={startPlayback}>
-                        ▶ Play
-                      </button>
-                    ) : (
-                      <button className="v3-admin-btn v3-admin-btn-stop" onClick={stopPlayback}>
-                        ■ Stop
-                      </button>
-                    )}
-                  </div>
-                  {isPlaying && (
-                    <div style={{ marginTop: 8, color: '#f55', fontSize: 13, fontWeight: 600 }}>
-                      PLAYING — playback cursors visible to all participants
-                    </div>
-                  )}
-                </>
+                  <input
+                    type="range"
+                    min={0}
+                    max={hasData ? durationMs : 1}
+                    value={hasData ? clampedElapsed : 0}
+                    disabled={!hasData}
+                    onChange={e => seekPlayback(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'hsl(270, 70%, 65%)', cursor: hasData ? 'pointer' : 'default' }}
+                  />
+                </div>
               );
             })()}
+
+            <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+              {isPlaying ? (
+                <button className="v3-admin-btn" onClick={pausePlayback}>
+                  ⏸ Pause
+                </button>
+              ) : (
+                <button
+                  className="v3-admin-btn v3-admin-btn-record"
+                  onClick={playPlayback}
+                  disabled={!playbackData}
+                >
+                  ▶ {isPaused ? 'Resume' : 'Play'}
+                </button>
+              )}
+              <button
+                className="v3-admin-btn v3-admin-btn-stop"
+                onClick={stopPlayback}
+                disabled={!isPlaying && !isPaused}
+              >
+                ■ Stop
+              </button>
+            </div>
+            {isPlaying && (
+              <div style={{ marginTop: 8, color: '#f55', fontSize: 13, fontWeight: 600 }}>
+                PLAYING — playback cursors visible to all participants
+              </div>
+            )}
+            {isPaused && (
+              <div style={{ marginTop: 8, color: '#fa0', fontSize: 13, fontWeight: 600 }}>
+                PAUSED — cursors frozen on canvas
+              </div>
+            )}
           </div>
         </div>
 
