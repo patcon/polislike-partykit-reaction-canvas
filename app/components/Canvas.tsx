@@ -28,6 +28,7 @@ interface CanvasProps {
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
   onPresenceCount?: (count: number) => void;
   onActiveCursorCountChange?: (count: number) => void;
+  onSimulatedCursorCountChange?: (count: number) => void;
   onTimecodeUpdate?: (timecode: number) => void;
   onRecordingStateChange?: (recording: boolean) => void;
   onRoomLabelsChange?: (labels: { positive: string; negative: string; neutral: string } | null) => void;
@@ -62,7 +63,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -73,6 +74,8 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
   useEffect(() => {
     onActiveCursorCountChange?.(cursors.size);
+    const simulatedCount = Array.from(cursors.keys()).filter(id => id.startsWith('replay_')).length;
+    onSimulatedCursorCountChange?.(simulatedCount);
   }, [cursors.size]);
 
   const [dimensions, setDimensions] = useState({
