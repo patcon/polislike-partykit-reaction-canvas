@@ -1205,10 +1205,10 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   });
 
   function wsUrl(room) {
-    const host = window.location.hostname === 'localhost'
-      ? 'localhost:1999'
+    const host = window.location.port === '1999'
+      ? `${window.location.hostname}:1999`
       : DEFAULT_HOST;
-    const proto = host.startsWith('localhost') ? 'ws' : 'wss';
+    const proto = window.location.port === '1999' ? 'ws' : 'wss';
     const userId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
     return `${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`;
   }
