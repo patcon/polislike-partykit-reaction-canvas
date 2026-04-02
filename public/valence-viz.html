@@ -1252,7 +1252,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         audienceN.textContent = cursors.size;
       } else if (data.type === 'remove') {
         const { userId } = data.position;
-        cursors.delete(userId);  // thumb lift: keep slot, just freeze valence at 0
+        cursors.delete(userId);
+        if (userId.startsWith('replay_')) {
+          freeLiveSlot(userId);  // playback cursor ended — fully release slot
+        }
+        // real users: keep slot alive, valence freezes at 0 (thumb lift)
         audienceN.textContent = cursors.size;
       }
     };
