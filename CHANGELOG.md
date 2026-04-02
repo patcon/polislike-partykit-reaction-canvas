@@ -10,11 +10,15 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
+- V4 Admin: load a previously recorded JSON file and replay it as puppeted playback cursors visible to all connected participants in real time; playback cursors are rendered purple with a dashed ring to distinguish them from real users; supports both positions mode (raw x/y) and transitions mode (snaps to anchor region + deterministic per-user jitter)
 - Deploy: `npm run deploy:staging` script deploys a persistent staging environment to `staging.polislike-partykit-reaction-canvas.patcon.partykit.dev`
 - CI: PR preview environments — opening or pushing to a PR auto-deploys a preview at `pr-{N}.polislike-partykit-reaction-canvas.patcon.partykit.dev` and posts a comment with the URL; preview is deleted when the PR is closed
 
 ### Fixed
 - Local dev now works without deploying: WebSocket host is now detected by port (1999 = local server) instead of hostname, so accessing via a local network IP (e.g. `10.x.x.x:1999`) correctly connects to the local PartyKit server rather than the deployed one.
+- Valence Viz: WebSocket host detection now uses port instead of hostname, matching the rest of the app — fixes connecting to remote server when accessed via local network IP
+- Valence Viz: live user dots now appear as soon as a participant connects (on `userJoined`) and disappear when they disconnect (on `userLeft`), rather than appearing only on first touch and never leaving
+- Valence Viz: freed live slots now restore their original sim values, so the dot snaps back to the synthetic trajectory instead of freezing at the last live position
 
 ### Added
 - Experience: Valence Viz — facilitator tool (`valence-viz.html`) wrapping the Three.js particle/wave valence visualization. Runs synthetic data by default (scrub bar + play/pause). "Audience Sync" toggle connects to a PartyKit room via WebSocket and drives valence values from live cursor positions using barycentric region weighting. Supports light-wave and charged-particle modes, group/valence coloring, and orbit camera. Index card added to landing page.

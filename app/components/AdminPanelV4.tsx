@@ -12,6 +12,14 @@ interface AdminPanelV4Props {
 
 type RecordingMode = 'transitions' | 'positions';
 
+interface PlaybackFile {
+  recordingStart: number;
+  recordingEnd: number;
+  room: string;
+  mode: RecordingMode;
+  events: object[];
+}
+
 function anchorToLocal(anchors: ReactionAnchors) {
   return {
     positiveX: String(anchors.positive.x),
@@ -37,7 +45,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     return () => ro.disconnect();
   }, []);
   const [isRecording, setIsRecording] = useState(false);
-  const [mode, setMode] = useState<RecordingMode>('transitions');
+  const [mode, setMode] = useState<RecordingMode>('positions');
   const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars' | 'activities'>('labels');
   const [eventCount, setEventCount] = useState(0);
   const [serverRecording, setServerRecording] = useState(false);
@@ -104,7 +112,24 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const recordingStartRef = useRef<number | null>(null);
   const prevRegionsRef = useRef<Map<string, ReactionRegion | null>>(new Map());
   const isRecordingRef = useRef(false);
-  const modeRef = useRef<RecordingMode>('transitions');
+  const modeRef = useRef<RecordingMode>('positions');
+
+  // Playback state
+  const [playbackData, setPlaybackData] = useState<PlaybackFile | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [playbackElapsed, setPlaybackElapsed] = useState(0);
+  const playbackIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pauseHeartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const activePlaybackUserIds = useRef<Set<string>>(new Set());
+  // Last sent position per playback userId, for pause heartbeat
+  const lastPlaybackPositions = useRef<Map<string, { x: number; y: number }>>(new Map());
+  // Refs shared between playback functions
+  const sortedEventsRef = useRef<Record<string, unknown>[]>([]);
+  const originTsRef = useRef<number>(0);
+  const wallStartRef = useRef<number>(0);
+  const idxRef = useRef<number>(0);
+  const playbackModeRef = useRef<RecordingMode>('positions');
 
   // Keep refs in sync with state so the socket handler can access current values
   // without stale closures
@@ -281,6 +306,214 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const handleModeChange = (newMode: RecordingMode) => {
     setMode(newMode);
     modeRef.current = newMode;
+  };
+
+  const handlePlaybackFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    file.text().then(text => {
+      try {
+        const data = JSON.parse(text) as PlaybackFile;
+        // Pre-sort and store refs so scrubber works before first play
+        const sorted = [...data.events].sort(
+          (a, b) => (a as Record<string, number>).timestamp - (b as Record<string, number>).timestamp
+        ) as Record<string, unknown>[];
+        sortedEventsRef.current = sorted;
+        originTsRef.current = sorted.length > 0 ? (sorted[0].timestamp as number) : 0;
+        playbackModeRef.current = data.mode;
+        idxRef.current = 0;
+        setPlaybackElapsed(0);
+        setIsPlaying(false);
+        setIsPaused(false);
+        clearActiveCursors();
+        setPlaybackData(data);
+      } catch {
+        alert('Failed to parse JSON file.');
+      }
+    });
+  };
+
+  const anchorForRegion = (region: string, userId: string): { x: number; y: number } => {
+    const anchors: Record<string, { x: number; y: number }> = {
+      positive: { x: parseFloat(positiveX), y: parseFloat(positiveY) },
+      negative: { x: parseFloat(negativeX), y: parseFloat(negativeY) },
+      neutral:  { x: parseFloat(neutralX),  y: parseFloat(neutralY)  },
+    };
+    const base = anchors[region] ?? { x: 50, y: 50 };
+    // Deterministic jitter ±4 units seeded by userId so users don't pile up on the same pixel
+    const h = userId.split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) | 0, 0);
+    return {
+      x: base.x + ((Math.abs(h) % 9) - 4),
+      y: base.y + ((Math.abs(h >> 4) % 9) - 4),
+    };
+  };
+
+  const sendPlaybackEvent = (evt: Record<string, unknown>, mode: RecordingMode) => {
+    const fakeUserId = `replay_${evt.connectionId}`;
+    if (mode === 'positions') {
+      if (evt.type === 'remove') {
+        socket.send(JSON.stringify({
+          type: 'playbackCursorBroadcast',
+          cursorType: 'remove',
+          position: { x: 0, y: 0, userId: fakeUserId, timestamp: Date.now() },
+        }));
+        activePlaybackUserIds.current.delete(fakeUserId);
+      } else {
+        socket.send(JSON.stringify({
+          type: 'playbackCursorBroadcast',
+          cursorType: evt.type,
+          position: { x: evt.x, y: evt.y, userId: fakeUserId, timestamp: Date.now() },
+        }));
+        activePlaybackUserIds.current.add(fakeUserId);
+        lastPlaybackPositions.current.set(fakeUserId, { x: evt.x as number, y: evt.y as number });
+      }
+    } else {
+      // transitions mode
+      if (evt.to === null || evt.to === undefined) {
+        socket.send(JSON.stringify({
+          type: 'playbackCursorBroadcast',
+          cursorType: 'remove',
+          position: { x: 0, y: 0, userId: fakeUserId, timestamp: Date.now() },
+        }));
+        activePlaybackUserIds.current.delete(fakeUserId);
+        lastPlaybackPositions.current.delete(fakeUserId);
+      } else {
+        const { x, y } = anchorForRegion(String(evt.to), fakeUserId);
+        socket.send(JSON.stringify({
+          type: 'playbackCursorBroadcast',
+          cursorType: 'move',
+          position: { x, y, userId: fakeUserId, timestamp: Date.now() },
+        }));
+        activePlaybackUserIds.current.add(fakeUserId);
+        lastPlaybackPositions.current.set(fakeUserId, { x, y });
+      }
+    }
+  };
+
+  const clearActiveCursors = () => {
+    activePlaybackUserIds.current.forEach(uid => {
+      socket.send(JSON.stringify({
+        type: 'playbackCursorBroadcast',
+        cursorType: 'remove',
+        position: { x: 0, y: 0, userId: uid, timestamp: Date.now() },
+      }));
+    });
+    activePlaybackUserIds.current.clear();
+    lastPlaybackPositions.current.clear();
+  };
+
+  const startPauseHeartbeat = () => {
+    if (pauseHeartbeatRef.current) clearInterval(pauseHeartbeatRef.current);
+    pauseHeartbeatRef.current = setInterval(() => {
+      lastPlaybackPositions.current.forEach(({ x, y }, uid) => {
+        socket.send(JSON.stringify({
+          type: 'playbackCursorBroadcast',
+          cursorType: 'move',
+          position: { x, y, userId: uid, timestamp: Date.now() },
+        }));
+      });
+    }, 2000);
+  };
+
+  const stopPauseHeartbeat = () => {
+    if (pauseHeartbeatRef.current) clearInterval(pauseHeartbeatRef.current);
+    pauseHeartbeatRef.current = null;
+  };
+
+  const runInterval = () => {
+    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = setInterval(() => {
+      const elapsed = Date.now() - wallStartRef.current;
+      const sorted = sortedEventsRef.current;
+      const mode = playbackModeRef.current;
+      while (idxRef.current < sorted.length) {
+        const evt = sorted[idxRef.current];
+        if ((evt.timestamp as number) - originTsRef.current > elapsed) break;
+        sendPlaybackEvent(evt, mode);
+        idxRef.current++;
+      }
+      setPlaybackElapsed(elapsed);
+      if (idxRef.current >= sorted.length) {
+        // Reached end — stop cleanly
+        if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+        playbackIntervalRef.current = null;
+        stopPauseHeartbeat();
+        setIsPlaying(false);
+        setIsPaused(false);
+        clearActiveCursors();
+      }
+    }, 50);
+  };
+
+  const playPlayback = () => {
+    if (!playbackData || sortedEventsRef.current.length === 0) return;
+    if (isPaused) {
+      // Resume from current position
+      wallStartRef.current = Date.now() - playbackElapsed;
+    } else {
+      // Fresh start from beginning
+      idxRef.current = 0;
+      activePlaybackUserIds.current = new Set();
+      setPlaybackElapsed(0);
+      wallStartRef.current = Date.now();
+    }
+    setIsPlaying(true);
+    setIsPaused(false);
+    stopPauseHeartbeat();
+    runInterval();
+  };
+
+  const pausePlayback = () => {
+    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = null;
+    setIsPlaying(false);
+    setIsPaused(true);
+    // Keep cursors alive with a heartbeat — Canvas removes them after 3s without an update
+    startPauseHeartbeat();
+  };
+
+  const stopPlayback = () => {
+    if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
+    playbackIntervalRef.current = null;
+    stopPauseHeartbeat();
+    setIsPlaying(false);
+    setIsPaused(false);
+    setPlaybackElapsed(0);
+    idxRef.current = 0;
+    clearActiveCursors();
+  };
+
+  // Seek to a specific elapsed time (ms from recording start). Works while playing or paused.
+  const seekPlayback = (targetElapsed: number) => {
+    if (!playbackData) return;
+    const mode = playbackModeRef.current;
+    const sorted = sortedEventsRef.current;
+    if (!sorted.length) return;
+
+    clearActiveCursors();
+
+    // Find the index of the first event after targetElapsed
+    const newIdx = sorted.findIndex(
+      e => (e.timestamp as number) - originTsRef.current > targetElapsed
+    );
+    idxRef.current = newIdx === -1 ? sorted.length : newIdx;
+
+    // Snapshot each user's last known state up to targetElapsed and send it
+    const lastState = new Map<string, Record<string, unknown>>();
+    for (const evt of sorted.slice(0, idxRef.current)) {
+      const uid = String(evt.connectionId);
+      if (mode === 'positions') {
+        lastState.set(uid, evt);
+      } else {
+        if (evt.to !== undefined) lastState.set(uid, evt);
+      }
+    }
+    lastState.forEach(evt => sendPlaybackEvent(evt, mode));
+
+    wallStartRef.current = Date.now() - targetElapsed;
+    setPlaybackElapsed(targetElapsed);
+
+    if (isPlaying) runInterval();
   };
 
   const sendUserCap = () => {
@@ -495,6 +728,109 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               ? <span style={{ color: '#f55' }}>REC active (participants see badge)</span>
               : <span>inactive</span>
             }
+          </div>
+
+          {/* Playback section */}
+          <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 24 }}>
+            <p style={{ marginBottom: 12, fontWeight: 600 }}>Playback</p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <label style={{ display: 'inline-block', cursor: 'pointer' }}>
+                <span className="v3-admin-btn" style={{ display: 'inline-block' }}>
+                  ↑ Load JSON file
+                </span>
+                <input
+                  type="file"
+                  accept="application/json,.json"
+                  onChange={handlePlaybackFile}
+                  style={{ display: 'none' }}
+                />
+              </label>
+              <a
+                href="https://drive.google.com/drive/folders/12ujr5MKjs2q0vzDViyG_1U-SEyVOJZO_"
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{ color: '#69f', fontSize: 13 }}
+              >
+                Valence traces ↗
+              </a>
+            </div>
+            {playbackData && (() => {
+              const events = playbackData.events as Record<string, unknown>[];
+              const uniqueUsers = new Set(events.map(e => e.connectionId)).size;
+              return (
+                <div style={{ marginTop: 12, color: '#aaa', fontSize: 13 }}>
+                  <div style={{ color: '#eee', marginBottom: 2 }}>
+                    {events.length} events · {uniqueUsers} users
+                  </div>
+                  <div style={{ color: '#888' }}>Mode: {playbackData.mode} · Room: {playbackData.room}</div>
+                </div>
+              );
+            })()}
+
+            {/* Timeline scrubber — always visible */}
+            {(() => {
+              const sorted = sortedEventsRef.current;
+              const durationMs = sorted.length > 1
+                ? (sorted[sorted.length - 1].timestamp as number) - (sorted[0].timestamp as number)
+                : 0;
+              const clampedElapsed = Math.min(playbackElapsed, durationMs || 1);
+              const fmtTime = (ms: number) => {
+                const m = Math.floor(ms / 60000);
+                const s = Math.floor((ms % 60000) / 1000);
+                return `${m}:${String(s).padStart(2, '0')}`;
+              };
+              const hasData = !!playbackData && durationMs > 0;
+              return (
+                <div style={{ marginTop: 16, opacity: hasData ? 1 : 0.35 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#888', marginBottom: 4 }}>
+                    <span>{fmtTime(hasData ? clampedElapsed : 0)}</span>
+                    <span>{fmtTime(hasData ? durationMs : 0)}</span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0}
+                    max={hasData ? durationMs : 1}
+                    value={hasData ? clampedElapsed : 0}
+                    disabled={!hasData}
+                    onChange={e => seekPlayback(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: 'hsl(270, 70%, 65%)', cursor: hasData ? 'pointer' : 'default' }}
+                  />
+                </div>
+              );
+            })()}
+
+            <div style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+              {isPlaying ? (
+                <button className="v3-admin-btn" onClick={pausePlayback}>
+                  ⏸ Pause
+                </button>
+              ) : (
+                <button
+                  className="v3-admin-btn v3-admin-btn-record"
+                  onClick={playPlayback}
+                  disabled={!playbackData}
+                >
+                  ▶ {isPaused ? 'Resume' : 'Play'}
+                </button>
+              )}
+              <button
+                className="v3-admin-btn v3-admin-btn-stop"
+                onClick={stopPlayback}
+                disabled={!isPlaying && !isPaused}
+              >
+                ■ Stop
+              </button>
+            </div>
+            {isPlaying && (
+              <div style={{ marginTop: 8, color: '#f55', fontSize: 13, fontWeight: 600 }}>
+                PLAYING — playback cursors visible to all participants
+              </div>
+            )}
+            {isPaused && (
+              <div style={{ marginTop: 8, color: '#fa0', fontSize: 13, fontWeight: 600 }}>
+                PAUSED — cursors frozen on canvas
+              </div>
+            )}
           </div>
         </div>
 

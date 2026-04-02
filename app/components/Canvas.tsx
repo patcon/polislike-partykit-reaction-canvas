@@ -28,6 +28,7 @@ interface CanvasProps {
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
   onPresenceCount?: (count: number) => void;
   onActiveCursorCountChange?: (count: number) => void;
+  onSimulatedCursorCountChange?: (count: number) => void;
   onTimecodeUpdate?: (timecode: number) => void;
   onRecordingStateChange?: (recording: boolean) => void;
   onRoomLabelsChange?: (labels: { positive: string; negative: string; neutral: string } | null) => void;
@@ -62,7 +63,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -73,6 +74,8 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
   useEffect(() => {
     onActiveCursorCountChange?.(cursors.size);
+    const simulatedCount = Array.from(cursors.keys()).filter(id => id.startsWith('replay_')).length;
+    onSimulatedCursorCountChange?.(simulatedCount);
   }, [cursors.size]);
 
   const [dimensions, setDimensions] = useState({
@@ -391,7 +394,10 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       ? smallerDim * 0.03  // 3% when showing avatars (needs to be recognizable)
       : smallerDim * 0.01; // 1% for default colored dots (original size)
 
+    const isPlaybackCursor = (d: any): boolean => d.cursorUserId.startsWith('replay_');
+
     const cursorColor = (d: any): string => {
+      if (isPlaybackCursor(d)) return 'hsl(270, 70%, 65%)';
       if (colorCursorsByVote && d.reactionState) {
         switch (d.reactionState) {
           case 'positive': return 'rgba(0, 255, 0, 0.8)';
@@ -408,7 +414,8 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       .data(cursorData, (d: any) => d.cursorUserId)
       .enter()
       .append('g')
-      .attr('class', 'cursor-group');
+      .attr('class', 'cursor-group')
+      .attr('opacity', (d: any) => isPlaybackCursor(d) ? 0.7 : 1.0);
 
     if (avatarStyle) {
       // Add clip paths to defs for circular avatar masking
@@ -446,8 +453,9 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .attr('cy', d => d.y)
         .attr('r', cursorRadius)
         .attr('fill', cursorColor)
-        .attr('stroke', '#000000')
-        .attr('stroke-width', 2);
+        .attr('stroke', (d: any) => isPlaybackCursor(d) ? 'hsl(270, 70%, 80%)' : '#000000')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', (d: any) => isPlaybackCursor(d) ? `${cursorRadius * 0.8} ${cursorRadius * 0.5}` : 'none');
 
       // Add user ID labels with responsive font size and positioning
       const cursorLabelFontSize = Math.min(dimensions.width, dimensions.height) * 0.015; // 1.5% of smaller dimension

@@ -1205,10 +1205,10 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   });
 
   function wsUrl(room) {
-    const host = window.location.hostname === 'localhost'
-      ? 'localhost:1999'
+    const host = window.location.port === '1999'
+      ? `${window.location.hostname}:1999`
       : DEFAULT_HOST;
-    const proto = host.startsWith('localhost') ? 'ws' : 'wss';
+    const proto = window.location.port === '1999' ? 'ws' : 'wss';
     const userId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
     return `${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`;
   }
@@ -1245,6 +1245,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         const n = data.count ?? 0;
         audienceN.textContent = n;
         setConnStatus(`connected · room: ${room} · ${n} participant${n !== 1 ? 's' : ''}`, 'ok');
+      } else if (data.type === 'userJoined') {
+        assignLiveSlot(data.userId);
+      } else if (data.type === 'userLeft') {
+        cursors.delete(data.userId);
+        freeLiveSlot(data.userId);
       } else if (data.type === 'move' || data.type === 'touch') {
         const { userId, x, y } = data.position;
         cursors.set(userId, { x, y });
@@ -1252,7 +1257,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         audienceN.textContent = cursors.size;
       } else if (data.type === 'remove') {
         const { userId } = data.position;
-        cursors.delete(userId);  // thumb lift: keep slot, just freeze valence at 0
+        cursors.delete(userId);
+        if (userId.startsWith('replay_')) {
+          freeLiveSlot(userId);
+        }
+        // real users: thumb lift only — slot stays until userLeft
         audienceN.textContent = cursors.size;
       }
     };
@@ -1261,7 +1270,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
     ws.onclose = () => {
       wsConnected = false;
-      cursors.clear();
+      freeAllLiveSlots();
       if (btnConnect.classList.contains('disconnecting')) {
         setConnStatus('disconnected', '');
         btnConnect.textContent = 'connect';

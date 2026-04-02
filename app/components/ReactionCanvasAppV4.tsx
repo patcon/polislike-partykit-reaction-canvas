@@ -54,6 +54,7 @@ export default function ReactionCanvasAppV4() {
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const [activeCursorCount, setActiveCursorCount] = useState<number>(0);
+  const [simulatedCursorCount, setSimulatedCursorCount] = useState<number>(0);
   const [isViewer, setIsViewer] = useState(false);
   const [userCap, setUserCap] = useState<number | null>(null);
   const [viewerCount, setViewerCount] = useState(0);
@@ -110,7 +111,8 @@ export default function ReactionCanvasAppV4() {
         )}
         <div className="v2-presence-counter">
           <span className="v2-counter-num">{presenceCount}</span>
-          {userCap !== null && <span className="v2-counter-dim">/{userCap}</span>} here · <span className="v2-counter-num">{activeCursorCount + (touchPos !== null ? 1 : 0)}</span> touching
+          {userCap !== null && <span className="v2-counter-dim">/{userCap}</span>} here · <span className="v2-counter-num">{activeCursorCount - simulatedCursorCount + (touchPos !== null ? 1 : 0)}</span> touching
+          {simulatedCursorCount > 0 && <> · <span className="v2-counter-num">{simulatedCursorCount}</span> simulated</>}
           {viewerCount > 0 && <> · <span className="v2-counter-num">{viewerCount}</span> watching</>}
         </div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
@@ -129,6 +131,7 @@ export default function ReactionCanvasAppV4() {
           heightOffset={0}
           onPresenceCount={setPresenceCount}
           onActiveCursorCountChange={setActiveCursorCount}
+          onSimulatedCursorCountChange={setSimulatedCursorCount}
           onRecordingStateChange={setIsRecording}
           onRoomLabelsChange={setServerLabels}
           onRoomAnchorsChange={setServerAnchors}
