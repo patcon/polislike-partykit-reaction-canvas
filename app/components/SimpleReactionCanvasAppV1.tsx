@@ -7,6 +7,7 @@ import AdminPanel from "./AdminPanel";
 import type { PolisStatement, QueueItem } from "../types";
 import { getReactionLabelSet } from "../voteLabels";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
+import { getPersistentUserId } from "../utils/userId";
 
 function getRoomFromUrl(): string {
   const urlParams = new URLSearchParams(window.location.search);
@@ -38,7 +39,7 @@ export default function SimpleReactionCanvasAppV1() {
   const [currentReactionState, setCurrentReactionState] = useState<'positive' | 'negative' | 'neutral' | null>(null);
   const canvasReactionStateRef = useRef<'positive' | 'negative' | 'neutral' | null>(null);
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<'positive' | 'negative' | 'neutral' | null>(null);
-  const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
+  const [userId] = useState(() => getPersistentUserId());
   const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(ghostCursorsFromUrl ?? false);
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
 

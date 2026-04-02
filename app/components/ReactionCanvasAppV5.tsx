@@ -10,6 +10,7 @@ import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { insertEvent, fetchEvents, isSupabaseConfigured, testConnection } from "../lib/supabase";
 import type { ReactionEvent } from "../lib/supabase";
+import { getPersistentUserId } from "../utils/userId";
 
 declare global {
   interface Window {
@@ -83,8 +84,8 @@ function MobileOnlyGate() {
 }
 
 export default function ReactionCanvasAppV5() {
-  const [sessionId] = useState(() => Math.random().toString(36).substr(2, 9));
-  const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
+  const [sessionId] = useState(() => getPersistentUserId());
+  const [userId] = useState(() => getPersistentUserId());
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null | undefined>(undefined);
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);

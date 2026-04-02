@@ -7,6 +7,7 @@ import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { getReactionLabelSet } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
+import { getPersistentUserId } from "../utils/userId";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -50,7 +51,7 @@ function MobileOnlyGate() {
 }
 
 export default function ReactionCanvasAppV4() {
-  const [userId] = useState(() => Math.random().toString(36).substr(2, 9));
+  const [userId] = useState(() => getPersistentUserId());
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const [activeCursorCount, setActiveCursorCount] = useState<number>(0);
