@@ -120,7 +120,10 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [isPaused, setIsPaused] = useState(false);
   const [playbackElapsed, setPlaybackElapsed] = useState(0);
   const playbackIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const pauseHeartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const activePlaybackUserIds = useRef<Set<string>>(new Set());
+  // Last sent position per playback userId, for pause heartbeat
+  const lastPlaybackPositions = useRef<Map<string, { x: number; y: number }>>(new Map());
   // Refs shared between playback functions
   const sortedEventsRef = useRef<Record<string, unknown>[]>([]);
   const originTsRef = useRef<number>(0);
@@ -362,6 +365,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           position: { x: evt.x, y: evt.y, userId: fakeUserId, timestamp: Date.now() },
         }));
         activePlaybackUserIds.current.add(fakeUserId);
+        lastPlaybackPositions.current.set(fakeUserId, { x: evt.x as number, y: evt.y as number });
       }
     } else {
       // transitions mode
@@ -372,6 +376,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           position: { x: 0, y: 0, userId: fakeUserId, timestamp: Date.now() },
         }));
         activePlaybackUserIds.current.delete(fakeUserId);
+        lastPlaybackPositions.current.delete(fakeUserId);
       } else {
         const { x, y } = anchorForRegion(String(evt.to), fakeUserId);
         socket.send(JSON.stringify({
@@ -380,6 +385,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           position: { x, y, userId: fakeUserId, timestamp: Date.now() },
         }));
         activePlaybackUserIds.current.add(fakeUserId);
+        lastPlaybackPositions.current.set(fakeUserId, { x, y });
       }
     }
   };
@@ -393,6 +399,25 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
       }));
     });
     activePlaybackUserIds.current.clear();
+    lastPlaybackPositions.current.clear();
+  };
+
+  const startPauseHeartbeat = () => {
+    if (pauseHeartbeatRef.current) clearInterval(pauseHeartbeatRef.current);
+    pauseHeartbeatRef.current = setInterval(() => {
+      lastPlaybackPositions.current.forEach(({ x, y }, uid) => {
+        socket.send(JSON.stringify({
+          type: 'playbackCursorBroadcast',
+          cursorType: 'move',
+          position: { x, y, userId: uid, timestamp: Date.now() },
+        }));
+      });
+    }, 2000);
+  };
+
+  const stopPauseHeartbeat = () => {
+    if (pauseHeartbeatRef.current) clearInterval(pauseHeartbeatRef.current);
+    pauseHeartbeatRef.current = null;
   };
 
   const runInterval = () => {
@@ -412,6 +437,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         // Reached end — stop cleanly
         if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
         playbackIntervalRef.current = null;
+        stopPauseHeartbeat();
         setIsPlaying(false);
         setIsPaused(false);
         clearActiveCursors();
@@ -433,6 +459,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     }
     setIsPlaying(true);
     setIsPaused(false);
+    stopPauseHeartbeat();
     runInterval();
   };
 
@@ -441,12 +468,14 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     playbackIntervalRef.current = null;
     setIsPlaying(false);
     setIsPaused(true);
-    // Leave cursors visible and elapsed/idx intact
+    // Keep cursors alive with a heartbeat — Canvas removes them after 3s without an update
+    startPauseHeartbeat();
   };
 
   const stopPlayback = () => {
     if (playbackIntervalRef.current) clearInterval(playbackIntervalRef.current);
     playbackIntervalRef.current = null;
+    stopPauseHeartbeat();
     setIsPlaying(false);
     setIsPaused(false);
     setPlaybackElapsed(0);
