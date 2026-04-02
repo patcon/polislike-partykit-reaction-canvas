@@ -257,6 +257,13 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   <!-- mode selector top-right: stacked rows -->
   <div id="modebar">
+    <!-- row 0: path mode -->
+    <div id="mrow-path">
+      <div id="modebar-row">
+        <button id="btnPathSimple" class="active">simple curves</button>
+        <button id="btnPathSemantic">demo semantic</button>
+      </div>
+    </div>
     <!-- row 1: viz mode -->
     <div id="modebar-row" id="mrow-mode">
       <button id="btnLight" class="active">light waves</button>
@@ -337,7 +344,8 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   const TOTAL_STEPS   = LIVE_STEPS + HISTORY_STEPS;
   const TOTAL         = 100;
   let MAX_R           = 0.22;   // light wave max displacement — driven by radius slider
-  const DURATION      = 300;
+  let radiusScale     = 1.0;    // per-path-mode multiplier (1.0 = simple, 0.1 = semantic)
+  let DURATION        = 300;
 
   // Particle mode: baseline tube radius (neutral position). Agree pulls inward, disagree pushes out.
   let tubeR        = 0.20;   // updated by slider in particle mode
@@ -386,18 +394,43 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   const N_PATH = TOTAL_STEPS + 1;
   const pathPos = [], pathTan = [], pathNorm = [], pathBi = [];
-  for (let i = 0; i < N_PATH; i++) {
-    const t = i / (N_PATH - 1);
-    pathPos.push(bezPt(t)); pathTan.push(bezTan(t));
+
+  function buildPathFrames(posFn, tanFn) {
+    pathPos.length = 0; pathTan.length = 0; pathNorm.length = 0; pathBi.length = 0;
+    for (let i = 0; i < N_PATH; i++) {
+      const t = i / (N_PATH - 1);
+      pathPos.push(posFn(t)); pathTan.push(tanFn(t));
+    }
+    let up = new THREE.Vector3(0,1,0);
+    if (Math.abs(pathTan[0].dot(up)) > 0.9) up.set(1,0,0);
+    const b0 = new THREE.Vector3().crossVectors(pathTan[0], up).normalize();
+    pathNorm.push(new THREE.Vector3().crossVectors(b0, pathTan[0]).normalize());
+    pathBi.push(b0);
+    for (let i = 1; i < N_PATH; i++) {
+      const tan = pathTan[i];
+      const n = pathNorm[i-1].clone().addScaledVector(tan, -pathNorm[i-1].dot(tan)).normalize();
+      pathNorm.push(n);
+      pathBi.push(new THREE.Vector3().crossVectors(tan, n).normalize());
+    }
   }
-  const b0 = new THREE.Vector3().crossVectors(pathTan[0], new THREE.Vector3(0,1,0)).normalize();
-  pathNorm.push(new THREE.Vector3().crossVectors(b0, pathTan[0]).normalize());
-  pathBi.push(b0);
-  for (let i = 1; i < N_PATH; i++) {
-    const tan = pathTan[i];
-    const n = pathNorm[i-1].clone().addScaledVector(tan, -pathNorm[i-1].dot(tan)).normalize();
-    pathNorm.push(n);
-    pathBi.push(new THREE.Vector3().crossVectors(tan, n).normalize());
+
+  buildPathFrames(bezPt, bezTan);
+
+  // ── path mode (semantic) ─────────────────────────────────────────────────
+  let pathMode = 'simple';
+  let semanticPts = null;
+
+  function buildSemanticFrames(rawPts) {
+    let minX=Infinity,maxX=-Infinity,minY=Infinity,maxY=-Infinity,minZ=Infinity,maxZ=-Infinity;
+    rawPts.forEach(([x,y,z])=>{ minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);minZ=Math.min(minZ,z);maxZ=Math.max(maxZ,z); });
+    const range=Math.max(maxX-minX,maxY-minY,maxZ-minZ)||1;
+    const cx=(minX+maxX)/2,cy=(minY+maxY)/2,cz=(minZ+maxZ)/2;
+    const scale=3.6/range;
+    const vecs=rawPts.map(([x,y,z])=>new THREE.Vector3((x-cx)*scale,(y-cy)*scale,(z-cz)*scale));
+    const curve=new THREE.CatmullRomCurve3(vecs);
+    const posFn=t=>curve.getPoint(t);
+    const tanFn=t=>curve.getTangent(t);
+    buildPathFrames(posFn,tanFn);
   }
 
   // ── rng / smooth ──────────────────────────────────────────────────────────
@@ -570,15 +603,15 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   function lightWorld(si, p, v) {
     const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
     return new THREE.Vector3(
-      pos.x+(p.dx*norm.x+p.dy*bi.x)*v*MAX_R,
-      pos.y+(p.dx*norm.y+p.dy*bi.y)*v*MAX_R,
-      pos.z+(p.dx*norm.z+p.dy*bi.z)*v*MAX_R,
+      pos.x+(p.dx*norm.x+p.dy*bi.x)*v*MAX_R*radiusScale,
+      pos.y+(p.dx*norm.y+p.dy*bi.y)*v*MAX_R*radiusScale,
+      pos.z+(p.dx*norm.z+p.dy*bi.z)*v*MAX_R*radiusScale,
     );
   }
 
   function particleWorldDof1(si, p, v) {
     const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
-    const r = tubeR - v * TUBE_RANGE;
+    const r = (tubeR - v * TUBE_RANGE) * radiusScale;
     const ca=Math.cos(p.ringAngle), sa=Math.sin(p.ringAngle);
     return new THREE.Vector3(
       pos.x+(ca*norm.x+sa*bi.x)*r,
@@ -589,7 +622,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   function particleWorldDof2(si, p, v) {
     const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
-    const r = tubeR - v * TUBE_RANGE;
+    const r = (tubeR - v * TUBE_RANGE) * radiusScale;
     const oa = p.orbitAngles[si];
     const ca=Math.cos(oa), sa=Math.sin(oa);
     return new THREE.Vector3(
@@ -601,8 +634,8 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   function particleWorldDof3(si, p) {
     const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
-    const cx = attracted ? p.chargedFX[si] : p.chargedX[si];
-    const cy = attracted ? p.chargedFY[si] : p.chargedY[si];
+    const cx = (attracted ? p.chargedFX[si] : p.chargedX[si]) * radiusScale;
+    const cy = (attracted ? p.chargedFY[si] : p.chargedY[si]) * radiusScale;
     return new THREE.Vector3(
       pos.x + cx*norm.x + cy*bi.x,
       pos.y + cx*norm.y + cy*bi.y,
@@ -665,7 +698,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     if (dof === 1)           return particleWorldDof1(si, p, v);
     if (dof === 3)           return particleWorldDof3(si, p);
     const pos=pathPos[si], norm=pathNorm[si], bi=pathBi[si];
-    const r = tubeR - v * TUBE_RANGE;
+    const r = (tubeR - v * TUBE_RANGE) * radiusScale;
     const oa = getOrbitAngle(si, p);
     const ca=Math.cos(oa), sa=Math.sin(oa);
     return new THREE.Vector3(
@@ -763,10 +796,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   // ── narrative spine ───────────────────────────────────────────────────────
   const narrativeSpineMat = new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.08});
+  const narrativeSpinePosBuf = new THREE.BufferAttribute(new Float32Array((TOTAL_STEPS+1)*3),3);
+  narrativeSpinePosBuf.setUsage(THREE.DynamicDrawUsage);
   {
-    const pts=new Float32Array((TOTAL_STEPS+1)*3);
-    for (let i=0; i<=TOTAL_STEPS; i++) { pts[i*3]=pathPos[i].x; pts[i*3+1]=pathPos[i].y; pts[i*3+2]=pathPos[i].z; }
-    const geo=new THREE.BufferGeometry(); geo.setAttribute('position',new THREE.BufferAttribute(pts,3));
+    for (let i=0; i<=TOTAL_STEPS; i++) { narrativeSpinePosBuf.array[i*3]=pathPos[i].x; narrativeSpinePosBuf.array[i*3+1]=pathPos[i].y; narrativeSpinePosBuf.array[i*3+2]=pathPos[i].z; }
+    const geo=new THREE.BufferGeometry(); geo.setAttribute('position',narrativeSpinePosBuf);
     scene.add(new THREE.Line(geo,narrativeSpineMat));
   }
 
@@ -786,9 +820,9 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
       const pts = new Float32Array(N * 3);
       for (let i = 0; i < N; i++) {
         const pos=pathPos[i], norm=pathNorm[i], bi=pathBi[i];
-        pts[i*3]   = pos.x + (ca*norm.x + sa*bi.x) * tubeR;
-        pts[i*3+1] = pos.y + (ca*norm.y + sa*bi.y) * tubeR;
-        pts[i*3+2] = pos.z + (ca*norm.z + sa*bi.z) * tubeR;
+        pts[i*3]   = pos.x + (ca*norm.x + sa*bi.x) * tubeR * radiusScale;
+        pts[i*3+1] = pos.y + (ca*norm.y + sa*bi.y) * tubeR * radiusScale;
+        pts[i*3+2] = pos.z + (ca*norm.z + sa*bi.z) * tubeR * radiusScale;
       }
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.BufferAttribute(pts, 3));
@@ -803,9 +837,9 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
       const fpos = new Float32Array(N * 2 * 3);
       for (let i = 0; i < N; i++) {
         const pos=pathPos[i], norm=pathNorm[i], bi=pathBi[i], sp=pathPos[i];
-        fpos[i*6]   = pos.x + (ca*norm.x + sa*bi.x) * tubeR;
-        fpos[i*6+1] = pos.y + (ca*norm.y + sa*bi.y) * tubeR;
-        fpos[i*6+2] = pos.z + (ca*norm.z + sa*bi.z) * tubeR;
+        fpos[i*6]   = pos.x + (ca*norm.x + sa*bi.x) * tubeR * radiusScale;
+        fpos[i*6+1] = pos.y + (ca*norm.y + sa*bi.y) * tubeR * radiusScale;
+        fpos[i*6+2] = pos.z + (ca*norm.z + sa*bi.z) * tubeR * radiusScale;
         fpos[i*6+3] = sp.x; fpos[i*6+4] = sp.y; fpos[i*6+5] = sp.z;
       }
       const findices = new Uint32Array((N-1)*6);
@@ -857,7 +891,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
   function updateRing(si) {
     const norm=pathNorm[si],bi=pathBi[si],pos=pathPos[si];
-    const r = vizMode==='light' ? MAX_R*1.1 : tubeR;
+    const r = (vizMode==='light' ? MAX_R*1.1 : tubeR) * radiusScale;
     for (let i=0; i<=RING_SEGS; i++) {
       const a=(i/RING_SEGS)*Math.PI*2, ca=Math.cos(a), sa=Math.sin(a);
       ringPosBuf.array[i*3]=pos.x+(norm.x*ca+bi.x*sa)*r;
@@ -936,6 +970,39 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     }
   }
 
+  function rebuildPathDependentData() {
+    // Rebake light-wave positions (they depend on pathPos/Norm/Bi)
+    persons.forEach(p => {
+      const N=TOTAL_STEPS+1;
+      for (let i=0;i<N;i++) { const w=lightWorld(i,p,p.vals[i]); p.ptsLight[i*3]=w.x; p.ptsLight[i*3+1]=w.y; p.ptsLight[i*3+2]=w.z; }
+    });
+    // Update narrative spine buffer
+    for (let i=0;i<=TOTAL_STEPS;i++) {
+      narrativeSpinePosBuf.array[i*3]=pathPos[i].x;
+      narrativeSpinePosBuf.array[i*3+1]=pathPos[i].y;
+      narrativeSpinePosBuf.array[i*3+2]=pathPos[i].z;
+    }
+    narrativeSpinePosBuf.needsUpdate=true;
+    rebuildTube();
+    rebuildAllPositions();
+    updateRing(HISTORY_STEPS);
+  }
+
+  function switchPath(mode) {
+    pathMode=mode;
+    if (mode==='simple') {
+      buildPathFrames(bezPt,bezTan);
+      DURATION=300; radiusScale=1.0;
+    } else {
+      buildSemanticFrames(semanticPts);
+      DURATION=471; radiusScale=0.1;
+    }
+    tNorm=0; lastTs=null;
+    document.getElementById('scrub').value=0;
+    rebuildPathDependentData();
+    dots.forEach(({mesh}) => mesh.scale.setScalar(radiusScale));
+  }
+
   // ── toggle logic ──────────────────────────────────────────────────────────
   let dotMode='group', trailMode='group';
 
@@ -1002,6 +1069,24 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   document.getElementById('btnAttractOn').addEventListener('click',()=>{
     attracted=true; setActive(['btnAttractOff','btnAttractOn'],'btnAttractOn');
     if(vizMode==='particle'&&dof===2) rebuildAllPositions();
+  });
+
+  // Path mode
+  document.getElementById('btnPathSimple').addEventListener('click',()=>{
+    setActive(['btnPathSimple','btnPathSemantic'],'btnPathSimple');
+    switchPath('simple');
+  });
+  document.getElementById('btnPathSemantic').addEventListener('click',()=>{
+    if (!semanticPts) {
+      fetch('sample-embeddings-3d.json').then(r=>r.json()).then(pts=>{
+        semanticPts=pts;
+        setActive(['btnPathSimple','btnPathSemantic'],'btnPathSemantic');
+        switchPath('semantic');
+      });
+    } else {
+      setActive(['btnPathSimple','btnPathSemantic'],'btnPathSemantic');
+      switchPath('semantic');
+    }
   });
 
   // Radius slider
