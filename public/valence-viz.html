@@ -163,14 +163,15 @@ canvas { width: 100%; height: 100%; display: block; }
 }
 #row-scrub { display: flex; align-items: center; gap: 8px; }
 #scrub { flex: 1; accent-color: rgba(255,255,255,0.45); cursor: pointer; }
-#btnPlay, #btnCamMode {
+#btnPlay, #btnCamMode, #btnTargetMode {
   background: rgba(255,255,255,0.07); border: 0.5px solid rgba(255,255,255,0.18);
   color: #fff; padding: 4px 12px; border-radius: 4px;
   cursor: pointer; font-size: 11px; font-family: monospace; flex-shrink: 0;
 }
 #btnPlay { width: 6em; text-align: center; white-space: nowrap; }
 #btnCamMode { width: 9em; text-align: center; white-space: nowrap; }
-#btnPlay:hover, #btnCamMode:hover { background: rgba(255,255,255,0.14); }
+#btnTargetMode { width: 5em; text-align: center; white-space: nowrap; }
+#btnPlay:hover, #btnCamMode:hover, #btnTargetMode:hover { background: rgba(255,255,255,0.14); }
 
 #row-toggles {
   display: flex; align-items: stretch;
@@ -293,6 +294,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
       <button id="btnPlay">Pause</button>
       <input id="scrub" type="range" min="0" max="1000" value="0">
       <button id="btnCamMode">cam: static</button>
+      <button id="btnTargetMode">head</button>
     </div>
 
     <!-- shared color/fill toggles -->
@@ -1145,6 +1147,8 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   let smoothCamPos = null, smoothTarget = null;
   let smoothCamVel = null, smoothTargetVel = null;
   let camPrevTs = null;
+  let camTargetMode = 'head';  // 'head' | 'trail'
+  const CAM_LOOKBACK = 80;
   let pinchDist0=null;
   function onDown(x,y) { dragActive=true; lastX=x; lastY=y; }
   function onMove(x,y) {
@@ -1200,6 +1204,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     cameraMode = next;
     smoothCamPos = null; smoothTarget = null; smoothCamVel = null; smoothTargetVel = null;
     this.textContent = 'cam: ' + next;
+  });
+  document.getElementById('btnTargetMode').addEventListener('click', function() {
+    camTargetMode = camTargetMode === 'head' ? 'trail' : 'head';
+    smoothCamPos = null; smoothTarget = null; smoothCamVel = null; smoothTargetVel = null;
+    this.textContent = camTargetMode;
   });
   document.getElementById('scrub').addEventListener('input',function(){
     tNorm=parseInt(this.value)/1000;
@@ -1489,9 +1498,10 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
     // Camera
     const lt=pathPos[si].clone();
-    const tan=pathTan[si], norm=pathNorm[si], bi=pathBi[si];
+    const vi = camTargetMode==='trail' ? Math.max(0, si-CAM_LOOKBACK) : si;
+    const tan=pathTan[vi], norm=pathNorm[vi], bi=pathBi[vi];
     const fwd=tan.clone().negate();
-    const desiredPos=lt.clone().add(
+    const desiredPos=pathPos[vi].clone().add(
       new THREE.Vector3()
         .addScaledVector(fwd,  Math.cos(orbitPhi)*Math.cos(orbitTheta))
         .addScaledVector(norm, Math.sin(orbitPhi))
