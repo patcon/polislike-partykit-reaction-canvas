@@ -426,7 +426,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     rawPts.forEach(([x,y,z])=>{ minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);minZ=Math.min(minZ,z);maxZ=Math.max(maxZ,z); });
     const range=Math.max(maxX-minX,maxY-minY,maxZ-minZ)||1;
     const cx=(minX+maxX)/2,cy=(minY+maxY)/2,cz=(minZ+maxZ)/2;
-    const scale=3.6/range;
+    const scale=6.0/range;
     const vecs=rawPts.map(([x,y,z])=>new THREE.Vector3((x-cx)*scale,(y-cy)*scale,(z-cz)*scale));
     const curve=new THREE.CatmullRomCurve3(vecs);
     const posFn=t=>curve.getPointAt(t);
