@@ -340,8 +340,8 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   const camera = new THREE.PerspectiveCamera(52, W / H, 0.01, 100);
 
   // ── constants ─────────────────────────────────────────────────────────────
-  const LIVE_STEPS    = 800;
-  const HISTORY_STEPS = 200;
+  const LIVE_STEPS    = 1280;
+  const HISTORY_STEPS = 320;
   const TOTAL_STEPS   = LIVE_STEPS + HISTORY_STEPS;
   const TOTAL         = 100;
   let MAX_R           = 0.22;   // light wave max displacement — driven by radius slider
@@ -429,8 +429,8 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     const scale=3.6/range;
     const vecs=rawPts.map(([x,y,z])=>new THREE.Vector3((x-cx)*scale,(y-cy)*scale,(z-cz)*scale));
     const curve=new THREE.CatmullRomCurve3(vecs);
-    const posFn=t=>curve.getPoint(t);
-    const tanFn=t=>curve.getTangent(t);
+    const posFn=t=>curve.getPointAt(t);
+    const tanFn=t=>curve.getTangentAt(t);
     buildPathFrames(posFn,tanFn);
   }
 
