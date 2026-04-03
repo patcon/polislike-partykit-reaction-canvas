@@ -1192,7 +1192,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     if(playing) lastTs=null;
   }
   document.getElementById('btnPlay').addEventListener('click', togglePlay);
-  document.addEventListener('keydown', e => { if(e.code==='Space' && e.target===document.body) { e.preventDefault(); togglePlay(); } });
+  document.addEventListener('keydown', e => { if(e.code==='Space' && e.target.tagName!=='INPUT' && e.target.tagName!=='TEXTAREA') { e.preventDefault(); togglePlay(); } });
   document.getElementById('btnCamMode').addEventListener('click', function() {
     const next = CAM_MODES[(CAM_MODES.indexOf(cameraMode)+1) % CAM_MODES.length];
     cameraMode = next;
