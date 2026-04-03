@@ -737,7 +737,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     geo.setDrawRange(0, HISTORY_STEPS+1);
     const alpha = p.gi===0?0.22:p.gi===1?0.44:0.88;
     const mat = new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, opacity:alpha });
-    scene.add(new THREE.Line(geo, mat));
+    const line = new THREE.Line(geo, mat); line.frustumCulled = false; scene.add(line);
     return { geo, posBuf, colBuf, p };
   });
 
@@ -775,7 +775,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     geo.setIndex(new THREE.BufferAttribute(indices,1));
     geo.setDrawRange(0, HISTORY_STEPS*6);
     const mat = new THREE.MeshBasicMaterial({ vertexColors:true, transparent:true, opacity:fillAlphaVal, side:THREE.DoubleSide, depthWrite:false });
-    scene.add(new THREE.Mesh(geo, mat));
+    const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; scene.add(mesh);
     return { geo, posBuf, colBuf, mat, colGroupF, colValF, p };
   });
 
@@ -791,7 +791,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     }
     const geo=new THREE.BufferGeometry(); geo.setAttribute('position',posBuf); geo.setDrawRange(0,HISTORY_STEPS+1);
     const line=new THREE.Line(geo,new THREE.LineBasicMaterial({color:GROUP_COLS[gi],transparent:true,opacity:0.9}));
-    scene.add(line);
+    line.frustumCulled = false; scene.add(line);
     return {line,geo,posBuf,fp,gi};
   });
 
@@ -802,7 +802,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   {
     for (let i=0; i<=TOTAL_STEPS; i++) { narrativeSpinePosBuf.array[i*3]=pathPos[i].x; narrativeSpinePosBuf.array[i*3+1]=pathPos[i].y; narrativeSpinePosBuf.array[i*3+2]=pathPos[i].z; }
     const geo=new THREE.BufferGeometry(); geo.setAttribute('position',narrativeSpinePosBuf);
-    scene.add(new THREE.Line(geo,narrativeSpineMat));
+    const narrativeSpineLine = new THREE.Line(geo,narrativeSpineMat); narrativeSpineLine.frustumCulled = false; scene.add(narrativeSpineLine);
   }
 
   // ── baseline tube traces (particle mode) ──────────────────────────────────
@@ -833,7 +833,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         opacity: 0.35, depthWrite: false
       });
       const line = new THREE.Line(geo, lineMat);
-      line.visible = false;
+      line.visible = false; line.frustumCulled = false;
       scene.add(line);
       const fpos = new Float32Array(N * 2 * 3);
       for (let i = 0; i < N; i++) {
@@ -859,7 +859,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         side: THREE.DoubleSide, depthWrite: false
       });
       const fillMesh = new THREE.Mesh(fillGeo, fillMat);
-      fillMesh.visible = false;
+      fillMesh.visible = false; fillMesh.frustumCulled = false;
       scene.add(fillMesh);
       tubeTraces.push({ line, fillMesh, geo, fillGeo, lineMat, fillMat });
     }
