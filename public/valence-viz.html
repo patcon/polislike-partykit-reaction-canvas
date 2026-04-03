@@ -1186,9 +1186,13 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   // ── playback ──────────────────────────────────────────────────────────────
   let tNorm=0, playing=true, lastTs=null;
   const SPEED=1/70;
-  document.getElementById('btnPlay').addEventListener('click',function(){
-    playing=!playing; this.textContent=playing?'Pause':'Play'; if(playing) lastTs=null;
-  });
+  function togglePlay() {
+    playing=!playing;
+    document.getElementById('btnPlay').textContent=playing?'Pause':'Play';
+    if(playing) lastTs=null;
+  }
+  document.getElementById('btnPlay').addEventListener('click', togglePlay);
+  document.addEventListener('keydown', e => { if(e.code==='Space' && e.target===document.body) { e.preventDefault(); togglePlay(); } });
   document.getElementById('btnCamMode').addEventListener('click', function() {
     const next = CAM_MODES[(CAM_MODES.indexOf(cameraMode)+1) % CAM_MODES.length];
     cameraMode = next;
