@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
+- Valence Viz: **camera mode** cycle button (click to rotate through `static` → `lerp` → `exp` → `spring` → `quat`); `static` preserves the original snap-to-position behaviour; the four smooth modes gradually follow the path — simple lerp, frame-rate-independent exponential decay, critically-damped spring physics, and exponential-decay position with quaternion slerp for rotation
 - Valence Viz: new **Path** selector in the mode bar with "simple curves" (existing Bézier, default) and "demo semantic" (spine driven by `sample-embeddings-3d.json`, 471-second duration); switching paths resets playback and rebuilds all geometry so particle/wave scales stay proportional (pipe-through-space effect)
 - All versions: user identity is now persisted in `localStorage` (`polis_user_id`) so cursor identity and Supabase session grouping survive page refreshes
 - V4 Admin: load a previously recorded JSON file and replay it as puppeted playback cursors visible to all connected participants in real time; playback cursors are rendered purple with a dashed ring to distinguish them from real users; supports both positions mode (raw x/y) and transitions mode (snaps to anchor region + deterministic per-user jitter)
