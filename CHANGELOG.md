@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Valence Viz: fix trails/fills/tube disappearing at large path scale by setting `frustumCulled = false` on all dynamic geometry — Three.js was culling objects whose stale bounding sphere no longer intersected the frustum after switching to the larger semantic path
-- Valence Viz: increase semantic path spread from 3.6 to 10.0 world units so tube diameter is proportionally smaller relative to the path
+- Valence Viz: increase semantic path spread from 3.6 to 20.0 world units so tube diameter is proportionally smaller relative to the path
 - Valence Viz: increase max zoom-out distance from 5.0 to 15.0 world units
 - Valence Viz: set `radiusScale=1.0` for semantic path mode (was 0.1) so tube diameter, cursor scale, and effective camera distance are consistent with simple curves mode
 - Valence Viz: increase simulation steps from 1000 to 1600 (`LIVE_STEPS` 800→1280, `HISTORY_STEPS` 200→320) so traces are denser along the longer semantic path; also switch semantic CatmullRom to arc-length parametrization (`getPointAt`/`getTangentAt`) so steps are spatially uniform rather than clustering near dense control points
