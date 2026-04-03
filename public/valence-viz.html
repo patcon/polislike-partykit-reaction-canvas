@@ -1536,14 +1536,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
       const alpha = 1 - Math.exp(-8.0 * dt);
       smoothCamPos.lerp(desiredPos, alpha);
       smoothTarget.lerp(lt, alpha);
-      const dummy = new THREE.Object3D();
-      dummy.position.copy(desiredPos);
-      dummy.up.copy(norm);
-      dummy.lookAt(lt);
-      dummy.updateMatrixWorld();
+      // Build target quaternion from Matrix4.lookAt (respects up vector correctly)
+      const m = new THREE.Matrix4().lookAt(desiredPos, lt, norm);
+      const targetQuat = new THREE.Quaternion().setFromRotationMatrix(m);
       camera.position.copy(smoothCamPos);
-      camera.up.copy(norm);
-      camera.quaternion.slerp(dummy.quaternion, alpha);
+      camera.quaternion.slerp(targetQuat, alpha);
     }
 
     renderer.render(scene,camera);
