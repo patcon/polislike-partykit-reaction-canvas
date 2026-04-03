@@ -426,7 +426,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     rawPts.forEach(([x,y,z])=>{ minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);minZ=Math.min(minZ,z);maxZ=Math.max(maxZ,z); });
     const range=Math.max(maxX-minX,maxY-minY,maxZ-minZ)||1;
     const cx=(minX+maxX)/2,cy=(minY+maxY)/2,cz=(minZ+maxZ)/2;
-    const scale=6.0/range;
+    const scale=10.0/range;
     const vecs=rawPts.map(([x,y,z])=>new THREE.Vector3((x-cx)*scale,(y-cy)*scale,(z-cz)*scale));
     const curve=new THREE.CatmullRomCurve3(vecs);
     const posFn=t=>curve.getPointAt(t);
@@ -1161,7 +1161,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   canvas.addEventListener('touchend',   onUp);
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    camDist = Math.max(0.15, Math.min(5.0, camDist * (1 + e.deltaY * 0.001)));
+    camDist = Math.max(0.15, Math.min(15.0, camDist * (1 + e.deltaY * 0.001)));
   }, { passive: false });
   canvas.addEventListener('touchstart', e => {
     if (e.touches.length === 2) {
@@ -1177,7 +1177,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      camDist = Math.max(0.15, Math.min(5.0, camDist * (pinchDist0 / d)));
+      camDist = Math.max(0.15, Math.min(15.0, camDist * (pinchDist0 / d)));
       pinchDist0 = d;
     }
   }, { passive: true });
