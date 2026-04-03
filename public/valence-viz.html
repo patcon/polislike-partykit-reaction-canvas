@@ -163,12 +163,15 @@ canvas { width: 100%; height: 100%; display: block; }
 }
 #row-scrub { display: flex; align-items: center; gap: 8px; }
 #scrub { flex: 1; accent-color: rgba(255,255,255,0.45); cursor: pointer; }
-#btnPlay {
+#btnPlay, #btnCamMode, #btnTargetMode {
   background: rgba(255,255,255,0.07); border: 0.5px solid rgba(255,255,255,0.18);
   color: #fff; padding: 4px 12px; border-radius: 4px;
   cursor: pointer; font-size: 11px; font-family: monospace; flex-shrink: 0;
 }
-#btnPlay:hover { background: rgba(255,255,255,0.14); }
+#btnPlay { width: 6em; text-align: center; white-space: nowrap; }
+#btnCamMode { width: 9em; text-align: center; white-space: nowrap; }
+#btnTargetMode { width: 5em; text-align: center; white-space: nowrap; }
+#btnPlay:hover, #btnCamMode:hover, #btnTargetMode:hover { background: rgba(255,255,255,0.14); }
 
 #row-toggles {
   display: flex; align-items: stretch;
@@ -290,6 +293,8 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     <div id="row-scrub">
       <button id="btnPlay">Pause</button>
       <input id="scrub" type="range" min="0" max="1000" value="0">
+      <button id="btnCamMode">cam: static</button>
+      <button id="btnTargetMode">head</button>
     </div>
 
     <!-- shared color/fill toggles -->
@@ -339,8 +344,8 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   const camera = new THREE.PerspectiveCamera(52, W / H, 0.01, 100);
 
   // ── constants ─────────────────────────────────────────────────────────────
-  const LIVE_STEPS    = 800;
-  const HISTORY_STEPS = 200;
+  const LIVE_STEPS    = 1280;
+  const HISTORY_STEPS = 320;
   const TOTAL_STEPS   = LIVE_STEPS + HISTORY_STEPS;
   const TOTAL         = 100;
   let MAX_R           = 0.22;   // light wave max displacement — driven by radius slider
@@ -425,11 +430,11 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     rawPts.forEach(([x,y,z])=>{ minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);minZ=Math.min(minZ,z);maxZ=Math.max(maxZ,z); });
     const range=Math.max(maxX-minX,maxY-minY,maxZ-minZ)||1;
     const cx=(minX+maxX)/2,cy=(minY+maxY)/2,cz=(minZ+maxZ)/2;
-    const scale=3.6/range;
+    const scale=20.0/range;
     const vecs=rawPts.map(([x,y,z])=>new THREE.Vector3((x-cx)*scale,(y-cy)*scale,(z-cz)*scale));
     const curve=new THREE.CatmullRomCurve3(vecs);
-    const posFn=t=>curve.getPoint(t);
-    const tanFn=t=>curve.getTangent(t);
+    const posFn=t=>curve.getPointAt(t);
+    const tanFn=t=>curve.getTangentAt(t);
     buildPathFrames(posFn,tanFn);
   }
 
@@ -736,7 +741,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     geo.setDrawRange(0, HISTORY_STEPS+1);
     const alpha = p.gi===0?0.22:p.gi===1?0.44:0.88;
     const mat = new THREE.LineBasicMaterial({ vertexColors:true, transparent:true, opacity:alpha });
-    scene.add(new THREE.Line(geo, mat));
+    const line = new THREE.Line(geo, mat); line.frustumCulled = false; scene.add(line);
     return { geo, posBuf, colBuf, p };
   });
 
@@ -774,7 +779,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     geo.setIndex(new THREE.BufferAttribute(indices,1));
     geo.setDrawRange(0, HISTORY_STEPS*6);
     const mat = new THREE.MeshBasicMaterial({ vertexColors:true, transparent:true, opacity:fillAlphaVal, side:THREE.DoubleSide, depthWrite:false });
-    scene.add(new THREE.Mesh(geo, mat));
+    const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; scene.add(mesh);
     return { geo, posBuf, colBuf, mat, colGroupF, colValF, p };
   });
 
@@ -790,7 +795,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
     }
     const geo=new THREE.BufferGeometry(); geo.setAttribute('position',posBuf); geo.setDrawRange(0,HISTORY_STEPS+1);
     const line=new THREE.Line(geo,new THREE.LineBasicMaterial({color:GROUP_COLS[gi],transparent:true,opacity:0.9}));
-    scene.add(line);
+    line.frustumCulled = false; scene.add(line);
     return {line,geo,posBuf,fp,gi};
   });
 
@@ -801,7 +806,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   {
     for (let i=0; i<=TOTAL_STEPS; i++) { narrativeSpinePosBuf.array[i*3]=pathPos[i].x; narrativeSpinePosBuf.array[i*3+1]=pathPos[i].y; narrativeSpinePosBuf.array[i*3+2]=pathPos[i].z; }
     const geo=new THREE.BufferGeometry(); geo.setAttribute('position',narrativeSpinePosBuf);
-    scene.add(new THREE.Line(geo,narrativeSpineMat));
+    const narrativeSpineLine = new THREE.Line(geo,narrativeSpineMat); narrativeSpineLine.frustumCulled = false; scene.add(narrativeSpineLine);
   }
 
   // ── baseline tube traces (particle mode) ──────────────────────────────────
@@ -832,7 +837,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         opacity: 0.35, depthWrite: false
       });
       const line = new THREE.Line(geo, lineMat);
-      line.visible = false;
+      line.visible = false; line.frustumCulled = false;
       scene.add(line);
       const fpos = new Float32Array(N * 2 * 3);
       for (let i = 0; i < N; i++) {
@@ -858,7 +863,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         side: THREE.DoubleSide, depthWrite: false
       });
       const fillMesh = new THREE.Mesh(fillGeo, fillMat);
-      fillMesh.visible = false;
+      fillMesh.visible = false; fillMesh.frustumCulled = false;
       scene.add(fillMesh);
       tubeTraces.push({ line, fillMesh, geo, fillGeo, lineMat, fillMat });
     }
@@ -995,9 +1000,10 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
       DURATION=300; radiusScale=1.0;
     } else {
       buildSemanticFrames(semanticPts);
-      DURATION=471; radiusScale=0.1;
+      DURATION=471; radiusScale=1.0;
     }
     tNorm=0; lastTs=null;
+    smoothCamPos=null; smoothTarget=null; smoothCamVel=null; smoothTargetVel=null;
     document.getElementById('scrub').value=0;
     rebuildPathDependentData();
     dots.forEach(({mesh}) => mesh.scale.setScalar(radiusScale));
@@ -1134,6 +1140,15 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   // ── orbit ─────────────────────────────────────────────────────────────────
   let orbitTheta=0, orbitPhi=0.18, dragActive=false, lastX=0, lastY=0;
   let camDist=0.9;
+
+  // ── camera mode ───────────────────────────────────────────────────────────
+  const CAM_MODES = ['static', 'lerp', 'exp', 'spring', 'quat'];
+  let cameraMode = 'static';
+  let smoothCamPos = null, smoothTarget = null;
+  let smoothCamVel = null, smoothTargetVel = null;
+  let camPrevTs = null;
+  let camTargetMode = 'head';  // 'head' | 'trail'
+  const CAM_LOOKBACK = 80;
   let pinchDist0=null;
   function onDown(x,y) { dragActive=true; lastX=x; lastY=y; }
   function onMove(x,y) {
@@ -1152,7 +1167,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   canvas.addEventListener('touchend',   onUp);
   canvas.addEventListener('wheel', e => {
     e.preventDefault();
-    camDist = Math.max(0.15, Math.min(5.0, camDist * (1 + e.deltaY * 0.001)));
+    camDist = Math.max(0.15, Math.min(15.0, camDist * (1 + e.deltaY * 0.001)));
   }, { passive: false });
   canvas.addEventListener('touchstart', e => {
     if (e.touches.length === 2) {
@@ -1168,7 +1183,7 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
         e.touches[0].clientX - e.touches[1].clientX,
         e.touches[0].clientY - e.touches[1].clientY
       );
-      camDist = Math.max(0.15, Math.min(5.0, camDist * (pinchDist0 / d)));
+      camDist = Math.max(0.15, Math.min(15.0, camDist * (pinchDist0 / d)));
       pinchDist0 = d;
     }
   }, { passive: true });
@@ -1177,8 +1192,23 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   // ── playback ──────────────────────────────────────────────────────────────
   let tNorm=0, playing=true, lastTs=null;
   const SPEED=1/70;
-  document.getElementById('btnPlay').addEventListener('click',function(){
-    playing=!playing; this.textContent=playing?'Pause':'Play'; if(playing) lastTs=null;
+  function togglePlay() {
+    playing=!playing;
+    document.getElementById('btnPlay').textContent=playing?'Pause':'Play';
+    if(playing) lastTs=null;
+  }
+  document.getElementById('btnPlay').addEventListener('click', togglePlay);
+  document.addEventListener('keydown', e => { if(e.code==='Space' && e.target.tagName!=='INPUT' && e.target.tagName!=='TEXTAREA') { e.preventDefault(); togglePlay(); } });
+  document.getElementById('btnCamMode').addEventListener('click', function() {
+    const next = CAM_MODES[(CAM_MODES.indexOf(cameraMode)+1) % CAM_MODES.length];
+    cameraMode = next;
+    smoothCamPos = null; smoothTarget = null; smoothCamVel = null; smoothTargetVel = null;
+    this.textContent = 'cam: ' + next;
+  });
+  document.getElementById('btnTargetMode').addEventListener('click', function() {
+    camTargetMode = camTargetMode === 'head' ? 'trail' : 'head';
+    smoothCamPos = null; smoothTarget = null; smoothCamVel = null; smoothTargetVel = null;
+    this.textContent = camTargetMode;
   });
   document.getElementById('scrub').addEventListener('input',function(){
     tNorm=parseInt(this.value)/1000;
@@ -1399,6 +1429,8 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
   // ── render loop ───────────────────────────────────────────────────────────
   function animate(ts) {
     requestAnimationFrame(animate);
+    const dt = camPrevTs === null ? 0 : Math.min((ts - camPrevTs) / 1000, 0.1);
+    camPrevTs = ts;
 
     if (playing) {
       if(lastTs==null) lastTs=ts;
@@ -1466,17 +1498,66 @@ input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: p
 
     // Camera
     const lt=pathPos[si].clone();
-    const tan=pathTan[si], norm=pathNorm[si], bi=pathBi[si];
-    const CAM_DIST=camDist;
+    const vi = camTargetMode==='trail' ? Math.max(0, si-CAM_LOOKBACK) : si;
+    const tan=pathTan[vi], norm=pathNorm[vi], bi=pathBi[vi];
     const fwd=tan.clone().negate();
-    const rotated=new THREE.Vector3()
-      .addScaledVector(fwd,  Math.cos(orbitPhi)*Math.cos(orbitTheta))
-      .addScaledVector(norm, Math.sin(orbitPhi))
-      .addScaledVector(bi,   Math.cos(orbitPhi)*Math.sin(orbitTheta))
-      .normalize().multiplyScalar(CAM_DIST);
-    camera.position.copy(lt).add(rotated);
-    camera.lookAt(lt);
-    camera.up.copy(norm);
+    const desiredPos=pathPos[vi].clone().add(
+      new THREE.Vector3()
+        .addScaledVector(fwd,  Math.cos(orbitPhi)*Math.cos(orbitTheta))
+        .addScaledVector(norm, Math.sin(orbitPhi))
+        .addScaledVector(bi,   Math.cos(orbitPhi)*Math.sin(orbitTheta))
+        .normalize().multiplyScalar(camDist)
+    );
+
+    if (cameraMode === 'static') {
+      camera.position.copy(desiredPos);
+      camera.lookAt(lt);
+      camera.up.copy(norm);
+    } else if (cameraMode === 'lerp') {
+      // Option A: simple lerp — frame-rate dependent
+      if (!smoothCamPos) { smoothCamPos=desiredPos.clone(); smoothTarget=lt.clone(); }
+      smoothCamPos.lerp(desiredPos, 0.08);
+      smoothTarget.lerp(lt, 0.08);
+      camera.position.copy(smoothCamPos);
+      camera.lookAt(smoothTarget);
+      camera.up.copy(norm);
+    } else if (cameraMode === 'exp') {
+      // Option B: exponential decay — frame-rate independent
+      if (!smoothCamPos) { smoothCamPos=desiredPos.clone(); smoothTarget=lt.clone(); }
+      const alpha = 1 - Math.exp(-8.0 * dt);
+      smoothCamPos.lerp(desiredPos, alpha);
+      smoothTarget.lerp(lt, alpha);
+      camera.position.copy(smoothCamPos);
+      camera.lookAt(smoothTarget);
+      camera.up.copy(norm);
+    } else if (cameraMode === 'spring') {
+      // Option C: critically damped spring physics
+      if (!smoothCamPos) {
+        smoothCamPos=desiredPos.clone(); smoothTarget=lt.clone();
+        smoothCamVel=new THREE.Vector3(); smoothTargetVel=new THREE.Vector3();
+      }
+      const SPRING=120, DAMP=20;
+      smoothCamVel.addScaledVector(desiredPos.clone().sub(smoothCamPos), SPRING*dt);
+      smoothCamVel.multiplyScalar(Math.max(0, 1-DAMP*dt));
+      smoothCamPos.addScaledVector(smoothCamVel, dt);
+      smoothTargetVel.addScaledVector(lt.clone().sub(smoothTarget), SPRING*dt);
+      smoothTargetVel.multiplyScalar(Math.max(0, 1-DAMP*dt));
+      smoothTarget.addScaledVector(smoothTargetVel, dt);
+      camera.position.copy(smoothCamPos);
+      camera.lookAt(smoothTarget);
+      camera.up.copy(norm);
+    } else if (cameraMode === 'quat') {
+      // Option D: exp decay position + quaternion slerp for rotation
+      if (!smoothCamPos) { smoothCamPos=desiredPos.clone(); smoothTarget=lt.clone(); }
+      const alpha = 1 - Math.exp(-8.0 * dt);
+      smoothCamPos.lerp(desiredPos, alpha);
+      smoothTarget.lerp(lt, alpha);
+      // Build target quaternion from Matrix4.lookAt (respects up vector correctly)
+      const m = new THREE.Matrix4().lookAt(desiredPos, lt, norm);
+      const targetQuat = new THREE.Quaternion().setFromRotationMatrix(m);
+      camera.position.copy(smoothCamPos);
+      camera.quaternion.slerp(targetQuat, alpha);
+    }
 
     renderer.render(scene,camera);
   }

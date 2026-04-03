@@ -5,11 +5,20 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- All versions: `crypto.randomUUID()` now falls back to a `Math.random`-based UUID v4 on non-secure contexts (e.g. accessing the dev server via a local network IP over plain HTTP), fixing a crash on load
 - CI: PR preview deploy and cleanup workflows now use `npx partykit` instead of bare `partykit`, which isn't on PATH after `npm ci`
 - CI: PR preview workflow now has `pull-requests: write` permission so it can post the preview URL comment
 
 
 ### Added
+- Valence Viz: fix trails/fills/tube disappearing at large path scale by setting `frustumCulled = false` on all dynamic geometry — Three.js was culling objects whose stale bounding sphere no longer intersected the frustum after switching to the larger semantic path
+- Valence Viz: increase semantic path spread from 3.6 to 20.0 world units so tube diameter is proportionally smaller relative to the path
+- Valence Viz: increase max zoom-out distance from 5.0 to 15.0 world units
+- Valence Viz: set `radiusScale=1.0` for semantic path mode (was 0.1) so tube diameter, cursor scale, and effective camera distance are consistent with simple curves mode
+- Valence Viz: increase simulation steps from 1000 to 1600 (`LIVE_STEPS` 800→1280, `HISTORY_STEPS` 200→320) so traces are denser along the longer semantic path; also switch semantic CatmullRom to arc-length parametrization (`getPointAt`/`getTangentAt`) so steps are spatially uniform rather than clustering near dense control points
+- Valence Viz: **target mode** toggle button (`head` / `trail`) — `head` keeps the existing orbit-around-cursor-head behaviour; `trail` positions the camera 80 steps behind the cursor head looking forward down the path; independent of the smoothing mode button so any combination works
+- Valence Viz: spacebar toggles play/pause
+- Valence Viz: **camera mode** cycle button (click to rotate through `static` → `lerp` → `exp` → `spring` → `quat`); `static` preserves the original snap-to-position behaviour; the four smooth modes gradually follow the path — simple lerp, frame-rate-independent exponential decay, critically-damped spring physics, and exponential-decay position with quaternion slerp for rotation
 - Valence Viz: new **Path** selector in the mode bar with "simple curves" (existing Bézier, default) and "demo semantic" (spine driven by `sample-embeddings-3d.json`, 471-second duration); switching paths resets playback and rebuilds all geometry so particle/wave scales stay proportional (pipe-through-space effect)
 - All versions: user identity is now persisted in `localStorage` (`polis_user_id`) so cursor identity and Supabase session grouping survive page refreshes
 - V4 Admin: load a previously recorded JSON file and replay it as puppeted playback cursors visible to all connected participants in real time; playback cursors are rendered purple with a dashed ring to distinguish them from real users; supports both positions mode (raw x/y) and transitions mode (snaps to anchor region + deterministic per-user jitter)
