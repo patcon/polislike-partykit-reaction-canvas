@@ -11,6 +11,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
+- Valence Viz: converted from standalone `public/valence-viz.html` to a React component (`app/components/ValenceViz.tsx`) routed via `#valence-viz`; three.js added as an npm dependency; the IndexApp card now links to `#valence-viz` instead of the removed HTML file
 - Valence Viz: fix trails/fills/tube disappearing at large path scale by setting `frustumCulled = false` on all dynamic geometry — Three.js was culling objects whose stale bounding sphere no longer intersected the frustum after switching to the larger semantic path
 - Valence Viz: increase semantic path spread from 3.6 to 20.0 world units so tube diameter is proportionally smaller relative to the path
 - Valence Viz: increase max zoom-out distance from 5.0 to 15.0 world units
