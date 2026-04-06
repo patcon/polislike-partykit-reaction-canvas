@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- Valence Viz: timeline scrubber can now be dragged while playing (not just while paused); playback resumes from the scrubbed position on release
 - All versions: `crypto.randomUUID()` now falls back to a `Math.random`-based UUID v4 on non-secure contexts (e.g. accessing the dev server via a local network IP over plain HTTP), fixing a crash on load
 - CI: PR preview deploy and cleanup workflows now use `npx partykit` instead of bare `partykit`, which isn't on PATH after `npm ci`
 - CI: PR preview workflow now has `pull-requests: write` permission so it can post the preview URL comment

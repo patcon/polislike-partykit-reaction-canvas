@@ -22,6 +22,7 @@ interface SceneActions {
   disconnectWs: () => void;
   isWsConnected: () => boolean;
   isWsConnecting: () => boolean;
+  setScrubbing: (scrubbing: boolean) => void;
 }
 
 interface Person {
@@ -743,6 +744,7 @@ export default function ValenceViz() {
     // ── playback ───────────────────────────────────────────────────────────
     let playingLocal=true;
     let lastTs: number|null=null;
+    let isScrubbing=false;
     const SPEED=1/70;
 
     // ── live state ─────────────────────────────────────────────────────────
@@ -848,7 +850,7 @@ export default function ValenceViz() {
       const dt=camPrevTs===null?0:Math.min((ts-camPrevTs)/1000,0.1);
       camPrevTs=ts;
 
-      if (playingLocal) {
+      if (playingLocal && !isScrubbing) {
         if(lastTs==null) lastTs=ts;
         tNorm=Math.min(1,tNorm+(ts-lastTs)/1000*SPEED);
         if(tNorm>=1) tNorm=0;
@@ -856,7 +858,7 @@ export default function ValenceViz() {
         if (scrubRef.current) scrubRef.current.value=String(Math.round(tNorm*1000));
       } else {
         if (scrubRef.current) tNorm=parseInt(scrubRef.current.value)/1000;
-        lastTs=null;
+        if (!isScrubbing) lastTs=null;
       }
       const si=HISTORY_STEPS+Math.min(Math.round(tNorm*LIVE_STEPS),LIVE_STEPS);
       const sec=Math.round(tNorm*DURATION);
@@ -973,6 +975,10 @@ export default function ValenceViz() {
         playingLocal=!playingLocal;
         setPlaying(playingLocal);
         if (playingLocal) lastTs=null;
+      },
+      setScrubbing: (scrubbing: boolean) => {
+        isScrubbing=scrubbing;
+        if (!scrubbing) lastTs=null;
       },
       onVizModeChange: (mode) => {
         vizModeLocal=mode;
@@ -1237,6 +1243,8 @@ export default function ValenceViz() {
               min={0}
               max={1000}
               defaultValue={0}
+              onPointerDown={() => { actionsRef.current?.setScrubbing(true); }}
+              onPointerUp={() => { actionsRef.current?.setScrubbing(false); }}
             />
             <button
               className="vviz-btn"
