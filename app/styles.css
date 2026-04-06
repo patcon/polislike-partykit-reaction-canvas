@@ -1242,3 +1242,130 @@ body {
   transform: translate(-50%, -50%);
   z-index: 5;
 }
+
+/* ── Valence Viz ── */
+.vviz-root {
+  width: 100%; height: 100%; background: #08080e; font-family: monospace;
+  display: flex; flex-direction: column;
+}
+.vviz-top-strip {
+  flex-shrink: 0; background: #0d0d18;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 8px 14px; display: flex; align-items: center; gap: 14px;
+  flex-wrap: wrap; z-index: 10;
+}
+.vviz-strip-title {
+  font-size: 10px; color: rgba(255,255,255,0.3);
+  text-transform: uppercase; letter-spacing: 0.1em;
+  white-space: nowrap; flex-shrink: 0;
+}
+.vviz-strip-conn {
+  display: flex; align-items: center; gap: 6px; flex-shrink: 0;
+}
+.vviz-strip-conn label { font-size: 10px; color: rgba(255,255,255,0.3); }
+.vviz-room-input {
+  background: rgba(255,255,255,0.06); border: 0.5px solid rgba(255,255,255,0.15);
+  border-radius: 4px; color: rgba(255,255,255,0.7); font-size: 11px;
+  font-family: monospace; padding: 3px 7px; outline: none; width: 110px;
+  transition: border-color 0.15s;
+}
+.vviz-room-input:focus { border-color: rgba(255,255,255,0.35); }
+.vviz-btn-connect {
+  background: rgba(255,255,255,0.07); border: 0.5px solid rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.6); padding: 3px 10px; border-radius: 4px;
+  cursor: pointer; font-size: 11px; font-family: monospace; flex-shrink: 0;
+  transition: background 0.12s, color 0.12s;
+}
+.vviz-btn-connect:hover { background: rgba(255,255,255,0.13); color: #fff; }
+.vviz-btn-connect:disabled { opacity: 0.5; cursor: not-allowed; }
+.vviz-btn-connect.disconnecting { border-color: rgba(200,60,60,0.6); color: rgba(200,100,100,0.9); }
+.vviz-conn-status { font-size: 10px; color: rgba(255,255,255,0.25); flex-shrink: 0; }
+.vviz-conn-status.ok { color: rgba(60,180,100,0.9); }
+.vviz-conn-status.warn { color: rgba(200,140,40,0.9); }
+.vviz-conn-status.connecting { color: rgba(100,100,200,0.7); }
+.vviz-strip-sim { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.vviz-strip-sync-label {
+  font-size: 10px; color: rgba(255,255,255,0.25);
+  text-transform: uppercase; letter-spacing: 0.06em;
+}
+.vviz-pill-toggle {
+  display: flex; border: 0.5px solid rgba(255,255,255,0.15);
+  border-radius: 20px; overflow: hidden;
+}
+.vviz-pill-toggle button {
+  padding: 2px 9px; font-size: 10px; font-family: monospace; border: none;
+  background: transparent; color: rgba(255,255,255,0.3); cursor: pointer;
+  transition: all 0.12s ease;
+}
+.vviz-pill-toggle button.active { background: rgba(255,255,255,0.14); color: rgba(255,255,255,0.85); }
+.vviz-pill-toggle button:hover:not(.active) { color: rgba(255,255,255,0.55); }
+.vviz-audience-count { font-size: 10px; color: rgba(255,255,255,0.3); flex-shrink: 0; }
+.vviz-audience-count span { color: rgba(180,180,220,0.9); font-weight: 600; }
+.vviz-wrap { flex: 1; position: relative; overflow: hidden; touch-action: none; min-height: 0; }
+.vviz-canvas { width: 100%; height: 100%; display: block; }
+.vviz-hud {
+  position: absolute; top: 14px; left: 14px;
+  font-size: 11px; color: rgba(255,255,255,0.4);
+  line-height: 1.9; pointer-events: none;
+}
+.vviz-hud-hint { margin-top: 4px; color: rgba(255,255,255,0.2); font-size: 10px; }
+.vviz-live-badge { color: rgba(100,220,120,0.85); font-size: 10px; }
+.vviz-modebar {
+  position: absolute; top: 12px; right: 14px;
+  display: flex; flex-direction: column; gap: 5px; align-items: flex-end;
+}
+.vviz-modebar-row {
+  display: flex; gap: 0; border: 0.5px solid rgba(255,255,255,0.15);
+  border-radius: 5px; overflow: hidden;
+}
+.vviz-modebar-row button {
+  background: rgba(255,255,255,0.05); border: none; color: rgba(255,255,255,0.5);
+  padding: 5px 14px; font-size: 11px; font-family: monospace; cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  border-right: 0.5px solid rgba(255,255,255,0.12);
+}
+.vviz-modebar-row button:last-child { border-right: none; }
+.vviz-modebar-row button:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.vviz-modebar-row button.active { background: rgba(255,255,255,0.18); color: #fff; }
+.vviz-controls {
+  position: absolute; bottom: 12px; left: 14px; right: 14px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.vviz-row-scrub { display: flex; align-items: center; gap: 8px; }
+.vviz-scrub { flex: 1; accent-color: rgba(255,255,255,0.45); cursor: pointer; }
+.vviz-btn {
+  background: rgba(255,255,255,0.07); border: 0.5px solid rgba(255,255,255,0.18);
+  color: #fff; padding: 4px 12px; border-radius: 4px;
+  cursor: pointer; font-size: 11px; font-family: monospace; flex-shrink: 0;
+}
+.vviz-btn:hover { background: rgba(255,255,255,0.14); }
+.vviz-row-toggles {
+  display: flex; align-items: stretch;
+  border: 0.5px solid rgba(255,255,255,0.12); border-radius: 5px; overflow: hidden;
+}
+.vviz-tcol {
+  display: flex; flex-direction: column;
+  border-right: 0.5px solid rgba(255,255,255,0.1);
+}
+.vviz-tcol:last-child { border-right: none; flex: 1; }
+.vviz-tcol-lbl {
+  font-size: 10px; color: rgba(255,255,255,0.28);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  padding: 5px 12px 4px;
+  border-bottom: 0.5px solid rgba(255,255,255,0.08); white-space: nowrap;
+}
+.vviz-tcol button {
+  display: block; width: 100%; text-align: left;
+  background: rgba(255,255,255,0.04); border: none; border-radius: 0;
+  border-bottom: 0.5px solid rgba(255,255,255,0.06);
+  color: rgba(255,255,255,0.5); padding: 4px 12px;
+  cursor: pointer; font-size: 11px; font-family: monospace;
+  transition: background 0.12s, color 0.12s;
+}
+.vviz-tcol button:last-of-type { border-bottom: none; }
+.vviz-tcol button:hover { background: rgba(255,255,255,0.1); color: #fff; }
+.vviz-tcol button.active { background: rgba(255,255,255,0.16); color: #fff; }
+.vviz-tcol-flex { justify-content: center; gap: 5px; padding: 6px 12px; }
+.vviz-tcol-flex .vviz-tcol-lbl { padding: 0; border: none; margin-bottom: 2px; }
+.vviz-tcol-flex input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: pointer; }
+.vviz-row-particle { display: flex; align-items: stretch; border: 0.5px solid rgba(255,255,255,0.12); border-radius: 5px; overflow: hidden; }

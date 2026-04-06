@@ -5,6 +5,7 @@ import SimpleReactionCanvasAppV1 from "./components/SimpleReactionCanvasAppV1";
 import ReactionCanvasAppV2 from "./components/ReactionCanvasAppV2";
 import ReactionCanvasAppV4 from "./components/ReactionCanvasAppV4";
 import ReactionCanvasAppV5 from "./components/ReactionCanvasAppV5";
+import ValenceViz from "./components/ValenceViz";
 
 function IndexApp() {
   return (
@@ -60,7 +61,7 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="/valence-viz.html" className="app-card">
+        <a href="#valence-viz" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">Experience: Valence Viz</h2>
             <p className="app-card-description">Facilitator tool: 3D particle/wave visualization of audience sentiment. Synthetic demo by default; Audience Sync drives it live from cursor positions.</p>
@@ -91,6 +92,7 @@ const TITLES: Record<string, (admin: boolean) => string> = {
   '#v2': ()      => 'YouTube Reaction (Sync) — Polislike',
   '#v4': (admin) => admin ? 'Live Event Admin — Polislike' : 'Live Reaction Canvas — Polislike',
   '#v5': (admin) => admin ? 'YouTube Reaction Admin — Polislike' : 'YouTube Reaction (Async) — Polislike',
+  '#valence-viz': () => 'Valence Viz — Polislike',
 };
 
 function GithubCorner() {
@@ -125,6 +127,7 @@ function App() {
   else if (hash === '#v3') { window.location.hash = '#v4'; return null; }
   else if (hash === '#v4') page = <ReactionCanvasAppV4 />;
   else if (hash === '#v5') page = <ReactionCanvasAppV5 />;
+  else if (hash === '#valence-viz') page = <ValenceViz />;
   else page = <IndexApp />;
 
   return <>{page}<GithubCorner /></>;
