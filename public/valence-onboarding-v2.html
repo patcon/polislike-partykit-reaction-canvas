@@ -546,8 +546,8 @@ function getChordPoints(i,n,v,p1,p2,pp1,pp2,lp1,lp2){
     tipX+=(pX-tipX)*pp2;   tipY+=(240-R*v-tipY)*pp2;
   }
   if(lp1>0||lp2>0){
-    rootX+=(240-rootX)*lp1;
-    tipX+=(240-tipX)*lp2;
+    rootX+=(240-rootX)*lp1; rootY+=(240-rootY)*lp1;
+    tipX+=(240-tipX)*lp2;   tipY+=(240-R*v-tipY)*lp2;
   }
   return{rootX,rootY,tipX,tipY};
 }
@@ -565,7 +565,7 @@ function getGuidePoints(i,n,p1,p2,pp1,pp2,lp1,lp2){
     posX+=(pX-posX)*pp2; posY+=(240-R-posY)*pp2;
     negX+=(pX-negX)*pp2; negY+=(240+R-negY)*pp2;
   }
-  if(lp2>0){posX+=(240-posX)*lp2;negX+=(240-negX)*lp2;}
+  if(lp2>0){posX+=(240-posX)*lp2;posY+=(240-R-posY)*lp2;negX+=(240-negX)*lp2;negY+=(240+R-negY)*lp2;}
   return{posX,posY,negX,negY};
 }
 
@@ -592,7 +592,7 @@ function animate(){
   // Camera transition and geometry morph always run
   const tTarget=viewMode==='3d'?1:0;
   transT=clamp01(transT+(tTarget-transT)*TRANS_SPEED*3);
-  const gTarget=geoMode==='radial'?1:geoMode==='parallel'?-1:geoMode==='linear'?-2:0;
+  const gTarget=geoMode==='radial'?1:geoMode==='linear'?-1:geoMode==='parallel'?-2:0;
   morphT=Math.max(-2,Math.min(1,morphT+(gTarget-morphT)*0.05));
 
   // Apply camera
@@ -613,8 +613,8 @@ function animate(){
   const showGuides=guidesEl.checked;
   let p1,p2,pp1,pp2,lp1,lp2;
   if(morphT>=0){({p1,p2}=getPhases(morphT,geoMode==='radial'));pp1=0;pp2=0;lp1=0;lp2=0;}
-  else if(morphT>=-1){p1=0;p2=0;const mt2=-morphT;({p1:pp1,p2:pp2}=getPhases(mt2,geoMode==='parallel'));lp1=0;lp2=0;}
-  else{p1=0;p2=0;pp1=1;pp2=1;const e=ease(-morphT-1);lp1=e;lp2=e;}
+  else if(morphT>=-1){p1=0;p2=0;pp1=0;pp2=0;const le=ease(-morphT);lp1=le;lp2=le;}
+  else{p1=0;p2=0;pp1=1;pp2=1;const le=ease(2+morphT);lp1=le;lp2=le;}
 
   midRing.material.opacity=p1*0.35;
 
