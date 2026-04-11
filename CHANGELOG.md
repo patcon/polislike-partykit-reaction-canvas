@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
+- Onboarding V2: change default cursor radius to 10 and line width to 2.0
 - Onboarding V2: add "linear" geometry mode — all traces collapse to a single vertical line at centre; animated transition to/from parallel
 - Onboarding V2: add "parallel" geometry mode — chords become vertical lines equally spaced across 2×R, positive (green) ends gather at top, negative (red) at bottom; animated transition to/from diametric; sequential/simultaneous animation modes work as expected
 - Onboarding: added `valence-onboarding-v1.html` and `valence-onboarding-v2.html` to `public/` and linked both from the IndexApp landing page
