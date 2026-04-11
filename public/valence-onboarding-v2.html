@@ -466,7 +466,7 @@ updateGroupCountUI();
 
 let flashT=null;
 function showFlash(){flash.classList.add('show');clearTimeout(flashT);flashT=setTimeout(()=>flash.classList.remove('show'),700);}
-function togglePause(){paused=!paused;document.getElementById('pbtn').textContent=paused?'resume':'pause';if(!paused)animate();}
+function togglePause(){paused=!paused;document.getElementById('pbtn').textContent=paused?'resume':'pause';}
 function setGeometry(m){geoMode=m;document.getElementById('btn-radial').classList.toggle('active',m==='radial');document.getElementById('btn-diametric').classList.toggle('active',m==='diametric');document.getElementById('btn-parallel').classList.toggle('active',m==='parallel');document.getElementById('btn-linear').classList.toggle('active',m==='linear');}
 function setAnim(m){animMode=m;document.getElementById('btn-seq').classList.toggle('active',m==='sequential');document.getElementById('btn-sim').classList.toggle('active',m==='simultaneous');}
 function setTraceMode(m){
@@ -574,9 +574,9 @@ function cv(x,y){return[x-240, 240-y, 0];}
 
 // ── Main animate loop ─────────────────────────────────────
 function animate(){
-  if(!paused) requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
 
-  // Events + drift
+  // Events + drift (paused freezes valence values only)
   if(!paused){
     eventTimer+=1/60;
     if(eventTimer>=parseFloat(evtEl.value)){eventTimer=0;fireEvent();}
@@ -588,13 +588,12 @@ function animate(){
         :c.target;
       c.value=Math.max(-1,Math.min(1,c.value+(tgt-c.value)*ds));
     }
-    // Camera transition
-    const tTarget=viewMode==='3d'?1:0;
-    transT=clamp01(transT+(tTarget-transT)*TRANS_SPEED*3);
-    // Geometry morph
-    const gTarget=geoMode==='radial'?1:geoMode==='parallel'?-1:geoMode==='linear'?-2:0;
-    morphT=Math.max(-2,Math.min(1,morphT+(gTarget-morphT)*0.05));
   }
+  // Camera transition and geometry morph always run
+  const tTarget=viewMode==='3d'?1:0;
+  transT=clamp01(transT+(tTarget-transT)*TRANS_SPEED*3);
+  const gTarget=geoMode==='radial'?1:geoMode==='parallel'?-1:geoMode==='linear'?-2:0;
+  morphT=Math.max(-2,Math.min(1,morphT+(gTarget-morphT)*0.05));
 
   // Apply camera
   lerpCam(ease(transT));
