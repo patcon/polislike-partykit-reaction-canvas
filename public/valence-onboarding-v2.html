@@ -77,6 +77,7 @@
   <div class="row">
     <span class="label">geometry</span>
     <div class="btns">
+      <button id="btn-parallel" onclick="setGeometry('parallel')">parallel</button>
       <button class="active" id="btn-diametric" onclick="setGeometry('diametric')">diametric</button>
       <button id="btn-radial" onclick="setGeometry('radial')">radial</button>
     </div>
@@ -464,7 +465,7 @@ updateGroupCountUI();
 let flashT=null;
 function showFlash(){flash.classList.add('show');clearTimeout(flashT);flashT=setTimeout(()=>flash.classList.remove('show'),700);}
 function togglePause(){paused=!paused;document.getElementById('pbtn').textContent=paused?'resume':'pause';if(!paused)animate();}
-function setGeometry(m){geoMode=m;document.getElementById('btn-radial').classList.toggle('active',m==='radial');document.getElementById('btn-diametric').classList.toggle('active',m==='diametric');}
+function setGeometry(m){geoMode=m;document.getElementById('btn-radial').classList.toggle('active',m==='radial');document.getElementById('btn-diametric').classList.toggle('active',m==='diametric');document.getElementById('btn-parallel').classList.toggle('active',m==='parallel');}
 function setAnim(m){animMode=m;document.getElementById('btn-seq').classList.toggle('active',m==='sequential');document.getElementById('btn-sim').classList.toggle('active',m==='simultaneous');}
 function setTraceMode(m){
   traceMode=m;
@@ -526,7 +527,7 @@ function getPhases(mt,toRadial){
   if(toRadial)return{p1:ease(clamp01(mt*2)),p2:ease(clamp01((mt-.5)*2))};
   const rev=1-mt;return{p2:1-ease(clamp01(rev*2)),p1:1-ease(clamp01((rev-.5)*2))};
 }
-function getChordPoints(i,n,v,p1,p2){
+function getChordPoints(i,n,v,p1,p2,pp1,pp2){
   const tilt=(Math.PI/n)*.5,absV=Math.abs(v);
   const dAx=(i/n)*Math.PI+tilt;
   const dTA=v>=0?dAx+Math.PI:dAx;
@@ -535,22 +536,30 @@ function getChordPoints(i,n,v,p1,p2){
   let sd=rSA-dAx; while(sd>Math.PI)sd-=2*Math.PI; while(sd<-Math.PI)sd+=2*Math.PI;
   const sa=dAx+sd*p2,sc=Math.cos(sa),ss=Math.sin(sa);
   const rRX=240+sc*R_MID,rRY=240+ss*R_MID,rTR=R_MID*(1-v);
-  return{
-    rootX:240+(rRX-240)*p1, rootY:240+(rRY-240)*p1,
-    tipX:dTX+(240+sc*rTR-dTX)*p1, tipY:dTY+(240+ss*rTR-dTY)*p1
-  };
+  let rootX=240+(rRX-240)*p1, rootY=240+(rRY-240)*p1;
+  let tipX=dTX+(240+sc*rTR-dTX)*p1, tipY=dTY+(240+ss*rTR-dTY)*p1;
+  if(pp1>0||pp2>0){
+    const pX=n>1?240+(i-(n-1)/2)/(n-1)*2*R:240;
+    rootX+=(pX-rootX)*pp1; rootY+=(240-rootY)*pp1;
+    tipX+=(pX-tipX)*pp2;   tipY+=(240-R*v-tipY)*pp2;
+  }
+  return{rootX,rootY,tipX,tipY};
 }
-function getGuidePoints(i,n,p1,p2){
+function getGuidePoints(i,n,p1,p2,pp1,pp2){
   const tilt=(Math.PI/n)*.5,da=(i/n)*Math.PI+tilt;
   const dNx=240+Math.cos(da)*R,dNy=240+Math.sin(da)*R;
   const dPx=240+Math.cos(da+Math.PI)*R,dPy=240+Math.sin(da+Math.PI)*R;
   const rsa=(i/n)*2*Math.PI+tilt-Math.PI/2;
   let sd=rsa-da; while(sd>Math.PI)sd-=2*Math.PI; while(sd<-Math.PI)sd+=2*Math.PI;
   const sa=da+sd*p2,sc=Math.cos(sa),ss=Math.sin(sa);
-  return{
-    posX:dPx+(240-dPx)*p1, posY:dPy+(240-dPy)*p1,
-    negX:dNx+(240+sc*R-dNx)*p1, negY:dNy+(240+ss*R-dNy)*p1
-  };
+  let posX=dPx+(240-dPx)*p1, posY=dPy+(240-dPy)*p1;
+  let negX=dNx+(240+sc*R-dNx)*p1, negY=dNy+(240+ss*R-dNy)*p1;
+  if(pp2>0){
+    const pX=n>1?240+(i-(n-1)/2)/(n-1)*2*R:240;
+    posX+=(pX-posX)*pp2; posY+=(240-R-posY)*pp2;
+    negX+=(pX-negX)*pp2; negY+=(240+R-negY)*pp2;
+  }
+  return{posX,posY,negX,negY};
 }
 
 // Convert canvas coords (0-480, Y-down) to Three.js world (centered, Y-up)
@@ -576,8 +585,8 @@ function animate(){
     const tTarget=viewMode==='3d'?1:0;
     transT=clamp01(transT+(tTarget-transT)*TRANS_SPEED*3);
     // Geometry morph
-    const gTarget=geoMode==='radial'?1:0;
-    morphT=clamp01(morphT+(gTarget-morphT)*0.05);
+    const gTarget=geoMode==='radial'?1:geoMode==='parallel'?-1:0;
+    morphT=Math.max(-1,Math.min(1,morphT+(gTarget-morphT)*0.05));
   }
 
   // Apply camera
@@ -596,7 +605,9 @@ function animate(){
   const lineW=parseFloat(lwEl.value);
   const dotBase=parseFloat(dotEl.value);
   const showGuides=guidesEl.checked;
-  const {p1,p2}=getPhases(morphT,geoMode==='radial');
+  let p1,p2,pp1,pp2;
+  if(morphT>=0){({p1,p2}=getPhases(morphT,geoMode==='radial'));pp1=0;pp2=0;}
+  else{p1=0;p2=0;const mt2=-morphT;({p1:pp1,p2:pp2}=getPhases(mt2,geoMode==='parallel'));}
 
   midRing.material.opacity=p1*0.35;
 
@@ -604,7 +615,7 @@ function animate(){
   for(let i=0;i<MAX_N;i++){
     if(i<n){
       const c=chords[i];const v=c.value,absV=Math.abs(v);
-      const{rootX,rootY,tipX,tipY}=getChordPoints(i,n,v,p1,p2);
+      const{rootX,rootY,tipX,tipY}=getChordPoints(i,n,v,p1,p2,pp1,pp2);
       const[rx,ry,rz]=cv(rootX,rootY);
       const[tx,ty,tz]=cv(tipX,tipY);
       chordPosArr.set([rx,ry,rz,tx,ty,tz],i*6);
@@ -614,7 +625,7 @@ function animate(){
       const dc=elementRGBA(c,v,styles.cursor,masterOp);
       dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
       if(showGuides){
-        const{posX,posY,negX,negY}=getGuidePoints(i,n,p1,p2);
+        const{posX,posY,negX,negY}=getGuidePoints(i,n,p1,p2,pp1,pp2);
         const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
         guidePosArr.set([px,py,pz,qx,qy,qz],i*6);
         const ga=0.18*masterOp;
