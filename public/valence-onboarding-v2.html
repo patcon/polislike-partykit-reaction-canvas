@@ -338,10 +338,11 @@ let camRadius=480, camTheta=0, camPhi=0;
 // Orbit delta on top of lerped base
 let orbitDTheta=0, orbitDPhi=0;
 
-const CAM_2D = {radius:480, theta:0, phi:0};
-const CAM_3D = {radius:560, theta:Math.PI/5, phi:Math.PI/9};
+const CAM_2D    = {radius:480, theta:0,           phi:0};
+const CAM_2D_TS = {radius:480, theta:Math.PI/2,   phi:0};
+const CAM_3D    = {radius:560, theta:Math.PI/5,   phi:Math.PI/9};
 
-let viewMode='2d', transT=0;
+let viewMode='2d', transT=0, transTts=0;
 const TRANS_SPEED=0.04;
 
 function ease(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
@@ -610,8 +611,10 @@ function animate(){
     }
   }
   // Camera transition and geometry morph always run
-  const tTarget=(viewMode==='3d'||viewMode==='2d-ts')?1:0;
+  const tTarget=viewMode==='3d'?1:0;
   transT=clamp01(transT+(tTarget-transT)*TRANS_SPEED*3);
+  const ttsTarget=viewMode==='2d-ts'?1:0;
+  transTts=clamp01(transTts+(ttsTarget-transTts)*TRANS_SPEED*3);
   const gTarget=geoMode==='radial'?1:geoMode==='linear'?-1:geoMode==='parallel'?-2:0;
   morphT=Math.max(-2,Math.min(1,morphT+(gTarget-morphT)*0.05));
   if(geoMode==='parallel'&&morphT>-1)inParallelTransition=true;
@@ -623,13 +626,20 @@ function animate(){
   if(geoMode==='radial'&&morphT>0.95)inParallelRadialTransition=false;
   if(geoMode==='parallel'&&morphT<-1.95)inParallelRadialTransition=false;
 
-  // Apply camera
+  // Apply camera: blend 2d→3d, then additionally blend toward 2d-ts side view
   lerpCam(ease(transT));
+  if(transTts>0){
+    const et=ease(transTts);
+    camRadius+=( CAM_2D_TS.radius-camRadius)*et;
+    camTheta +=(CAM_2D_TS.theta -camTheta )*et;
+    camPhi   +=(CAM_2D_TS.phi   -camPhi   )*et;
+  }
   applyCam();
 
   // Depth cue opacities
   const depthA=ease(transT);
-  scene.zAxisMat.opacity=depthA*0.45;
+  const depthTs=ease(transTts);
+  scene.zAxisMat.opacity=Math.max(depthA,depthTs)*0.45;
   ghostRings.forEach((r,i)=>{r.material.opacity=depthA*(0.12-i*0.03);r.visible=depthA>0.02;});
 
   // Geometry
