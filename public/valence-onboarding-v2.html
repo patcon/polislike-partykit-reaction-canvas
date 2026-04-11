@@ -412,7 +412,7 @@ let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:0,g:
 let styles={radial:'valence',cursor:'valence'};
 let paused=false, geoMode='diametric', animMode='sequential';
 let traceMode='correlated', orderMode='random';
-let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false;
+let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false, inParallelRadialTransition=false;
 
 const nEl=document.getElementById('nchords');
 const evtEl=document.getElementById('evtrate');
@@ -597,6 +597,11 @@ function animate(){
   if(geoMode==='parallel'&&morphT>-1)inParallelTransition=true;
   if(geoMode==='linear')inParallelTransition=false;
   if(geoMode!=='parallel'&&morphT>-0.05)inParallelTransition=false;
+  if(geoMode==='radial'&&morphT<0)inParallelRadialTransition=true;
+  if(geoMode==='parallel'&&morphT>0)inParallelRadialTransition=true;
+  if(geoMode==='diametric'||geoMode==='linear')inParallelRadialTransition=false;
+  if(geoMode==='radial'&&morphT>0.95)inParallelRadialTransition=false;
+  if(geoMode==='parallel'&&morphT<-1.95)inParallelRadialTransition=false;
 
   // Apply camera
   lerpCam(ease(transT));
@@ -615,7 +620,8 @@ function animate(){
   const dotBase=parseFloat(dotEl.value);
   const showGuides=guidesEl.checked;
   let p1,p2,pp1,pp2,lp1,lp2;
-  if(morphT>=0){({p1,p2}=getPhases(morphT,geoMode==='radial'));pp1=0;pp2=0;lp1=0;lp2=0;}
+  if(animMode==='simultaneous'&&inParallelRadialTransition){const te=ease(clamp01((morphT+2)/3));p1=te;p2=te;pp1=1-te;pp2=1-te;lp1=0;lp2=0;}
+  else if(morphT>=0){({p1,p2}=getPhases(morphT,geoMode==='radial'));pp1=0;pp2=0;lp1=0;lp2=0;}
   else if(animMode==='simultaneous'&&inParallelTransition){p1=0;p2=0;lp1=0;lp2=0;const pb=ease(-morphT/2);pp1=pb;pp2=pb;}
   else if(morphT>=-1){p1=0;p2=0;pp1=0;pp2=0;const le=ease(-morphT);lp1=le;lp2=le;}
   else{p1=0;p2=0;pp1=1;pp2=1;const le=ease(2+morphT);lp1=le;lp2=le;}
