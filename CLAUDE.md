@@ -45,7 +45,7 @@ CI deploys automatically on merge to `main`. Deploying from the workstation is a
 - **`app/voteLabels.ts`** — Reaction label presets and custom label encoding/decoding
 - **`app/utils/voteRegion.ts`** — Canvas region math: barycentric-coordinate region detection, anchor positioning
 - **`app/lib/supabase.ts`** — Supabase client + CRUD helpers for `reaction_events` table (V5 only)
-- **`public/`** — Static assets served by PartyKit; `index.template.html` is the HTML shell
+- **`public/`** — Static assets served by PartyKit; `index.template.html` is the HTML shell; standalone HTML pages (e.g. valence onboarding) live here too
 
 ## Routing
 
@@ -140,6 +140,19 @@ V5 stores reaction events in a Supabase `reaction_events` table. Credentials are
 - `PARTYKIT_SUPABASE_ANON_KEY`
 
 In local dev without these secrets, `app/lib/supabase.ts` catches the `ReferenceError` and all Supabase calls become no-ops. `isSupabaseConfigured` (exported from `supabase.ts`) reflects whether a client was created.
+
+## Valence Onboarding Pages
+
+Standalone HTML files in `public/` — **not React components**, no PartyKit, purely client-side. Linked from the index landing page.
+
+| File | Rendering | Notes |
+|------|-----------|-------|
+| `valence-onboarding-v1.html` | 2D Canvas (native) | Geometry, animation, trace, group, and color controls |
+| `valence-onboarding-v2.html` | Three.js WebGL | Adds 3D orbit view (drag/scroll); per-element style grid (radial/cursor × group/valence) |
+
+Both visualise the "valence wave — cross-section" concept: participant reactions arranged along diametric or radial geometry, animated sequentially or simultaneously. Dark minimal aesthetic: `DM Mono` font, `#0f0f0e` background, muted `rgba(200,198,190,…)` palette throughout.
+
+Because these files are self-contained, changes to React components or `app/styles.css` do **not** affect them — they must be edited directly.
 
 ## Storybook
 
