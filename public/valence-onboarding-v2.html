@@ -73,7 +73,8 @@
   <div class="row">
     <span class="label">view</span>
     <div class="btns">
-      <button class="active" id="btn-2d" onclick="setViewMode('2d')">2d</button>
+      <button class="active" id="btn-2d" onclick="setViewMode('2d')">2d time slice</button>
+      <button id="btn-2d-ts" onclick="setViewMode('2d-ts')">2d time series</button>
       <button id="btn-3d" onclick="setViewMode('3d')">3d</button>
     </div>
     <span class="hint" id="orbit-hint" style="margin-left:8px">drag to orbit · scroll to zoom</span>
@@ -131,17 +132,17 @@
   <div class="style-grid">
     <div class="sg-head"></div>
     <div class="sg-head">radial</div>
-    <div class="sg-head future">trace</div>
+    <div class="sg-head future" id="sg-head-trace">trace</div>
     <div class="sg-head">cursor</div>
     <div class="sg-head future">fill</div>
     <div class="sg-row-label">group</div>
     <button class="sg-btn" id="st-radial-group" onclick="setStyle('radial','group')">group</button>
-    <button class="sg-btn future">group</button>
+    <button class="sg-btn future" id="st-trace-group" onclick="setStyle('trace','group')">group</button>
     <button class="sg-btn" id="st-cursor-group" onclick="setStyle('cursor','group')">group</button>
     <button class="sg-btn future">group</button>
     <div class="sg-row-label">valence</div>
     <button class="sg-btn active" id="st-radial-valence" onclick="setStyle('radial','valence')">valence</button>
-    <button class="sg-btn future">valence</button>
+    <button class="sg-btn active future" id="st-trace-valence" onclick="setStyle('trace','valence')">valence</button>
     <button class="sg-btn active" id="st-cursor-valence" onclick="setStyle('cursor','valence')">valence</button>
     <button class="sg-btn future">valence</button>
   </div>
@@ -215,6 +216,9 @@
 const W = 480, H = 480;
 const R = 180, R_MID = 90;
 const MAX_N = 100;
+const TRACE_LEN = 60;   // ~1 second of history at 60fps
+const TRACE_SEGS = TRACE_LEN - 1;
+const TRACE_Z_STEP = 6; // world units per frame; 60 frames × 6 = 360, matches ghost ring depth
 const FIBS = [1,2,3,5,8,13,21];
 const GROUP_RGB = [
   [80,160,255],[255,140,50],[200,80,255],
@@ -306,6 +310,17 @@ const dotPoints = new THREE.Points(dotGeo, dotMat);
 dotPoints.renderOrder = 10;
 scene.add(dotPoints);
 
+// Trace lines: fading trails behind cursor dots
+const tracePosArr = new Float32Array(MAX_N * TRACE_SEGS * 2 * 3);
+const traceColArr = new Float32Array(MAX_N * TRACE_SEGS * 2 * 3);
+const traceGeo = new THREE.BufferGeometry();
+traceGeo.setAttribute('position', new THREE.BufferAttribute(tracePosArr, 3));
+traceGeo.setAttribute('color',    new THREE.BufferAttribute(traceColArr, 3));
+const traceMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false});
+const traceLines = new THREE.LineSegments(traceGeo, traceMat);
+traceLines.renderOrder = 5;  // behind dots (10), in front of chords
+scene.add(traceLines);
+
 // Guide lines
 const guidePosArr = new Float32Array(MAX_N*2*3);
 const guideColArr = new Float32Array(MAX_N*2*3);
@@ -353,17 +368,22 @@ function lerpCam(et) {
 function setViewMode(m) {
   viewMode=m;
   document.getElementById('btn-2d').classList.toggle('active', m==='2d');
+  document.getElementById('btn-2d-ts').classList.toggle('active', m==='2d-ts');
   document.getElementById('btn-3d').classList.toggle('active', m==='3d');
   document.getElementById('orbit-hint').classList.toggle('show', m==='3d');
   document.getElementById('vp').classList.toggle('orbiting', m==='3d');
-  if (m==='2d') { orbitDTheta=0; orbitDPhi=0; }
+  if (m==='2d'||m==='2d-ts') { orbitDTheta=0; orbitDPhi=0; }
+  const traceActive = m==='2d-ts' || m==='3d';
+  ['sg-head-trace','st-trace-group','st-trace-valence'].forEach(id => {
+    document.getElementById(id).classList.toggle('future', !traceActive);
+  });
 }
 
 // ── Orbit mouse / touch controls ──────────────────────────
 let isDragging=false, dragLast={x:0,y:0}, dtBase=0, dpBase=0;
 
 renderer.domElement.addEventListener('mousedown', e => {
-  if (transT<0.7) return;
+  if (viewMode!=='3d'||transT<0.7) return;
   isDragging=true; dragLast={x:e.clientX,y:e.clientY};
   dtBase=orbitDTheta; dpBase=orbitDPhi;
   e.preventDefault();
@@ -385,7 +405,7 @@ renderer.domElement.addEventListener('wheel', e => {
 let lastTouchDist=0, touchBase={dt:0,dp:0}, touchStart={x:0,y:0};
 renderer.domElement.addEventListener('touchstart', e=>{
   if (e.touches.length===1) {
-    isDragging=true; touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    isDragging=viewMode==='3d'; touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
     touchBase={dt:orbitDTheta,dp:orbitDPhi};
   } else if (e.touches.length===2) {
     isDragging=false;
@@ -409,7 +429,7 @@ renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
 
 // ── Valence state ─────────────────────────────────────────
 let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:0,g:0,b:0,a:1}};
-let styles={radial:'valence',cursor:'valence'};
+let styles={radial:'valence',cursor:'valence',trace:'valence'};
 let paused=false, geoMode='diametric', animMode='sequential';
 let traceMode='correlated', orderMode='random';
 let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false, inParallelRadialTransition=false;
@@ -495,10 +515,10 @@ function assignBase(pos,ng){
 let chords=[];
 function initChords(){
   const n=parseInt(nEl.value),ng=getNumGroups(); chords=[];
-  if(traceMode==='random'){for(let i=0;i<n;i++)chords.push({mode:'random',value:randomVal()*0.4,target:randomVal()});return;}
+  if(traceMode==='random'){for(let i=0;i<n;i++)chords.push({mode:'random',value:randomVal()*0.4,target:randomVal(),history:[]});return;}
   let asgn=Array.from({length:n},(_,i)=>assignBase((i+0.5)/n,ng));
   if(orderMode==='random'){for(let i=asgn.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[asgn[i],asgn[j]]=[asgn[j],asgn[i]];}}
-  for(let i=0;i<n;i++)chords.push({mode:'correlated',baseIdx:asgn[i],value:(Math.random()-0.5)*0.3,noiseOffset:(Math.random()-0.5)*0.12});
+  for(let i=0;i<n;i++)chords.push({mode:'correlated',baseIdx:asgn[i],value:(Math.random()-0.5)*0.3,noiseOffset:(Math.random()-0.5)*0.12,history:[]});
   while(groupTargets.length<ng)groupTargets.push(randomVal());
   groupTargets.length=ng; fireGroupEvent();
 }
@@ -590,7 +610,7 @@ function animate(){
     }
   }
   // Camera transition and geometry morph always run
-  const tTarget=viewMode==='3d'?1:0;
+  const tTarget=(viewMode==='3d'||viewMode==='2d-ts')?1:0;
   transT=clamp01(transT+(tTarget-transT)*TRANS_SPEED*3);
   const gTarget=geoMode==='radial'?1:geoMode==='linear'?-1:geoMode==='parallel'?-2:0;
   morphT=Math.max(-2,Math.min(1,morphT+(gTarget-morphT)*0.05));
@@ -641,6 +661,8 @@ function animate(){
       dotPosArr.set([tx,ty,tz],i*3);
       const dc=elementRGBA(c,v,styles.cursor,masterOp);
       dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
+      c.history.push([tx,ty,tz]);
+      if(c.history.length>TRACE_LEN)c.history.shift();
       if(showGuides){
         const{posX,posY,negX,negY}=getGuidePoints(i,n,p1,p2,pp1,pp2,lp1,lp2);
         const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
@@ -666,6 +688,39 @@ function animate(){
   dotGeo.attributes.color.needsUpdate=true;
   guideGeo.attributes.position.needsUpdate=true;
   guideGeo.attributes.color.needsUpdate=true;
+
+  // Trace lines
+  const showTrace=viewMode==='2d-ts'||viewMode==='3d';
+  const bgR=15,bgG=15,bgB=14;  // matches #0f0f0e background
+  for(let i=0;i<MAX_N;i++){
+    const c=i<n?chords[i]:null;
+    const hlen=c?c.history.length:0;
+    for(let j=0;j<TRACE_SEGS;j++){
+      const base=(i*TRACE_SEGS+j)*6;
+      if(showTrace&&c&&j+1<hlen){
+        const[ax,ay]=c.history[j];
+        const[bx,by]=c.history[j+1];
+        // Z axis = time: current frame at z=0, older frames at negative z
+        const zA=-(hlen-1-j)*TRACE_Z_STEP;
+        const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
+        const fadeA=j/(hlen-1);
+        const fadeB=(j+1)/(hlen-1);
+        const tc=elementRGBA(c,c.value,styles.trace,1);
+        const cr=tc[0],cg=tc[1],cb=tc[2];
+        const rA=(bgR+(cr-bgR)*fadeA)/255,gA=(bgG+(cg-bgG)*fadeA)/255,bA=(bgB+(cb-bgB)*fadeA)/255;
+        const rB=(bgR+(cr-bgR)*fadeB)/255,gB=(bgG+(cg-bgG)*fadeB)/255,bB=(bgB+(cb-bgB)*fadeB)/255;
+        tracePosArr.set([ax,ay,zA,bx,by,zB],base);
+        traceColArr.set([rA,gA,bA,rB,gB,bB],base);
+      }else{
+        tracePosArr.fill(0,base,base+6);
+        traceColArr.set([bgR/255,bgG/255,bgB/255,bgR/255,bgG/255,bgB/255],base);
+      }
+    }
+  }
+  traceGeo.attributes.position.needsUpdate=true;
+  traceGeo.attributes.color.needsUpdate=true;
+  traceMat.opacity=masterOp*0.8;
+  traceLines.visible=showTrace;
 
   chordMat.opacity=masterOp; chordMat.linewidth=lineW; chordMat.visible=useGeo&&lineW>0;
   chordMatBasic.opacity=masterOp; chordLinesBasic.visible=!useGeo&&lineW>0;
