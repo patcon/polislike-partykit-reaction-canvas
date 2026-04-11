@@ -300,6 +300,7 @@ dotGeo.setAttribute('position', new THREE.BufferAttribute(dotPosArr,3));
 dotGeo.setAttribute('color',    new THREE.BufferAttribute(dotColArr,3));
 const dotMat = new THREE.PointsMaterial({vertexColors:true, size:6, sizeAttenuation:true, transparent:true});
 const dotPoints = new THREE.Points(dotGeo, dotMat);
+dotPoints.renderOrder = 10;
 scene.add(dotPoints);
 
 // Guide lines
@@ -308,8 +309,9 @@ const guideColArr = new Float32Array(MAX_N*2*3);
 const guideGeo = new THREE.BufferGeometry();
 guideGeo.setAttribute('position', new THREE.BufferAttribute(guidePosArr,3));
 guideGeo.setAttribute('color',    new THREE.BufferAttribute(guideColArr,3));
-const guideMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true});
+const guideMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false, depthTest:false});
 const guideLines = new THREE.LineSegments(guideGeo, guideMat);
+guideLines.renderOrder = -1;
 scene.add(guideLines);
 
 // ── Camera / view state ───────────────────────────────────

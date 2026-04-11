@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Fixed
+- Onboarding V2: fix z-fighting glitch between guide lines and radial dots by setting `depthWrite:false`/`depthTest:false` on guides and using `renderOrder` (guides=-1, dots=10)
 - Valence Viz: timeline scrubber can now be dragged while playing (not just while paused); playback resumes from the scrubbed position on release
 - All versions: `crypto.randomUUID()` now falls back to a `Math.random`-based UUID v4 on non-secure contexts (e.g. accessing the dev server via a local network IP over plain HTTP), fixing a crash on load
 - CI: PR preview deploy and cleanup workflows now use `npx partykit` instead of bare `partykit`, which isn't on PATH after `npm ci`
