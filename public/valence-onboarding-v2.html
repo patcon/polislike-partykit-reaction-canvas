@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>valence wave — cross-section</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  :root{--bg:#0f0f0e;--border:rgba(200,198,190,0.1);--text:rgba(200,198,190,0.75);--text-dim:rgba(200,198,190,0.35);--accent:rgba(200,198,190,0.55)}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono','Courier New',monospace;font-size:11px;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;letter-spacing:.03em}
+  h1{font-size:10px;font-weight:400;letter-spacing:.22em;text-transform:lowercase;color:var(--text-dim)}
+  #vp{cursor:default;touch-action:none}
+  #vp.orbiting{cursor:grab}
+  #vp.orbiting:active{cursor:grabbing}
+  .panel{display:flex;flex-direction:column;gap:8px;width:100%;max-width:560px}
+  .row{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;white-space:nowrap}
+  .label{color:var(--text-dim);flex-shrink:0;width:86px;letter-spacing:.08em}
+  .sep{flex-shrink:0;width:10px}
+  .btns{display:flex;gap:3px;flex-shrink:0}
+  button{font-family:inherit;font-size:10px;letter-spacing:.08em;padding:4px 10px;border-radius:3px;border:.5px solid rgba(200,198,190,.18);background:transparent;color:var(--text-dim);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .12s,color .12s,border-color .12s}
+  button:hover{background:rgba(200,198,190,.06);color:var(--text)}
+  button.active{background:rgba(200,198,190,.1);color:var(--accent);border-color:rgba(200,198,190,.3)}
+  button:disabled{opacity:.22;cursor:default}
+  .check-item{display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text-dim);flex-shrink:0;white-space:nowrap}
+  .check-item:hover{color:var(--text)}
+  input[type=checkbox]{appearance:none;width:11px;height:11px;border:.5px solid rgba(200,198,190,.3);border-radius:2px;background:transparent;cursor:pointer;position:relative;flex-shrink:0}
+  input[type=checkbox]:checked{background:rgba(200,198,190,.12);border-color:rgba(200,198,190,.5)}
+  input[type=checkbox]:checked::after{content:'';position:absolute;left:2px;top:2px;width:5px;height:5px;background:var(--accent);border-radius:1px}
+  input[type=range]{flex:1;min-width:40px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{appearance:none;width:10px;height:10px;border-radius:50%;background:var(--accent);cursor:pointer}
+  .val{min-width:34px;text-align:right;color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+  .swatch-group{display:flex;align-items:center;gap:4px;flex-shrink:0}
+  .swatch-label{color:var(--text-dim);font-size:10px;letter-spacing:.06em;flex-shrink:0}
+  .swatch{width:18px;height:18px;border-radius:3px;border:.5px solid rgba(200,198,190,.25);cursor:pointer;flex-shrink:0;position:relative;overflow:hidden;background-image:linear-gradient(45deg,#444 25%,transparent 25%),linear-gradient(-45deg,#444 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#444 75%),linear-gradient(-45deg,transparent 75%,#444 75%);background-size:6px 6px;background-position:0 0,0 3px,3px -3px,-3px 0}
+  .swatch-color-layer{position:absolute;inset:0;pointer-events:none}
+  .swatch input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0}
+  .alpha-wrap{display:flex;align-items:center;gap:3px;flex-shrink:0}
+  .alpha-label{color:var(--text-dim);font-size:9px;letter-spacing:.05em}
+  .alpha-slider{width:42px!important;flex:none!important;min-width:unset!important}
+  .style-grid{display:grid;grid-template-columns:86px repeat(4,1fr);gap:4px 6px;align-items:center}
+  .sg-head{font-size:9px;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+  .sg-head.future{opacity:.3}
+  .sg-row-label{font-size:10px;color:var(--text-dim);letter-spacing:.08em}
+  .sg-btn{font-family:inherit;font-size:9px;padding:3px 0;border-radius:3px;border:.5px solid rgba(200,198,190,.15);background:transparent;color:var(--text-dim);cursor:pointer;text-align:center;width:100%;transition:background .12s,color .12s}
+  .sg-btn:hover{background:rgba(200,198,190,.06);color:var(--text)}
+  .sg-btn.active{background:rgba(200,198,190,.1);color:var(--accent);border-color:rgba(200,198,190,.3)}
+  .sg-btn.future{opacity:.22;cursor:default;pointer-events:none}
+  .fib-dots{display:flex;gap:3px;align-items:center;flex-shrink:0}
+  .fib-dot{height:6px;border-radius:1px;flex-shrink:0;transition:width .2s,background .2s}
+  .divider{border:none;border-top:.5px solid var(--border);margin:2px 0}
+  .hint{font-size:9px;color:var(--text-dim);letter-spacing:.1em;opacity:0;transition:opacity .4s}
+  .hint.show{opacity:1}
+  .event-flash{position:fixed;top:14px;right:16px;font-size:9px;letter-spacing:.2em;color:var(--text-dim);opacity:0;transition:opacity .15s;pointer-events:none}
+  .event-flash.show{opacity:1}
+</style>
+</head>
+<body>
+
+<h1>valence wave / cross-section</h1>
+<div id="vp"></div>
+
+<div class="panel">
+
+  <div class="row">
+    <span class="label">view</span>
+    <div class="btns">
+      <button class="active" id="btn-2d" onclick="setViewMode('2d')">2d</button>
+      <button id="btn-3d" onclick="setViewMode('3d')">3d</button>
+    </div>
+    <span class="hint" id="orbit-hint" style="margin-left:8px">drag to orbit · scroll to zoom</span>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <span class="label">geometry</span>
+    <div class="btns">
+      <button class="active" id="btn-diametric" onclick="setGeometry('diametric')">diametric</button>
+      <button id="btn-radial" onclick="setGeometry('radial')">radial</button>
+    </div>
+    <span class="sep"></span>
+    <span class="label">animation</span>
+    <div class="btns">
+      <button id="btn-sim" onclick="setAnim('simultaneous')">simultaneous</button>
+      <button class="active" id="btn-seq" onclick="setAnim('sequential')">sequential</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="label">traces</span>
+    <div class="btns">
+      <button class="active" id="btn-correlated" onclick="setTraceMode('correlated')">correlated</button>
+      <button id="btn-random-trace" onclick="setTraceMode('random')">random</button>
+    </div>
+    <span class="sep"></span>
+    <span class="label" id="order-label">order</span>
+    <div class="btns" id="order-ctrl">
+      <button id="btn-order-grouped" onclick="setOrder('grouped')">grouped</button>
+      <button class="active" id="btn-order-random" onclick="setOrder('random')">random</button>
+    </div>
+  </div>
+
+  <div class="row" id="group-row">
+    <span class="label">groups</span>
+    <input type="range" id="groupcount" min="1" max="7" step="1" value="3">
+    <span class="val" id="groupcount-v">3</span>
+    <div class="fib-dots" id="fib-dots"></div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <label class="check-item"><input type="checkbox" id="guides"><span>show guides</span></label>
+    <span class="sep"></span>
+    <label class="check-item"><input type="checkbox" id="dynamic"><span>dynamic styling</span></label>
+  </div>
+
+  <hr class="divider">
+
+  <div class="style-grid">
+    <div class="sg-head"></div>
+    <div class="sg-head">radial</div>
+    <div class="sg-head future">trace</div>
+    <div class="sg-head">cursor</div>
+    <div class="sg-head future">fill</div>
+    <div class="sg-row-label">group</div>
+    <button class="sg-btn" id="st-radial-group" onclick="setStyle('radial','group')">group</button>
+    <button class="sg-btn future">group</button>
+    <button class="sg-btn" id="st-cursor-group" onclick="setStyle('cursor','group')">group</button>
+    <button class="sg-btn future">group</button>
+    <div class="sg-row-label">valence</div>
+    <button class="sg-btn active" id="st-radial-valence" onclick="setStyle('radial','valence')">valence</button>
+    <button class="sg-btn future">valence</button>
+    <button class="sg-btn active" id="st-cursor-valence" onclick="setStyle('cursor','valence')">valence</button>
+    <button class="sg-btn future">valence</button>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <span class="label">colors</span>
+    <div class="swatch-group">
+      <span class="swatch-label">pos</span>
+      <div class="swatch" id="swatch-pos"><div class="swatch-color-layer" id="swatch-pos-layer"></div><input type="color" value="#50ff8c" oninput="updateColorRGB('pos',this.value)"></div>
+      <div class="alpha-wrap"><span class="alpha-label">A</span><input type="range" class="alpha-slider" min="0" max="1" step="0.05" value="1" oninput="updateColorA('pos',this.value)"></div>
+    </div>
+    <div class="swatch-group">
+      <span class="swatch-label">neg</span>
+      <div class="swatch" id="swatch-neg"><div class="swatch-color-layer" id="swatch-neg-layer"></div><input type="color" value="#ff503c" oninput="updateColorRGB('neg',this.value)"></div>
+      <div class="alpha-wrap"><span class="alpha-label">A</span><input type="range" class="alpha-slider" min="0" max="1" step="0.05" value="1" oninput="updateColorA('neg',this.value)"></div>
+    </div>
+    <div class="swatch-group">
+      <span class="swatch-label">neutral</span>
+      <div class="swatch" id="swatch-neutral"><div class="swatch-color-layer" id="swatch-neutral-layer"></div><input type="color" value="#000000" oninput="updateColorRGB('neutral',this.value)"></div>
+      <div class="alpha-wrap"><span class="alpha-label">A</span><input type="range" class="alpha-slider" min="0" max="1" step="0.05" value="1" oninput="updateColorA('neutral',this.value)"></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <span class="label">chords</span>
+    <input type="range" id="nchords" min="6" max="100" step="1" value="50">
+    <span class="val" id="nchords-v">50</span>
+  </div>
+  <div class="row">
+    <span class="label">opacity</span>
+    <input type="range" id="opacity" min="0" max="1" step="0.02" value="1">
+    <span class="val" id="opacity-v">1.00</span>
+  </div>
+  <div class="row">
+    <span class="label">line width</span>
+    <input type="range" id="linewidth" min="0" max="4" step="0.1" value="1.2">
+    <span class="val" id="linewidth-v">1.2</span>
+  </div>
+  <div class="row">
+    <span class="label">cursor radius</span>
+    <input type="range" id="dotsize" min="0" max="8" step="0.5" value="3">
+    <span class="val" id="dotsize-v">3.0</span>
+  </div>
+  <div class="row">
+    <span class="label">event every</span>
+    <input type="range" id="evtrate" min="3" max="30" step="1" value="8">
+    <span class="val" id="evtrate-v">8s</span>
+  </div>
+  <div class="row">
+    <span class="label">drift speed</span>
+    <input type="range" id="driftspd" min="0.005" max="0.06" step="0.005" value="0.02">
+    <span class="val" id="driftspd-v">0.020</span>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <button id="pbtn" onclick="togglePause()">pause</button>
+    <button onclick="manualFireEvent()">fire event</button>
+  </div>
+
+</div>
+
+<div class="event-flash" id="flash">event</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ── Constants ──────────────────────────────────────────────
+const W = 480, H = 480;
+const R = 180, R_MID = 90;
+const MAX_N = 100;
+const FIBS = [1,2,3,5,8,13,21];
+const GROUP_RGB = [
+  [80,160,255],[255,140,50],[200,80,255],
+  [50,240,180],[255,230,50],[255,80,160],[120,255,60]
+];
+
+// ── Three.js setup ─────────────────────────────────────────
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(53.13, W/H, 0.1, 10000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x0f0f0e, 1);
+renderer.setSize(W, H);
+document.getElementById('vp').appendChild(renderer.domElement);
+
+// ── Scene objects ──────────────────────────────────────────
+
+function makeRingLine(radius, z, color, opacity) {
+  const N = 128;
+  const arr = new Float32Array((N+1)*3);
+  for (let i=0;i<=N;i++) {
+    const a=(i/N)*Math.PI*2;
+    arr[i*3]=Math.cos(a)*radius; arr[i*3+1]=Math.sin(a)*radius; arr[i*3+2]=z;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+  const mat = new THREE.LineBasicMaterial({color, transparent:true, opacity});
+  return new THREE.Line(geo, mat);
+}
+
+const outerRing = makeRingLine(R, 0, 0x383835, 0.8);
+scene.add(outerRing);
+const midRing = makeRingLine(R_MID, 0, 0x2a2a28, 0);
+scene.add(midRing);
+
+// Ghost rings along -Z (depth cues for 3D)
+const ghostRings = [-120,-240,-360].map((z,i) => {
+  const r = makeRingLine(R, z, 0x1e1e1c, 0);
+  scene.add(r);
+  return r;
+});
+
+// Z axis line (time/depth arrow)
+{
+  const arr = new Float32Array([0,0,0, 0,0,-420]);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+  scene.zAxisMat = new THREE.LineBasicMaterial({color:0x404040, transparent:true, opacity:0});
+  scene.zAxis = new THREE.Line(geo, scene.zAxisMat);
+  scene.add(scene.zAxis);
+}
+
+// Rim dots on outer ring
+{
+  const N=48, arr=new Float32Array(N*3);
+  for(let i=0;i<N;i++){const a=(i/N)*Math.PI*2;arr[i*3]=Math.cos(a)*R;arr[i*3+1]=Math.sin(a)*R;}
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  scene.add(new THREE.Points(geo,new THREE.PointsMaterial({color:0x3a3935,size:3,sizeAttenuation:true})));
+}
+
+// Chord lines (LineSegments, vertex colors)
+const chordPosArr = new Float32Array(MAX_N*2*3);
+const chordColArr = new Float32Array(MAX_N*2*3);
+const chordGeo = new THREE.BufferGeometry();
+chordGeo.setAttribute('position', new THREE.BufferAttribute(chordPosArr,3));
+chordGeo.setAttribute('color',    new THREE.BufferAttribute(chordColArr,3));
+const chordMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true});
+const chordLines = new THREE.LineSegments(chordGeo, chordMat);
+scene.add(chordLines);
+
+// Cursor dots (Points)
+const dotPosArr = new Float32Array(MAX_N*3);
+const dotColArr = new Float32Array(MAX_N*3);
+const dotGeo = new THREE.BufferGeometry();
+dotGeo.setAttribute('position', new THREE.BufferAttribute(dotPosArr,3));
+dotGeo.setAttribute('color',    new THREE.BufferAttribute(dotColArr,3));
+const dotMat = new THREE.PointsMaterial({vertexColors:true, size:6, sizeAttenuation:true, transparent:true});
+const dotPoints = new THREE.Points(dotGeo, dotMat);
+scene.add(dotPoints);
+
+// Guide lines
+const guidePosArr = new Float32Array(MAX_N*2*3);
+const guideColArr = new Float32Array(MAX_N*2*3);
+const guideGeo = new THREE.BufferGeometry();
+guideGeo.setAttribute('position', new THREE.BufferAttribute(guidePosArr,3));
+guideGeo.setAttribute('color',    new THREE.BufferAttribute(guideColArr,3));
+const guideMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true});
+const guideLines = new THREE.LineSegments(guideGeo, guideMat);
+scene.add(guideLines);
+
+// ── Camera / view state ───────────────────────────────────
+// Spherical coords: radius, theta (azimuth), phi (elevation)
+let camRadius=480, camTheta=0, camPhi=0;
+// Orbit delta on top of lerped base
+let orbitDTheta=0, orbitDPhi=0;
+
+const CAM_2D = {radius:480, theta:0, phi:0};
+const CAM_3D = {radius:560, theta:Math.PI/5, phi:Math.PI/9};
+
+let viewMode='2d', transT=0;
+const TRANS_SPEED=0.04;
+
+function ease(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
+function clamp01(t){return Math.min(1,Math.max(0,t));}
+
+function applyCam() {
+  const theta = camTheta + orbitDTheta;
+  const phi   = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, camPhi + orbitDPhi));
+  camera.position.set(
+    camRadius*Math.sin(theta)*Math.cos(phi),
+    camRadius*Math.sin(phi),
+    camRadius*Math.cos(theta)*Math.cos(phi)
+  );
+  camera.lookAt(0,0,0);
+  camera.up.set(0,1,0);
+}
+
+function lerpCam(et) {
+  camRadius = CAM_2D.radius + (CAM_3D.radius - CAM_2D.radius)*et;
+  camTheta  = CAM_2D.theta  + (CAM_3D.theta  - CAM_2D.theta)*et;
+  camPhi    = CAM_2D.phi    + (CAM_3D.phi    - CAM_2D.phi)*et;
+}
+
+function setViewMode(m) {
+  viewMode=m;
+  document.getElementById('btn-2d').classList.toggle('active', m==='2d');
+  document.getElementById('btn-3d').classList.toggle('active', m==='3d');
+  document.getElementById('orbit-hint').classList.toggle('show', m==='3d');
+  document.getElementById('vp').classList.toggle('orbiting', m==='3d');
+  if (m==='2d') { orbitDTheta=0; orbitDPhi=0; }
+}
+
+// ── Orbit mouse / touch controls ──────────────────────────
+let isDragging=false, dragLast={x:0,y:0}, dtBase=0, dpBase=0;
+
+renderer.domElement.addEventListener('mousedown', e => {
+  if (transT<0.7) return;
+  isDragging=true; dragLast={x:e.clientX,y:e.clientY};
+  dtBase=orbitDTheta; dpBase=orbitDPhi;
+  e.preventDefault();
+});
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  orbitDTheta = dtBase - (e.clientX-dragLast.x)*0.009;
+  orbitDPhi   = dpBase + (e.clientY-dragLast.y)*0.009;
+  applyCam();
+});
+window.addEventListener('mouseup', ()=>{ isDragging=false; });
+renderer.domElement.addEventListener('wheel', e => {
+  if (transT<0.3) return;
+  camRadius=Math.max(250,Math.min(1400,camRadius+e.deltaY*0.6));
+  applyCam(); e.preventDefault();
+},{passive:false});
+
+// Touch
+let lastTouchDist=0, touchBase={dt:0,dp:0}, touchStart={x:0,y:0};
+renderer.domElement.addEventListener('touchstart', e=>{
+  if (e.touches.length===1) {
+    isDragging=true; touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    touchBase={dt:orbitDTheta,dp:orbitDPhi};
+  } else if (e.touches.length===2) {
+    isDragging=false;
+    lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  }
+  e.preventDefault();
+},{passive:false});
+renderer.domElement.addEventListener('touchmove', e=>{
+  if (e.touches.length===1&&isDragging) {
+    orbitDTheta=touchBase.dt-(e.touches[0].clientX-touchStart.x)*0.009;
+    orbitDPhi=touchBase.dp+(e.touches[0].clientY-touchStart.y)*0.009;
+    applyCam();
+  } else if (e.touches.length===2) {
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    camRadius=Math.max(250,Math.min(1400,camRadius*(lastTouchDist/d)));
+    lastTouchDist=d; applyCam();
+  }
+  e.preventDefault();
+},{passive:false});
+renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
+
+// ── Valence state ─────────────────────────────────────────
+let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:0,g:0,b:0,a:1}};
+let styles={radial:'valence',cursor:'valence'};
+let paused=false, geoMode='diametric', animMode='sequential';
+let traceMode='correlated', orderMode='random';
+let morphT=0, groupTargets=[0,0,0], eventTimer=0;
+
+const nEl=document.getElementById('nchords');
+const evtEl=document.getElementById('evtrate');
+const driftEl=document.getElementById('driftspd');
+const dotEl=document.getElementById('dotsize');
+const lwEl=document.getElementById('linewidth');
+const opEl=document.getElementById('opacity');
+const gcEl=document.getElementById('groupcount');
+const guidesEl=document.getElementById('guides');
+const dynamicEl=document.getElementById('dynamic');
+const flash=document.getElementById('flash');
+const groupRow=document.getElementById('group-row');
+const fibDots=document.getElementById('fib-dots');
+
+nEl.oninput=()=>{document.getElementById('nchords-v').textContent=nEl.value;initChords();};
+evtEl.oninput=()=>document.getElementById('evtrate-v').textContent=evtEl.value+'s';
+driftEl.oninput=()=>document.getElementById('driftspd-v').textContent=parseFloat(driftEl.value).toFixed(3);
+dotEl.oninput=()=>document.getElementById('dotsize-v').textContent=parseFloat(dotEl.value).toFixed(1);
+lwEl.oninput=()=>document.getElementById('linewidth-v').textContent=parseFloat(lwEl.value).toFixed(1);
+opEl.oninput=()=>document.getElementById('opacity-v').textContent=parseFloat(opEl.value).toFixed(2);
+gcEl.oninput=()=>{updateGroupCountUI();initChords();};
+
+function hexToRgb(h){return{r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16)};}
+function updateSwatchLayer(k){
+  const c=colors[k];
+  document.getElementById('swatch-'+k+'-layer').style.background=`rgba(${c.r},${c.g},${c.b},${c.a})`;
+}
+function updateColorRGB(k,h){Object.assign(colors[k],hexToRgb(h));updateSwatchLayer(k);}
+function updateColorA(k,v){colors[k].a=parseFloat(v);updateSwatchLayer(k);}
+['pos','neg','neutral'].forEach(k=>updateSwatchLayer(k));
+
+function setStyle(el,m){
+  styles[el]=m;
+  ['group','valence'].forEach(s=>document.getElementById(`st-${el}-${s}`).classList.toggle('active',s===m));
+}
+function getNumGroups(){return parseInt(gcEl.value);}
+function updateGroupCountUI(){
+  const n=getNumGroups();
+  document.getElementById('groupcount-v').textContent=n;
+  const w=FIBS.slice(0,n), tot=w.reduce((a,b)=>a+b,0);
+  fibDots.innerHTML='';
+  w.forEach((wt,i)=>{
+    const d=document.createElement('div'); d.className='fib-dot';
+    d.style.width=Math.max(4,Math.round((wt/tot)*80))+'px';
+    const [r,g,b]=GROUP_RGB[i%GROUP_RGB.length];
+    d.style.background=`rgba(${r},${g},${b},0.6)`;
+    d.title=Math.round(wt/tot*100)+'%'; fibDots.appendChild(d);
+  });
+}
+updateGroupCountUI();
+
+let flashT=null;
+function showFlash(){flash.classList.add('show');clearTimeout(flashT);flashT=setTimeout(()=>flash.classList.remove('show'),700);}
+function togglePause(){paused=!paused;document.getElementById('pbtn').textContent=paused?'resume':'pause';if(!paused)animate();}
+function setGeometry(m){geoMode=m;document.getElementById('btn-radial').classList.toggle('active',m==='radial');document.getElementById('btn-diametric').classList.toggle('active',m==='diametric');}
+function setAnim(m){animMode=m;document.getElementById('btn-seq').classList.toggle('active',m==='sequential');document.getElementById('btn-sim').classList.toggle('active',m==='simultaneous');}
+function setTraceMode(m){
+  traceMode=m;
+  document.getElementById('btn-random-trace').classList.toggle('active',m==='random');
+  document.getElementById('btn-correlated').classList.toggle('active',m==='correlated');
+  const corr=m==='correlated';
+  ['order-ctrl','order-label'].forEach(id=>{const el=document.getElementById(id);el.style.opacity=corr?'1':'0.28';el.style.pointerEvents=corr?'auto':'none';});
+  groupRow.style.opacity=corr?'1':'0.28'; groupRow.style.pointerEvents=corr?'auto':'none';
+  initChords();
+}
+function setOrder(m){orderMode=m;document.getElementById('btn-order-random').classList.toggle('active',m==='random');document.getElementById('btn-order-grouped').classList.toggle('active',m==='grouped');initChords();}
+
+function randomVal(){return Math.random()*2-1;}
+function fireGroupEvent(){const ng=getNumGroups();groupTargets=Array.from({length:ng},()=>randomVal());showFlash();}
+function fireEvent(){if(traceMode==='correlated')fireGroupEvent();else{chords.forEach(c=>{c.target=randomVal();});showFlash();}}
+function manualFireEvent(){eventTimer=0;fireEvent();}
+
+function assignBase(pos,ng){
+  const w=FIBS.slice(0,ng),tot=w.reduce((a,b)=>a+b,0);
+  let cum=0;
+  for(let g=0;g<ng;g++){cum+=w[g]/tot;if(pos<cum)return g;}
+  return ng-1;
+}
+
+let chords=[];
+function initChords(){
+  const n=parseInt(nEl.value),ng=getNumGroups(); chords=[];
+  if(traceMode==='random'){for(let i=0;i<n;i++)chords.push({mode:'random',value:randomVal()*0.4,target:randomVal()});return;}
+  let asgn=Array.from({length:n},(_,i)=>assignBase((i+0.5)/n,ng));
+  if(orderMode==='random'){for(let i=asgn.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[asgn[i],asgn[j]]=[asgn[j],asgn[i]];}}
+  for(let i=0;i<n;i++)chords.push({mode:'correlated',baseIdx:asgn[i],value:(Math.random()-0.5)*0.3,noiseOffset:(Math.random()-0.5)*0.12});
+  while(groupTargets.length<ng)groupTargets.push(randomVal());
+  groupTargets.length=ng; fireGroupEvent();
+}
+initChords();
+
+// ── Color helpers ─────────────────────────────────────────
+function valenceRGB(v){
+  const t=Math.pow(Math.abs(v),.55);
+  const {r:nr,g:ng,b:nb}=colors.neutral;
+  const src=v>=0?colors.pos:colors.neg;
+  return[Math.round(nr+(src.r-nr)*t),Math.round(ng+(src.g-ng)*t),Math.round(nb+(src.b-nb)*t)];
+}
+function elementRGBA(chord,v,mode,op){
+  if(mode==='group'&&chord.mode==='correlated'){
+    const[r,g,b]=GROUP_RGB[chord.baseIdx%GROUP_RGB.length];return[r,g,b,op];
+  }
+  const[r,g,b]=valenceRGB(v);
+  const t=Math.pow(Math.abs(v),.55);
+  const srcA=v>=0?colors.pos.a:colors.neg.a;
+  const a=(colors.neutral.a+(srcA-colors.neutral.a)*t)*op;
+  return[r,g,b,Math.min(1,Math.max(0,a))];
+}
+function neutralRGBA(op){const{r,g,b,a}=colors.neutral;return[r,g,b,a*op];}
+
+// ── Geometry helpers ───────────────────────────────────────
+function getPhases(mt,toRadial){
+  if(animMode==='simultaneous'){const e=ease(mt);return{p1:e,p2:e};}
+  if(toRadial)return{p1:ease(clamp01(mt*2)),p2:ease(clamp01((mt-.5)*2))};
+  const rev=1-mt;return{p2:1-ease(clamp01(rev*2)),p1:1-ease(clamp01((rev-.5)*2))};
+}
+function getChordPoints(i,n,v,p1,p2){
+  const tilt=(Math.PI/n)*.5,absV=Math.abs(v);
+  const dAx=(i/n)*Math.PI+tilt;
+  const dTA=v>=0?dAx+Math.PI:dAx;
+  const dTX=240+Math.cos(dTA)*R*absV, dTY=240+Math.sin(dTA)*R*absV;
+  const rSA=(i/n)*2*Math.PI+tilt-Math.PI/2;
+  let sd=rSA-dAx; while(sd>Math.PI)sd-=2*Math.PI; while(sd<-Math.PI)sd+=2*Math.PI;
+  const sa=dAx+sd*p2,sc=Math.cos(sa),ss=Math.sin(sa);
+  const rRX=240+sc*R_MID,rRY=240+ss*R_MID,rTR=R_MID*(1-v);
+  return{
+    rootX:240+(rRX-240)*p1, rootY:240+(rRY-240)*p1,
+    tipX:dTX+(240+sc*rTR-dTX)*p1, tipY:dTY+(240+ss*rTR-dTY)*p1
+  };
+}
+function getGuidePoints(i,n,p1,p2){
+  const tilt=(Math.PI/n)*.5,da=(i/n)*Math.PI+tilt;
+  const dNx=240+Math.cos(da)*R,dNy=240+Math.sin(da)*R;
+  const dPx=240+Math.cos(da+Math.PI)*R,dPy=240+Math.sin(da+Math.PI)*R;
+  const rsa=(i/n)*2*Math.PI+tilt-Math.PI/2;
+  let sd=rsa-da; while(sd>Math.PI)sd-=2*Math.PI; while(sd<-Math.PI)sd+=2*Math.PI;
+  const sa=da+sd*p2,sc=Math.cos(sa),ss=Math.sin(sa);
+  return{
+    posX:dPx+(240-dPx)*p1, posY:dPy+(240-dPy)*p1,
+    negX:dNx+(240+sc*R-dNx)*p1, negY:dNy+(240+ss*R-dNy)*p1
+  };
+}
+
+// Convert canvas coords (0-480, Y-down) to Three.js world (centered, Y-up)
+function cv(x,y){return[x-240, 240-y, 0];}
+
+// ── Main animate loop ─────────────────────────────────────
+function animate(){
+  if(!paused) requestAnimationFrame(animate);
+
+  // Events + drift
+  if(!paused){
+    eventTimer+=1/60;
+    if(eventTimer>=parseFloat(evtEl.value)){eventTimer=0;fireEvent();}
+    const ds=parseFloat(driftEl.value),ng=getNumGroups(),n=parseInt(nEl.value);
+    for(let i=0;i<n;i++){
+      const c=chords[i];
+      const tgt=c.mode==='correlated'
+        ?Math.max(-1,Math.min(1,(groupTargets[Math.min(c.baseIdx,ng-1)]||0)+c.noiseOffset))
+        :c.target;
+      c.value=Math.max(-1,Math.min(1,c.value+(tgt-c.value)*ds));
+    }
+    // Camera transition
+    const tTarget=viewMode==='3d'?1:0;
+    transT=clamp01(transT+(tTarget-transT)*TRANS_SPEED*3);
+    // Geometry morph
+    const gTarget=geoMode==='radial'?1:0;
+    morphT=clamp01(morphT+(gTarget-morphT)*0.05);
+  }
+
+  // Apply camera
+  lerpCam(ease(transT));
+  applyCam();
+
+  // Depth cue opacities
+  const depthA=ease(transT);
+  scene.zAxisMat.opacity=depthA*0.45;
+  ghostRings.forEach((r,i)=>{r.material.opacity=depthA*(0.12-i*0.03);r.visible=depthA>0.02;});
+
+  // Geometry
+  const n=parseInt(nEl.value);
+  const masterOp=parseFloat(opEl.value);
+  const dynamic=dynamicEl.checked;
+  const lineW=parseFloat(lwEl.value);
+  const dotBase=parseFloat(dotEl.value);
+  const showGuides=guidesEl.checked;
+  const {p1,p2}=getPhases(morphT,geoMode==='radial');
+
+  midRing.material.opacity=p1*0.35;
+
+  // Update chord geometry
+  for(let i=0;i<MAX_N;i++){
+    if(i<n){
+      const c=chords[i];const v=c.value,absV=Math.abs(v);
+      const{rootX,rootY,tipX,tipY}=getChordPoints(i,n,v,p1,p2);
+      const[rx,ry,rz]=cv(rootX,rootY);
+      const[tx,ty,tz]=cv(tipX,tipY);
+      chordPosArr.set([rx,ry,rz,tx,ty,tz],i*6);
+      const rc=neutralRGBA(masterOp),tc=elementRGBA(c,v,styles.radial,masterOp);
+      chordColArr.set([rc[0]/255,rc[1]/255,rc[2]/255,tc[0]/255,tc[1]/255,tc[2]/255],i*6);
+      dotPosArr.set([tx,ty,tz],i*3);
+      const dc=elementRGBA(c,v,styles.cursor,masterOp);
+      dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
+      if(showGuides){
+        const{posX,posY,negX,negY}=getGuidePoints(i,n,p1,p2);
+        const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
+        guidePosArr.set([px,py,pz,qx,qy,qz],i*6);
+        const ga=0.18*masterOp;
+        guideColArr.set([ga,ga,ga,ga,ga,ga],i*6);
+      }
+    } else {
+      chordPosArr.fill(0,i*6,(i+1)*6);chordColArr.fill(0,i*6,(i+1)*6);
+      dotPosArr.fill(0,i*3,(i+1)*3);dotColArr.fill(0,i*3,(i+1)*3);
+      guidePosArr.fill(0,i*6,(i+1)*6);guideColArr.fill(0,i*6,(i+1)*6);
+    }
+  }
+  chordGeo.attributes.position.needsUpdate=true;
+  chordGeo.attributes.color.needsUpdate=true;
+  dotGeo.attributes.position.needsUpdate=true;
+  dotGeo.attributes.color.needsUpdate=true;
+  guideGeo.attributes.position.needsUpdate=true;
+  guideGeo.attributes.color.needsUpdate=true;
+
+  chordMat.opacity=masterOp; chordMat.visible=lineW>0;
+  dotMat.size=Math.max(0.01,dotBase); dotMat.opacity=masterOp; dotMat.visible=dotBase>0;
+  guideMat.opacity=masterOp; guideMat.visible=showGuides;
+
+  renderer.render(scene,camera);
+}
+
+applyCam();
+animate();
+</script>
+</body>
+</html>

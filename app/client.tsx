@@ -68,6 +68,20 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
+        <a href="/valence-onboarding-v1.html" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">Onboarding: Valence V1</h2>
+            <p className="app-card-description">Interactive onboarding experience for the valence wave visualization.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
+        <a href="/valence-onboarding-v2.html" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">Onboarding: Valence V2</h2>
+            <p className="app-card-description">Interactive onboarding experience for the valence wave visualization.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
         <a href="?ghostCursors=true#v1" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V1 Participation: Fake Users Demo</h2>
