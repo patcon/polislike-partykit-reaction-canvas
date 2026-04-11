@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Onboarding: added `valence-onboarding-v1.html` and `valence-onboarding-v2.html` to `public/` and linked both from the IndexApp landing page
+- Onboarding V2: increase cursor radius slider max from 8 to 30; fix line width slider by switching chord lines from `LineBasicMaterial` (WebGL ignores linewidth) to `LineSegments2`/`LineMaterial` (geometry-based thick lines)
 - Valence Viz: converted from standalone `public/valence-viz.html` to a React component (`app/components/ValenceViz.tsx`) routed via `#valence-viz`; three.js added as an npm dependency; the IndexApp card now links to `#valence-viz` instead of the removed HTML file
 - Valence Viz: fix trails/fills/tube disappearing at large path scale by setting `frustumCulled = false` on all dynamic geometry — Three.js was culling objects whose stale bounding sphere no longer intersected the frustum after switching to the larger semantic path
 - Valence Viz: increase semantic path spread from 3.6 to 20.0 world units so tube diameter is proportionally smaller relative to the path

@@ -28,6 +28,8 @@
   input[type=checkbox]:checked::after{content:'';position:absolute;left:2px;top:2px;width:5px;height:5px;background:var(--accent);border-radius:1px}
   input[type=range]{flex:1;min-width:40px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:pointer}
   input[type=range]::-webkit-slider-thumb{appearance:none;width:10px;height:10px;border-radius:50%;background:var(--accent);cursor:pointer}
+  input[type=range]:disabled{opacity:.2;cursor:default;pointer-events:none}
+  input[type=range]:disabled::-webkit-slider-thumb{cursor:default}
   .val{min-width:34px;text-align:right;color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
   .swatch-group{display:flex;align-items:center;gap:4px;flex-shrink:0}
   .swatch-label{color:var(--text-dim);font-size:10px;letter-spacing:.06em;flex-shrink:0}
@@ -172,10 +174,11 @@
     <span class="label">line width</span>
     <input type="range" id="linewidth" min="0" max="4" step="0.1" value="1.2">
     <span class="val" id="linewidth-v">1.2</span>
+    <label class="check-item" style="margin-left:8px"><input type="checkbox" id="use-geo" checked onchange="document.getElementById('linewidth').disabled=!this.checked;document.getElementById('linewidth-v').style.opacity=this.checked?'':'.2'"><span>use geometry</span></label>
   </div>
   <div class="row">
     <span class="label">cursor radius</span>
-    <input type="range" id="dotsize" min="0" max="8" step="0.5" value="3">
+    <input type="range" id="dotsize" min="0" max="30" step="0.5" value="3">
     <span class="val" id="dotsize-v">3.0</span>
   </div>
   <div class="row">
@@ -201,6 +204,9 @@
 <div class="event-flash" id="flash">event</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/lines/LineSegmentsGeometry.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/lines/LineMaterial.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/lines/LineSegments2.js"></script>
 <script>
 // ── Constants ──────────────────────────────────────────────
 const W = 480, H = 480;
@@ -267,15 +273,24 @@ const ghostRings = [-120,-240,-360].map((z,i) => {
   scene.add(new THREE.Points(geo,new THREE.PointsMaterial({color:0x3a3935,size:3,sizeAttenuation:true})));
 }
 
-// Chord lines (LineSegments, vertex colors)
+// Chord lines — two renderers, toggled by "use geometry" checkbox
 const chordPosArr = new Float32Array(MAX_N*2*3);
 const chordColArr = new Float32Array(MAX_N*2*3);
-const chordGeo = new THREE.BufferGeometry();
-chordGeo.setAttribute('position', new THREE.BufferAttribute(chordPosArr,3));
-chordGeo.setAttribute('color',    new THREE.BufferAttribute(chordColArr,3));
-const chordMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true});
-const chordLines = new THREE.LineSegments(chordGeo, chordMat);
+// Geometry-based (LineSegments2): supports real variable line width
+const chordGeo = new THREE.LineSegmentsGeometry();
+chordGeo.setPositions(chordPosArr);
+chordGeo.setColors(chordColArr);
+const chordMat = new THREE.LineMaterial({vertexColors:true, transparent:true, linewidth:1.2, resolution:new THREE.Vector2(W,H)});
+const chordLines = new THREE.LineSegments2(chordGeo, chordMat);
 scene.add(chordLines);
+// Basic fallback (LineBasicMaterial): linewidth always 1px in WebGL
+const chordGeoBasic = new THREE.BufferGeometry();
+chordGeoBasic.setAttribute('position', new THREE.BufferAttribute(chordPosArr,3));
+chordGeoBasic.setAttribute('color',    new THREE.BufferAttribute(chordColArr,3));
+const chordMatBasic = new THREE.LineBasicMaterial({vertexColors:true, transparent:true});
+const chordLinesBasic = new THREE.LineSegments(chordGeoBasic, chordMatBasic);
+chordLinesBasic.visible=false;
+scene.add(chordLinesBasic);
 
 // Cursor dots (Points)
 const dotPosArr = new Float32Array(MAX_N*3);
@@ -609,14 +624,21 @@ function animate(){
       guidePosArr.fill(0,i*6,(i+1)*6);guideColArr.fill(0,i*6,(i+1)*6);
     }
   }
-  chordGeo.attributes.position.needsUpdate=true;
-  chordGeo.attributes.color.needsUpdate=true;
+  const useGeo=document.getElementById('use-geo').checked;
+  if(useGeo){
+    chordGeo.attributes.instanceStart.data.needsUpdate=true;
+    chordGeo.attributes.instanceColorStart.data.needsUpdate=true;
+  } else {
+    chordGeoBasic.attributes.position.needsUpdate=true;
+    chordGeoBasic.attributes.color.needsUpdate=true;
+  }
   dotGeo.attributes.position.needsUpdate=true;
   dotGeo.attributes.color.needsUpdate=true;
   guideGeo.attributes.position.needsUpdate=true;
   guideGeo.attributes.color.needsUpdate=true;
 
-  chordMat.opacity=masterOp; chordMat.visible=lineW>0;
+  chordMat.opacity=masterOp; chordMat.linewidth=lineW; chordMat.visible=useGeo&&lineW>0;
+  chordMatBasic.opacity=masterOp; chordLinesBasic.visible=!useGeo&&lineW>0;
   dotMat.size=Math.max(0.01,dotBase); dotMat.opacity=masterOp; dotMat.visible=dotBase>0;
   guideMat.opacity=masterOp; guideMat.visible=showGuides;
 
