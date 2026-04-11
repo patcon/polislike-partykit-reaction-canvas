@@ -614,7 +614,7 @@ function animate(){
   let p1,p2,pp1,pp2,lp1,lp2;
   if(morphT>=0){({p1,p2}=getPhases(morphT,geoMode==='radial'));pp1=0;pp2=0;lp1=0;lp2=0;}
   else if(morphT>=-1){p1=0;p2=0;const mt2=-morphT;({p1:pp1,p2:pp2}=getPhases(mt2,geoMode==='parallel'));lp1=0;lp2=0;}
-  else{p1=0;p2=0;pp1=1;pp2=1;const mt3=-morphT-1;({p1:lp1,p2:lp2}=getPhases(mt3,geoMode==='linear'));}
+  else{p1=0;p2=0;pp1=1;pp2=1;const e=ease(-morphT-1);lp1=e;lp2=e;}
 
   midRing.material.opacity=p1*0.35;
 
