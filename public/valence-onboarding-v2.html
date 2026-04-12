@@ -586,6 +586,7 @@ function updateChordCount(){
       let maxDef=-Infinity,tg=0;
       for(let g=0;g<ng;g++){const d=ideal[g]-cur[g];if(d>maxDef){maxDef=d;tg=g;}}
       const c=makeChord(chords.length,n,ng); c.baseIdx=tg;
+      if(exitAnim==='none') c.value=Math.max(-1,Math.min(1,(groupTargets[tg]||0)+c.noiseOffset));
       // In grouped order mode, insert after last sibling; otherwise append
       if(orderMode==='grouped'){
         let insertAt=chords.length;
@@ -604,6 +605,7 @@ function updateChordCount(){
       if(exitAnim==='origin-v2'){const[dc]=chords.splice(idx,1);dc.departI=idx;dc.departN=idx+chords.length+1;departingChords.push(dc);}else{chords.splice(idx,1);}
     }
   }else{
+    const prevLen=chords.length;
     if(n>chords.length){
       for(let i=chords.length;i<n;i++)chords.push(makeChord(i,n,ng));
     }else if(n<chords.length){
@@ -611,6 +613,9 @@ function updateChordCount(){
     }
     if(traceMode==='correlated'){
       for(let i=0;i<chords.length;i++)chords[i].baseIdx=assignBase((i+0.5)/n,ng);
+      if(exitAnim==='none'){
+        for(let i=prevLen;i<chords.length;i++) chords[i].value=Math.max(-1,Math.min(1,(groupTargets[chords[i].baseIdx]||0)+chords[i].noiseOffset));
+      }
     }
   }
 }
