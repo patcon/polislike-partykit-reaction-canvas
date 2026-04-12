@@ -43,6 +43,7 @@
   .sg-head{font-size:9px;color:var(--text-dim);letter-spacing:.1em;text-align:center}
   .sg-head.future{opacity:.3}
   .sg-row-label{font-size:10px;color:var(--text-dim);letter-spacing:.08em}
+  .all-link{font-size:8px;opacity:0.5;color:inherit;text-decoration:underline;cursor:pointer;margin-left:4px}
   .sg-btn{font-family:inherit;font-size:9px;padding:3px 0;border-radius:3px;border:.5px solid rgba(200,198,190,.15);background:transparent;color:var(--text-dim);cursor:pointer;text-align:center;width:100%;transition:background .12s,color .12s}
   .sg-btn:hover{background:rgba(200,198,190,.06);color:var(--text)}
   .sg-btn.active{background:rgba(200,198,190,.1);color:var(--accent);border-color:rgba(200,198,190,.3)}
@@ -135,12 +136,12 @@
     <div class="sg-head future" id="sg-head-trace">trace</div>
     <div class="sg-head">cursor</div>
     <div class="sg-head future">fill</div>
-    <div class="sg-row-label">group</div>
+    <div class="sg-row-label">group <a href="#" class="all-link" onclick="setAllStyle('group');return false">all</a></div>
     <button class="sg-btn" id="st-radial-group" onclick="setStyle('radial','group')">group</button>
     <button class="sg-btn future" id="st-trace-group" onclick="setStyle('trace','group')">group</button>
     <button class="sg-btn" id="st-cursor-group" onclick="setStyle('cursor','group')">group</button>
     <button class="sg-btn future">group</button>
-    <div class="sg-row-label">valence</div>
+    <div class="sg-row-label">valence <a href="#" class="all-link" onclick="setAllStyle('valence');return false">all</a></div>
     <button class="sg-btn active" id="st-radial-valence" onclick="setStyle('radial','valence')">valence</button>
     <button class="sg-btn active future" id="st-trace-valence" onclick="setStyle('trace','valence')">valence</button>
     <button class="sg-btn active" id="st-cursor-valence" onclick="setStyle('cursor','valence')">valence</button>
@@ -469,6 +470,9 @@ function updateColorA(k,v){colors[k].a=parseFloat(v);updateSwatchLayer(k);}
 function setStyle(el,m){
   styles[el]=m;
   ['group','valence'].forEach(s=>document.getElementById(`st-${el}-${s}`).classList.toggle('active',s===m));
+}
+function setAllStyle(m){
+  ['radial','cursor','trace'].forEach(el=>setStyle(el,m));
 }
 function getNumGroups(){return parseInt(gcEl.value);}
 function updateGroupCountUI(){
