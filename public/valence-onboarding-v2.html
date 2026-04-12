@@ -59,6 +59,10 @@
   .hint.show{opacity:1}
   .event-flash{position:fixed;top:14px;right:16px;font-size:9px;letter-spacing:.2em;color:var(--text-dim);opacity:0;transition:opacity .15s;pointer-events:none}
   .event-flash.show{opacity:1}
+  #conn-status.ok{color:rgba(60,180,100,0.9)}
+  #conn-status.warn{color:rgba(200,140,40,0.9)}
+  #conn-status.connecting{color:rgba(100,100,200,0.7)}
+  #room-input:focus{border-color:rgba(200,198,190,.35)!important}
 </style>
 </head>
 <body>
@@ -67,6 +71,15 @@
 <div id="vp"></div>
 
 <div class="panel">
+
+  <div class="row" id="conn-row">
+    <span class="label">room</span>
+    <input type="text" id="room-input" value="default" placeholder="default" autocomplete="off" spellcheck="false" style="font-family:inherit;font-size:10px;background:transparent;border:.5px solid rgba(200,198,190,.18);border-radius:3px;color:var(--text);padding:3px 7px;outline:none;width:80px;flex-shrink:0;">
+    <button id="btn-connect" onclick="handleConnectClick()">connect</button>
+    <span id="conn-status" style="font-size:10px;letter-spacing:.08em;color:var(--text-dim)"></span>
+  </div>
+
+  <hr class="divider">
 
   <div class="row">
     <button id="pbtn" onclick="togglePause()">pause</button>
@@ -254,6 +267,9 @@
 const W = 480, H = 480;
 const R = 180, R_MID = 90;
 const MAX_N = 100;
+const MAX_LIVE = 10;
+const LIVE_BLUE = [66, 133, 244]; // #4285F4 — Google Maps "you are here" blue
+let liveChords = []; // {userId, value, arrivalT, departT?, hasTouched}
 const TRACE_LEN = 300;  // ~5 seconds of history at 60fps
 const TRACE_SEGS = TRACE_LEN - 1;
 const TRACE_Z_STEP = 6; // world units per frame; 60 frames × 6 = 360, matches ghost ring depth
@@ -384,6 +400,27 @@ const guideLines = new THREE.LineSegments(guideGeo, guideMat);
 guideLines.renderOrder = -1;
 scene.add(guideLines);
 
+// Live user chord lines (separate geometry — don't touch simulated slot logic)
+const liveCPosArr = new Float32Array(MAX_LIVE * 2 * 3);
+const liveCColArr = new Float32Array(MAX_LIVE * 2 * 3);
+const liveCGeo = new THREE.LineSegmentsGeometry();
+liveCGeo.setPositions(liveCPosArr); liveCGeo.setColors(liveCColArr);
+const liveCMat = new THREE.LineMaterial({vertexColors:true, transparent:true, depthWrite:false, linewidth:2.0, resolution:new THREE.Vector2(W,H)});
+const liveCLines = new THREE.LineSegments2(liveCGeo, liveCMat);
+liveCLines.renderOrder = 7;
+scene.add(liveCLines);
+
+// Live user cursor dots (blue)
+const liveDPosArr = new Float32Array(MAX_LIVE * 3);
+const liveDColArr = new Float32Array(MAX_LIVE * 3);
+const liveDGeo = new THREE.BufferGeometry();
+liveDGeo.setAttribute('position', new THREE.BufferAttribute(liveDPosArr, 3));
+liveDGeo.setAttribute('color',    new THREE.BufferAttribute(liveDColArr, 3));
+const liveDMat = new THREE.PointsMaterial({vertexColors:true, size:6, sizeAttenuation:true, transparent:true, depthWrite:false});
+const liveDPoints = new THREE.Points(liveDGeo, liveDMat);
+liveDPoints.renderOrder = 10;
+scene.add(liveDPoints);
+
 // ── Camera / view state ───────────────────────────────────
 // Spherical coords: radius, theta (azimuth), phi (elevation)
 let camRadius=480, camTheta=0, camPhi=0;
@@ -482,6 +519,73 @@ renderer.domElement.addEventListener('touchmove', e=>{
   e.preventDefault();
 },{passive:false});
 renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
+
+// ── WebSocket / live-user state ───────────────────────────
+const DEFAULT_HOST='polislike-partykit-reaction-canvas.patcon.partykit.dev';
+let ws=null, wsReconnectTimer=null, wsConnectedFlag=false;
+
+function setConnStatus(text,cls){const el=document.getElementById('conn-status');el.textContent=text;el.className=cls||'';}
+
+function cursorToValue(x,y){return (x-0.5)*2;}
+
+function addLiveChord(userId){
+  if(liveChords.length>=MAX_LIVE)return;
+  if(liveChords.find(lc=>lc.userId===userId))return;
+  liveChords.push({userId,value:0,arrivalT:0,hasTouched:false});
+}
+function removeLiveChord(userId){
+  const lc=liveChords.find(lc=>lc.userId===userId);
+  if(lc&&lc.departT==null)lc.departT=0;
+}
+
+function connectWs(room){
+  if(ws){ws.onclose=null;ws.close();}
+  if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
+  setConnStatus('connecting…','connecting');
+  const host=window.location.port==='1999'?`${window.location.hostname}:1999`:DEFAULT_HOST;
+  const proto=window.location.port==='1999'?'ws':'wss';
+  const userId=crypto.randomUUID();
+  ws=new WebSocket(`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`);
+  ws.onopen=()=>{
+    wsConnectedFlag=true;
+    document.getElementById('btn-connect').textContent='disconnect';
+    setConnStatus(`connected · ${room}`,'ok');
+  };
+  ws.onmessage=(evt)=>{
+    let data;try{data=JSON.parse(evt.data);}catch{return;}
+    if(data.type==='presenceCount'){
+      const n=data.count??data.n??0;
+      setConnStatus(`connected · ${room} · ${n} participant${n!==1?'s':''}`,'ok');
+    }else if(data.type==='userJoined'){
+      addLiveChord(data.userId);
+    }else if(data.type==='userLeft'){
+      removeLiveChord(data.userId||(data.position&&data.position.userId));
+    }else if(data.type==='move'||data.type==='touch'){
+      const pos=data.position;
+      if(pos){const lc=liveChords.find(lc=>lc.userId===pos.userId);if(lc){lc.value=cursorToValue(pos.x,pos.y);lc.hasTouched=true;}}
+    }else if(data.type==='remove'){
+      const uid=data.userId||(data.position&&data.position.userId);if(uid)removeLiveChord(uid);
+    }
+  };
+  ws.onerror=()=>setConnStatus('connection error','warn');
+  ws.onclose=()=>{
+    wsConnectedFlag=false;liveChords=[];
+    document.getElementById('btn-connect').textContent='connect';
+    setConnStatus('reconnecting…','warn');
+    wsReconnectTimer=setTimeout(()=>connectWs(room),3000);
+  };
+}
+function disconnectWs(){
+  if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
+  if(ws){ws.onclose=null;ws.close();ws=null;}
+  wsConnectedFlag=false;liveChords=[];
+  document.getElementById('btn-connect').textContent='connect';
+  setConnStatus('disconnected','');
+}
+function handleConnectClick(){
+  if(wsConnectedFlag||ws!==null){disconnectWs();}
+  else{connectWs(document.getElementById('room-input').value.trim()||'default');}
+}
 
 // ── Valence state ─────────────────────────────────────────
 let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:15,g:15,b:14,a:1}};
@@ -756,6 +860,12 @@ function animate(){
     for(let i=0;i<departingChords.length;i++){departingChords[i].departT=Math.min(1,(departingChords[i].departT||0)+1/30);}
     for(let i=0;i<chords.length;i++){if(chords[i].arrivalT<1)chords[i].arrivalT=Math.min(1,chords[i].arrivalT+1/30);}
   }
+  // Live chord arrival/departure always animate (even when paused); removal happens after render pass
+  for(let i=0;i<liveChords.length;i++){
+    const lc=liveChords[i];
+    if(lc.departT!=null){lc.departT=Math.min(1,lc.departT+1/30);}
+    else{lc.arrivalT=Math.min(1,(lc.arrivalT||0)+1/30);}
+  }
   // Camera transition and geometry morph always run
   const tTarget=viewMode==='3d'?1:0;
   transT=clamp01(transT+(tTarget-transT)*TRANS_SPEED*3);
@@ -876,6 +986,45 @@ function animate(){
   dotGeo.attributes.color.needsUpdate=true;
   guideGeo.attributes.position.needsUpdate=true;
   guideGeo.attributes.color.needsUpdate=true;
+
+  // Live chord geometry pass (separate from simulated slots)
+  {
+    const nLive=liveChords.length;
+    for(let i=0;i<MAX_LIVE;i++){
+      const lc=i<nLive?liveChords[i]:null;
+      if(lc){
+        const aT=lc.arrivalT||0;
+        const dT=lc.departT!=null?lc.departT:0;
+        const vScale=exitAnim==='origin'?(lc.departT!=null?1-dT*dT:aT*aT):1;
+        const v=lc.value*vScale;
+        const{rootX,rootY,tipX,tipY}=getChordPoints(i,Math.max(nLive,1),v,p1,p2,pp1,pp2,lp1,lp2);
+        const[rx,ry,rz]=cv(rootX,rootY);
+        const[tx,ty,tz]=cv(tipX,tipY);
+        liveCPosArr.set([rx,ry,rz,tx,ty,tz],i*6);
+        const nc=neutralRGBA(opacities.radial);
+        liveCColArr.set([nc[0]/255,nc[1]/255,nc[2]/255,LIVE_BLUE[0]/255,LIVE_BLUE[1]/255,LIVE_BLUE[2]/255],i*6);
+        if(lc.hasTouched){
+          liveDPosArr.set([tx,ty,tz],i*3);
+          liveDColArr.set([LIVE_BLUE[0]/255,LIVE_BLUE[1]/255,LIVE_BLUE[2]/255],i*3);
+        }else{
+          liveDPosArr.fill(0,i*3,(i+1)*3);liveDColArr.fill(0,i*3,(i+1)*3);
+        }
+      }else{
+        liveCPosArr.fill(0,i*6,(i+1)*6);liveCColArr.fill(0,i*6,(i+1)*6);
+        liveDPosArr.fill(0,i*3,(i+1)*3);liveDColArr.fill(0,i*3,(i+1)*3);
+      }
+    }
+    liveCGeo.attributes.instanceStart.data.needsUpdate=true;
+    liveCGeo.attributes.instanceColorStart.data.needsUpdate=true;
+    liveDGeo.attributes.position.needsUpdate=true;
+    liveDGeo.attributes.color.needsUpdate=true;
+    liveCMat.opacity=opacities.radial;liveCMat.linewidth=lineW;
+    liveCLines.visible=useGeo&&lineW>0&&nLive>0;
+    liveDMat.size=Math.max(0.01,dotBase/2);liveDMat.opacity=opacities.cursor;
+    liveDPoints.visible=dotBase>0&&nLive>0;
+  }
+  // Remove fully departed live chords (after render pass so final frame renders)
+  for(let i=liveChords.length-1;i>=0;i--){if((liveChords[i].departT||0)>=1)liveChords.splice(i,1);}
 
   // Trace lines
   const showTrace=viewMode==='2d-ts'||viewMode==='3d';

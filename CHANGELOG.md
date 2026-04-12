@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- Onboarding V2: WebSocket connection panel — room input, connect/disconnect button, and live status; connected participants each appear as an additional blue (#4285F4) chord on top of simulated ones, with a blue cursor dot that only appears once the user starts moving; chord entry/exit animations run even when paused; cursor dot continues updating from live WS data while paused
 - Onboarding V2: fill surface — a translucent wedge mesh connecting each chord's trace path back to the canvas origin along the time (Z) axis, coloured and faded like the trace; wired up the fill column in the style grid (group/valence buttons now active)
 - Onboarding V2: per-element opacity sliders in the style grid (radial / trace / cursor / fill), replacing the single global opacity slider; trace and fill sliders dim alongside their other controls when in 2d time slice mode
 
