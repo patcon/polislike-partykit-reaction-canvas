@@ -16,6 +16,7 @@ All notable changes to this project will be documented in this file.
 ### Added
 - Onboarding V2: changing the chord count (nchords slider) no longer resets existing traces; new chords are appended with empty history, removed chords are dropped from the end
 - Onboarding V2: in random order mode, adding/removing chords now maintains group ratios (adds to most-underrepresented group, removes from most-overrepresented) without reshuffling existing chord positions
+- Onboarding V2: add "enter/exit" toggle (none / origin v1 / origin v2); "origin v2" animates chord arrival with ease-out burst and departure with ease-in acceleration toward the zero-valence origin
 - Onboarding V2: pause now freezes trace history in addition to valence values
 - Onboarding V2: extend cursor trace history from 1s to 5s
 - Onboarding V2: rename "fire event" button to "trigger valence shift"

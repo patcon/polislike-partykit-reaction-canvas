@@ -177,6 +177,14 @@
     <span class="val" id="nchords-v">50</span>
   </div>
   <div class="row">
+    <span class="label">enter/exit</span>
+    <div class="btns">
+      <button class="active" id="btn-exit-none" onclick="setExitAnim('none')">none</button>
+      <button id="btn-exit-v1" onclick="setExitAnim('origin-v1')">origin v1</button>
+      <button id="btn-exit-v2" onclick="setExitAnim('origin-v2')">origin v2</button>
+    </div>
+  </div>
+  <div class="row">
     <span class="label">opacity</span>
     <input type="range" id="opacity" min="0" max="1" step="0.02" value="1">
     <span class="val" id="opacity-v">1.00</span>
@@ -443,7 +451,7 @@ renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
 let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:15,g:15,b:14,a:1}};
 let styles={radial:'valence',cursor:'valence',trace:'valence'};
 let paused=false, geoMode='diametric', animMode='sequential';
-let traceMode='correlated', orderMode='random';
+let traceMode='correlated', orderMode='random', exitAnim='none';
 let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false, inParallelRadialTransition=false;
 
 const nEl=document.getElementById('nchords');
@@ -521,6 +529,7 @@ function setTraceMode(m){
   initChords();
 }
 function setOrder(m){orderMode=m;document.getElementById('btn-order-random').classList.toggle('active',m==='random');document.getElementById('btn-order-grouped').classList.toggle('active',m==='grouped');initChords();}
+function setExitAnim(m){exitAnim=m;document.getElementById('btn-exit-none').classList.toggle('active',m==='none');document.getElementById('btn-exit-v1').classList.toggle('active',m==='origin-v1');document.getElementById('btn-exit-v2').classList.toggle('active',m==='origin-v2');}
 
 function randomVal(){return Math.random()*2-1;}
 function fireGroupEvent(){const ng=getNumGroups();groupTargets=Array.from({length:ng},()=>randomVal());showFlash();}
@@ -534,10 +543,10 @@ function assignBase(pos,ng){
   return ng-1;
 }
 
-let chords=[];
+let chords=[], departingChords=[];
 function makeChord(i,n,ng){
-  if(traceMode==='random')return{mode:'random',value:randomVal()*0.4,target:randomVal(),history:[]};
-  return{mode:'correlated',baseIdx:assignBase((i+0.5)/n,ng),value:(Math.random()-0.5)*0.3,noiseOffset:(Math.random()-0.5)*0.12,history:[]};
+  if(traceMode==='random')return{mode:'random',value:randomVal()*0.4,target:randomVal(),history:[],arrivalT:0};
+  return{mode:'correlated',baseIdx:assignBase((i+0.5)/n,ng),value:(Math.random()-0.5)*0.3,noiseOffset:(Math.random()-0.5)*0.12,history:[],arrivalT:0};
 }
 function initChords(){
   const n=parseInt(nEl.value),ng=getNumGroups(); chords=[];
@@ -574,13 +583,13 @@ function updateChordCount(){
       for(let g=0;g<ng;g++){const s=cur[g]-ideal[g];if(s>maxSur){maxSur=s;tg=g;}}
       let idx=chords.length-1;
       for(let i=chords.length-1;i>=0;i--){if(chords[i].baseIdx===tg){idx=i;break;}}
-      chords.splice(idx,1);
+      if(exitAnim==='origin-v2'){const[dc]=chords.splice(idx,1);dc.departI=idx;dc.departN=idx+chords.length+1;departingChords.push(dc);}else{chords.splice(idx,1);}
     }
   }else{
     if(n>chords.length){
       for(let i=chords.length;i<n;i++)chords.push(makeChord(i,n,ng));
     }else if(n<chords.length){
-      chords.splice(n);
+      while(chords.length>n){if(exitAnim==='origin-v2'){const[dc]=chords.splice(chords.length-1,1);dc.departI=chords.length;dc.departN=chords.length+1;departingChords.push(dc);}else{chords.splice(chords.length-1,1);}}
     }
     if(traceMode==='correlated'){
       for(let i=0;i<chords.length;i++)chords[i].baseIdx=assignBase((i+0.5)/n,ng);
@@ -673,6 +682,8 @@ function animate(){
         :c.target;
       c.value=Math.max(-1,Math.min(1,c.value+(tgt-c.value)*ds));
     }
+    for(let i=0;i<departingChords.length;i++){departingChords[i].departT=Math.min(1,(departingChords[i].departT||0)+1/8);}
+    for(let i=0;i<chords.length;i++){if(chords[i].arrivalT<1)chords[i].arrivalT=Math.min(1,chords[i].arrivalT+1/8);}
   }
   // Camera transition and geometry morph always run
   const tTarget=viewMode==='3d'?1:0;
@@ -723,11 +734,20 @@ function animate(){
 
   midRing.material.opacity=p1*0.35;
 
-  // Update chord geometry
+  // Update chord geometry (active chords at slots 0..n-1, departing at slots n..n+departingChords.length-1)
   for(let i=0;i<MAX_N;i++){
-    if(i<n){
-      const c=chords[i];const v=c.value,absV=Math.abs(v);
-      const{rootX,rootY,tipX,tipY}=getChordPoints(i,n,v,p1,p2,pp1,pp2,lp1,lp2);
+    const di=i-n;
+    const c=i<n?chords[i]:(di>=0&&di<departingChords.length?departingChords[di]:null);
+    const ci=c&&c.departI!=null?c.departI:i;
+    const cn=c&&c.departN!=null?c.departN:n;
+    if(c){
+      // Easing scale: ease-out burst on arrival (arrivalT), ease-in collapse on departure (departT)
+      const doAnim=exitAnim==='origin-v2';
+      const aT=c.arrivalT!=null?c.arrivalT:1;
+      const dT=c.departT!=null?c.departT:0;
+      const vScale=doAnim?(c.departT!=null?1-dT*dT:aT*(2-aT)):1;
+      const v=c.value*vScale,absV=Math.abs(v);
+      const{rootX,rootY,tipX,tipY}=getChordPoints(ci,cn,v,p1,p2,pp1,pp2,lp1,lp2);
       const[rx,ry,rz]=cv(rootX,rootY);
       const[tx,ty,tz]=cv(tipX,tipY);
       chordPosArr.set([rx,ry,rz,tx,ty,tz],i*6);
@@ -737,12 +757,14 @@ function animate(){
       const dc=elementRGBA(c,v,styles.cursor,masterOp);
       dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
       if(!paused){c.history.push([tx,ty,tz]);if(c.history.length>TRACE_LEN)c.history.shift();}
-      if(showGuides){
+      if(showGuides&&i<n){
         const{posX,posY,negX,negY}=getGuidePoints(i,n,p1,p2,pp1,pp2,lp1,lp2);
         const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
         guidePosArr.set([px,py,pz,qx,qy,qz],i*6);
         const ga=0.18*masterOp;
         guideColArr.set([ga,ga,ga,ga,ga,ga],i*6);
+      }else{
+        guidePosArr.fill(0,i*6,(i+1)*6);guideColArr.fill(0,i*6,(i+1)*6);
       }
     } else {
       chordPosArr.fill(0,i*6,(i+1)*6);chordColArr.fill(0,i*6,(i+1)*6);
@@ -750,6 +772,8 @@ function animate(){
       guidePosArr.fill(0,i*6,(i+1)*6);guideColArr.fill(0,i*6,(i+1)*6);
     }
   }
+  // Remove departing chords that have fully retracted
+  for(let i=departingChords.length-1;i>=0;i--){if((departingChords[i].departT||0)>=1)departingChords.splice(i,1);}
   const useGeo=document.getElementById('use-geo').checked;
   if(useGeo){
     chordGeo.attributes.instanceStart.data.needsUpdate=true;
@@ -767,7 +791,8 @@ function animate(){
   const showTrace=viewMode==='2d-ts'||viewMode==='3d';
   const bgR=15,bgG=15,bgB=14;  // matches #0f0f0e background
   for(let i=0;i<MAX_N;i++){
-    const c=i<n?chords[i]:null;
+    const di=i-n;
+    const c=i<n?chords[i]:(di>=0&&di<departingChords.length?departingChords[di]:null);
     const hlen=c?c.history.length:0;
     for(let j=0;j<TRACE_SEGS;j++){
       const base=(i*TRACE_SEGS+j)*6;
