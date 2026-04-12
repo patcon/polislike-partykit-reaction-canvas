@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
+- Onboarding V2: disable alpha sliders in color controls (temporarily, pending fix)
 - Onboarding V2: set neutral color default to background color (#0f0f0e) instead of black
 - Onboarding V2: add "all" links beside "group" and "valence" row labels in style matrix to set all columns at once
 - Onboarding V2: rename "cursor radius" control to "cursor size" (now represents diameter; slider range 0–60, default 20)
