@@ -705,8 +705,8 @@ function animate(){
         :c.target;
       c.value=Math.max(-1,Math.min(1,c.value+(tgt-c.value)*ds));
     }
-    for(let i=0;i<departingChords.length;i++){departingChords[i].departT=Math.min(1,(departingChords[i].departT||0)+1/8);}
-    for(let i=0;i<chords.length;i++){if(chords[i].arrivalT<1)chords[i].arrivalT=Math.min(1,chords[i].arrivalT+1/8);}
+    for(let i=0;i<departingChords.length;i++){departingChords[i].departT=Math.min(1,(departingChords[i].departT||0)+1/30);}
+    for(let i=0;i<chords.length;i++){if(chords[i].arrivalT<1)chords[i].arrivalT=Math.min(1,chords[i].arrivalT+1/30);}
   }
   // Camera transition and geometry morph always run
   const tTarget=viewMode==='3d'?1:0;
@@ -777,7 +777,7 @@ function animate(){
       const doAnim=exitAnim==='origin-v2';
       const aT=c.arrivalT!=null?c.arrivalT:1;
       const dT=c.departT!=null?c.departT:0;
-      const vScale=doAnim?(c.departT!=null?1-dT*dT:aT*(2-aT)):1;
+      const vScale=doAnim?(c.departT!=null?1-dT*dT:aT*aT):1;
       const v=c.value*vScale,absV=Math.abs(v);
       const{rootX,rootY,tipX,tipY}=getChordPoints(effI,effN,v,p1,p2,pp1,pp2,lp1,lp2);
       const[rx,ry,rz]=cv(rootX,rootY);
