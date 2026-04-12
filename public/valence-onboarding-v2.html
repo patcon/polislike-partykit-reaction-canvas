@@ -135,17 +135,17 @@
     <div class="sg-head">radial</div>
     <div class="sg-head future" id="sg-head-trace">trace</div>
     <div class="sg-head">cursor</div>
-    <div class="sg-head">fill</div>
+    <div class="sg-head future" id="sg-head-fill">fill</div>
     <div class="sg-row-label">group <a href="#" class="all-link" onclick="setAllStyle('group');return false">all</a></div>
     <button class="sg-btn" id="st-radial-group" onclick="setStyle('radial','group')">group</button>
     <button class="sg-btn future" id="st-trace-group" onclick="setStyle('trace','group')">group</button>
     <button class="sg-btn" id="st-cursor-group" onclick="setStyle('cursor','group')">group</button>
-    <button class="sg-btn" id="st-fill-group" onclick="setStyle('fill','group')">group</button>
+    <button class="sg-btn future" id="st-fill-group" onclick="setStyle('fill','group')">group</button>
     <div class="sg-row-label">valence <a href="#" class="all-link" onclick="setAllStyle('valence');return false">all</a></div>
     <button class="sg-btn active" id="st-radial-valence" onclick="setStyle('radial','valence')">valence</button>
     <button class="sg-btn active future" id="st-trace-valence" onclick="setStyle('trace','valence')">valence</button>
     <button class="sg-btn active" id="st-cursor-valence" onclick="setStyle('cursor','valence')">valence</button>
-    <button class="sg-btn active" id="st-fill-valence" onclick="setStyle('fill','valence')">valence</button>
+    <button class="sg-btn active future" id="st-fill-valence" onclick="setStyle('fill','valence')">valence</button>
   </div>
 
   <hr class="divider">
@@ -410,7 +410,7 @@ function setViewMode(m) {
   document.getElementById('vp').classList.toggle('orbiting', m==='3d');
   if (m==='2d'||m==='2d-ts') { orbitDTheta=0; orbitDPhi=0; }
   const traceActive = m==='2d-ts' || m==='3d';
-  ['sg-head-trace','st-trace-group','st-trace-valence'].forEach(id => {
+  ['sg-head-trace','st-trace-group','st-trace-valence','sg-head-fill','st-fill-group','st-fill-valence'].forEach(id => {
     document.getElementById(id).classList.toggle('future', !traceActive);
   });
 }
