@@ -59,6 +59,16 @@
   .hint.show{opacity:1}
   .event-flash{position:fixed;top:14px;right:16px;font-size:9px;letter-spacing:.2em;color:var(--text-dim);opacity:0;transition:opacity .15s;pointer-events:none}
   .event-flash.show{opacity:1}
+  #qr-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100}
+  #qr-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65)}
+  #qr-box{position:relative;background:#1a1a18;border:.5px solid rgba(200,198,190,.18);border-radius:6px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  #qr-url{font-size:9px;color:var(--text-dim);letter-spacing:.06em;word-break:break-all;max-width:220px;text-align:center}
+  #qr-canvas{border-radius:4px;overflow:hidden}
+  #qr-close{margin-top:2px}
+  #conn-status.ok{color:rgba(60,180,100,0.9)}
+  #conn-status.warn{color:rgba(200,140,40,0.9)}
+  #conn-status.connecting{color:rgba(100,100,200,0.7)}
+  #room-input:focus{border-color:rgba(200,198,190,.35)!important}
 </style>
 </head>
 <body>
@@ -67,6 +77,25 @@
 <div id="vp"></div>
 
 <div class="panel">
+
+  <div class="row" id="conn-row">
+    <span class="label">room</span>
+    <input type="text" id="room-input" value="default" placeholder="default" autocomplete="off" spellcheck="false" style="font-family:inherit;font-size:10px;background:transparent;border:.5px solid rgba(200,198,190,.18);border-radius:3px;color:var(--text);padding:3px 7px;outline:none;width:80px;flex-shrink:0;">
+    <button id="btn-connect" onclick="handleConnectClick()">connect</button>
+    <span id="conn-status" style="font-size:10px;letter-spacing:.08em;color:var(--text-dim)"></span>
+    <button id="btn-qr" onclick="openQrModal()" style="display:none">QR</button>
+  </div>
+
+  <div id="qr-modal">
+    <div id="qr-backdrop" onclick="closeQrModal()"></div>
+    <div id="qr-box">
+      <div id="qr-url"></div>
+      <div id="qr-canvas"></div>
+      <button id="qr-close" onclick="closeQrModal()">close</button>
+    </div>
+  </div>
+
+  <hr class="divider">
 
   <div class="row">
     <button id="pbtn" onclick="togglePause()">pause</button>
@@ -245,6 +274,7 @@
 
 <div class="event-flash" id="flash">valence shift</div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/lines/LineSegmentsGeometry.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/lines/LineMaterial.js"></script>
@@ -254,13 +284,16 @@
 const W = 480, H = 480;
 const R = 180, R_MID = 90;
 const MAX_N = 100;
+const MAX_LIVE = 10;
+const LIVE_BLUE = [66, 133, 244]; // #4285F4 — Google Maps "you are here" blue
+let liveChords = []; // {userId, value, arrivalT, departT?, hasTouched}
 const TRACE_LEN = 300;  // ~5 seconds of history at 60fps
 const TRACE_SEGS = TRACE_LEN - 1;
 const TRACE_Z_STEP = 6; // world units per frame; 60 frames × 6 = 360, matches ghost ring depth
 const FIBS = [1,2,3,5,8,13,21];
 const GROUP_RGB = [
-  [80,160,255],[255,140,50],[200,80,255],
-  [50,240,180],[255,230,50],[255,80,160],[120,255,60]
+  [255,160,40],[255,80,160],[200,80,255],
+  [50,240,180],[255,230,50],[120,255,60],[80,160,255]
 ];
 
 // ── Three.js setup ─────────────────────────────────────────
@@ -384,6 +417,49 @@ const guideLines = new THREE.LineSegments(guideGeo, guideMat);
 guideLines.renderOrder = -1;
 scene.add(guideLines);
 
+// Live user chord lines (separate geometry — don't touch simulated slot logic)
+const liveCPosArr = new Float32Array(MAX_LIVE * 2 * 3);
+const liveCColArr = new Float32Array(MAX_LIVE * 2 * 3);
+const liveCGeo = new THREE.LineSegmentsGeometry();
+liveCGeo.setPositions(liveCPosArr); liveCGeo.setColors(liveCColArr);
+const liveCMat = new THREE.LineMaterial({vertexColors:true, transparent:true, depthWrite:false, linewidth:2.0, resolution:new THREE.Vector2(W,H)});
+const liveCLines = new THREE.LineSegments2(liveCGeo, liveCMat);
+liveCLines.renderOrder = 7;
+scene.add(liveCLines);
+
+// Live user cursor dots (blue)
+const liveDPosArr = new Float32Array(MAX_LIVE * 3);
+const liveDColArr = new Float32Array(MAX_LIVE * 3);
+const liveDGeo = new THREE.BufferGeometry();
+liveDGeo.setAttribute('position', new THREE.BufferAttribute(liveDPosArr, 3));
+liveDGeo.setAttribute('color',    new THREE.BufferAttribute(liveDColArr, 3));
+const liveDMat = new THREE.PointsMaterial({vertexColors:true, size:6, sizeAttenuation:true, transparent:true, depthWrite:false});
+const liveDPoints = new THREE.Points(liveDGeo, liveDMat);
+liveDPoints.renderOrder = 10;
+scene.add(liveDPoints);
+
+// Live trace lines
+const liveTrPosArr = new Float32Array(MAX_LIVE * TRACE_SEGS * 2 * 3);
+const liveTrColArr = new Float32Array(MAX_LIVE * TRACE_SEGS * 2 * 3);
+const liveTrGeo = new THREE.BufferGeometry();
+liveTrGeo.setAttribute('position', new THREE.BufferAttribute(liveTrPosArr, 3));
+liveTrGeo.setAttribute('color',    new THREE.BufferAttribute(liveTrColArr, 3));
+const liveTrMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false});
+const liveTrLines = new THREE.LineSegments(liveTrGeo, liveTrMat);
+liveTrLines.renderOrder = 5;
+scene.add(liveTrLines);
+
+// Live fill surfaces
+const liveFiPosArr = new Float32Array(MAX_LIVE * TRACE_SEGS * FILL_VERTS_PER_SEG * 3);
+const liveFiColArr = new Float32Array(MAX_LIVE * TRACE_SEGS * FILL_VERTS_PER_SEG * 3);
+const liveFiGeo = new THREE.BufferGeometry();
+liveFiGeo.setAttribute('position', new THREE.BufferAttribute(liveFiPosArr, 3));
+liveFiGeo.setAttribute('color',    new THREE.BufferAttribute(liveFiColArr, 3));
+const liveFiMat = new THREE.MeshBasicMaterial({vertexColors:true, transparent:true, depthWrite:false, side:THREE.DoubleSide});
+const liveFiMesh = new THREE.Mesh(liveFiGeo, liveFiMat);
+liveFiMesh.renderOrder = 4;
+scene.add(liveFiMesh);
+
 // ── Camera / view state ───────────────────────────────────
 // Spherical coords: radius, theta (azimuth), phi (elevation)
 let camRadius=480, camTheta=0, camPhi=0;
@@ -482,6 +558,115 @@ renderer.domElement.addEventListener('touchmove', e=>{
   e.preventDefault();
 },{passive:false});
 renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
+
+// ── WebSocket / live-user state ───────────────────────────
+const DEFAULT_HOST='polislike-partykit-reaction-canvas.patcon.partykit.dev';
+let ws=null, wsReconnectTimer=null, wsConnectedFlag=false;
+
+function setConnStatus(text,cls){const el=document.getElementById('conn-status');el.textContent=text;el.className=cls||'';}
+
+// Cursor x,y arrive as 0-100 (normalized %). Map to valence -1..+1 using
+// the same barycentric approach as ValenceViz (anchors match TouchLayer defaults).
+const CURSOR_ANCHORS={positive:{x:95,y:5},negative:{x:5,y:95},neutral:{x:95,y:95}};
+function cursorToValue(nx,ny){
+  const x=nx/100, y=ny/100;
+  const pos={x:CURSOR_ANCHORS.positive.x/100,y:CURSOR_ANCHORS.positive.y/100};
+  const neg={x:CURSOR_ANCHORS.negative.x/100,y:CURSOR_ANCHORS.negative.y/100};
+  const neu={x:CURSOR_ANCHORS.neutral.x/100,y:CURSOR_ANCHORS.neutral.y/100};
+  const denom=(neg.y-neu.y)*(pos.x-neu.x)+(neu.x-neg.x)*(pos.y-neu.y);
+  let wPos,wNeg;
+  if(Math.abs(denom)<1e-10){
+    const dp=Math.hypot(x-pos.x,y-pos.y),dn=Math.hypot(x-neg.x,y-neg.y),dz=Math.hypot(x-neu.x,y-neu.y);
+    const s=(1/(dp||1e-9))+(1/(dn||1e-9))+(1/(dz||1e-9));
+    wPos=(1/(dp||1e-9))/s;wNeg=(1/(dn||1e-9))/s;
+  }else{
+    wPos=((neg.y-neu.y)*(x-neu.x)+(neu.x-neg.x)*(y-neu.y))/denom;
+    wNeg=((neu.y-pos.y)*(x-neu.x)+(pos.x-neu.x)*(y-neu.y))/denom;
+  }
+  const mood=Math.max(0,Math.min(100,wPos*100+wNeg*0+(1-wPos-wNeg)*50));
+  return (mood-50)/50;
+}
+
+function addLiveChord(userId){
+  if(liveChords.length>=MAX_LIVE)return;
+  if(liveChords.find(lc=>lc.userId===userId))return;
+  liveChords.push({userId,value:0,arrivalT:0,hasTouched:false,history:[]});
+}
+function removeLiveChord(userId){
+  const lc=liveChords.find(lc=>lc.userId===userId);
+  if(lc&&lc.departT==null)lc.departT=0;
+}
+
+function connectWs(room){
+  if(ws){ws.onclose=null;ws.close();}
+  if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
+  setConnStatus('connecting…','connecting');
+  const host=window.location.port==='1999'?`${window.location.hostname}:1999`:DEFAULT_HOST;
+  const proto=window.location.port==='1999'?'ws':'wss';
+  const userId=crypto.randomUUID();
+  ws=new WebSocket(`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`);
+  ws.onopen=()=>{
+    wsConnectedFlag=true;
+    document.getElementById('btn-connect').textContent='disconnect';
+    document.getElementById('btn-qr').style.display='';
+    setConnStatus(`connected · ${room}`,'ok');
+  };
+  ws.onmessage=(evt)=>{
+    let data;try{data=JSON.parse(evt.data);}catch{return;}
+    if(data.type==='presenceCount'){
+      const n=data.count??data.n??0;
+      setConnStatus(`connected · ${room} · ${n} participant${n!==1?'s':''}`,'ok');
+    }else if(data.type==='userJoined'){
+      addLiveChord(data.userId);
+    }else if(data.type==='userLeft'){
+      removeLiveChord(data.userId||(data.position&&data.position.userId));
+    }else if(data.type==='move'||data.type==='touch'){
+      const pos=data.position;
+      if(pos){
+        // Auto-add chord if user was already connected when we joined (missed userJoined)
+        if(!liveChords.find(lc=>lc.userId===pos.userId)) addLiveChord(pos.userId);
+        const lc=liveChords.find(lc=>lc.userId===pos.userId);
+        if(lc){lc.value=cursorToValue(pos.x,pos.y);lc.hasTouched=true;}
+      }
+    }else if(data.type==='remove'){
+      const uid=data.userId||(data.position&&data.position.userId);if(uid)removeLiveChord(uid);
+    }
+  };
+  ws.onerror=()=>setConnStatus('connection error','warn');
+  ws.onclose=()=>{
+    wsConnectedFlag=false;liveChords=[];
+    document.getElementById('btn-connect').textContent='connect';
+    setConnStatus('reconnecting…','warn');
+    wsReconnectTimer=setTimeout(()=>connectWs(room),3000);
+  };
+}
+function disconnectWs(){
+  if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
+  if(ws){ws.onclose=null;ws.close();ws=null;}
+  wsConnectedFlag=false;liveChords=[];
+  document.getElementById('btn-connect').textContent='connect';
+  document.getElementById('btn-qr').style.display='none';
+  closeQrModal();
+  setConnStatus('disconnected','');
+}
+function handleConnectClick(){
+  if(wsConnectedFlag||ws!==null){disconnectWs();}
+  else{connectWs(document.getElementById('room-input').value.trim()||'default');}
+}
+
+function v4Url(room){
+  return`${window.location.protocol}//${window.location.host}/?room=${encodeURIComponent(room)}#v4`;
+}
+function openQrModal(){
+  const room=document.getElementById('room-input').value.trim()||'default';
+  const url=v4Url(room);
+  document.getElementById('qr-url').textContent=url;
+  const el=document.getElementById('qr-canvas');
+  el.innerHTML='';
+  new QRCode(el,{text:url,width:200,height:200,colorDark:'#e8e6de',colorLight:'#0f0f0e'});
+  document.getElementById('qr-modal').style.display='flex';
+}
+function closeQrModal(){document.getElementById('qr-modal').style.display='none';}
 
 // ── Valence state ─────────────────────────────────────────
 let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:15,g:15,b:14,a:1}};
@@ -687,6 +872,14 @@ function elementRGBA(chord,v,mode,op){
   return[r,g,b,Math.min(1,Math.max(0,a))];
 }
 function neutralRGBA(op){const{r,g,b,a}=colors.neutral;return[r,g,b,a*op];}
+function liveElementRGBA(v,mode,op){
+  if(mode==='group')return[LIVE_BLUE[0],LIVE_BLUE[1],LIVE_BLUE[2],op];
+  const[r,g,b]=valenceRGB(v);
+  const t=Math.pow(Math.abs(v),.55);
+  const srcA=v>=0?colors.pos.a:colors.neg.a;
+  const a=(colors.neutral.a+(srcA-colors.neutral.a)*t)*op;
+  return[r,g,b,Math.min(1,Math.max(0,a))];
+}
 
 // ── Geometry helpers ───────────────────────────────────────
 function getPhases(mt,toRadial){
@@ -755,6 +948,12 @@ function animate(){
     }
     for(let i=0;i<departingChords.length;i++){departingChords[i].departT=Math.min(1,(departingChords[i].departT||0)+1/30);}
     for(let i=0;i<chords.length;i++){if(chords[i].arrivalT<1)chords[i].arrivalT=Math.min(1,chords[i].arrivalT+1/30);}
+  }
+  // Live chord arrival/departure always animate (even when paused); removal happens after render pass
+  for(let i=0;i<liveChords.length;i++){
+    const lc=liveChords[i];
+    if(lc.departT!=null){lc.departT=Math.min(1,lc.departT+1/30);}
+    else{lc.arrivalT=Math.min(1,(lc.arrivalT||0)+1/30);}
   }
   // Camera transition and geometry morph always run
   const tTarget=viewMode==='3d'?1:0;
@@ -877,6 +1076,48 @@ function animate(){
   guideGeo.attributes.position.needsUpdate=true;
   guideGeo.attributes.color.needsUpdate=true;
 
+  // Live chord geometry pass (separate from simulated slots)
+  {
+    const nLive=liveChords.length;
+    for(let i=0;i<MAX_LIVE;i++){
+      const lc=i<nLive?liveChords[i]:null;
+      if(lc){
+        const aT=lc.arrivalT||0;
+        const dT=lc.departT!=null?lc.departT:0;
+        const vScale=exitAnim==='origin'?(lc.departT!=null?1-dT*dT:aT*aT):1;
+        const v=lc.value*vScale;
+        const{rootX,rootY,tipX,tipY}=getChordPoints(i,Math.max(nLive,1),v,p1,p2,pp1,pp2,lp1,lp2);
+        const[rx,ry,rz]=cv(rootX,rootY);
+        const[tx,ty,tz]=cv(tipX,tipY);
+        liveCPosArr.set([rx,ry,rz,tx,ty,tz],i*6);
+        const nc=neutralRGBA(opacities.radial);
+        const tc=liveElementRGBA(v,styles.radial,opacities.radial);
+        liveCColArr.set([nc[0]/255,nc[1]/255,nc[2]/255,tc[0]/255,tc[1]/255,tc[2]/255],i*6);
+        if(lc.hasTouched){
+          liveDPosArr.set([tx,ty,tz],i*3);
+          const dc=liveElementRGBA(v,styles.cursor,opacities.cursor);
+          liveDColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
+          if(!paused&&lc.departT==null){lc.history.push([tx,ty,rx,ry]);if(lc.history.length>TRACE_LEN)lc.history.shift();}
+        }else{
+          liveDPosArr.fill(0,i*3,(i+1)*3);liveDColArr.fill(0,i*3,(i+1)*3);
+        }
+      }else{
+        liveCPosArr.fill(0,i*6,(i+1)*6);liveCColArr.fill(0,i*6,(i+1)*6);
+        liveDPosArr.fill(0,i*3,(i+1)*3);liveDColArr.fill(0,i*3,(i+1)*3);
+      }
+    }
+    liveCGeo.attributes.instanceStart.data.needsUpdate=true;
+    liveCGeo.attributes.instanceColorStart.data.needsUpdate=true;
+    liveDGeo.attributes.position.needsUpdate=true;
+    liveDGeo.attributes.color.needsUpdate=true;
+    liveCMat.opacity=opacities.radial;liveCMat.linewidth=lineW;
+    liveCLines.visible=useGeo&&lineW>0&&nLive>0;
+    liveDMat.size=Math.max(0.01,dotBase/2);liveDMat.opacity=opacities.cursor;
+    liveDPoints.visible=dotBase>0&&nLive>0;
+  }
+  // Remove fully departed live chords (after render pass so final frame renders)
+  for(let i=liveChords.length-1;i>=0;i--){if((liveChords[i].departT||0)>=1)liveChords.splice(i,1);}
+
   // Trace lines
   const showTrace=viewMode==='2d-ts'||viewMode==='3d';
   const bgR=15,bgG=15,bgB=14;  // matches #0f0f0e background
@@ -945,6 +1186,67 @@ function animate(){
   fillGeo.attributes.color.needsUpdate=true;
   fillMat.opacity=opacities.fill;
   fillMesh.visible=showTrace;
+
+  // Live trace lines
+  for(let i=0;i<MAX_LIVE;i++){
+    const lc=i<liveChords.length?liveChords[i]:null;
+    const hlen=lc?lc.history.length:0;
+    for(let j=0;j<TRACE_SEGS;j++){
+      const base=(i*TRACE_SEGS+j)*6;
+      if(showTrace&&lc&&j+1<hlen){
+        const[ax,ay]=lc.history[j];
+        const[bx,by]=lc.history[j+1];
+        const zA=-(hlen-1-j)*TRACE_Z_STEP;
+        const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
+        const fadeA=j/(hlen-1);
+        const fadeB=(j+1)/(hlen-1);
+        const tc=liveElementRGBA(lc.value,styles.trace,1);
+        const cr=tc[0],cg=tc[1],cb=tc[2];
+        const rA=(bgR+(cr-bgR)*fadeA)/255,gA=(bgG+(cg-bgG)*fadeA)/255,bA=(bgB+(cb-bgB)*fadeA)/255;
+        const rB=(bgR+(cr-bgR)*fadeB)/255,gG=(bgG+(cg-bgG)*fadeB)/255,bB=(bgB+(cb-bgB)*fadeB)/255;
+        liveTrPosArr.set([ax,ay,zA,bx,by,zB],base);
+        liveTrColArr.set([rA,gA,bA,rB,gG,bB],base);
+      }else{
+        liveTrPosArr.fill(0,base,base+6);
+        liveTrColArr.set([bgR/255,bgG/255,bgB/255,bgR/255,bgG/255,bgB/255],base);
+      }
+    }
+  }
+  liveTrGeo.attributes.position.needsUpdate=true;
+  liveTrGeo.attributes.color.needsUpdate=true;
+  liveTrMat.opacity=opacities.trace;
+  liveTrLines.visible=showTrace&&liveChords.length>0;
+
+  // Live fill surfaces
+  for(let i=0;i<MAX_LIVE;i++){
+    const lc=i<liveChords.length?liveChords[i]:null;
+    const hlen=lc?lc.history.length:0;
+    for(let j=0;j<TRACE_SEGS;j++){
+      const base=(i*TRACE_SEGS+j)*FILL_VERTS_PER_SEG*3;
+      if(showTrace&&lc&&j+1<hlen){
+        const[ax,ay,orx,ory]=lc.history[j];
+        const[bx,by,brx,bry]=lc.history[j+1];
+        const zA=-(hlen-1-j)*TRACE_Z_STEP;
+        const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
+        const fadeA=j/(hlen-1);
+        const fadeB=(j+1)/(hlen-1);
+        const fc=liveElementRGBA(lc.value,styles.fill,1);
+        const fr=fc[0],fg=fc[1],fb=fc[2];
+        const rA=(bgR+(fr-bgR)*fadeA)/255,gA=(bgG+(fg-bgG)*fadeA)/255,bA=(bgB+(fb-bgB)*fadeA)/255;
+        const rB=(bgR+(fr-bgR)*fadeB)/255,gB=(bgG+(fg-bgG)*fadeB)/255,bB=(bgB+(fb-bgB)*fadeB)/255;
+        const oR=bgR/255,oG=bgG/255,oB=bgB/255;
+        liveFiPosArr.set([orx,ory,zA, ax,ay,zA, brx,bry,zB, ax,ay,zA, bx,by,zB, brx,bry,zB],base);
+        liveFiColArr.set([oR,oG,oB, rA,gA,bA, oR,oG,oB, rA,gA,bA, rB,gB,bB, oR,oG,oB],base);
+      }else{
+        liveFiPosArr.fill(0,base,base+FILL_VERTS_PER_SEG*3);
+        liveFiColArr.fill(bgR/255,base,base+FILL_VERTS_PER_SEG*3);
+      }
+    }
+  }
+  liveFiGeo.attributes.position.needsUpdate=true;
+  liveFiGeo.attributes.color.needsUpdate=true;
+  liveFiMat.opacity=opacities.fill;
+  liveFiMesh.visible=showTrace&&liveChords.length>0;
 
   chordMat.opacity=opacities.radial; chordMat.linewidth=lineW; chordMat.visible=useGeo&&lineW>0;
   chordMatBasic.opacity=opacities.radial; chordLinesBasic.visible=!useGeo&&lineW>0;
