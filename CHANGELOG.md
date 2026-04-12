@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file.
 
 ### Added
 - Onboarding V2: fill surface — a translucent wedge mesh connecting each chord's trace path back to the canvas origin along the time (Z) axis, coloured and faded like the trace; wired up the fill column in the style grid (group/valence buttons now active)
+- Onboarding V2: per-element opacity sliders in the style grid (radial / trace / cursor / fill), replacing the single global opacity slider; trace and fill sliders dim alongside their other controls when in 2d time slice mode
 
 ### Fixed
 - Onboarding V2: in "none" enter/exit mode, new chords now appear immediately at their group target value instead of animating in from near-zero
