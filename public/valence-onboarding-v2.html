@@ -382,7 +382,7 @@ function setViewMode(m) {
   document.getElementById('btn-3d').classList.toggle('active', m==='3d');
   document.getElementById('orbit-hint').classList.toggle('show', m==='3d');
   document.getElementById('vp').classList.toggle('orbiting', m==='3d');
-  if (m==='2d'||m==='2d-ts') { orbitDTheta=0; orbitDPhi=0; orbitDRadius=0; }
+  if (m==='2d'||m==='2d-ts') { orbitDTheta=0; orbitDPhi=0; }
   const traceActive = m==='2d-ts' || m==='3d';
   ['sg-head-trace','st-trace-group','st-trace-valence'].forEach(id => {
     document.getElementById(id).classList.toggle('future', !traceActive);
@@ -634,6 +634,7 @@ function animate(){
   // Camera transition and geometry morph always run
   const tTarget=viewMode==='3d'?1:0;
   transT=clamp01(transT+(tTarget-transT)*TRANS_SPEED*3);
+  if(viewMode!=='3d') orbitDRadius+=(0-orbitDRadius)*TRANS_SPEED*3;
   const ttsTarget=viewMode==='2d-ts'?1:0;
   transTts=clamp01(transTts+(ttsTarget-transTts)*TRANS_SPEED*3);
   const gTarget=geoMode==='radial'?1:geoMode==='linear'?-1:geoMode==='parallel'?-2:0;
