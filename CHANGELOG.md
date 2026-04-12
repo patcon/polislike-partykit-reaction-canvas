@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
+- Onboarding V2: changing the chord count (nchords slider) no longer resets existing traces; new chords are appended with empty history, removed chords are dropped from the end
 - Onboarding V2: pause now freezes trace history in addition to valence values
 - Onboarding V2: extend cursor trace history from 1s to 5s
 - Onboarding V2: rename "fire event" button to "trigger valence shift"

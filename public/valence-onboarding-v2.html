@@ -459,7 +459,7 @@ const flash=document.getElementById('flash');
 const groupRow=document.getElementById('group-row');
 const fibDots=document.getElementById('fib-dots');
 
-nEl.oninput=()=>{document.getElementById('nchords-v').textContent=nEl.value;initChords();};
+nEl.oninput=()=>{document.getElementById('nchords-v').textContent=nEl.value;updateChordCount();};
 evtEl.oninput=()=>document.getElementById('evtrate-v').textContent=evtEl.value+'s';
 driftEl.oninput=()=>document.getElementById('driftspd-v').textContent=parseFloat(driftEl.value).toFixed(3);
 dotEl.oninput=()=>document.getElementById('dotsize-v').textContent=parseFloat(dotEl.value).toFixed(1);
@@ -535,14 +535,29 @@ function assignBase(pos,ng){
 }
 
 let chords=[];
+function makeChord(i,n,ng){
+  if(traceMode==='random')return{mode:'random',value:randomVal()*0.4,target:randomVal(),history:[]};
+  return{mode:'correlated',baseIdx:assignBase((i+0.5)/n,ng),value:(Math.random()-0.5)*0.3,noiseOffset:(Math.random()-0.5)*0.12,history:[]};
+}
 function initChords(){
   const n=parseInt(nEl.value),ng=getNumGroups(); chords=[];
-  if(traceMode==='random'){for(let i=0;i<n;i++)chords.push({mode:'random',value:randomVal()*0.4,target:randomVal(),history:[]});return;}
+  if(traceMode==='random'){for(let i=0;i<n;i++)chords.push(makeChord(i,n,ng));return;}
   let asgn=Array.from({length:n},(_,i)=>assignBase((i+0.5)/n,ng));
   if(orderMode==='random'){for(let i=asgn.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[asgn[i],asgn[j]]=[asgn[j],asgn[i]];}}
   for(let i=0;i<n;i++)chords.push({mode:'correlated',baseIdx:asgn[i],value:(Math.random()-0.5)*0.3,noiseOffset:(Math.random()-0.5)*0.12,history:[]});
   while(groupTargets.length<ng)groupTargets.push(randomVal());
   groupTargets.length=ng; fireGroupEvent();
+}
+function updateChordCount(){
+  const n=parseInt(nEl.value),ng=getNumGroups();
+  if(n>chords.length){
+    for(let i=chords.length;i<n;i++)chords.push(makeChord(i,n,ng));
+  }else if(n<chords.length){
+    chords.splice(n);
+  }
+  if(traceMode==='correlated'){
+    for(let i=0;i<chords.length;i++)chords[i].baseIdx=assignBase((i+0.5)/n,ng);
+  }
 }
 initChords();
 
