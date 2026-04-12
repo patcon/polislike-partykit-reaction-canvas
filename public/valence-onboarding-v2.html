@@ -185,12 +185,12 @@
     <span class="label">radial width</span>
     <input type="range" id="linewidth" min="0" max="4" step="0.1" value="2.0">
     <span class="val" id="linewidth-v">2.0</span>
-    <label class="check-item" style="margin-left:8px"><input type="checkbox" id="use-geo" checked onchange="document.getElementById('linewidth').disabled=!this.checked;document.getElementById('linewidth-v').style.opacity=this.checked?'':'.2'"><span>use geometry</span></label>
+    <label class="check-item" style="margin-left:8px"><input type="checkbox" id="use-geo" checked onchange="toggleUseGeo(this.checked)"><span>use geometry</span></label>
   </div>
   <div class="row">
     <span class="label">trace width</span>
-    <input type="range" id="tracewidth" min="0" max="4" step="0.1" value="2.0" disabled style="opacity:0.3">
-    <span class="val" id="tracewidth-v" style="opacity:0.3">2.0</span>
+    <input type="range" id="tracewidth" min="0" max="4" step="0.1" value="0.5" disabled style="opacity:0.3">
+    <span class="val" id="tracewidth-v" style="opacity:0.3">0.5</span>
     <label class="check-item" style="margin-left:8px;opacity:0.3"><input type="checkbox" id="use-geo-trace" disabled><span>use geometry</span></label>
   </div>
   <div class="row">
@@ -502,6 +502,13 @@ updateGroupCountUI();
 let flashT=null;
 function showFlash(){flash.classList.add('show');clearTimeout(flashT);flashT=setTimeout(()=>flash.classList.remove('show'),700);}
 function togglePause(){paused=!paused;document.getElementById('pbtn').textContent=paused?'resume':'pause';}
+let savedLineWidth=parseFloat(document.getElementById('linewidth').value);
+function toggleUseGeo(checked){
+  const sl=document.getElementById('linewidth'),vl=document.getElementById('linewidth-v');
+  if(checked){sl.value=savedLineWidth;vl.textContent=savedLineWidth.toFixed(1);}
+  else{savedLineWidth=parseFloat(sl.value);sl.value=0.5;vl.textContent='0.5';}
+  sl.disabled=!checked;vl.style.opacity=checked?'':'.2';
+}
 function setGeometry(m){geoMode=m;document.getElementById('btn-radial').classList.toggle('active',m==='radial');document.getElementById('btn-diametric').classList.toggle('active',m==='diametric');document.getElementById('btn-parallel').classList.toggle('active',m==='parallel');document.getElementById('btn-linear').classList.toggle('active',m==='linear');}
 function setAnim(m){animMode=m;document.getElementById('btn-seq').classList.toggle('active',m==='sequential');document.getElementById('btn-sim').classList.toggle('active',m==='simultaneous');}
 function setTraceMode(m){
