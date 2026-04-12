@@ -14,6 +14,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
+- Onboarding V2: extend cursor trace history from 1s to 5s
 - Onboarding V2: rename "fire event" button to "trigger valence shift"
 - Onboarding V2: disable "dynamic styling" checkbox (temporarily, pending fix)
 - Onboarding V2: disable alpha sliders in color controls (temporarily, pending fix)
