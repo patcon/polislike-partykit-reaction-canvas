@@ -9,6 +9,7 @@ All notable changes to this project will be documented in this file.
 - Onboarding V2: per-element opacity sliders in the style grid (radial / trace / cursor / fill), replacing the single global opacity slider; trace and fill sliders dim alongside their other controls when in 2d time slice mode
 
 ### Fixed
+- Onboarding V2: fix black chord/dot outlines appearing on fill surface when radial/cursor opacity is 0 — chord and dot materials now have `depthWrite:false`, consistent with trace and fill materials
 - Onboarding V2: in "none" enter/exit mode, new chords now appear immediately at their group target value instead of animating in from near-zero
 - Onboarding V2: "origin v2" entry/exit animations are now symmetric (both use ease-in: `t²` / `1-t²`) and 3.75× slower (30 frames instead of 8)
 - Onboarding V2: fix "origin v2" entry/exit symmetry — new chords start at their group target value so entry is a pure scale-up (no post-animation drift); exit was already pure scale-down
