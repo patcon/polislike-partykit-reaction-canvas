@@ -187,9 +187,9 @@
     <label class="check-item" style="margin-left:8px"><input type="checkbox" id="use-geo" checked onchange="document.getElementById('linewidth').disabled=!this.checked;document.getElementById('linewidth-v').style.opacity=this.checked?'':'.2'"><span>use geometry</span></label>
   </div>
   <div class="row">
-    <span class="label">cursor radius</span>
-    <input type="range" id="dotsize" min="0" max="30" step="0.5" value="10">
-    <span class="val" id="dotsize-v">10.0</span>
+    <span class="label">cursor size</span>
+    <input type="range" id="dotsize" min="0" max="60" step="0.5" value="20">
+    <span class="val" id="dotsize-v">20.0</span>
   </div>
   <div class="row">
     <span class="label">event every</span>
@@ -734,7 +734,7 @@ function animate(){
 
   chordMat.opacity=masterOp; chordMat.linewidth=lineW; chordMat.visible=useGeo&&lineW>0;
   chordMatBasic.opacity=masterOp; chordLinesBasic.visible=!useGeo&&lineW>0;
-  dotMat.size=Math.max(0.01,dotBase); dotMat.opacity=masterOp; dotMat.visible=dotBase>0;
+  dotMat.size=Math.max(0.01,dotBase/2); dotMat.opacity=masterOp; dotMat.visible=dotBase>0;
   guideMat.opacity=masterOp; guideMat.visible=showGuides;
 
   renderer.render(scene,camera);

@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
+- Onboarding V2: rename "cursor radius" control to "cursor size" (now represents diameter; slider range 0–60, default 20)
 - Onboarding V2: rename "line width" control to "radial width"
 - Onboarding V2: lower minimum chord count from 6 to 1
 - Onboarding V2: add "2d time series" view mode with fading cursor trace lines; "2d" renamed to "2d time slice"; trace style column in style grid now active in time-series and 3d views
