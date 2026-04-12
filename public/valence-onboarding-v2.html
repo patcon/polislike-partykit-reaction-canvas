@@ -526,7 +526,27 @@ let ws=null, wsReconnectTimer=null, wsConnectedFlag=false;
 
 function setConnStatus(text,cls){const el=document.getElementById('conn-status');el.textContent=text;el.className=cls||'';}
 
-function cursorToValue(x,y){return (x-0.5)*2;}
+// Cursor x,y arrive as 0-100 (normalized %). Map to valence -1..+1 using
+// the same barycentric approach as ValenceViz (anchors match TouchLayer defaults).
+const CURSOR_ANCHORS={positive:{x:95,y:5},negative:{x:5,y:95},neutral:{x:95,y:95}};
+function cursorToValue(nx,ny){
+  const x=nx/100, y=ny/100;
+  const pos={x:CURSOR_ANCHORS.positive.x/100,y:CURSOR_ANCHORS.positive.y/100};
+  const neg={x:CURSOR_ANCHORS.negative.x/100,y:CURSOR_ANCHORS.negative.y/100};
+  const neu={x:CURSOR_ANCHORS.neutral.x/100,y:CURSOR_ANCHORS.neutral.y/100};
+  const denom=(neg.y-neu.y)*(pos.x-neu.x)+(neu.x-neg.x)*(pos.y-neu.y);
+  let wPos,wNeg;
+  if(Math.abs(denom)<1e-10){
+    const dp=Math.hypot(x-pos.x,y-pos.y),dn=Math.hypot(x-neg.x,y-neg.y),dz=Math.hypot(x-neu.x,y-neu.y);
+    const s=(1/(dp||1e-9))+(1/(dn||1e-9))+(1/(dz||1e-9));
+    wPos=(1/(dp||1e-9))/s;wNeg=(1/(dn||1e-9))/s;
+  }else{
+    wPos=((neg.y-neu.y)*(x-neu.x)+(neu.x-neg.x)*(y-neu.y))/denom;
+    wNeg=((neu.y-pos.y)*(x-neu.x)+(pos.x-neu.x)*(y-neu.y))/denom;
+  }
+  const mood=Math.max(0,Math.min(100,wPos*100+wNeg*0+(1-wPos-wNeg)*50));
+  return (mood-50)/50;
+}
 
 function addLiveChord(userId){
   if(liveChords.length>=MAX_LIVE)return;
