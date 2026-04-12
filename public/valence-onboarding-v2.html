@@ -327,6 +327,7 @@ chordGeo.setPositions(chordPosArr);
 chordGeo.setColors(chordColArr);
 const chordMat = new THREE.LineMaterial({vertexColors:true, transparent:true, depthWrite:false, linewidth:2.0, resolution:new THREE.Vector2(W,H)});
 const chordLines = new THREE.LineSegments2(chordGeo, chordMat);
+chordLines.renderOrder = 7;  // radial: above trace (5) and fill (4), below cursor (10)
 scene.add(chordLines);
 // Basic fallback (LineBasicMaterial): linewidth always 1px in WebGL
 const chordGeoBasic = new THREE.BufferGeometry();
@@ -334,6 +335,7 @@ chordGeoBasic.setAttribute('position', new THREE.BufferAttribute(chordPosArr,3))
 chordGeoBasic.setAttribute('color',    new THREE.BufferAttribute(chordColArr,3));
 const chordMatBasic = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false});
 const chordLinesBasic = new THREE.LineSegments(chordGeoBasic, chordMatBasic);
+chordLinesBasic.renderOrder = 7;
 chordLinesBasic.visible=false;
 scene.add(chordLinesBasic);
 
@@ -345,7 +347,7 @@ dotGeo.setAttribute('position', new THREE.BufferAttribute(dotPosArr,3));
 dotGeo.setAttribute('color',    new THREE.BufferAttribute(dotColArr,3));
 const dotMat = new THREE.PointsMaterial({vertexColors:true, size:6, sizeAttenuation:true, transparent:true, depthWrite:false});
 const dotPoints = new THREE.Points(dotGeo, dotMat);
-dotPoints.renderOrder = 10;
+dotPoints.renderOrder = 10;  // cursor: top layer
 scene.add(dotPoints);
 
 // Trace lines: fading trails behind cursor dots
@@ -356,7 +358,7 @@ traceGeo.setAttribute('position', new THREE.BufferAttribute(tracePosArr, 3));
 traceGeo.setAttribute('color',    new THREE.BufferAttribute(traceColArr, 3));
 const traceMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false});
 const traceLines = new THREE.LineSegments(traceGeo, traceMat);
-traceLines.renderOrder = 5;  // behind dots (10), in front of chords
+traceLines.renderOrder = 5;  // trace: below radial (7), above fill (4)
 scene.add(traceLines);
 
 // Fill surfaces: wedge planes connecting each trace path back to origin through time
@@ -368,7 +370,7 @@ fillGeo.setAttribute('position', new THREE.BufferAttribute(fillPosArr, 3));
 fillGeo.setAttribute('color',    new THREE.BufferAttribute(fillColArr, 3));
 const fillMat = new THREE.MeshBasicMaterial({vertexColors:true, transparent:true, depthWrite:false, side:THREE.DoubleSide});
 const fillMesh = new THREE.Mesh(fillGeo, fillMat);
-fillMesh.renderOrder = 4;  // behind trace (5), in front of chords (0)
+fillMesh.renderOrder = 4;  // fill: bottom layer (below trace 5, radial 7, cursor 10)
 scene.add(fillMesh);
 
 // Guide lines
