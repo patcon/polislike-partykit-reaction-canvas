@@ -184,6 +184,13 @@
       <button id="btn-exit-v2" onclick="setExitAnim('origin-v2')">origin v2</button>
     </div>
   </div>
+  <div class="row" id="entrymode-row">
+    <span class="label">entry mode</span>
+    <div class="btns">
+      <button class="active" id="btn-entry-redistributed" onclick="setEntryMode('redistributed')">redistributed</button>
+      <button id="btn-entry-persistent" onclick="setEntryMode('persistent')">persistent</button>
+    </div>
+  </div>
   <div class="row">
     <span class="label">opacity</span>
     <input type="range" id="opacity" min="0" max="1" step="0.02" value="1">
@@ -451,7 +458,7 @@ renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
 let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:15,g:15,b:14,a:1}};
 let styles={radial:'valence',cursor:'valence',trace:'valence'};
 let paused=false, geoMode='diametric', animMode='sequential';
-let traceMode='correlated', orderMode='random', exitAnim='none';
+let traceMode='correlated', orderMode='random', exitAnim='none', entryMode='redistributed';
 let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false, inParallelRadialTransition=false;
 
 const nEl=document.getElementById('nchords');
@@ -526,10 +533,13 @@ function setTraceMode(m){
   const corr=m==='correlated';
   ['order-ctrl','order-label'].forEach(id=>{const el=document.getElementById(id);el.style.opacity=corr?'1':'0.28';el.style.pointerEvents=corr?'auto':'none';});
   groupRow.style.opacity=corr?'1':'0.28'; groupRow.style.pointerEvents=corr?'auto':'none';
+  const emRow=document.getElementById('entrymode-row');
+  emRow.style.opacity=corr?'1':'0.28'; emRow.style.pointerEvents=corr?'auto':'none';
   initChords();
 }
 function setOrder(m){orderMode=m;document.getElementById('btn-order-random').classList.toggle('active',m==='random');document.getElementById('btn-order-grouped').classList.toggle('active',m==='grouped');initChords();}
 function setExitAnim(m){exitAnim=m;document.getElementById('btn-exit-none').classList.toggle('active',m==='none');document.getElementById('btn-exit-v1').classList.toggle('active',m==='origin-v1');document.getElementById('btn-exit-v2').classList.toggle('active',m==='origin-v2');}
+function setEntryMode(m){entryMode=m;document.getElementById('btn-entry-redistributed').classList.toggle('active',m==='redistributed');document.getElementById('btn-entry-persistent').classList.toggle('active',m==='persistent');}
 
 function randomVal(){return Math.random()*2-1;}
 function fireGroupEvent(){const ng=getNumGroups();groupTargets=Array.from({length:ng},()=>randomVal());showFlash();}
@@ -569,13 +579,21 @@ function currentGroupCounts(ng){
 }
 function updateChordCount(){
   const n=parseInt(nEl.value),ng=getNumGroups();
-  if(traceMode==='correlated'&&orderMode==='random'){
-    // Add/remove chords to maintain group ratios without reshuffling existing chords
+  if(traceMode==='correlated'&&(orderMode==='random'||entryMode==='persistent')){
+    // Persistent: add/remove while preserving existing chord group assignments
     while(chords.length<n){
       const ideal=idealGroupCounts(n,ng),cur=currentGroupCounts(ng);
       let maxDef=-Infinity,tg=0;
       for(let g=0;g<ng;g++){const d=ideal[g]-cur[g];if(d>maxDef){maxDef=d;tg=g;}}
-      const c=makeChord(chords.length,n,ng); c.baseIdx=tg; chords.push(c);
+      const c=makeChord(chords.length,n,ng); c.baseIdx=tg;
+      // In grouped order mode, insert after last sibling; otherwise append
+      if(orderMode==='grouped'){
+        let insertAt=chords.length;
+        for(let k=chords.length-1;k>=0;k--){if(chords[k].baseIdx===tg){insertAt=k+1;break;}}
+        chords.splice(insertAt,0,c);
+      }else{
+        chords.push(c);
+      }
     }
     while(chords.length>n){
       const ideal=idealGroupCounts(n,ng),cur=currentGroupCounts(ng);
@@ -740,6 +758,15 @@ function animate(){
     const c=i<n?chords[i]:(di>=0&&di<departingChords.length?departingChords[di]:null);
     const ci=c&&c.departI!=null?c.departI:i;
     const cn=c&&c.departN!=null?c.departN:n;
+    // Group-slot positioning: remap to per-group arc slice in persistent mode
+    let effI=ci, effN=cn;
+    if(entryMode==='persistent'&&c&&c.baseIdx!=null&&c.departI==null&&orderMode==='grouped'){
+      const ng=getNumGroups();
+      const g=c.baseIdx;
+      let localCount=0, localIdx=0;
+      for(let k=0;k<chords.length;k++){if(chords[k].baseIdx===g){if(k===i)localIdx=localCount;localCount++;}}
+      if(localCount>0){effI=g*localCount+localIdx;effN=ng*localCount;}
+    }
     if(c){
       // Easing scale: ease-out burst on arrival (arrivalT), ease-in collapse on departure (departT)
       const doAnim=exitAnim==='origin-v2';
@@ -747,7 +774,7 @@ function animate(){
       const dT=c.departT!=null?c.departT:0;
       const vScale=doAnim?(c.departT!=null?1-dT*dT:aT*(2-aT)):1;
       const v=c.value*vScale,absV=Math.abs(v);
-      const{rootX,rootY,tipX,tipY}=getChordPoints(ci,cn,v,p1,p2,pp1,pp2,lp1,lp2);
+      const{rootX,rootY,tipX,tipY}=getChordPoints(effI,effN,v,p1,p2,pp1,pp2,lp1,lp2);
       const[rx,ry,rz]=cv(rootX,rootY);
       const[tx,ty,tz]=cv(tipX,tipY);
       chordPosArr.set([rx,ry,rz,tx,ty,tz],i*6);
@@ -758,7 +785,7 @@ function animate(){
       dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
       if(!paused){c.history.push([tx,ty,tz]);if(c.history.length>TRACE_LEN)c.history.shift();}
       if(showGuides&&i<n){
-        const{posX,posY,negX,negY}=getGuidePoints(i,n,p1,p2,pp1,pp2,lp1,lp2);
+        const{posX,posY,negX,negY}=getGuidePoints(effI,effN,p1,p2,pp1,pp2,lp1,lp2);
         const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
         guidePosArr.set([px,py,pz,qx,qy,qz],i*6);
         const ga=0.18*masterOp;
