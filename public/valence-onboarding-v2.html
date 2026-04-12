@@ -548,15 +548,43 @@ function initChords(){
   while(groupTargets.length<ng)groupTargets.push(randomVal());
   groupTargets.length=ng; fireGroupEvent();
 }
+function idealGroupCounts(n,ng){
+  const counts=new Array(ng).fill(0);
+  for(let i=0;i<n;i++)counts[assignBase((i+0.5)/n,ng)]++;
+  return counts;
+}
+function currentGroupCounts(ng){
+  const counts=new Array(ng).fill(0);
+  chords.forEach(c=>{if(c.baseIdx!=null)counts[c.baseIdx]++;});
+  return counts;
+}
 function updateChordCount(){
   const n=parseInt(nEl.value),ng=getNumGroups();
-  if(n>chords.length){
-    for(let i=chords.length;i<n;i++)chords.push(makeChord(i,n,ng));
-  }else if(n<chords.length){
-    chords.splice(n);
-  }
-  if(traceMode==='correlated'){
-    for(let i=0;i<chords.length;i++)chords[i].baseIdx=assignBase((i+0.5)/n,ng);
+  if(traceMode==='correlated'&&orderMode==='random'){
+    // Add/remove chords to maintain group ratios without reshuffling existing chords
+    while(chords.length<n){
+      const ideal=idealGroupCounts(n,ng),cur=currentGroupCounts(ng);
+      let maxDef=-Infinity,tg=0;
+      for(let g=0;g<ng;g++){const d=ideal[g]-cur[g];if(d>maxDef){maxDef=d;tg=g;}}
+      const c=makeChord(chords.length,n,ng); c.baseIdx=tg; chords.push(c);
+    }
+    while(chords.length>n){
+      const ideal=idealGroupCounts(n,ng),cur=currentGroupCounts(ng);
+      let maxSur=-Infinity,tg=0;
+      for(let g=0;g<ng;g++){const s=cur[g]-ideal[g];if(s>maxSur){maxSur=s;tg=g;}}
+      let idx=chords.length-1;
+      for(let i=chords.length-1;i>=0;i--){if(chords[i].baseIdx===tg){idx=i;break;}}
+      chords.splice(idx,1);
+    }
+  }else{
+    if(n>chords.length){
+      for(let i=chords.length;i<n;i++)chords.push(makeChord(i,n,ng));
+    }else if(n<chords.length){
+      chords.splice(n);
+    }
+    if(traceMode==='correlated'){
+      for(let i=0;i<chords.length;i++)chords[i].baseIdx=assignBase((i+0.5)/n,ng);
+    }
   }
 }
 initChords();
