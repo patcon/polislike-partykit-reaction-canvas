@@ -179,15 +179,15 @@
   <div class="row">
     <span class="label" style="white-space:normal;line-height:1.3">entry/exit animation</span>
     <div class="btns">
-      <button class="active" id="btn-exit-none" onclick="setExitAnim('none')">none</button>
-      <button id="btn-exit-origin" onclick="setExitAnim('origin')">origin</button>
+      <button id="btn-exit-none" onclick="setExitAnim('none')">none</button>
+      <button class="active" id="btn-exit-origin" onclick="setExitAnim('origin')">origin</button>
     </div>
   </div>
   <div class="row" id="entrymode-row">
     <span class="label" style="white-space:normal;line-height:1.3">chord persistence</span>
     <div class="btns">
-      <button class="active" id="btn-entry-redistributed" onclick="setEntryMode('redistributed')">no</button>
-      <button id="btn-entry-persistent" onclick="setEntryMode('persistent')">yes</button>
+      <button id="btn-entry-redistributed" onclick="setEntryMode('redistributed')">no</button>
+      <button class="active" id="btn-entry-persistent" onclick="setEntryMode('persistent')">yes</button>
     </div>
   </div>
   <div class="row">
@@ -457,7 +457,7 @@ renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
 let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:15,g:15,b:14,a:1}};
 let styles={radial:'valence',cursor:'valence',trace:'valence'};
 let paused=false, geoMode='diametric', animMode='sequential';
-let traceMode='correlated', orderMode='random', exitAnim='none', entryMode='redistributed';
+let traceMode='correlated', orderMode='random', exitAnim='origin', entryMode='persistent';
 let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false, inParallelRadialTransition=false;
 
 const nEl=document.getElementById('nchords');
