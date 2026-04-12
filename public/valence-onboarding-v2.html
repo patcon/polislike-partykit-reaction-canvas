@@ -577,12 +577,21 @@ function connectWs(room){
       const n=data.count??data.n??0;
       setConnStatus(`connected · ${room} · ${n} participant${n!==1?'s':''}`,'ok');
     }else if(data.type==='userJoined'){
+      console.log('[live-chord] userJoined msg:', JSON.stringify(data));
       addLiveChord(data.userId);
     }else if(data.type==='userLeft'){
       removeLiveChord(data.userId||(data.position&&data.position.userId));
     }else if(data.type==='move'||data.type==='touch'){
       const pos=data.position;
-      if(pos){const lc=liveChords.find(lc=>lc.userId===pos.userId);if(lc){lc.value=cursorToValue(pos.x,pos.y);lc.hasTouched=true;}}
+      if(pos){
+        // Auto-add chord if user was already connected when we joined (missed userJoined)
+        if(!liveChords.find(lc=>lc.userId===pos.userId)) addLiveChord(pos.userId);
+        const lc=liveChords.find(lc=>lc.userId===pos.userId);
+        const val=cursorToValue(pos.x,pos.y);
+        console.log('[live-chord] move msg raw:', JSON.stringify(data));
+        console.log('[live-chord] pos.x=',pos.x,'pos.y=',pos.y,'→ valence=',val,'lc found=',!!lc,'liveChords=',liveChords.map(l=>l.userId));
+        if(lc){lc.value=val;lc.hasTouched=true;}
+      }
     }else if(data.type==='remove'){
       const uid=data.userId||(data.position&&data.position.userId);if(uid)removeLiveChord(uid);
     }
