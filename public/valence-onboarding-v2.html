@@ -679,8 +679,7 @@ function animate(){
       dotPosArr.set([tx,ty,tz],i*3);
       const dc=elementRGBA(c,v,styles.cursor,masterOp);
       dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
-      c.history.push([tx,ty,tz]);
-      if(c.history.length>TRACE_LEN)c.history.shift();
+      if(!paused){c.history.push([tx,ty,tz]);if(c.history.length>TRACE_LEN)c.history.shift();}
       if(showGuides){
         const{posX,posY,negX,negY}=getGuidePoints(i,n,p1,p2,pp1,pp2,lp1,lp2);
         const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
