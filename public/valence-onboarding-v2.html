@@ -188,6 +188,12 @@
     <label class="check-item" style="margin-left:8px"><input type="checkbox" id="use-geo" checked onchange="document.getElementById('linewidth').disabled=!this.checked;document.getElementById('linewidth-v').style.opacity=this.checked?'':'.2'"><span>use geometry</span></label>
   </div>
   <div class="row">
+    <span class="label">trace width</span>
+    <input type="range" id="tracewidth" min="0" max="4" step="0.1" value="2.0" disabled style="opacity:0.3">
+    <span class="val" id="tracewidth-v" style="opacity:0.3">2.0</span>
+    <label class="check-item" style="margin-left:8px;opacity:0.3"><input type="checkbox" id="use-geo-trace" disabled><span>use geometry</span></label>
+  </div>
+  <div class="row">
     <span class="label">cursor size</span>
     <input type="range" id="dotsize" min="0" max="60" step="0.5" value="20">
     <span class="val" id="dotsize-v">20.0</span>
