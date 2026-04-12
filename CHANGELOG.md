@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file.
 - Onboarding V2: in "none" enter/exit mode, new chords now appear immediately at their group target value instead of animating in from near-zero
 - Onboarding V2: "origin v2" entry/exit animations are now symmetric (both use ease-in: `t²` / `1-t²`) and 3.75× slower (30 frames instead of 8)
 - Onboarding V2: fix "origin v2" exit — chords now animate from their actual rendered position; fixes `departN` off-by-`idx` formula and group-slot position mismatch on departure
+- Onboarding V2: fix group-slot arc distribution in persistent mode — slices are now Fibonacci-proportional (matching `assignBase` weights) instead of equal `1/ng`, so chord density is uniform across groups in all geometry modes
 - Onboarding V2: fix 3D scroll-to-zoom (wheel on desktop, pinch on mobile); zoom now persists correctly instead of being overwritten each frame
 - Onboarding V2: fix z-fighting glitch between guide lines and radial dots by setting `depthWrite:false`/`depthTest:false` on guides and using `renderOrder` (guides=-1, dots=10)
 - Valence Viz: timeline scrubber can now be dragged while playing (not just while paused); playback resumes from the scrubbed position on release

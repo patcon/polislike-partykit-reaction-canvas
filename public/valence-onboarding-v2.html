@@ -609,7 +609,11 @@ function updateChordCount(){
           const g=chords[idx].baseIdx;
           let localCount=0, localIdx=0;
           for(let k=0;k<chords.length;k++){if(chords[k].baseIdx===g){if(k===idx)localIdx=localCount;localCount++;}}
-          if(localCount>0){departEffI=g*localCount+localIdx;departEffN=getNumGroups()*localCount;}
+          if(localCount>0){
+            const ng2=getNumGroups(),fw=FIBS.slice(0,ng2),ftot=fw.reduce((a,b)=>a+b,0);
+            let cumW=0; for(let gg=0;gg<g;gg++)cumW+=fw[gg];
+            departEffI=cumW*localCount+localIdx*fw[g]; departEffN=ftot*localCount;
+          }
         }
         const[dc]=chords.splice(idx,1);
         dc.departI=idx; dc.departN=chords.length+1; dc.departEffI=departEffI; dc.departEffN=departEffN;
@@ -784,7 +788,12 @@ function animate(){
         const g=c.baseIdx;
         let localCount=0, localIdx=0;
         for(let k=0;k<chords.length;k++){if(chords[k].baseIdx===g){if(k===i)localIdx=localCount;localCount++;}}
-        if(localCount>0){effI=g*localCount+localIdx;effN=ng*localCount;}
+        if(localCount>0){
+          // Fibonacci-proportional slice: each group gets FIBS[g]/totalWeight of the arc
+          const fw=FIBS.slice(0,ng),ftot=fw.reduce((a,b)=>a+b,0);
+          let cumW=0; for(let gg=0;gg<g;gg++)cumW+=fw[gg];
+          effI=cumW*localCount+localIdx*fw[g]; effN=ftot*localCount;
+        }
       } else if(c.departEffI!=null){
         // Departing chord: use position frozen at departure time
         effI=c.departEffI; effN=c.departEffN;
