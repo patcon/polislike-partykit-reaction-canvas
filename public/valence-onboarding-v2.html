@@ -602,7 +602,19 @@ function updateChordCount(){
       for(let g=0;g<ng;g++){const s=cur[g]-ideal[g];if(s>maxSur){maxSur=s;tg=g;}}
       let idx=chords.length-1;
       for(let i=chords.length-1;i>=0;i--){if(chords[i].baseIdx===tg){idx=i;break;}}
-      if(exitAnim==='origin-v2'){const[dc]=chords.splice(idx,1);dc.departI=idx;dc.departN=idx+chords.length+1;departingChords.push(dc);}else{chords.splice(idx,1);}
+      if(exitAnim==='origin-v2'){
+        // Compute group-slot position before splicing so departing chord exits from its rendered position
+        let departEffI=idx, departEffN=chords.length;
+        if(entryMode==='persistent'&&orderMode==='grouped'){
+          const g=chords[idx].baseIdx;
+          let localCount=0, localIdx=0;
+          for(let k=0;k<chords.length;k++){if(chords[k].baseIdx===g){if(k===idx)localIdx=localCount;localCount++;}}
+          if(localCount>0){departEffI=g*localCount+localIdx;departEffN=getNumGroups()*localCount;}
+        }
+        const[dc]=chords.splice(idx,1);
+        dc.departI=idx; dc.departN=chords.length+1; dc.departEffI=departEffI; dc.departEffN=departEffN;
+        departingChords.push(dc);
+      }else{chords.splice(idx,1);}
     }
   }else{
     const prevLen=chords.length;
@@ -765,12 +777,18 @@ function animate(){
     const cn=c&&c.departN!=null?c.departN:n;
     // Group-slot positioning: remap to per-group arc slice in persistent mode
     let effI=ci, effN=cn;
-    if(entryMode==='persistent'&&c&&c.baseIdx!=null&&c.departI==null&&orderMode==='grouped'){
-      const ng=getNumGroups();
-      const g=c.baseIdx;
-      let localCount=0, localIdx=0;
-      for(let k=0;k<chords.length;k++){if(chords[k].baseIdx===g){if(k===i)localIdx=localCount;localCount++;}}
-      if(localCount>0){effI=g*localCount+localIdx;effN=ng*localCount;}
+    if(entryMode==='persistent'&&c&&c.baseIdx!=null&&orderMode==='grouped'){
+      if(c.departI==null){
+        // Active chord: compute group-local position live
+        const ng=getNumGroups();
+        const g=c.baseIdx;
+        let localCount=0, localIdx=0;
+        for(let k=0;k<chords.length;k++){if(chords[k].baseIdx===g){if(k===i)localIdx=localCount;localCount++;}}
+        if(localCount>0){effI=g*localCount+localIdx;effN=ng*localCount;}
+      } else if(c.departEffI!=null){
+        // Departing chord: use position frozen at departure time
+        effI=c.departEffI; effN=c.departEffN;
+      }
     }
     if(c){
       // Easing scale: ease-out burst on arrival (arrivalT), ease-in collapse on departure (departT)
