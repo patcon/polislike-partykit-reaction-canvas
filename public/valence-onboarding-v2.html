@@ -135,17 +135,17 @@
     <div class="sg-head">radial</div>
     <div class="sg-head future" id="sg-head-trace">trace</div>
     <div class="sg-head">cursor</div>
-    <div class="sg-head future">fill</div>
+    <div class="sg-head">fill</div>
     <div class="sg-row-label">group <a href="#" class="all-link" onclick="setAllStyle('group');return false">all</a></div>
     <button class="sg-btn" id="st-radial-group" onclick="setStyle('radial','group')">group</button>
     <button class="sg-btn future" id="st-trace-group" onclick="setStyle('trace','group')">group</button>
     <button class="sg-btn" id="st-cursor-group" onclick="setStyle('cursor','group')">group</button>
-    <button class="sg-btn future">group</button>
+    <button class="sg-btn" id="st-fill-group" onclick="setStyle('fill','group')">group</button>
     <div class="sg-row-label">valence <a href="#" class="all-link" onclick="setAllStyle('valence');return false">all</a></div>
     <button class="sg-btn active" id="st-radial-valence" onclick="setStyle('radial','valence')">valence</button>
     <button class="sg-btn active future" id="st-trace-valence" onclick="setStyle('trace','valence')">valence</button>
     <button class="sg-btn active" id="st-cursor-valence" onclick="setStyle('cursor','valence')">valence</button>
-    <button class="sg-btn future">valence</button>
+    <button class="sg-btn active" id="st-fill-valence" onclick="setStyle('fill','valence')">valence</button>
   </div>
 
   <hr class="divider">
@@ -343,6 +343,18 @@ const traceLines = new THREE.LineSegments(traceGeo, traceMat);
 traceLines.renderOrder = 5;  // behind dots (10), in front of chords
 scene.add(traceLines);
 
+// Fill surfaces: wedge planes connecting each trace path back to origin through time
+const FILL_VERTS_PER_SEG = 6; // 2 triangles × 3 vertices
+const fillPosArr = new Float32Array(MAX_N * TRACE_SEGS * FILL_VERTS_PER_SEG * 3);
+const fillColArr = new Float32Array(MAX_N * TRACE_SEGS * FILL_VERTS_PER_SEG * 3);
+const fillGeo = new THREE.BufferGeometry();
+fillGeo.setAttribute('position', new THREE.BufferAttribute(fillPosArr, 3));
+fillGeo.setAttribute('color',    new THREE.BufferAttribute(fillColArr, 3));
+const fillMat = new THREE.MeshBasicMaterial({vertexColors:true, transparent:true, depthWrite:false, side:THREE.DoubleSide});
+const fillMesh = new THREE.Mesh(fillGeo, fillMat);
+fillMesh.renderOrder = 4;  // behind trace (5), in front of chords (0)
+scene.add(fillMesh);
+
 // Guide lines
 const guidePosArr = new Float32Array(MAX_N*2*3);
 const guideColArr = new Float32Array(MAX_N*2*3);
@@ -455,7 +467,7 @@ renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
 
 // ── Valence state ─────────────────────────────────────────
 let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:15,g:15,b:14,a:1}};
-let styles={radial:'valence',cursor:'valence',trace:'valence'};
+let styles={radial:'valence',cursor:'valence',trace:'valence',fill:'valence'};
 let paused=false, geoMode='diametric', animMode='sequential';
 let traceMode='correlated', orderMode='random', exitAnim='origin', entryMode='persistent';
 let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false, inParallelRadialTransition=false;
@@ -495,7 +507,7 @@ function setStyle(el,m){
   ['group','valence'].forEach(s=>document.getElementById(`st-${el}-${s}`).classList.toggle('active',s===m));
 }
 function setAllStyle(m){
-  ['radial','cursor','trace'].forEach(el=>setStyle(el,m));
+  ['radial','cursor','trace','fill'].forEach(el=>setStyle(el,m));
 }
 function getNumGroups(){return parseInt(gcEl.value);}
 function updateGroupCountUI(){
@@ -878,6 +890,41 @@ function animate(){
   traceGeo.attributes.color.needsUpdate=true;
   traceMat.opacity=masterOp*0.8;
   traceLines.visible=showTrace;
+
+  // Fill surfaces: wedge planes from origin to each trace path through time
+  for(let i=0;i<MAX_N;i++){
+    const di=i-n;
+    const c=i<n?chords[i]:(di>=0&&di<departingChords.length?departingChords[di]:null);
+    const hlen=c?c.history.length:0;
+    for(let j=0;j<TRACE_SEGS;j++){
+      const base=(i*TRACE_SEGS+j)*FILL_VERTS_PER_SEG*3;
+      if(showTrace&&c&&j+1<hlen){
+        const[ax,ay]=c.history[j];
+        const[bx,by]=c.history[j+1];
+        const zA=-(hlen-1-j)*TRACE_Z_STEP;
+        const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
+        const fadeA=j/(hlen-1);
+        const fadeB=(j+1)/(hlen-1);
+        const fc=elementRGBA(c,c.value,styles.fill,1);
+        const fr=fc[0],fg=fc[1],fb=fc[2];
+        // Tip vertices: fill colour faded by age (matches trace fade logic)
+        const rA=(bgR+(fr-bgR)*fadeA)/255,gA=(bgG+(fg-bgG)*fadeA)/255,bA=(bgB+(fb-bgB)*fadeA)/255;
+        const rB=(bgR+(fr-bgR)*fadeB)/255,gB=(bgG+(fg-bgG)*fadeB)/255,bB=(bgB+(fb-bgB)*fadeB)/255;
+        // Origin vertices: always background (gradient from invisible center to full colour at tip)
+        const oR=bgR/255,oG=bgG/255,oB=bgB/255;
+        // Two triangles: (O_j, T_j, O_{j+1}), (T_j, T_{j+1}, O_{j+1})
+        fillPosArr.set([0,0,zA, ax,ay,zA, 0,0,zB, ax,ay,zA, bx,by,zB, 0,0,zB],base);
+        fillColArr.set([oR,oG,oB, rA,gA,bA, oR,oG,oB, rA,gA,bA, rB,gB,bB, oR,oG,oB],base);
+      }else{
+        fillPosArr.fill(0,base,base+FILL_VERTS_PER_SEG*3);
+        fillColArr.fill(bgR/255,base,base+FILL_VERTS_PER_SEG*3);
+      }
+    }
+  }
+  fillGeo.attributes.position.needsUpdate=true;
+  fillGeo.attributes.color.needsUpdate=true;
+  fillMat.opacity=masterOp*0.45;
+  fillMesh.visible=showTrace;
 
   chordMat.opacity=masterOp; chordMat.linewidth=lineW; chordMat.visible=useGeo&&lineW>0;
   chordMatBasic.opacity=masterOp; chordLinesBasic.visible=!useGeo&&lineW>0;

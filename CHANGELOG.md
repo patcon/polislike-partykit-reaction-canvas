@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- Onboarding V2: fill surface — a translucent wedge mesh connecting each chord's trace path back to the canvas origin along the time (Z) axis, coloured and faded like the trace; wired up the fill column in the style grid (group/valence buttons now active)
+
 ### Fixed
 - Onboarding V2: in "none" enter/exit mode, new chords now appear immediately at their group target value instead of animating in from near-zero
 - Onboarding V2: "origin v2" entry/exit animations are now symmetric (both use ease-in: `t²` / `1-t²`) and 3.75× slower (30 frames instead of 8)
