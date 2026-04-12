@@ -844,7 +844,7 @@ function animate(){
       dotPosArr.set([tx,ty,tz],i*3);
       const dc=elementRGBA(c,v,styles.cursor,opacities.cursor);
       dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
-      if(!paused){c.history.push([tx,ty,tz]);if(c.history.length>TRACE_LEN)c.history.shift();}
+      if(!paused){c.history.push([tx,ty,rx,ry]);if(c.history.length>TRACE_LEN)c.history.shift();}
       if(showGuides&&i<n){
         const{posX,posY,negX,negY}=getGuidePoints(effI,effN,p1,p2,pp1,pp2,lp1,lp2);
         const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
@@ -917,8 +917,8 @@ function animate(){
     for(let j=0;j<TRACE_SEGS;j++){
       const base=(i*TRACE_SEGS+j)*FILL_VERTS_PER_SEG*3;
       if(showTrace&&c&&j+1<hlen){
-        const[ax,ay]=c.history[j];
-        const[bx,by]=c.history[j+1];
+        const[ax,ay,orx,ory]=c.history[j];
+        const[bx,by,brx,bry]=c.history[j+1];
         const zA=-(hlen-1-j)*TRACE_Z_STEP;
         const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
         const fadeA=j/(hlen-1);
@@ -928,10 +928,10 @@ function animate(){
         // Tip vertices: fill colour faded by age (matches trace fade logic)
         const rA=(bgR+(fr-bgR)*fadeA)/255,gA=(bgG+(fg-bgG)*fadeA)/255,bA=(bgB+(fb-bgB)*fadeA)/255;
         const rB=(bgR+(fr-bgR)*fadeB)/255,gB=(bgG+(fg-bgG)*fadeB)/255,bB=(bgB+(fb-bgB)*fadeB)/255;
-        // Origin vertices: always background (gradient from invisible center to full colour at tip)
+        // Origin vertices: historically correct root position, always background colour
         const oR=bgR/255,oG=bgG/255,oB=bgB/255;
         // Two triangles: (O_j, T_j, O_{j+1}), (T_j, T_{j+1}, O_{j+1})
-        fillPosArr.set([0,0,zA, ax,ay,zA, 0,0,zB, ax,ay,zA, bx,by,zB, 0,0,zB],base);
+        fillPosArr.set([orx,ory,zA, ax,ay,zA, brx,bry,zB, ax,ay,zA, bx,by,zB, brx,bry,zB],base);
         fillColArr.set([oR,oG,oB, rA,gA,bA, oR,oG,oB, rA,gA,bA, rB,gB,bB, oR,oG,oB],base);
       }else{
         fillPosArr.fill(0,base,base+FILL_VERTS_PER_SEG*3);
