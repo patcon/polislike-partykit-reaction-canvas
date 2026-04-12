@@ -19,7 +19,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
-- Onboarding V2: add "entry mode" toggle (redistributed / persistent); in persistent mode, chords never switch groups when count changes — new chords slot into their group's arc slice and existing group members stay put; other groups are unaffected
+- Onboarding V2: rename UI labels — "enter/exit" → "entry/exit animation", "origin v2" → "origin" (origin v1 removed), "entry mode" → "chord persistence", buttons "redistributed"/"persistent" → "no"/"yes"; in persistent mode, chords never switch groups when count changes — new chords slot into their group's arc slice and existing group members stay put; other groups are unaffected
 - Onboarding V2: changing the chord count (nchords slider) no longer resets existing traces; new chords are appended with empty history, removed chords are dropped from the end
 - Onboarding V2: in random order mode, adding/removing chords now maintains group ratios (adds to most-underrepresented group, removes from most-overrepresented) without reshuffling existing chord positions
 - Onboarding V2: add "enter/exit" toggle (none / origin v1 / origin v2); "origin v2" animates chord arrival with ease-out burst and departure with ease-in acceleration toward the zero-valence origin

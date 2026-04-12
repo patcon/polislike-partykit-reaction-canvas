@@ -177,18 +177,17 @@
     <span class="val" id="nchords-v">50</span>
   </div>
   <div class="row">
-    <span class="label">enter/exit</span>
+    <span class="label">entry/exit animation</span>
     <div class="btns">
       <button class="active" id="btn-exit-none" onclick="setExitAnim('none')">none</button>
-      <button id="btn-exit-v1" onclick="setExitAnim('origin-v1')">origin v1</button>
-      <button id="btn-exit-v2" onclick="setExitAnim('origin-v2')">origin v2</button>
+      <button id="btn-exit-origin" onclick="setExitAnim('origin')">origin</button>
     </div>
   </div>
   <div class="row" id="entrymode-row">
-    <span class="label">entry mode</span>
+    <span class="label">chord persistence</span>
     <div class="btns">
-      <button class="active" id="btn-entry-redistributed" onclick="setEntryMode('redistributed')">redistributed</button>
-      <button id="btn-entry-persistent" onclick="setEntryMode('persistent')">persistent</button>
+      <button class="active" id="btn-entry-redistributed" onclick="setEntryMode('redistributed')">no</button>
+      <button id="btn-entry-persistent" onclick="setEntryMode('persistent')">yes</button>
     </div>
   </div>
   <div class="row">
@@ -538,7 +537,7 @@ function setTraceMode(m){
   initChords();
 }
 function setOrder(m){orderMode=m;document.getElementById('btn-order-random').classList.toggle('active',m==='random');document.getElementById('btn-order-grouped').classList.toggle('active',m==='grouped');initChords();}
-function setExitAnim(m){exitAnim=m;document.getElementById('btn-exit-none').classList.toggle('active',m==='none');document.getElementById('btn-exit-v1').classList.toggle('active',m==='origin-v1');document.getElementById('btn-exit-v2').classList.toggle('active',m==='origin-v2');}
+function setExitAnim(m){exitAnim=m;document.getElementById('btn-exit-none').classList.toggle('active',m==='none');document.getElementById('btn-exit-origin').classList.toggle('active',m==='origin');}
 function setEntryMode(m){entryMode=m;document.getElementById('btn-entry-redistributed').classList.toggle('active',m==='redistributed');document.getElementById('btn-entry-persistent').classList.toggle('active',m==='persistent');}
 
 function randomVal(){return Math.random()*2-1;}
@@ -586,7 +585,7 @@ function updateChordCount(){
       let maxDef=-Infinity,tg=0;
       for(let g=0;g<ng;g++){const d=ideal[g]-cur[g];if(d>maxDef){maxDef=d;tg=g;}}
       const c=makeChord(chords.length,n,ng); c.baseIdx=tg;
-      if(exitAnim==='none'||exitAnim==='origin-v2') c.value=Math.max(-1,Math.min(1,(groupTargets[tg]||0)+c.noiseOffset));
+      if(exitAnim==='none'||exitAnim==='origin') c.value=Math.max(-1,Math.min(1,(groupTargets[tg]||0)+c.noiseOffset));
       // In grouped order mode, insert after last sibling; otherwise append
       if(orderMode==='grouped'){
         let insertAt=chords.length;
@@ -602,7 +601,7 @@ function updateChordCount(){
       for(let g=0;g<ng;g++){const s=cur[g]-ideal[g];if(s>maxSur){maxSur=s;tg=g;}}
       let idx=chords.length-1;
       for(let i=chords.length-1;i>=0;i--){if(chords[i].baseIdx===tg){idx=i;break;}}
-      if(exitAnim==='origin-v2'){
+      if(exitAnim==='origin'){
         // Compute group-slot position before splicing so departing chord exits from its rendered position
         let departEffI=idx, departEffN=chords.length;
         if(entryMode==='persistent'&&orderMode==='grouped'){
@@ -625,11 +624,11 @@ function updateChordCount(){
     if(n>chords.length){
       for(let i=chords.length;i<n;i++)chords.push(makeChord(i,n,ng));
     }else if(n<chords.length){
-      while(chords.length>n){if(exitAnim==='origin-v2'){const[dc]=chords.splice(chords.length-1,1);dc.departI=chords.length;dc.departN=chords.length+1;departingChords.push(dc);}else{chords.splice(chords.length-1,1);}}
+      while(chords.length>n){if(exitAnim==='origin'){const[dc]=chords.splice(chords.length-1,1);dc.departI=chords.length;dc.departN=chords.length+1;departingChords.push(dc);}else{chords.splice(chords.length-1,1);}}
     }
     if(traceMode==='correlated'){
       for(let i=0;i<chords.length;i++)chords[i].baseIdx=assignBase((i+0.5)/n,ng);
-      if(exitAnim==='none'||exitAnim==='origin-v2'){
+      if(exitAnim==='none'||exitAnim==='origin'){
         for(let i=prevLen;i<chords.length;i++) chords[i].value=Math.max(-1,Math.min(1,(groupTargets[chords[i].baseIdx]||0)+chords[i].noiseOffset));
       }
     }
@@ -801,7 +800,7 @@ function animate(){
     }
     if(c){
       // Easing scale: ease-out burst on arrival (arrivalT), ease-in collapse on departure (departT)
-      const doAnim=exitAnim==='origin-v2';
+      const doAnim=exitAnim==='origin';
       const aT=c.arrivalT!=null?c.arrivalT:1;
       const dT=c.departT!=null?c.departT:0;
       const vScale=doAnim?(c.departT!=null?1-dT*dT:aT*aT):1;
