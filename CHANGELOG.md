@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
+- Onboarding V2: rename "fire event" button to "trigger valence shift"
 - Onboarding V2: disable "dynamic styling" checkbox (temporarily, pending fix)
 - Onboarding V2: disable alpha sliders in color controls (temporarily, pending fix)
 - Onboarding V2: set neutral color default to background color (#0f0f0e) instead of black
