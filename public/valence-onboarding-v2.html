@@ -59,6 +59,12 @@
   .hint.show{opacity:1}
   .event-flash{position:fixed;top:14px;right:16px;font-size:9px;letter-spacing:.2em;color:var(--text-dim);opacity:0;transition:opacity .15s;pointer-events:none}
   .event-flash.show{opacity:1}
+  #qr-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100}
+  #qr-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65)}
+  #qr-box{position:relative;background:#1a1a18;border:.5px solid rgba(200,198,190,.18);border-radius:6px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  #qr-url{font-size:9px;color:var(--text-dim);letter-spacing:.06em;word-break:break-all;max-width:220px;text-align:center}
+  #qr-canvas{border-radius:4px;overflow:hidden}
+  #qr-close{margin-top:2px}
   #conn-status.ok{color:rgba(60,180,100,0.9)}
   #conn-status.warn{color:rgba(200,140,40,0.9)}
   #conn-status.connecting{color:rgba(100,100,200,0.7)}
@@ -77,6 +83,16 @@
     <input type="text" id="room-input" value="default" placeholder="default" autocomplete="off" spellcheck="false" style="font-family:inherit;font-size:10px;background:transparent;border:.5px solid rgba(200,198,190,.18);border-radius:3px;color:var(--text);padding:3px 7px;outline:none;width:80px;flex-shrink:0;">
     <button id="btn-connect" onclick="handleConnectClick()">connect</button>
     <span id="conn-status" style="font-size:10px;letter-spacing:.08em;color:var(--text-dim)"></span>
+    <button id="btn-qr" onclick="openQrModal()" style="display:none">QR</button>
+  </div>
+
+  <div id="qr-modal">
+    <div id="qr-backdrop" onclick="closeQrModal()"></div>
+    <div id="qr-box">
+      <div id="qr-url"></div>
+      <div id="qr-canvas"></div>
+      <button id="qr-close" onclick="closeQrModal()">close</button>
+    </div>
   </div>
 
   <hr class="divider">
@@ -258,6 +274,7 @@
 
 <div class="event-flash" id="flash">valence shift</div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/lines/LineSegmentsGeometry.js"></script>
 <script src="https://unpkg.com/three@0.128.0/examples/js/lines/LineMaterial.js"></script>
@@ -591,6 +608,7 @@ function connectWs(room){
   ws.onopen=()=>{
     wsConnectedFlag=true;
     document.getElementById('btn-connect').textContent='disconnect';
+    document.getElementById('btn-qr').style.display='';
     setConnStatus(`connected · ${room}`,'ok');
   };
   ws.onmessage=(evt)=>{
@@ -627,12 +645,28 @@ function disconnectWs(){
   if(ws){ws.onclose=null;ws.close();ws=null;}
   wsConnectedFlag=false;liveChords=[];
   document.getElementById('btn-connect').textContent='connect';
+  document.getElementById('btn-qr').style.display='none';
+  closeQrModal();
   setConnStatus('disconnected','');
 }
 function handleConnectClick(){
   if(wsConnectedFlag||ws!==null){disconnectWs();}
   else{connectWs(document.getElementById('room-input').value.trim()||'default');}
 }
+
+function v4Url(room){
+  return`${window.location.protocol}//${window.location.host}/?room=${encodeURIComponent(room)}#v4`;
+}
+function openQrModal(){
+  const room=document.getElementById('room-input').value.trim()||'default';
+  const url=v4Url(room);
+  document.getElementById('qr-url').textContent=url;
+  const el=document.getElementById('qr-canvas');
+  el.innerHTML='';
+  new QRCode(el,{text:url,width:200,height:200,colorDark:'#e8e6de',colorLight:'#0f0f0e'});
+  document.getElementById('qr-modal').style.display='flex';
+}
+function closeQrModal(){document.getElementById('qr-modal').style.display='none';}
 
 // ── Valence state ─────────────────────────────────────────
 let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:15,g:15,b:14,a:1}};
