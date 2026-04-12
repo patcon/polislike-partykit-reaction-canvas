@@ -353,10 +353,11 @@ function clamp01(t){return Math.min(1,Math.max(0,t));}
 function applyCam() {
   const theta = camTheta + orbitDTheta;
   const phi   = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, camPhi + orbitDPhi));
+  const effR  = camRadius + orbitDRadius;
   camera.position.set(
-    camRadius*Math.sin(theta)*Math.cos(phi),
-    camRadius*Math.sin(phi),
-    camRadius*Math.cos(theta)*Math.cos(phi)
+    effR*Math.sin(theta)*Math.cos(phi),
+    effR*Math.sin(phi),
+    effR*Math.cos(theta)*Math.cos(phi)
   );
   camera.lookAt(0,0,0);
   camera.up.set(0,1,0);
@@ -375,7 +376,7 @@ function setViewMode(m) {
   document.getElementById('btn-3d').classList.toggle('active', m==='3d');
   document.getElementById('orbit-hint').classList.toggle('show', m==='3d');
   document.getElementById('vp').classList.toggle('orbiting', m==='3d');
-  if (m==='2d'||m==='2d-ts') { orbitDTheta=0; orbitDPhi=0; }
+  if (m==='2d'||m==='2d-ts') { orbitDTheta=0; orbitDPhi=0; orbitDRadius=0; }
   const traceActive = m==='2d-ts' || m==='3d';
   ['sg-head-trace','st-trace-group','st-trace-valence'].forEach(id => {
     document.getElementById(id).classList.toggle('future', !traceActive);
@@ -383,7 +384,7 @@ function setViewMode(m) {
 }
 
 // ── Orbit mouse / touch controls ──────────────────────────
-let isDragging=false, dragLast={x:0,y:0}, dtBase=0, dpBase=0;
+let isDragging=false, dragLast={x:0,y:0}, dtBase=0, dpBase=0, orbitDRadius=0;
 
 renderer.domElement.addEventListener('mousedown', e => {
   if (viewMode!=='3d'||transT<0.7) return;
@@ -399,8 +400,8 @@ window.addEventListener('mousemove', e => {
 });
 window.addEventListener('mouseup', ()=>{ isDragging=false; });
 renderer.domElement.addEventListener('wheel', e => {
-  if (transT<0.3) return;
-  camRadius=Math.max(250,Math.min(1400,camRadius+e.deltaY*0.6));
+  if (viewMode !== '3d') return;
+  orbitDRadius=Math.max(250-camRadius,Math.min(1400-camRadius,orbitDRadius+e.deltaY*0.6));
   applyCam(); e.preventDefault();
 },{passive:false});
 
@@ -423,7 +424,9 @@ renderer.domElement.addEventListener('touchmove', e=>{
     applyCam();
   } else if (e.touches.length===2) {
     const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
-    camRadius=Math.max(250,Math.min(1400,camRadius*(lastTouchDist/d)));
+    const scale=lastTouchDist/d;
+    const newEff=Math.max(250,Math.min(1400,(camRadius+orbitDRadius)*scale));
+    orbitDRadius=newEff-camRadius;
     lastTouchDist=d; applyCam();
   }
   e.preventDefault();
