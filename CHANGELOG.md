@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file.
 
 
 ### Added
+- Onboarding V2: lower minimum chord count from 6 to 1
 - Onboarding V2: add "2d time series" view mode with fading cursor trace lines; "2d" renamed to "2d time slice"; trace style column in style grid now active in time-series and 3d views
 - Onboarding V2: change default cursor radius to 10 and line width to 2.0
 - Onboarding V2: add "linear" geometry mode — all traces collapse to a single vertical line at centre; animated transition to/from parallel
