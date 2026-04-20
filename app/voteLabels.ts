@@ -32,6 +32,7 @@ export const REACTION_LABEL_PRESETS: Record<string, ReactionLabelSet> = {
   },
   genz: {
     positive: 'Based', negative: 'Whack', neutral: 'Mid',
+    hint: 'Inspired by my GenZ whisperers',
   },
   engagement: {
     positive: 'Engaged', negative: 'Disengaged', neutral: 'Baseline',
