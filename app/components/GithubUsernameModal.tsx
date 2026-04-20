@@ -55,10 +55,10 @@ export default function GithubUsernameModal({ onSubmit, onDismiss }: GithubUsern
       <div className="github-modal">
         {step === 'prompt' && (
           <>
-            <p className="github-modal-title">Vibe coding check-in</p>
-            <p className="github-modal-body">The facilitator wants to know who's here.</p>
+            <p className="github-modal-title">Seeking [vibe] coders</p>
+            <p className="github-modal-body">Do you have your laptop? Willing to help improve the system running this event?</p>
             <button className="github-modal-btn-primary" onClick={() => setStep('input')}>
-              Log in with GitHub
+              Share your GitHub handle
             </button>
             <button className="github-modal-btn-dismiss" onClick={onDismiss}>Not now</button>
           </>
