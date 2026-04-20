@@ -7,6 +7,7 @@ import type { ReactionLabelSet } from "../voteLabels";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { getPersistentUserId } from "../utils/userId";
+import ShareQRButton from "./ShareQRButton";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -206,6 +207,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
           {viewerCount > 0 && <> · <span className="v2-counter-num">{viewerCount}</span> watching</>}
         </div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
+        <ShareQRButton />
         {touchPos && (
           <div
             className="v2-touch-indicator"

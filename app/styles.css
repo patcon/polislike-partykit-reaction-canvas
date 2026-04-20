@@ -1474,6 +1474,82 @@ body {
   font-size: 15px;
   margin: 0 0 2px;
 }
+/* Share QR Button */
+.share-qr-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 200;
+  background: rgba(0, 0, 0, 0.35);
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+.share-qr-btn:hover {
+  opacity: 0.9;
+}
+
+.share-qr-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(0, 0, 0, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-qr-modal-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1a1a1a;
+  border-radius: 16px;
+  padding: 32px 28px 24px;
+  max-width: 320px;
+  width: 90vw;
+  text-align: center;
+  gap: 16px;
+}
+
+.share-qr-modal-title {
+  color: #fff;
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.share-qr-modal-url {
+  font-size: 11px;
+  color: #666;
+  word-break: break-all;
+  font-family: monospace;
+  margin: 0;
+}
+
+.share-qr-modal-close {
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 8px;
+  color: #aaa;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px 24px;
+  margin-top: 4px;
+}
+
+.share-qr-modal-close:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}
+
 .github-modal-login {
   color: #888;
   font-size: 13px;
