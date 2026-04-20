@@ -116,7 +116,7 @@ export default function GithubUsernameModal({ onSubmit, onDismiss }: GithubUsern
         {step === 'done' && (
           <>
             <p className="github-modal-title">Thanks!</p>
-            <p className="github-modal-body">Your GitHub username has been shared with the facilitator.</p>
+            <p className="github-modal-body">Your GitHub username has been shared with the emcee.</p>
             <button className="github-modal-btn-primary" onClick={onDismiss}>Close</button>
           </>
         )}
