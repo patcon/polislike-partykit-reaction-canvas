@@ -67,6 +67,7 @@ export default function ReactionCanvasAppV4() {
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const [serverImageUrl, setServerImageUrl] = useState('');
+  const [activity, setActivity] = useState<'canvas' | 'soccer' | 'image-canvas'>('canvas');
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
@@ -110,9 +111,9 @@ export default function ReactionCanvasAppV4() {
             alt=""
           />
         )}
-        {labels && !serverImageUrl && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
-        {labels && !serverImageUrl && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
-        {labels && !serverImageUrl && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
+        {labels && activity !== 'image-canvas' && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
+        {labels && activity !== 'image-canvas' && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
+        {labels && activity !== 'image-canvas' && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
         {isViewer && (
           <div className="viewer-mode-banner">
             This room is full — you are watching in view-only mode.
@@ -157,6 +158,7 @@ export default function ReactionCanvasAppV4() {
             if (activityName === 'githubUsername') setShowGithubModal(true);
           }}
           onRoomImageUrlChange={setServerImageUrl}
+          onActivityChange={setActivity}
           debug={debug}
         />
         {!isViewer && (

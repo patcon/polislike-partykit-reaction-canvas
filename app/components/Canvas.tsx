@@ -42,6 +42,7 @@ interface CanvasProps {
   onRoomAvatarStyleChange?: (style: string | null) => void;
   onActivityTriggered?: (activityName: string) => void;
   onRoomImageUrlChange?: (url: string) => void;
+  onActivityChange?: (activity: 'canvas' | 'soccer' | 'image-canvas') => void;
 }
 
 // Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
@@ -65,7 +66,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onRoomImageUrlChange, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onRoomImageUrlChange, onActivityChange, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -122,7 +123,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
             setAvatarStyle(data.roomAvatarStyle ?? null);
             onRoomAvatarStyleChange?.(data.roomAvatarStyle ?? null);
           }
-          if ('currentActivity' in data) setActivity(data.currentActivity ?? 'canvas');
+          if ('currentActivity' in data) {
+            const act = data.currentActivity ?? 'canvas';
+            setActivity(act);
+            onActivityChange?.(act);
+          }
           if ('roomImageUrl' in data) {
             const url = data.roomImageUrl ?? '';
             setImageUrl(url);
@@ -181,7 +186,9 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         }
 
         if (data.type === 'activityChanged') {
-          setActivity(data.activity ?? 'canvas');
+          const act = data.activity ?? 'canvas';
+          setActivity(act);
+          onActivityChange?.(act);
           if (data.ball) setBallPos({ x: data.ball.x, y: data.ball.y });
           if (data.score) setSoccerScore(data.score);
           if (data.activity !== 'soccer') setBallPos(null);
