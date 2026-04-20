@@ -1369,3 +1369,113 @@ body {
 .vviz-tcol-flex .vviz-tcol-lbl { padding: 0; border: none; margin-bottom: 2px; }
 .vviz-tcol-flex input[type=range] { width: 100%; accent-color: rgba(255,255,255,0.45); cursor: pointer; }
 .vviz-row-particle { display: flex; align-items: stretch; border: 0.5px solid rgba(255,255,255,0.12); border-radius: 5px; overflow: hidden; }
+
+/* GitHub username modal */
+.github-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.github-modal {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 12px;
+  padding: 28px 24px;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  color: #eee;
+}
+.github-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+.github-modal-body {
+  font-size: 14px;
+  color: #aaa;
+  margin: 0;
+}
+.github-modal-input {
+  background: #333;
+  border: 1px solid #555;
+  color: #eee;
+  padding: 10px 12px;
+  border-radius: 6px;
+  font-size: 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+.github-modal-input:focus {
+  outline: none;
+  border-color: #888;
+}
+.github-modal-error {
+  color: #f77;
+  font-size: 13px;
+  margin: 0;
+}
+.github-modal-btn-primary {
+  background: #2a5cba;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+}
+.github-modal-btn-primary:hover:not(:disabled) {
+  background: #3a6ccf;
+}
+.github-modal-btn-primary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.github-modal-btn-dismiss {
+  background: none;
+  border: none;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+  text-align: center;
+  width: 100%;
+}
+.github-modal-btn-dismiss:hover {
+  color: #ccc;
+}
+.github-modal-user-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #222;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+.github-modal-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid #555;
+  flex-shrink: 0;
+}
+.github-modal-display-name {
+  font-weight: 600;
+  font-size: 15px;
+  margin: 0 0 2px;
+}
+.github-modal-login {
+  color: #888;
+  font-size: 13px;
+  margin: 0;
+}

@@ -115,6 +115,19 @@ interface SetUserCapEvent {
   cap: number | null;
 }
 
+interface TriggerActivityEvent {
+  type: 'triggerActivity';
+  activityName: 'githubUsername';
+}
+
+interface SubmitGithubUsernameEvent {
+  type: 'submitGithubUsername';
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+  timestamp: number;
+}
+
 interface RequestJoinEvent {
   type: 'requestJoin';
 }
@@ -132,7 +145,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent;
 
 // ===== SOCCER PHYSICS CONSTANTS =====
 const SOCCER_BALL_R = 2;      // % of canvas
@@ -161,6 +174,7 @@ export default class Server implements Party.Server {
   private currentActivity: 'canvas' | 'soccer' = 'canvas';
   private ballState = { x: 50, y: 50, vx: 2, vy: 1 };
   private soccerScore = { left: 0, right: 0 };
+  private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
   private soccerInterval?: NodeJS.Timeout;
   private cursorPositions = new Map<string, { x: number; y: number }>();
 
@@ -371,6 +385,18 @@ export default class Server implements Party.Server {
         if (!this.adminConnectionIds.has(sender.id)) return;
         this.userCap = event.cap;
         this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
+      } else if (event.type === 'triggerActivity') {
+        this.room.broadcast(JSON.stringify({ type: 'activityTriggered', activityName: event.activityName }));
+      } else if (event.type === 'submitGithubUsername') {
+        const submission = {
+          username: event.username,
+          displayName: event.displayName,
+          avatarUrl: event.avatarUrl,
+          timestamp: event.timestamp || Date.now(),
+        };
+        this.githubSubmissions.push(submission);
+        // Broadcast to admins so they see it live
+        this.room.broadcast(JSON.stringify({ type: 'githubUsernameSubmitted', ...submission }));
       } else if (event.type === 'requestJoin') {
         if (!this.viewerConnectionIds.has(sender.id)) return;
         if (this.userCap !== null && this.participantCount() >= this.userCap) {
@@ -913,6 +939,19 @@ export default class Server implements Party.Server {
       this.votes = [];
       console.log(`[VOTE] All votes cleared successfully`);
       return new Response(JSON.stringify({ success: true, message: "All votes cleared" }), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    if (request.method === "GET" && url.pathname.endsWith("/github-submissions")) {
+      return new Response(JSON.stringify(this.githubSubmissions), {
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    if (request.method === "DELETE" && url.pathname.endsWith("/github-submissions")) {
+      this.githubSubmissions = [];
+      return new Response(JSON.stringify({ success: true }), {
         headers: { "Content-Type": "application/json" }
       });
     }

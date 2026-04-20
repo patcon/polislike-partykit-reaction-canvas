@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- V4: vibe-coding activity — admin can push a GitHub username submission form to all participants from the Activities tab; participants are prompted to enter their GitHub username, which is validated against the public GitHub API (avatar + display name shown for confirmation); submissions appear live in a new Events tab in the V4 admin panel and can be downloaded as JSON
 - V4 admin: two new label presets — `genz` (Based / Whack / Mid) and `engagement` (Engaged / Disengaged / Baseline)
 - V4 admin: custom label history — the last 5 applied custom label sets are saved to localStorage and shown as chips below the custom inputs; clicking a chip restores those values, and × removes it from history
 - Onboarding V2: WebSocket connection panel — room input, connect/disconnect button, and live status; connected participants each appear as an additional blue (#4285F4) chord on top of simulated ones, with trace and fill surfaces; cursor color follows group/valence style setting; chord entry/exit animations run even when paused; cursor dot continues updating from live WS data while paused; group palette reordered so blue appears last (index 6) to keep live-user blue visually distinct
