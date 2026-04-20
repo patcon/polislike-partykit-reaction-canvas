@@ -1557,3 +1557,28 @@ body {
   font-size: 13px;
   margin: 0;
 }
+
+.image-canvas-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.image-canvas-config-link {
+  background: none;
+  border: none;
+  color: #6af;
+  font-size: 12px;
+  cursor: pointer;
+  padding: 0 6px;
+  text-decoration: underline;
+  vertical-align: middle;
+}
+.image-canvas-config-link:hover {
+  color: #9cf;
+}

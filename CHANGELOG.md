@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- V4 admin: Image Canvas interface mode — admin selects "Image Canvas" in the Interfaces tab and uses the adjacent "config" link to set a public image URL; the image is broadcast to all participants as the canvas background (fitted with `object-fit: contain`); cursor positions are normalized to image-relative coordinates so reactions stay anchored to the same image content regardless of screen size
+- V4 admin: renamed "Canvas" interface option to "Reaction Canvas" in the Interfaces tab
 - V2/V4/V5: share QR button — a small icon in the top-right corner of the reaction canvas opens a full-screen QR code modal showing the current page URL (with `forceView` param stripped), so participants can easily invite others
 - V4: vibe-coding activity — admin can push a GitHub username submission form to all participants from the Activities tab; participants are prompted to enter their GitHub username, which is validated against the public GitHub API (avatar + display name shown for confirmation); submissions appear live in a new Events tab in the V4 admin panel and can be downloaded as JSON
 - V4 admin: two new label presets — `genz` (Based / Whack / Mid) and `engagement` (Engaged / Disengaged / Baseline)

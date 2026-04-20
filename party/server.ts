@@ -103,7 +103,12 @@ interface SetRoomAvatarStyleEvent {
 
 interface SetActivityEvent {
   type: 'setActivity';
-  activity: 'canvas' | 'soccer';
+  activity: 'canvas' | 'soccer' | 'image-canvas';
+}
+
+interface SetImageUrlEvent {
+  type: 'setImageUrl';
+  url: string;
 }
 
 interface ResetSoccerScoreEvent {
@@ -145,7 +150,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent;
 
 // ===== SOCCER PHYSICS CONSTANTS =====
 const SOCCER_BALL_R = 2;      // % of canvas
@@ -171,7 +176,8 @@ export default class Server implements Party.Server {
   private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
   private roomAnchors: ReactionAnchors | null = null;
   private roomAvatarStyle: string | null = null;
-  private currentActivity: 'canvas' | 'soccer' = 'canvas';
+  private currentActivity: 'canvas' | 'soccer' | 'image-canvas' = 'canvas';
+  private roomImageUrl: string = '';
   private ballState = { x: 50, y: 50, vx: 2, vy: 1 };
   private soccerScore = { left: 0, right: 0 };
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
@@ -267,6 +273,7 @@ export default class Server implements Party.Server {
       roomAnchors: this.roomAnchors,
       roomAvatarStyle: this.roomAvatarStyle,
       currentActivity: this.currentActivity,
+      roomImageUrl: this.roomImageUrl,
       ballState: this.currentActivity === 'soccer' ? this.ballState : null,
       soccerScore: this.soccerScore,
       isViewer,
@@ -378,6 +385,9 @@ export default class Server implements Party.Server {
           ball: this.currentActivity === 'soccer' ? this.ballState : null,
           score: this.soccerScore,
         }));
+      } else if (event.type === 'setImageUrl') {
+        this.roomImageUrl = event.url;
+        this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
       } else if (event.type === 'resetSoccerScore') {
         this.soccerScore = { left: 0, right: 0 };
         this.room.broadcast(JSON.stringify({ type: 'goalScored', score: this.soccerScore }));

@@ -36,6 +36,7 @@ interface TouchLayerProps {
   getTimecode?: () => number; // Returns current video timecode to send on lift
   anchors?: ReactionAnchors;
   onCursorEvent?: (type: 'move' | 'touch' | 'remove', pos: { x: number; y: number }) => void;
+  imageUrl?: string; // When set, normalize coordinates relative to displayed image bounds
 }
 
 export default function TouchLayer({
@@ -50,6 +51,7 @@ export default function TouchLayer({
   getTimecode,
   anchors,
   onCursorEvent,
+  imageUrl,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [userReactionState, setUserReactionState] = useState<ReactionState>(null);
@@ -59,6 +61,15 @@ export default function TouchLayer({
   });
   const [isDragging, setIsDragging] = useState(false);
   const [isMouseOver, setIsMouseOver] = useState(false);
+  const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    if (!imageUrl) { setImageNaturalSize(null); return; }
+    const img = new Image();
+    img.onload = () => setImageNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => setImageNaturalSize(null);
+    img.src = imageUrl;
+  }, [imageUrl]);
   const lastTouchTimeRef = useRef(0); // Used to suppress synthesized mouse events after touch
   const currentReactionStateRef = useRef<ReactionState>(null);
   const lastPositionRef = useRef<CursorPosition | null>(null);
@@ -141,11 +152,25 @@ export default function TouchLayer({
       clientY = e.clientY;
     }
 
-    // Convert to normalized coordinates (0-100)
     const pixelX = clientX - rect.left;
     const pixelY = clientY - rect.top;
-    const normalizedX = (pixelX / dimensions.width) * 100;
-    const normalizedY = (pixelY / dimensions.height) * 100;
+
+    let normalizedX: number;
+    let normalizedY: number;
+
+    if (imageUrl && imageNaturalSize) {
+      // Normalize relative to displayed image bounds (object-fit: contain letterboxing)
+      const scale = Math.min(dimensions.width / imageNaturalSize.w, dimensions.height / imageNaturalSize.h);
+      const dispW = imageNaturalSize.w * scale;
+      const dispH = imageNaturalSize.h * scale;
+      const offX = (dimensions.width - dispW) / 2;
+      const offY = (dimensions.height - dispH) / 2;
+      normalizedX = ((pixelX - offX) / dispW) * 100;
+      normalizedY = ((pixelY - offY) / dispH) * 100;
+    } else {
+      normalizedX = (pixelX / dimensions.width) * 100;
+      normalizedY = (pixelY / dimensions.height) * 100;
+    }
 
     return {
       x: normalizedX,
