@@ -1156,11 +1156,17 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           )}
 
           <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>
-            <p style={{ marginBottom: 4, fontWeight: 600 }}>Vibe coding check-in:</p>
-            <p style={{ marginBottom: 12, color: '#888', fontSize: 13 }}>Push a GitHub username form to all participants. Submissions appear in the Events tab.</p>
-            <button className="v3-admin-btn" onClick={triggerGithubActivity}>
-              Push GitHub login form
-            </button>
+            <p style={{ marginBottom: 4, fontWeight: 600 }}>Popups</p>
+            <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Push a one-time form to all participants. Submissions appear in the Events tab.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ background: '#222', border: '1px solid #444', borderRadius: 8, padding: '12px 14px' }}>
+                <p style={{ fontWeight: 600, margin: '0 0 2px' }}>Coder role</p>
+                <p style={{ color: '#888', fontSize: 13, margin: '0 0 10px' }}>Ask participants for their GitHub username to confirm they can contribute code.</p>
+                <button className="v3-admin-btn" onClick={triggerGithubActivity}>
+                  Push popup
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
