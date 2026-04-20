@@ -535,10 +535,13 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       width={dimensions.width}
       height={dimensions.height}
       style={{
+        position: 'absolute',
+        top: 0,
+        left: 0,
         width: '100%',
         height: '100%',
-        zIndex: 1, // Lower z-index for rendering layer
-        pointerEvents: 'none' // Don't capture events, let TouchLayer handle them
+        zIndex: 1,
+        pointerEvents: 'none'
       }}
     />
   );
