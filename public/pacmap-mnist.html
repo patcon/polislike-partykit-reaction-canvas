@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PaCMAP — real MNIST</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #0f0f14;
+    color: #c8c8d0;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem;
+    min-height: 100vh;
+  }
+  h1 { font-size: 15px; font-weight: 500; color: #e8e8f0; margin-bottom: 0.2rem; }
+  .subtitle { font-size: 11px; color: #555; margin-bottom: 1rem; }
+  #status-bar {
+    width: 100%; max-width: 720px;
+    display: flex; justify-content: space-between;
+    margin-bottom: 0.4rem; font-size: 11px;
+  }
+  #phase-label { color: #8888bb; }
+  #iter-label  { color: #555; }
+  canvas {
+    width: 100%; max-width: 720px;
+    border-radius: 8px;
+    border: 1px solid #22222e;
+    display: block;
+    background: #0a0a10;
+  }
+  #progress-wrap {
+    width: 100%; max-width: 720px;
+    height: 3px; background: #1a1a24;
+    border-radius: 9px; margin: 0.5rem 0; overflow: hidden;
+  }
+  #progress-bar {
+    height: 100%; width: 0%; background: #7F77DD;
+    border-radius: 9px; transition: width 0.08s linear;
+  }
+  #legend {
+    width: 100%; max-width: 720px;
+    display: flex; flex-wrap: wrap;
+    gap: 6px 18px; padding: 0.5rem 0;
+    font-size: 11px; color: #666;
+  }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+</style>
+</head>
+<body>
+
+<h1>PaCMAP — real MNIST</h1>
+<p class="subtitle">1000 test-set samples × 784 dims, reduced to 2D in-browser</p>
+
+<div id="status-bar">
+  <span id="phase-label">Fetching MNIST…</span>
+  <span id="iter-label"></span>
+</div>
+
+<canvas id="canvas"></canvas>
+<div id="progress-wrap"><div id="progress-bar"></div></div>
+<div id="legend"></div>
+
+<script src="https://unpkg.com/umap-js@1.3.3/lib/umap.js"></script>
+<script>
+const COLORS = [
+  '#7F77DD','#1D9E75','#D85A30','#D4537E','#378ADD',
+  '#639922','#BA7517','#E24B4A','#5DCAA5','#aaaaaa'
+];
+
+// Legend
+const legend = document.getElementById('legend');
+for (let i = 0; i < 10; i++) {
+  const el = document.createElement('span');
+  el.className = 'legend-item';
+  el.innerHTML = `<span class="dot" style="background:${COLORS[i]}"></span>${i}`;
+  legend.appendChild(el);
+}
+
+// ── IDX binary parser ─────────────────────────────────────────────
+// MNIST IDX format:
+//   Images: magic(2051) | n_images | rows(28) | cols(28) | uint8 pixels...
+//   Labels: magic(2049) | n_labels | uint8 labels...
+
+function parseImages(buffer, maxSamples) {
+  const view = new DataView(buffer);
+  const magic = view.getUint32(0);
+  if (magic !== 2051) throw new Error(`Bad image magic: ${magic}`);
+  const n    = Math.min(view.getUint32(4), maxSamples);
+  const rows = view.getUint32(8);
+  const cols = view.getUint32(12);
+  const dim  = rows * cols;
+  const data = [];
+  const bytes = new Uint8Array(buffer, 16);
+  for (let i = 0; i < n; i++) {
+    const img = new Float32Array(dim);
+    for (let j = 0; j < dim; j++) img[j] = bytes[i*dim + j] / 255;
+    data.push(img);
+  }
+  return data;
+}
+
+function parseLabels(buffer, maxSamples) {
+  const view = new DataView(buffer);
+  const magic = view.getUint32(0);
+  if (magic !== 2049) throw new Error(`Bad label magic: ${magic}`);
+  const n = Math.min(view.getUint32(4), maxSamples);
+  const bytes = new Uint8Array(buffer, 8);
+  return Array.from(bytes.subarray(0, n));
+}
+
+// ── Fetch with fallbacks ──────────────────────────────────────────
+// Multiple mirrors of the MNIST IDX files (all gzip-free raw binary on GitHub)
+const MIRRORS = {
+  images: [
+    'https://raw.githubusercontent.com/fgnt/mnist/master/t10k-images-idx3-ubyte',
+    'https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/t10k-images-idx3-ubyte',  // fashion-mnist fallback (same format, different digits)
+  ],
+  labels: [
+    'https://raw.githubusercontent.com/fgnt/mnist/master/t10k-labels-idx1-ubyte',
+    'https://raw.githubusercontent.com/zalandoresearch/fashion-mnist/master/data/fashion/t10k-labels-idx1-ubyte',
+  ]
+};
+
+async function fetchFirst(urls, label) {
+  for (const url of urls) {
+    try {
+      setStatus(`Fetching ${label}…`);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const buf = await res.arrayBuffer();
+      console.log(`Loaded ${label} from ${url} (${(buf.byteLength/1024).toFixed(0)} KB)`);
+      return buf;
+    } catch(e) {
+      console.warn(`${url} failed:`, e.message);
+    }
+  }
+  throw new Error(`All mirrors failed for ${label}`);
+}
+
+// ── kNN helpers ───────────────────────────────────────────────────
+function sqDist(a, b) {
+  let s = 0;
+  for (let k = 0; k < a.length; k++) s += (a[k]-b[k])**2;
+  return s;
+}
+
+function bruteKNN(data, k) {
+  const n = data.length, indices = [];
+  setStatus('Computing kNN (brute-force)…');
+  for (let i = 0; i < n; i++) {
+    const dists = [];
+    for (let j = 0; j < n; j++) if (j !== i) dists.push([j, sqDist(data[i], data[j])]);
+    dists.sort((a,b) => a[1]-b[1]);
+    indices.push(dists.slice(0,k).map(d => d[0]));
+  }
+  return indices;
+}
+
+// ── PaCMAP pair sampling ──────────────────────────────────────────
+function sampleNNPairs(knnIdx, k) {
+  const pairs = [];
+  for (let i = 0; i < knnIdx.length; i++)
+    for (let j = 0; j < k; j++) pairs.push(i, knnIdx[i][j]);
+  return new Int32Array(pairs);
+}
+
+function sampleMNPairs(data, nMN) {
+  const n = data.length, pairs = [];
+  for (let rep = 0; rep < nMN; rep++)
+    for (let i = 0; i < n; i++) {
+      const cands = new Set();
+      while (cands.size < 6) cands.add((i+1+Math.floor(Math.random()*(n-1)))%n);
+      const sorted = [...cands].sort((a,b) => sqDist(data[i],data[a]) - sqDist(data[i],data[b]));
+      pairs.push(i, sorted[1]);
+    }
+  return new Int32Array(pairs);
+}
+
+function sampleFPPairs(n, nnPairs, nFP) {
+  const excl = Array.from({length:n}, (_,i) => new Set([i]));
+  for (let k = 0; k < nnPairs.length; k+=2) excl[nnPairs[k]].add(nnPairs[k+1]);
+  const pairs = [];
+  for (let rep = 0; rep < nFP; rep++)
+    for (let i = 0; i < n; i++) {
+      let j, tries = 0;
+      do { j = Math.floor(Math.random()*n); tries++; } while (excl[i].has(j) && tries < 50);
+      pairs.push(i, j);
+    }
+  return new Int32Array(pairs);
+}
+
+// ── PaCMAP gradient step (Adam) ───────────────────────────────────
+function pacmapStep(Y, grad, m, v, t, nnP, mnP, fpP, wNb, wMn, wFp, lr) {
+  grad.fill(0);
+
+  for (let k = 0; k < nnP.length; k+=2) {
+    const i=nnP[k], j=nnP[k+1];
+    const dx=Y[i*2]-Y[j*2], dy=Y[i*2+1]-Y[j*2+1];
+    const d=dx*dx+dy*dy+1, g=wNb*20/((10+d)**2);
+    grad[i*2]+=g*dx; grad[i*2+1]+=g*dy;
+    grad[j*2]-=g*dx; grad[j*2+1]-=g*dy;
+  }
+
+  if (wMn > 0) for (let k = 0; k < mnP.length; k+=2) {
+    const i=mnP[k], j=mnP[k+1];
+    const dx=Y[i*2]-Y[j*2], dy=Y[i*2+1]-Y[j*2+1];
+    const d=dx*dx+dy*dy+1, g=wMn*20000/((10000+d)**2);
+    grad[i*2]+=g*dx; grad[i*2+1]+=g*dy;
+    grad[j*2]-=g*dx; grad[j*2+1]-=g*dy;
+  }
+
+  for (let k = 0; k < fpP.length; k+=2) {
+    const i=fpP[k], j=fpP[k+1];
+    const dx=Y[i*2]-Y[j*2], dy=Y[i*2+1]-Y[j*2+1];
+    const d=dx*dx+dy*dy+1, g=wFp*2/((1+d)**2);
+    grad[i*2]-=g*dx; grad[i*2+1]-=g*dy;
+    grad[j*2]+=g*dx; grad[j*2+1]+=g*dy;
+  }
+
+  const lrT = lr * Math.sqrt(1-0.999**t) / (1-0.9**t);
+  for (let k = 0; k < Y.length; k++) {
+    m[k] = 0.9*m[k] + 0.1*grad[k];
+    v[k] = 0.999*v[k] + 0.001*grad[k]**2;
+    Y[k] -= lrT * m[k] / (Math.sqrt(v[k]) + 1e-7);
+  }
+}
+
+// ── Canvas rendering ──────────────────────────────────────────────
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+let DIMS = {w:0, h:0};
+
+function setupCanvas() {
+  const dpr = window.devicePixelRatio || 1;
+  const w = Math.min(canvas.parentElement.clientWidth, 720);
+  const h = Math.round(w * 0.7);
+  canvas.style.width = w+'px'; canvas.style.height = h+'px';
+  canvas.width = w*dpr; canvas.height = h*dpr;
+  ctx.scale(dpr, dpr);
+  DIMS = {w, h};
+}
+
+function render(Y, labels) {
+  const {w, h} = DIMS;
+  ctx.clearRect(0, 0, w, h);
+  let mnX=Infinity, mxX=-Infinity, mnY=Infinity, mxY=-Infinity;
+  for (let i = 0; i < Y.length; i+=2) {
+    if(Y[i]<mnX) mnX=Y[i]; if(Y[i]>mxX) mxX=Y[i];
+    if(Y[i+1]<mnY) mnY=Y[i+1]; if(Y[i+1]>mxY) mxY=Y[i+1];
+  }
+  const pad = 30;
+  const sc = Math.min((w-pad*2)/(mxX-mnX||1), (h-pad*2)/(mxY-mnY||1));
+  const ox = (w-(mxX-mnX)*sc)/2 - mnX*sc;
+  const oy = (h-(mxY-mnY)*sc)/2 - mnY*sc;
+  for (let i = 0; i < labels.length; i++) {
+    ctx.beginPath();
+    ctx.arc(Y[i*2]*sc+ox, Y[i*2+1]*sc+oy, 3.5, 0, Math.PI*2);
+    ctx.fillStyle = COLORS[labels[i]];
+    ctx.globalAlpha = 0.85;
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+}
+
+// ── UI helpers ────────────────────────────────────────────────────
+const phaseLabel  = document.getElementById('phase-label');
+const iterLabel   = document.getElementById('iter-label');
+const progressBar = document.getElementById('progress-bar');
+
+function setStatus(msg, right='') {
+  phaseLabel.textContent = msg;
+  if (right) iterLabel.textContent = right;
+}
+
+const PHASE_NAMES = [
+  'Phase 1 — global structure  (w_MN 1000→3)',
+  'Phase 2 — balanced refinement  (w_MN=3)',
+  'Phase 3 — local fine-tuning  (NN+FP only)',
+];
+
+// ── Main ──────────────────────────────────────────────────────────
+async function main() {
+  setupCanvas();
+  const N = 1000; // samples to use
+  const N_NEIGHBORS = 10, N_MN = 5, N_FP = 20;
+
+  // 1. Load MNIST
+  const [imgBuf, lblBuf] = await Promise.all([
+    fetchFirst(MIRRORS.images, 'images'),
+    fetchFirst(MIRRORS.labels, 'labels'),
+  ]);
+
+  setStatus('Parsing…');
+  await new Promise(r => setTimeout(r, 0));
+
+  const data   = parseImages(imgBuf, N);
+  const labels = parseLabels(lblBuf, N);
+  const n = data.length;
+  setStatus(`Loaded ${n} samples`, `784 dims`);
+
+  // 2. Fit UMAP to extract kNN
+  setStatus('Fitting UMAP to extract kNN…');
+  let knnIndices;
+  try {
+    const umap = new UMAP({nNeighbors: N_NEIGHBORS, nComponents: 2, nEpochs: 60});
+    // Pass data as plain arrays (umap-js expects number[][])
+    const dataArrays = data.map(d => Array.from(d));
+    await umap.fitAsync(dataArrays, ep => { iterLabel.textContent = `umap epoch ${ep}`; });
+    knnIndices = umap.knnIndices;
+    if (!knnIndices || !knnIndices.length) throw new Error('not exposed');
+    console.log('Using UMAP knnIndices ✓');
+  } catch(e) {
+    console.warn('Falling back to brute-force kNN:', e.message);
+    await new Promise(r => setTimeout(r, 0));
+    knnIndices = bruteKNN(data, N_NEIGHBORS);
+  }
+  iterLabel.textContent = '';
+
+  // 3. Sample pairs
+  setStatus('Sampling pairs…');
+  await new Promise(r => setTimeout(r, 0));
+  const nnP = sampleNNPairs(knnIndices, N_NEIGHBORS);
+  const mnP = sampleMNPairs(data, N_MN);
+  const fpP = sampleFPPairs(n, nnP, N_FP);
+  console.log(`NN:${nnP.length/2} MN:${mnP.length/2} FP:${fpP.length/2}`);
+
+  // 4. Init embedding + Adam state
+  const Y    = Float32Array.from({length: n*2}, () => (Math.random()-0.5)*1e-4);
+  const grad = new Float32Array(n*2);
+  const m    = new Float32Array(n*2);
+  const v    = new Float32Array(n*2);
+  let adamT  = 0;
+
+  render(Y, labels);
+
+  // 5. Three-phase optimization
+  const P = [100, 100, 150], total = P[0]+P[1]+P[2];
+
+  async function loop(itr) {
+    if (itr >= total) {
+      setStatus('Complete ✓', `${total} iters`);
+      progressBar.style.width = '100%';
+      render(Y, labels);
+      return;
+    }
+    const batchEnd = Math.min(itr+10, total);
+    for (let k = itr; k < batchEnd; k++) {
+      adamT++;
+      let wNb, wMn, wFp, ph;
+      if (k < P[0])          { wNb=2; wFp=1; wMn=(1-k/P[0])*1000+(k/P[0])*3; ph=0; }
+      else if (k < P[0]+P[1]) { wNb=3; wMn=3; wFp=1; ph=1; }
+      else                   { wNb=1; wMn=0; wFp=1; ph=2; }
+      pacmapStep(Y, grad, m, v, adamT, nnP, mnP, fpP, wNb, wMn, wFp, 1.0);
+    }
+    const ph = batchEnd < P[0] ? 0 : batchEnd < P[0]+P[1] ? 1 : 2;
+    setStatus(PHASE_NAMES[ph], `iter ${batchEnd} / ${total}`);
+    progressBar.style.width = (batchEnd/total*100).toFixed(1)+'%';
+    render(Y, labels);
+    await new Promise(r => setTimeout(r, 0));
+    loop(batchEnd);
+  }
+
+  loop(0);
+}
+
+main().catch(e => {
+  setStatus('Error: ' + e.message);
+  console.error(e);
+});
+</script>
+</body>
+</html>
