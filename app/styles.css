@@ -1477,8 +1477,8 @@ body {
 /* Share QR Button */
 .share-qr-btn {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 44px;
+  left: 8px;
   z-index: 200;
   background: rgba(0, 0, 0, 0.35);
   border: none;
