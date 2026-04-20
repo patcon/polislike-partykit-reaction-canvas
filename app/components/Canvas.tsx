@@ -417,8 +417,8 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       const dispH = imageNaturalSize.h * scale;
       const offX = (dimensions.width - dispW) / 2;
       const offY = (dimensions.height - dispH) / 2;
-      toScreenX = (n: number) => offX + (n / 100) * dispW;
-      toScreenY = (n: number) => offY + (n / 100) * dispH;
+      toScreenX = (n: number) => Math.max(0, Math.min(dimensions.width, offX + (n / 100) * dispW));
+      toScreenY = (n: number) => Math.max(0, Math.min(dimensions.height, offY + (n / 100) * dispH));
     }
 
     const cursorData = Array.from(cursors.entries()).map(([cursorUserId, cursor]) => ({

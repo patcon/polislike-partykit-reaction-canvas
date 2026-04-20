@@ -165,8 +165,8 @@ export default function TouchLayer({
       const dispH = imageNaturalSize.h * scale;
       const offX = (dimensions.width - dispW) / 2;
       const offY = (dimensions.height - dispH) / 2;
-      normalizedX = Math.max(0, Math.min(100, ((pixelX - offX) / dispW) * 100));
-      normalizedY = Math.max(0, Math.min(100, ((pixelY - offY) / dispH) * 100));
+      normalizedX = ((pixelX - offX) / dispW) * 100;
+      normalizedY = ((pixelY - offY) / dispH) * 100;
     } else {
       normalizedX = (pixelX / dimensions.width) * 100;
       normalizedY = (pixelY / dimensions.height) * 100;
