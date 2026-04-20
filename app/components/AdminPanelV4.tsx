@@ -46,7 +46,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   }, []);
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState<RecordingMode>('positions');
-  const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars' | 'activities' | 'events'>('labels');
+  const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars' | 'interfaces' | 'events'>('labels');
   const [eventCount, setEventCount] = useState(0);
   const [serverRecording, setServerRecording] = useState(false);
   const [userCap, setUserCap] = useState<number | null>(null);
@@ -875,7 +875,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid #444' }}>
-        {(['labels', 'anchors', 'avatars', 'activities', 'events'] as const).map(tab => (
+        {(['labels', 'anchors', 'avatars', 'interfaces', 'events'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setConfigTab(tab)}
@@ -892,7 +892,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               textTransform: 'capitalize',
             }}
           >
-            {tab === 'labels' ? 'Labels' : tab === 'anchors' ? 'Anchors' : tab === 'avatars' ? 'Avatars' : tab === 'activities' ? 'Activities' : `Events${githubSubmissions.length > 0 ? ` (${githubSubmissions.length})` : ''}`}
+            {tab === 'labels' ? 'Labels' : tab === 'anchors' ? 'Anchors' : tab === 'avatars' ? 'Avatars' : tab === 'interfaces' ? 'Interfaces' : `Events${githubSubmissions.length > 0 ? ` (${githubSubmissions.length})` : ''}`}
           </button>
         ))}
       </div>
@@ -1115,7 +1115,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         </div>
       )}
 
-      {configTab === 'activities' && (
+      {configTab === 'interfaces' && (
         <div>
           <p style={{ marginBottom: 12, fontWeight: 600 }}>Activity (shared for all participants):</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -1186,7 +1186,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             </button>
           </div>
           {githubSubmissions.length === 0 ? (
-            <p style={{ color: '#666', fontSize: 13 }}>No submissions yet. Trigger the activity from the Activities tab.</p>
+            <p style={{ color: '#666', fontSize: 13 }}>No submissions yet. Trigger the activity from the Interfaces tab.</p>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontFamily: 'monospace' }}>
