@@ -5,6 +5,7 @@ import type { ReactionRegion, ReactionAnchors } from "../utils/voteRegion";
 import { REACTION_LABEL_PRESETS, getCustomLabelHistory, saveCustomLabelToHistory, removeCustomLabelFromHistory } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
 import Canvas from "./Canvas";
+import ImageConfigModal from "./ImageConfigModal";
 
 interface AdminPanelV4Props {
   room: string;
@@ -64,8 +65,10 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
 
   // Activity state
-  const [activity, setActivity] = useState<'canvas' | 'soccer'>('canvas');
+  const [activity, setActivity] = useState<'canvas' | 'soccer' | 'image-canvas'>('canvas');
   const [soccerScore, setSoccerScore] = useState({ left: 0, right: 0 });
+  const [imageConfigOpen, setImageConfigOpen] = useState(false);
+  const [roomImageUrl, setRoomImageUrl] = useState('');
 
   // Events (GitHub submissions) state
   interface GithubSubmission {
@@ -167,6 +170,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           if ('roomAnchors' in data) applyServerAnchors(data.roomAnchors);
           if ('roomAvatarStyle' in data) setAvatarStyle(data.roomAvatarStyle ?? null);
           if ('currentActivity' in data) setActivity(data.currentActivity ?? 'canvas');
+          if ('roomImageUrl' in data) setRoomImageUrl(data.roomImageUrl ?? '');
           if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore);
           if (data.userCap !== undefined) {
             setUserCap(data.userCap);
@@ -192,6 +196,11 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
         if (data.type === 'activityChanged') {
           setActivity(data.activity ?? 'canvas');
+          return;
+        }
+
+        if (data.type === 'imageUrlChanged') {
+          setRoomImageUrl(data.url ?? '');
           return;
         }
 
@@ -576,9 +585,14 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     socket.send(JSON.stringify({ type: 'setRoomAvatarStyle', avatarStyle: style }));
   };
 
-  const sendActivity = (act: 'canvas' | 'soccer') => {
+  const sendActivity = (act: 'canvas' | 'soccer' | 'image-canvas') => {
     setActivity(act);
     socket.send(JSON.stringify({ type: 'setActivity', activity: act }));
+  };
+
+  const sendImageUrl = (url: string) => {
+    setRoomImageUrl(url);
+    socket.send(JSON.stringify({ type: 'setImageUrl', url }));
   };
 
   const resetSoccerScore = () => {
@@ -1121,7 +1135,8 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           <p style={{ marginBottom: 12, fontWeight: 600 }}>Interfaces</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {([
-              { id: 'canvas', label: 'Canvas', desc: 'Standard reaction canvas' },
+              { id: 'canvas', label: 'Reaction Canvas', desc: 'Standard reaction canvas' },
+              { id: 'image-canvas', label: 'Image Canvas', desc: 'React over a shared background image' },
               { id: 'soccer', label: 'Soccer', desc: 'Top-down physics ball — kick with your cursor' },
             ] as const).map(({ id, label, desc }) => (
               <label key={id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
@@ -1136,6 +1151,14 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                 <div>
                   <span style={{ fontWeight: activity === id ? 600 : 400 }}>{label}</span>
                   <span style={{ color: '#888', fontSize: 13, marginLeft: 8 }}>{desc}</span>
+                  {id === 'image-canvas' && (
+                    <button
+                      className="image-canvas-config-link"
+                      onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}
+                    >
+                      config
+                    </button>
+                  )}
                 </div>
               </label>
             ))}
@@ -1287,6 +1310,13 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         </div>
       )}
       </div>}
+      {imageConfigOpen && (
+        <ImageConfigModal
+          currentUrl={roomImageUrl}
+          onSubmit={sendImageUrl}
+          onClose={() => setImageConfigOpen(false)}
+        />
+      )}
     </div>
   );
 }

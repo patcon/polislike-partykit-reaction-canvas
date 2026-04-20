@@ -41,6 +41,7 @@ interface CanvasProps {
   debug?: boolean;
   onRoomAvatarStyleChange?: (style: string | null) => void;
   onActivityTriggered?: (activityName: string) => void;
+  onRoomImageUrlChange?: (url: string) => void;
 }
 
 // Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
@@ -64,12 +65,14 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onRoomImageUrlChange, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
-  const [activity, setActivity] = useState<'canvas' | 'soccer'>('canvas');
+  const [activity, setActivity] = useState<'canvas' | 'soccer' | 'image-canvas'>('canvas');
+  const [imageUrl, setImageUrl] = useState('');
+  const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [ballPos, setBallPos] = useState<{ x: number; y: number } | null>(null);
   const [soccerScore, setSoccerScore] = useState({ left: 0, right: 0 });
 
@@ -78,6 +81,14 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
     const simulatedCount = Array.from(cursors.keys()).filter(id => id.startsWith('replay_')).length;
     onSimulatedCursorCountChange?.(simulatedCount);
   }, [cursors.size]);
+
+  useEffect(() => {
+    if (!imageUrl) { setImageNaturalSize(null); return; }
+    const img = new Image();
+    img.onload = () => setImageNaturalSize({ w: img.naturalWidth, h: img.naturalHeight });
+    img.onerror = () => setImageNaturalSize(null);
+    img.src = imageUrl;
+  }, [imageUrl]);
 
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
@@ -112,6 +123,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
             onRoomAvatarStyleChange?.(data.roomAvatarStyle ?? null);
           }
           if ('currentActivity' in data) setActivity(data.currentActivity ?? 'canvas');
+          if ('roomImageUrl' in data) {
+            const url = data.roomImageUrl ?? '';
+            setImageUrl(url);
+            onRoomImageUrlChange?.(url);
+          }
           if ('ballState' in data && data.ballState) setBallPos({ x: data.ballState.x, y: data.ballState.y });
           if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore);
           onConnectedAsViewer?.(data.isViewer ?? false, data.userCap ?? null);
@@ -154,6 +170,13 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         if (data.type === 'roomAvatarStyleChanged') {
           setAvatarStyle(data.avatarStyle ?? null);
           onRoomAvatarStyleChange?.(data.avatarStyle ?? null);
+          return;
+        }
+
+        if (data.type === 'imageUrlChanged') {
+          const url = data.url ?? '';
+          setImageUrl(url);
+          onRoomImageUrlChange?.(url);
           return;
         }
 
@@ -259,14 +282,14 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
     // Clear previous content
     svg.selectAll("*").remove();
 
-    // Add background rectangle with default color
+    // Add background rectangle with default color (transparent in image-canvas mode)
     svg.append('rect')
       .attr('width', dimensions.width)
       .attr('height', dimensions.height)
-      .attr('fill', 'rgba(255, 255, 255, 0.1)'); // Default transparent white
+      .attr('fill', imageUrl ? 'transparent' : 'rgba(255, 255, 255, 0.1)');
 
-    // Apply current reaction state color if any
-    if (currentReactionState) {
+    // Apply current reaction state color if any (skip in image-canvas mode)
+    if (currentReactionState && !imageUrl) {
       updateBackgroundColor(currentReactionState);
     }
 
@@ -384,13 +407,26 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
     // Add cursor positions as colored dots - convert normalized coordinates to pixels
     if (hideCursors) return;
+
+    // When an image is active, map image-relative 0-100 coords to screen pixels
+    let toScreenX = (n: number) => (n / 100) * dimensions.width;
+    let toScreenY = (n: number) => (n / 100) * dimensions.height;
+    if (imageUrl && imageNaturalSize) {
+      const scale = Math.min(dimensions.width / imageNaturalSize.w, dimensions.height / imageNaturalSize.h);
+      const dispW = imageNaturalSize.w * scale;
+      const dispH = imageNaturalSize.h * scale;
+      const offX = (dimensions.width - dispW) / 2;
+      const offY = (dimensions.height - dispH) / 2;
+      toScreenX = (n: number) => offX + (n / 100) * dispW;
+      toScreenY = (n: number) => offY + (n / 100) * dispH;
+    }
+
     const cursorData = Array.from(cursors.entries()).map(([cursorUserId, cursor]) => ({
       cursorUserId,
-      x: (cursor.x / 100) * dimensions.width, // Convert from 0-100 to pixel coordinates
-      y: (cursor.y / 100) * dimensions.height, // Convert from 0-100 to pixel coordinates
+      x: toScreenX(cursor.x),
+      y: toScreenY(cursor.y),
       timestamp: cursor.timestamp,
       userId: cursor.userId,
-      // Calculate reaction state on client side for coloring
       reactionState: colorCursorsByVote ? computeReactionRegion(cursor.x, cursor.y, anchors) : null
     }));
 
@@ -475,7 +511,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .text((d: any) => d.cursorUserId.substring(0, 6));
     }
 
-  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, activity, ballPos, soccerScore]);
+  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
 
   // Handle window resize
   useEffect(() => {

@@ -66,6 +66,7 @@ export default function ReactionCanvasAppV4() {
   const [isRecording, setIsRecording] = useState(false);
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
+  const [serverImageUrl, setServerImageUrl] = useState('');
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
@@ -102,9 +103,16 @@ export default function ReactionCanvasAppV4() {
   return (
     <div className="v2-app-container">
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-        {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
-        {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
-        {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
+        {serverImageUrl && (
+          <img
+            src={serverImageUrl}
+            className="image-canvas-bg"
+            alt=""
+          />
+        )}
+        {labels && !serverImageUrl && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
+        {labels && !serverImageUrl && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
+        {labels && !serverImageUrl && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
         {isViewer && (
           <div className="viewer-mode-banner">
             This room is full — you are watching in view-only mode.
@@ -148,6 +156,7 @@ export default function ReactionCanvasAppV4() {
           onActivityTriggered={(activityName) => {
             if (activityName === 'githubUsername') setShowGithubModal(true);
           }}
+          onRoomImageUrlChange={setServerImageUrl}
           debug={debug}
         />
         {!isViewer && (
@@ -161,6 +170,7 @@ export default function ReactionCanvasAppV4() {
             onTouchPosition={setTouchPos}
             heightOffset={0}
             anchors={anchors}
+            imageUrl={serverImageUrl || undefined}
           />
         )}
         {showGithubModal && (
