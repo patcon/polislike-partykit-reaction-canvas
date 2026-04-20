@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- V2/V4/V5: share QR button — a small icon in the top-right corner of the reaction canvas opens a full-screen QR code modal showing the current page URL (with `forceView` param stripped), so participants can easily invite others
 - V4: vibe-coding activity — admin can push a GitHub username submission form to all participants from the Activities tab; participants are prompted to enter their GitHub username, which is validated against the public GitHub API (avatar + display name shown for confirmation); submissions appear live in a new Events tab in the V4 admin panel and can be downloaded as JSON
 - V4 admin: two new label presets — `genz` (Based / Whack / Mid) and `engagement` (Engaged / Disengaged / Baseline)
 - V4 admin: custom label history — the last 5 applied custom label sets are saved to localStorage and shown as chips below the custom inputs; clicking a chip restores those values, and × removes it from history

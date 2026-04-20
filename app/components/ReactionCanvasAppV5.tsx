@@ -11,6 +11,7 @@ import type { ReactionAnchors } from "../utils/voteRegion";
 import { insertEvent, fetchEvents, isSupabaseConfigured, testConnection } from "../lib/supabase";
 import type { ReactionEvent } from "../lib/supabase";
 import { getPersistentUserId } from "../utils/userId";
+import ShareQRButton from "./ShareQRButton";
 
 declare global {
   interface Window {
@@ -236,6 +237,7 @@ export default function ReactionCanvasAppV5() {
         {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
         <div className={`v3-rec-badge v3-rec-badge--left${isSupabaseConfigured ? '' : ' v3-rec-badge--off'}`}>● REC</div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
+        <ShareQRButton />
         {touchPos && (
           <div
             className="v5-touch-indicator"

@@ -9,6 +9,7 @@ import type { ReactionAnchors } from "../utils/voteRegion";
 import { getReactionLabelSet } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
 import { getPersistentUserId } from "../utils/userId";
+import ShareQRButton from "./ShareQRButton";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -120,6 +121,7 @@ export default function ReactionCanvasAppV4() {
         </div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
+        <ShareQRButton />
         {touchPos && (
           <div
             className="v2-touch-indicator"
