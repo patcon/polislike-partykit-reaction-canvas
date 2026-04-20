@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file.
 - Onboarding V2: per-element opacity sliders in the style grid (radial / trace / cursor / fill), replacing the single global opacity slider; trace and fill sliders dim alongside their other controls when in 2d time slice mode
 
 ### Fixed
+- Index: fix Android scroll bug where top cards were unreachable — changed `justify-content: center` to `justify-content: flex-start` on `.index-app` to prevent inaccessible top overflow in flex scroll containers
 - Onboarding V2: fix black chord/dot outlines appearing on fill surface when radial/cursor opacity is 0 — chord and dot materials now have `depthWrite:false`, consistent with trace and fill materials
 - Onboarding V2: fix fill surface origin — fill now anchors to each chord's historically-correct root position (stored alongside tip in history) instead of always the global canvas centre; fixes parallel mode where each chord has a distinct root x-position, and correctly tracks the root through geometry transitions
 - Onboarding V2: in "none" enter/exit mode, new chords now appear immediately at their group target value instead of animating in from near-zero
