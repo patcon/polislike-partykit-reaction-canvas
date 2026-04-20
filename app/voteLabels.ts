@@ -30,9 +30,17 @@ export const REACTION_LABEL_PRESETS: Record<string, ReactionLabelSet> = {
     hintLinkText: 'psychological valence',
     hintUrl: 'https://en.wikipedia.org/wiki/Valence_(psychology)',
   },
+  genz: {
+    positive: 'Based', negative: 'Whack', neutral: 'Mid',
+  },
+  engagement: {
+    positive: 'Engaged', negative: 'Disengaged', neutral: 'Baseline',
+  },
 };
 
 const STORAGE_KEY = 'polis_label_set';
+const HISTORY_STORAGE_KEY = 'polis_custom_label_history';
+const HISTORY_MAX = 5;
 
 export function encodeCustomLabels(positive: string, negative: string, neutral: string): string {
   const str = [positive, negative, neutral].map(encodeURIComponent).join('|');
@@ -47,6 +55,38 @@ export function decodeCustomLabels(encoded: string): ReactionLabelSet | null {
     }
   } catch {}
   return null;
+}
+
+export function getCustomLabelHistory(): ReactionLabelSet[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter((e: unknown) =>
+      e && typeof e === 'object' &&
+      typeof (e as ReactionLabelSet).positive === 'string' &&
+      typeof (e as ReactionLabelSet).negative === 'string' &&
+      typeof (e as ReactionLabelSet).neutral === 'string'
+    ) as ReactionLabelSet[];
+  } catch {
+    return [];
+  }
+}
+
+export function saveCustomLabelToHistory(labels: ReactionLabelSet): void {
+  const history = getCustomLabelHistory().filter(
+    e => !(e.positive === labels.positive && e.negative === labels.negative && e.neutral === labels.neutral)
+  );
+  history.unshift({ positive: labels.positive, negative: labels.negative, neutral: labels.neutral });
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history.slice(0, HISTORY_MAX)));
+}
+
+export function removeCustomLabelFromHistory(index: number): ReactionLabelSet[] {
+  const history = getCustomLabelHistory();
+  history.splice(index, 1);
+  localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+  return history;
 }
 
 export function getReactionLabelSet(name?: string): ReactionLabelSet | null {

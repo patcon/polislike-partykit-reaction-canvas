@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import usePartySocket from "partysocket/react";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
 import type { ReactionRegion, ReactionAnchors } from "../utils/voteRegion";
-import { REACTION_LABEL_PRESETS } from "../voteLabels";
+import { REACTION_LABEL_PRESETS, getCustomLabelHistory, saveCustomLabelToHistory, removeCustomLabelFromHistory } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
 import Canvas from "./Canvas";
 
@@ -58,6 +58,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [customPositive, setCustomPositive] = useState('');
   const [customNegative, setCustomNegative] = useState('');
   const [customNeutral, setCustomNeutral] = useState('');
+  const [customHistory, setCustomHistory] = useState<ReactionLabelSet[]>(() => getCustomLabelHistory());
 
   // Avatar config state
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
@@ -528,6 +529,8 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
       labels = null;
     } else if (labelSelected === 'custom') {
       labels = { positive: customPositive, negative: customNegative, neutral: customNeutral };
+      saveCustomLabelToHistory(labels);
+      setCustomHistory(getCustomLabelHistory());
     } else {
       const preset = REACTION_LABEL_PRESETS[labelSelected];
       labels = preset ? { positive: preset.positive, negative: preset.negative, neutral: preset.neutral } : null;
@@ -911,6 +914,23 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                     />
                   </div>
                 ))}
+                {customHistory.length > 0 && (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
+                    {customHistory.map((entry, i) => (
+                      <div
+                        key={i}
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#2a2a2a', border: '1px solid #444', borderRadius: 4, padding: '3px 6px', fontSize: 12, color: '#aaa', cursor: 'pointer' }}
+                        onClick={() => { setCustomPositive(entry.positive); setCustomNegative(entry.negative); setCustomNeutral(entry.neutral); }}
+                      >
+                        <span>{entry.positive} / {entry.negative} / {entry.neutral}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); setCustomHistory(removeCustomLabelFromHistory(i)); }}
+                          style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: '0 2px', fontSize: 13, lineHeight: 1 }}
+                        >×</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
             <label style={{ display: 'block', cursor: 'pointer' }}>
