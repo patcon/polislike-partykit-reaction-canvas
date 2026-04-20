@@ -28,9 +28,26 @@ jobs:
           script: |
             const num = context.payload.pull_request.number;
             const url = `https://pr-${num}.polislike-partykit-reaction-canvas.patcon.partykit.dev`;
-            github.rest.issues.createComment({
+            const marker = '<!-- preview-url -->';
+            const body = `${marker}\nPreview deployed: ${url}`;
+            const { data: comments } = await github.rest.issues.listComments({
               issue_number: num,
               owner: context.repo.owner,
               repo: context.repo.repo,
-              body: `Preview deployed: ${url}`,
             });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: num,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }
