@@ -1118,7 +1118,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
       {configTab === 'interfaces' && (
         <div>
           <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>All settings here are shared with all participants in real time.</p>
-          <p style={{ marginBottom: 12, fontWeight: 600 }}>Interfaces:</p>
+          <p style={{ marginBottom: 12, fontWeight: 600 }}>Interfaces</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {([
               { id: 'canvas', label: 'Canvas', desc: 'Standard reaction canvas' },
