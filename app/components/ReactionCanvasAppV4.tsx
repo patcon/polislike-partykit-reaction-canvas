@@ -104,16 +104,16 @@ export default function ReactionCanvasAppV4() {
   return (
     <div className="v2-app-container">
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-        {serverImageUrl && (
+        {activity === 'image-canvas' && serverImageUrl && (
           <img
             src={serverImageUrl}
             className="image-canvas-bg"
             alt=""
           />
         )}
-        {labels && activity !== 'image-canvas' && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
-        {labels && activity !== 'image-canvas' && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
-        {labels && activity !== 'image-canvas' && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
+        {labels && activity === 'canvas' && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
+        {labels && activity === 'canvas' && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
+        {labels && activity === 'canvas' && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
         {isViewer && (
           <div className="viewer-mode-banner">
             This room is full — you are watching in view-only mode.
