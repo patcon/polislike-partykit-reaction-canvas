@@ -46,7 +46,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   }, []);
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState<RecordingMode>('positions');
-  const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars' | 'activities'>('labels');
+  const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars' | 'interfaces' | 'events'>('labels');
   const [eventCount, setEventCount] = useState(0);
   const [serverRecording, setServerRecording] = useState(false);
   const [userCap, setUserCap] = useState<number | null>(null);
@@ -66,6 +66,15 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   // Activity state
   const [activity, setActivity] = useState<'canvas' | 'soccer'>('canvas');
   const [soccerScore, setSoccerScore] = useState({ left: 0, right: 0 });
+
+  // Events (GitHub submissions) state
+  interface GithubSubmission {
+    username: string;
+    displayName: string | null;
+    avatarUrl: string | null;
+    timestamp: number;
+  }
+  const [githubSubmissions, setGithubSubmissions] = useState<GithubSubmission[]>([]);
 
   // Anchor config state (local editing)
   const defaults = anchorToLocal(DEFAULT_ANCHORS);
@@ -194,6 +203,16 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         if (data.type === 'userCapChanged') {
           setUserCap(data.cap);
           setCapInput(data.cap !== null ? String(data.cap) : '');
+          return;
+        }
+
+        if (data.type === 'githubUsernameSubmitted') {
+          setGithubSubmissions(prev => [...prev, {
+            username: data.username,
+            displayName: data.displayName ?? null,
+            avatarUrl: data.avatarUrl ?? null,
+            timestamp: data.timestamp,
+          }]);
           return;
         }
 
@@ -566,6 +585,20 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     socket.send(JSON.stringify({ type: 'resetSoccerScore' }));
   };
 
+  const triggerGithubActivity = () => {
+    socket.send(JSON.stringify({ type: 'triggerActivity', activityName: 'githubUsername' }));
+  };
+
+  const downloadGithubSubmissions = () => {
+    const blob = new Blob([JSON.stringify(githubSubmissions, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `github-submissions-${room}-${new Date().toISOString().replace(/[:.]/g, '-')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const selectPreset = (key: string) => {
     setLabelSelected(key);
     if (key !== 'custom' && key !== 'none') {
@@ -842,7 +875,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid #444' }}>
-        {(['labels', 'anchors', 'avatars', 'activities'] as const).map(tab => (
+        {(['labels', 'anchors', 'avatars', 'interfaces', 'events'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setConfigTab(tab)}
@@ -859,7 +892,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               textTransform: 'capitalize',
             }}
           >
-            {tab === 'labels' ? 'Labels' : tab === 'anchors' ? 'Anchors' : tab === 'avatars' ? 'Avatars' : 'Activities'}
+            {tab === 'labels' ? 'Labels' : tab === 'anchors' ? 'Anchors' : tab === 'avatars' ? 'Avatars' : tab === 'interfaces' ? 'Interfaces' : `Events${githubSubmissions.length > 0 ? ` (${githubSubmissions.length})` : ''}`}
           </button>
         ))}
       </div>
@@ -1082,9 +1115,10 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         </div>
       )}
 
-      {configTab === 'activities' && (
+      {configTab === 'interfaces' && (
         <div>
-          <p style={{ marginBottom: 12, fontWeight: 600 }}>Activity (shared for all participants):</p>
+          <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>All settings here are shared with all participants in real time.</p>
+          <p style={{ marginBottom: 12, fontWeight: 600 }}>Interfaces</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {([
               { id: 'canvas', label: 'Canvas', desc: 'Standard reaction canvas' },
@@ -1119,6 +1153,81 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               <button className="v3-admin-btn v3-admin-btn--destructive" onClick={resetSoccerScore}>
                 Reset Score
               </button>
+            </div>
+          )}
+
+          <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>
+            <p style={{ marginBottom: 4, fontWeight: 600 }}>Popups</p>
+            <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Push a one-time form to all participants. Submissions appear in the Events tab.</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div style={{ background: '#222', border: '1px solid #444', borderRadius: 8, padding: '12px 14px' }}>
+                <p style={{ fontWeight: 600, margin: '0 0 2px' }}>Coder role</p>
+                <p style={{ color: '#888', fontSize: 13, margin: '0 0 10px' }}>Ask participants for their GitHub username to confirm they can contribute code.</p>
+                <button className="v3-admin-btn" onClick={triggerGithubActivity}>
+                  Push popup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {configTab === 'events' && (
+        <div>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center' }}>
+            <p style={{ fontWeight: 600, margin: 0 }}>GitHub username submissions</p>
+            <button
+              className="v3-admin-btn"
+              onClick={downloadGithubSubmissions}
+              disabled={githubSubmissions.length === 0}
+              style={{ marginLeft: 'auto' }}
+            >
+              ↓ Download JSON
+            </button>
+            <button
+              className="v3-admin-btn v3-admin-btn--destructive"
+              onClick={() => setGithubSubmissions([])}
+              disabled={githubSubmissions.length === 0}
+            >
+              ✕ Clear
+            </button>
+          </div>
+          {githubSubmissions.length === 0 ? (
+            <p style={{ color: '#666', fontSize: 13 }}>No submissions yet. Trigger the activity from the Interfaces tab.</p>
+          ) : (
+            <div style={{ overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontFamily: 'monospace' }}>
+                <thead>
+                  <tr style={{ background: '#222', color: '#aaa', textAlign: 'left' }}>
+                    <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>#</th>
+                    <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>time</th>
+                    <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>avatar</th>
+                    <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>username</th>
+                    <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>display name</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {githubSubmissions.map((s, i) => (
+                    <tr key={i} style={{ background: i % 2 === 0 ? '#1a1a1a' : '#111' }}>
+                      <td style={{ padding: '4px 10px', color: '#555' }}>{i + 1}</td>
+                      <td style={{ padding: '4px 10px', color: '#888' }}>
+                        {new Date(s.timestamp).toISOString().slice(11, 19)}
+                      </td>
+                      <td style={{ padding: '4px 10px' }}>
+                        {s.avatarUrl && (
+                          <img src={s.avatarUrl} alt={s.username} width={24} height={24} style={{ borderRadius: '50%', verticalAlign: 'middle' }} />
+                        )}
+                      </td>
+                      <td style={{ padding: '4px 10px', color: '#9cf' }}>
+                        <a href={`https://github.com/${s.username}`} target="_blank" rel="noopener noreferrer" style={{ color: '#9cf' }}>
+                          @{s.username}
+                        </a>
+                      </td>
+                      <td style={{ padding: '4px 10px', color: '#ccc' }}>{s.displayName ?? ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

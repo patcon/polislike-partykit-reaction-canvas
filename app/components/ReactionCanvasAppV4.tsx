@@ -3,6 +3,7 @@ import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
+import GithubUsernameModal from "./GithubUsernameModal";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { getReactionLabelSet } from "../voteLabels";
@@ -66,6 +67,7 @@ export default function ReactionCanvasAppV4() {
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
+  const [showGithubModal, setShowGithubModal] = useState(false);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -141,6 +143,9 @@ export default function ReactionCanvasAppV4() {
           onUserCapChanged={setUserCap}
           onJoinApproved={() => setIsViewer(false)}
           onSocketReady={(send) => { socketSendRef.current = send; }}
+          onActivityTriggered={(activityName) => {
+            if (activityName === 'githubUsername') setShowGithubModal(true);
+          }}
           debug={debug}
         />
         {!isViewer && (
@@ -154,6 +159,20 @@ export default function ReactionCanvasAppV4() {
             onTouchPosition={setTouchPos}
             heightOffset={0}
             anchors={anchors}
+          />
+        )}
+        {showGithubModal && (
+          <GithubUsernameModal
+            onSubmit={(username, displayName, avatarUrl) => {
+              socketSendRef.current?.(JSON.stringify({
+                type: 'submitGithubUsername',
+                username,
+                displayName,
+                avatarUrl,
+                timestamp: Date.now(),
+              }));
+            }}
+            onDismiss={() => setShowGithubModal(false)}
           />
         )}
       </div>
