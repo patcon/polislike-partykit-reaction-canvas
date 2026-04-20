@@ -74,7 +74,17 @@ export function getCustomLabelHistory(): ReactionLabelSet[] {
   }
 }
 
+function matchesPreset(labels: ReactionLabelSet): boolean {
+  const lc = (s: string) => s.toLowerCase();
+  return Object.values(REACTION_LABEL_PRESETS).some(p =>
+    lc(p.positive) === lc(labels.positive) &&
+    lc(p.negative) === lc(labels.negative) &&
+    lc(p.neutral) === lc(labels.neutral)
+  );
+}
+
 export function saveCustomLabelToHistory(labels: ReactionLabelSet): void {
+  if (matchesPreset(labels)) return;
   const history = getCustomLabelHistory().filter(
     e => !(e.positive === labels.positive && e.negative === labels.negative && e.neutral === labels.neutral)
   );
