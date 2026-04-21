@@ -1354,7 +1354,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                 const groupLabel = region === null ? 'Lurking' : activeLabels[region];
                 return (
                   <div key={String(region)}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, paddingRight: 10 }}>
                       <span style={{ fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1 }}>
                         {groupLabel} ({members.length})
                       </span>
