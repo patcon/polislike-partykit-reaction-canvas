@@ -974,55 +974,53 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             </div>
 
             {/* Recorded events table */}
-            {displayEvents.length > 0 && (
-              <div style={{ marginTop: 40 }}>
-                <p style={{ fontWeight: 600, marginBottom: 8 }}>
-                  Recorded events
-                  {eventCount > MAX_TABLE_ROWS && (
-                    <span style={{ fontWeight: 400, color: '#888', fontSize: 13, marginLeft: 8 }}>
-                      (showing last {MAX_TABLE_ROWS} of {eventCount})
-                    </span>
-                  )}
-                </p>
-                <div style={{ overflowX: 'auto' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontFamily: 'monospace' }}>
-                    <thead>
-                      <tr style={{ background: '#222', color: '#aaa', textAlign: 'left' }}>
-                        <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>#</th>
-                        <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>time</th>
-                        <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>connectionId</th>
-                        <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>from</th>
-                        <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>to</th>
-                        <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>type</th>
-                        <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>x</th>
-                        <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>y</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {displayEvents.map((evt, i) => {
-                        const e = evt as Record<string, unknown>;
-                        const offset = eventCount - displayEvents.length;
-                        const ts = typeof e.timestamp === 'number'
-                          ? new Date(e.timestamp).toISOString().slice(11, 23)
-                          : '';
-                        return (
-                          <tr key={i} style={{ background: i % 2 === 0 ? '#1a1a1a' : '#111' }}>
-                            <td style={{ padding: '4px 10px', color: '#555' }}>{offset + i + 1}</td>
-                            <td style={{ padding: '4px 10px', color: '#888' }}>{ts}</td>
-                            <td style={{ padding: '4px 10px', color: '#ccc' }}>{String(e.connectionId ?? '')}</td>
-                            <td style={{ padding: '4px 10px', color: '#f99' }}>{e.from !== undefined ? String(e.from ?? 'null') : ''}</td>
-                            <td style={{ padding: '4px 10px', color: '#9f9' }}>{e.to !== undefined ? String(e.to ?? 'null') : ''}</td>
-                            <td style={{ padding: '4px 10px', color: '#99f' }}>{e.type !== undefined ? String(e.type) : ''}</td>
-                            <td style={{ padding: '4px 10px', color: '#aaa' }}>{e.x !== undefined ? String((e.x as number).toFixed(2)) : ''}</td>
-                            <td style={{ padding: '4px 10px', color: '#aaa' }}>{e.y !== undefined ? String((e.y as number).toFixed(2)) : ''}</td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+            <div style={{ marginTop: 40 }}>
+              <p style={{ fontWeight: 600, marginBottom: 8 }}>
+                Recorded events
+                {eventCount > MAX_TABLE_ROWS && (
+                  <span style={{ fontWeight: 400, color: '#888', fontSize: 13, marginLeft: 8 }}>
+                    (showing last {MAX_TABLE_ROWS} of {eventCount})
+                  </span>
+                )}
+              </p>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontFamily: 'monospace' }}>
+                  <thead>
+                    <tr style={{ background: '#222', color: '#aaa', textAlign: 'left' }}>
+                      <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>#</th>
+                      <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>time</th>
+                      <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>connectionId</th>
+                      <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>from</th>
+                      <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>to</th>
+                      <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>type</th>
+                      <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>x</th>
+                      <th style={{ padding: '6px 10px', borderBottom: '1px solid #444' }}>y</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {displayEvents.map((evt, i) => {
+                      const e = evt as Record<string, unknown>;
+                      const offset = eventCount - displayEvents.length;
+                      const ts = typeof e.timestamp === 'number'
+                        ? new Date(e.timestamp).toISOString().slice(11, 23)
+                        : '';
+                      return (
+                        <tr key={i} style={{ background: i % 2 === 0 ? '#1a1a1a' : '#111' }}>
+                          <td style={{ padding: '4px 10px', color: '#555' }}>{offset + i + 1}</td>
+                          <td style={{ padding: '4px 10px', color: '#888' }}>{ts}</td>
+                          <td style={{ padding: '4px 10px', color: '#ccc' }}>{String(e.connectionId ?? '')}</td>
+                          <td style={{ padding: '4px 10px', color: '#f99' }}>{e.from !== undefined ? String(e.from ?? 'null') : ''}</td>
+                          <td style={{ padding: '4px 10px', color: '#9f9' }}>{e.to !== undefined ? String(e.to ?? 'null') : ''}</td>
+                          <td style={{ padding: '4px 10px', color: '#99f' }}>{e.type !== undefined ? String(e.type) : ''}</td>
+                          <td style={{ padding: '4px 10px', color: '#aaa' }}>{e.x !== undefined ? String((e.x as number).toFixed(2)) : ''}</td>
+                          <td style={{ padding: '4px 10px', color: '#aaa' }}>{e.y !== undefined ? String((e.y as number).toFixed(2)) : ''}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-            )}
+            </div>
           </div>
         )}
 
