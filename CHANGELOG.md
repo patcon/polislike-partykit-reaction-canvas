@@ -1,8 +1,8 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## [Week N] (YYYY-MM-DD)` where the date is that Monday and Week 0 = 2025-11-17.
+All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is that Monday and Week 0 = 2025-11-17.
 
-## [Week 22] (2026-04-20)
+## Week 22 (2026-04-20)
 
 ### Added
 - V4 admin: mobile-friendly layout — replaced the two-column desktop layout with a single-column tab-based UI; "Record" tab consolidates recording controls, status, playback, and the events table; config tabs (Labels, Anchors, Avatars, Interface, Events, People) are now top-level tabs in a horizontally-scrollable tab bar; "Peek Canvas" is now a toggle button in the persistent header that opens a full-screen overlay rather than a tab
@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ### Fixed
 - V4 admin: fix vertical bounce when swiping the tab bar on iOS/Android — added `touch-action: pan-x` and `overscroll-behavior-x: contain` so the browser treats tab-bar swipes as horizontal-only
 
-## [Week 21] (2026-04-13)
+## Week 21 (2026-04-13)
 
 ### Added
 - V4 admin: Image Canvas interface mode — admin selects "Image Canvas" in the Interfaces tab and uses the adjacent "config" link to set a public image URL; the image is broadcast to all participants as the canvas background (fitted with `object-fit: contain`); cursor positions are normalized to image-relative coordinates so reactions stay anchored to the same image content regardless of screen size
@@ -27,7 +27,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ### Fixed
 - Index: fix Android scroll bug where top cards were unreachable — changed `justify-content: center` to `justify-content: flex-start` on `.index-app` to prevent inaccessible top overflow in flex scroll containers
 
-## [Week 20] (2026-04-06)
+## Week 20 (2026-04-06)
 
 ### Added
 - Onboarding: added `valence-onboarding-v1.html` and `valence-onboarding-v2.html` to `public/` and linked both from the IndexApp landing page
@@ -65,7 +65,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - Onboarding V2: fix fill surface origin — fill now anchors to each chord's historically-correct root position (stored alongside tip in history) instead of always the global canvas centre; fixes parallel mode where each chord has a distinct root x-position, and correctly tracks the root through geometry transitions
 - Onboarding V2: fix black chord/dot outlines appearing on fill surface when radial/cursor opacity is 0 — chord and dot materials now have `depthWrite:false`, consistent with trace and fill materials
 
-## [Week 19] (2026-03-30)
+## Week 19 (2026-03-30)
 
 ### Added
 - Experience: Valence Viz — facilitator tool (`valence-viz.html`) wrapping the Three.js particle/wave valence visualization. Runs synthetic data by default (scrub bar + play/pause). "Audience Sync" toggle connects to a PartyKit room via WebSocket and drives valence values from live cursor positions using barycentric region weighting. Supports light-wave and charged-particle modes, group/valence coloring, and orbit camera. Index card added to landing page.
@@ -96,7 +96,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - Valence Viz: live user dots now appear as soon as a participant connects (on `userJoined`) and disappear when they disconnect (on `userLeft`), rather than appearing only on first touch and never leaving
 - Valence Viz: freed live slots now restore their original sim values, so the dot snaps back to the synthetic trajectory instead of freezing at the last live position
 
-## [Week 18] (2026-03-23)
+## Week 18 (2026-03-23)
 
 ### Added
 - V4 Admin: new "Activities" config tab — switch the room between Canvas (default reaction canvas) and Soccer modes; activity change is broadcast to all participants in real time
@@ -104,7 +104,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - V4 Admin: new "Avatars" config tab lets the admin select a DiceBear avatar style (adventurer, avataaars, bottts, fun-emoji, identicon, lorelei, micah, open-peeps, pixel-art, thumbs) or revert to colored dots; the choice is broadcast to all participants in the room
 - Canvas: when an avatar style is set by the admin, each participant's cursor is rendered as a circular DiceBear avatar (seeded from their user ID) with a colored border ring; selecting "None" restores the original colored dot + label display
 
-## [Week 15] (2026-03-02)
+## Week 15 (2026-03-02)
 
 ### Added
 - V1/V2/V3/V4: `?room=` is now the canonical param for setting the PartyKit room across all apps; `?videoId=` is a deprecated alias that still works for backward compatibility; in V2 `?room=` also sets the YouTube video ID
@@ -175,7 +175,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - V4: `?` keyboard shortcut and help modal removed from the canvas view (settings moved to admin page)
 - V3 participation and admin components deleted; `#v3` now redirects to `#v4` and V3 cards removed from the app landing page
 
-## [Week 14] (2026-02-23)
+## Week 14 (2026-02-23)
 
 ### Added
 - V4: help modal (press `?`) with a label-set picker; hints with links per preset; custom option encodes labels as base64 in URL; "None" hides labels
@@ -225,7 +225,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - Fix connection counter in V2 always showing zero; root cause was server-side presenceCount logic never having been committed/deployed
 - Back button broken by `replaceState` normalising `?room=default` into the history entry — default room is now used silently without touching the URL
 
-## [Week 1] (2025-11-24)
+## Week 1 (2025-11-24)
 
 ### Added
 - Ghost cursors: 10 simulated cursors wandering the canvas with simplex noise at rest and moving toward vote-zone hotspots
@@ -241,7 +241,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - Statement queue ordering: next statement is scheduled 10 seconds after the *last queued* statement, not 10 seconds from now
 - Admin panel timecode column removed
 
-## [Week 0] (2025-11-17)
+## Week 0 (2025-11-17)
 
 ### Added
 - Canvas MVP: real-time shared cursor positions over WebSockets via PartyKit, rendered as a D3 SVG layer with normalized (0–100) coordinates
