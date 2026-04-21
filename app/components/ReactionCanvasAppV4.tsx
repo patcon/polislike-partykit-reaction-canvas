@@ -75,6 +75,8 @@ export default function ReactionCanvasAppV4() {
   const [unlockedInterfaces] = useState(() => getUnlockedInterfaces());
   const [activeInterface, setActiveInterface] = useState(() => {
     const unlocked = getUnlockedInterfaces();
+    const saved = localStorage.getItem('v4-active-interface');
+    if (saved && unlocked.includes(saved)) return saved;
     return unlocked.includes('emcee') ? 'emcee' : 'canvas';
   });
   const [userId] = useState(() => getPersistentUserId());
@@ -96,6 +98,10 @@ export default function ReactionCanvasAppV4() {
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('v4-active-interface', activeInterface);
+  }, [activeInterface]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
