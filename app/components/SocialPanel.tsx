@@ -58,7 +58,7 @@ export default function SocialPanel({ socialConfig }: SocialPanelProps) {
     const text = buildPostText(socialConfig.default, socialConfig[p.key]);
 
     if (p.action === 'copy-then-open') {
-      await navigator.clipboard.writeText(text);
+      try { await navigator.clipboard.writeText(text); } catch { /* clipboard unavailable on HTTP */ }
       setCopiedKey(p.key);
       setTimeout(() => setCopiedKey(null), 2000);
       window.open(p.openUrl, '_blank', 'noopener,noreferrer');
