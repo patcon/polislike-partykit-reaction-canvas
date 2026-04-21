@@ -73,6 +73,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
   const [liveCursors, setLiveCursors] = useState<Map<string, {x: number; y: number}>>(new Map());
   const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence'>('valence');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const staleTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // Labels config state
@@ -1345,28 +1346,41 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {(['positive', 'negative', 'neutral', null] as (ReactionRegion | null)[]).map(region => {
+                const groupKey = String(region);
                 const members = [...connectedUsers].filter(userId => {
                   const cursor = liveCursors.get(userId);
                   if (!cursor) return region === null;
                   return computeReactionRegion(cursor.x, cursor.y, activeAnchors) === region;
                 });
-                if (members.length === 0) return null;
                 const groupLabel = region === null ? 'Lurking' : activeLabels[region];
+                const collapsed = collapsedGroups.has(groupKey);
+                const toggleCollapse = () => setCollapsedGroups(prev => {
+                  const s = new Set(prev);
+                  s.has(groupKey) ? s.delete(groupKey) : s.add(groupKey);
+                  return s;
+                });
                 return (
-                  <div key={String(region)}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, paddingRight: 10 }}>
-                      <span style={{ fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1 }}>
+                  <div key={groupKey}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: collapsed ? 0 : 6, paddingRight: 10 }}>
+                      <button onClick={toggleCollapse} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: 0, fontSize: 10, width: 12, textAlign: 'center', flexShrink: 0 }}>
+                        {collapsed ? '▶' : '▼'}
+                      </button>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1, cursor: 'pointer' }} onClick={toggleCollapse}>
                         {groupLabel} ({members.length})
                       </span>
                       <button disabled style={{ opacity: 0.3, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>
                         ···
                       </button>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {members.map(userId => (
-                        <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} />
-                      ))}
-                    </div>
+                    {!collapsed && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {members.length === 0 ? (
+                          <div style={{ padding: '4px 10px', color: '#444', fontSize: 12, fontStyle: 'italic' }}>empty</div>
+                        ) : members.map(userId => (
+                          <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} />
+                        ))}
+                      </div>
+                    )}
                   </div>
                 );
               })}
