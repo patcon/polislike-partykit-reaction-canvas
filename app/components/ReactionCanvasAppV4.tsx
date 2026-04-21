@@ -150,8 +150,9 @@ export default function ReactionCanvasAppV4() {
         <AdminPanelV4 room={room} />
       ) : activeInterface === 'social' ? (
         <SocialPanel socialConfig={serverSocialConfig} />
-      ) : (
-        <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
+      ) : null}
+      {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: activeInterface === 'canvas' ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
@@ -239,7 +240,6 @@ export default function ReactionCanvasAppV4() {
             />
           )}
         </div>
-      )}
     </div>
   );
 }
