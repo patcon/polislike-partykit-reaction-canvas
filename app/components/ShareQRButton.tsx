@@ -4,6 +4,8 @@ import { QRCodeSVG } from "qrcode.react";
 function getShareUrl(): string {
   const p = new URLSearchParams(window.location.search);
   p.delete('forceView');
+  p.delete('interface');
+  p.delete('admin');
   const qs = p.toString();
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
 }
