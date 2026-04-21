@@ -2,6 +2,7 @@
   "name": "polislike-partykit-reaction-canvas",
   "version": "0.0.0",
   "private": true,
+  "packageManager": "pnpm@10.18.0",
   "scripts": {
     "dev": "partykit dev --live",
     "deploy": "npm run cachebust && partykit deploy",
