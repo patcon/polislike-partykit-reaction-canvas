@@ -7,6 +7,8 @@ on:
 jobs:
   deploy-preview:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     permissions:
       pull-requests: write
     steps:
@@ -19,7 +21,7 @@ jobs:
           node-version: 18
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: npm run cachebust && npx partykit deploy --preview pr-${{ github.event.pull_request.number }} --with-vars
+      - run: pnpm run cachebust && pnpm exec partykit deploy --preview pr-${{ github.event.pull_request.number }} --with-vars
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
