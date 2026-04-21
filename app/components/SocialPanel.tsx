@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { FaXTwitter, FaBluesky, FaMastodon, FaInstagram } from "react-icons/fa6";
 import type { SocialConfig } from "../types";
 
 interface SocialPanelProps {
@@ -14,6 +15,7 @@ type PlatformKey = keyof Omit<SocialConfig, 'default'>;
 interface Platform {
   key: PlatformKey;
   mainLabel: string;
+  icon: React.ReactNode;
   buildUrl?: (text: string) => string;
   openUrl?: string;
 }
@@ -22,21 +24,25 @@ const PLATFORMS: Platform[] = [
   {
     key: 'twitter',
     mainLabel: 'Share to Twitter / X',
+    icon: <FaXTwitter />,
     buildUrl: text => `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
   },
   {
     key: 'bluesky',
     mainLabel: 'Share to Bluesky',
+    icon: <FaBluesky />,
     buildUrl: text => `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
   },
   {
     key: 'mastodon',
     mainLabel: 'Share on Mastodon',
+    icon: <FaMastodon />,
     buildUrl: text => `https://mastodonshare.com/?text=${encodeURIComponent(text)}`,
   },
   {
     key: 'instagram',
     mainLabel: 'Open Instagram',
+    icon: <FaInstagram />,
     openUrl: 'https://www.instagram.com',
   },
 ];
@@ -114,7 +120,8 @@ export default function SocialPanel({ socialConfig }: SocialPanelProps) {
       ) : (
         visiblePlatforms.map(p => (
           <div key={p.key} style={{ width: '100%', maxWidth: 320, display: 'flex', gap: 8 }}>
-            <button onClick={() => handleOpen(p)} style={{ ...BTN, flex: 1 }}>
+            <button onClick={() => handleOpen(p)} style={{ ...BTN, flex: 1, display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{p.icon}</span>
               {p.mainLabel}
             </button>
             <button
