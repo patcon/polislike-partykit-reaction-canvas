@@ -1130,6 +1130,8 @@ body {
 .admin-v4-tab-bar {
   scrollbar-width: none;
   -ms-overflow-style: none;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
 }
 
 .admin-v4-tab-bar::-webkit-scrollbar {
