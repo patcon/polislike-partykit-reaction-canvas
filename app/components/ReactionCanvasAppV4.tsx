@@ -42,11 +42,21 @@ const CHIP_BAR_HEIGHT = 40;
   }
 })();
 
+const PUSHED_INTERFACES_KEY = 'v4-pushed-interfaces';
+
 function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
   const interfaces = ['canvas'];
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
   if (p.get('interface') === 'social') interfaces.push('social');
+  try {
+    const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
+    if (Array.isArray(stored)) {
+      for (const key of stored) {
+        if (typeof key === 'string' && !interfaces.includes(key)) interfaces.push(key);
+      }
+    }
+  } catch { /* ignore */ }
   return interfaces;
 }
 
@@ -247,7 +257,16 @@ export default function ReactionCanvasAppV4() {
               interfaceName={pushedInterface}
               onAccept={() => {
                 socketSendRef.current?.(JSON.stringify({ type: 'acceptInterface', interfaceName: pushedInterface }));
-                setUnlockedInterfaces(prev => prev.includes(pushedInterface) ? prev : [...prev, pushedInterface]);
+                setUnlockedInterfaces(prev => {
+                  if (prev.includes(pushedInterface)) return prev;
+                  try {
+                    const stored: string[] = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
+                    if (!stored.includes(pushedInterface)) {
+                      localStorage.setItem(PUSHED_INTERFACES_KEY, JSON.stringify([...stored, pushedInterface]));
+                    }
+                  } catch { /* ignore */ }
+                  return [...prev, pushedInterface];
+                });
                 setActiveInterface(pushedInterface);
                 setPushedInterface(null);
               }}
