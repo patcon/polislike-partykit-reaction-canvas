@@ -74,7 +74,19 @@ export default function SocialPanel({ socialConfig }: SocialPanelProps) {
   const handleCopy = async (p: Platform) => {
     if (!socialConfig) return;
     const text = buildPostText(socialConfig.default, socialConfig[p.key]);
-    try { await navigator.clipboard.writeText(text); } catch { /* clipboard unavailable on HTTP */ }
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      // Fallback for iOS Safari and HTTP contexts
+      const el = document.createElement('textarea');
+      el.value = text;
+      el.style.cssText = 'position:fixed;opacity:0;top:0;left:0';
+      document.body.appendChild(el);
+      el.focus();
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
     setCopiedKey(p.key);
     setTimeout(() => setCopiedKey(null), 2000);
   };
