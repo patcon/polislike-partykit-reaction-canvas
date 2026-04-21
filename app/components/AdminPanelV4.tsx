@@ -8,15 +8,15 @@ import ImageConfigModal from "./ImageConfigModal";
 import SocialConfigModal from "./SocialConfigModal";
 import type { SocialConfig } from "../types";
 
-function ParticipantRow({ userId, region, labels, onPush }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet; onPush: () => void }) {
+function ParticipantRow({ userId, region, labels, onPush, online }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet; onPush: () => void; online: boolean }) {
   const regionColor = region === 'positive' ? '#4a4' : region === 'negative' ? '#a44' : region === 'neutral' ? '#aa4' : '#555';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: '#1a1a1a', borderRadius: 4 }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: regionColor, flexShrink: 0 }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: '#1a1a1a', borderRadius: 4, opacity: online ? 1 : 0.4 }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: online ? regionColor : '#333', flexShrink: 0 }} />
       <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#ccc', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {userId}
       </span>
-      <button onClick={onPush} style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'pointer' }}>
+      <button onClick={onPush} disabled={!online} style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: online ? 'pointer' : 'not-allowed', opacity: online ? 1 : 0 }}>
         ···
       </button>
     </div>
@@ -63,6 +63,12 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
   // Participants tab state
   const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
+  const [seenUsers, setSeenUsers] = useState<Set<string>>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(`v4-seen-users-${room}`) ?? '[]');
+      return new Set(Array.isArray(stored) ? stored : []);
+    } catch { return new Set(); }
+  });
   const [liveCursors, setLiveCursors] = useState<Map<string, {x: number; y: number}>>(new Map());
   const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence'>('valence');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
@@ -266,10 +272,20 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           return;
         }
 
+        const addSeenUser = (userId: string) => {
+          setSeenUsers(prev => {
+            if (prev.has(userId)) return prev;
+            const next = new Set([...prev, userId]);
+            localStorage.setItem(`v4-seen-users-${room}`, JSON.stringify([...next]));
+            return next;
+          });
+        };
+
         // Participant tracking — always runs regardless of recording state
         if (data.type === 'userJoined' || data.type === 'userLeft') {
           if (data.type === 'userJoined') {
             setConnectedUsers(prev => new Set([...prev, data.userId]));
+            addSeenUser(data.userId);
           } else {
             setConnectedUsers(prev => { const s = new Set(prev); s.delete(data.userId); return s; });
             setLiveCursors(prev => { const m = new Map(prev); m.delete(data.userId); return m; });
@@ -281,6 +297,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         if (data.type === 'move' || data.type === 'touch') {
           const { userId: cursorUserId, x: cx, y: cy } = data.position;
           setConnectedUsers(prev => new Set([...prev, cursorUserId]));
+          addSeenUser(cursorUserId);
           setLiveCursors(prev => new Map(prev).set(cursorUserId, { x: cx, y: cy }));
           clearTimeout(staleTimersRef.current.get(cursorUserId));
           staleTimersRef.current.set(cursorUserId, setTimeout(() => {
@@ -1468,14 +1485,15 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               </div>
             )}
 
-            {connectedUsers.size === 0 ? (
-              <p style={{ color: '#666', fontSize: 13 }}>No participants connected.</p>
+            {seenUsers.size === 0 ? (
+              <p style={{ color: '#666', fontSize: 13 }}>No participants seen yet.</p>
             ) : participantGrouping === 'none' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {[...connectedUsers].map(userId => {
+                {[...seenUsers].map(userId => {
+                  const online = connectedUsers.has(userId);
                   const cursor = liveCursors.get(userId);
                   const region = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null;
-                  return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />;
+                  return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} online={online} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />;
                 })}
               </div>
             ) : (
@@ -1487,6 +1505,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                     if (!cursor) return region === null;
                     return computeReactionRegion(cursor.x, cursor.y, activeAnchors) === region;
                   });
+                  const offlineMembers = [...seenUsers].filter(userId => !connectedUsers.has(userId));
                   const groupLabel = region === null ? 'Lurking' : activeLabels[region];
                   const collapsed = collapsedGroups.has(groupKey);
                   const toggleCollapse = () => setCollapsedGroups(prev => {
@@ -1501,7 +1520,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                           {collapsed ? '▶' : '▼'}
                         </button>
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1, cursor: 'pointer' }} onClick={toggleCollapse}>
-                          {groupLabel} ({members.length})
+                          {groupLabel} ({members.length}{region === null && offlineMembers.length > 0 ? ` + ${offlineMembers.length} offline` : ''})
                         </span>
                         <button
                           onClick={() => { setPushTarget({ kind: 'region', region }); setPendingInterfaceName(''); }}
@@ -1512,20 +1531,38 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                       </div>
                       {!collapsed && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {members.length === 0 ? (
+                          {members.length === 0 && (region !== null || offlineMembers.length === 0) ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px' }}>
                               <span style={{ width: 8, height: 8, flexShrink: 0 }} />
                               <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#444', fontStyle: 'italic', flex: 1 }}>empty</span>
                               <button disabled style={{ opacity: 0, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>···</button>
                             </div>
-                          ) : members.map(userId => (
-                            <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />
+                          ) : null}
+                          {members.map(userId => (
+                            <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} online={true} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />
+                          ))}
+                          {region === null && offlineMembers.map(userId => (
+                            <ParticipantRow key={userId} userId={userId} region={null} labels={activeLabels} online={false} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />
                           ))}
                         </div>
                       )}
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {seenUsers.size > 0 && (
+              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem(`v4-seen-users-${room}`);
+                    setSeenUsers(new Set());
+                  }}
+                  style={{ fontSize: 11, color: '#555', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
+                >
+                  Clear history
+                </button>
               </div>
             )}
 
