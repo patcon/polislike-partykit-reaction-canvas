@@ -4,7 +4,6 @@ import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
 import type { ReactionRegion, ReactionAnchors } from "../utils/voteRegion";
 import { REACTION_LABEL_PRESETS, getCustomLabelHistory, saveCustomLabelToHistory, removeCustomLabelFromHistory } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
-import Canvas from "./Canvas";
 import ImageConfigModal from "./ImageConfigModal";
 
 function ParticipantRow({ userId, region, labels }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet }) {
@@ -50,7 +49,6 @@ function anchorToLocal(anchors: ReactionAnchors) {
 type AdminTab = 'record' | 'labels' | 'anchors' | 'avatars' | 'interfaces' | 'events' | 'participants';
 
 export default function AdminPanelV4({ room }: AdminPanelV4Props) {
-  const [isPeeking, setIsPeeking] = useState(false);
 
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState<RecordingMode>('positions');
@@ -721,21 +719,6 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             {connectedUsers.size > 0 && (
               <span style={{ fontSize: 12, color: '#666' }}>{connectedUsers.size} online</span>
             )}
-            <button
-              onClick={() => setIsPeeking(p => !p)}
-              style={{
-                padding: '4px 10px',
-                background: isPeeking ? '#444' : 'transparent',
-                color: isPeeking ? '#eee' : '#777',
-                border: '1px solid #555',
-                borderRadius: 4,
-                cursor: 'pointer',
-                fontSize: 12,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              👁 Peek
-            </button>
           </div>
         </div>
 
@@ -1449,31 +1432,6 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           </div>
         )}
       </div>
-
-      {/* === PEEK CANVAS OVERLAY === */}
-      {isPeeking && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 100, background: '#1a1a1a', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ flexShrink: 0, padding: '8px 16px', borderBottom: '1px solid #444', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ color: '#aaa', fontSize: 13, fontFamily: 'monospace' }}>Canvas Peek — {room}</span>
-            <button
-              onClick={() => setIsPeeking(false)}
-              style={{ background: 'none', border: '1px solid #555', color: '#aaa', padding: '5px 12px', borderRadius: 4, cursor: 'pointer', fontSize: 13 }}
-            >
-              ✕ Close
-            </button>
-          </div>
-          <div style={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-            <Canvas
-              room={room}
-              userId="admin-peek"
-              readOnly={true}
-              colorCursorsByVote={true}
-              debug={true}
-              heightOffset={46}
-            />
-          </div>
-        </div>
-      )}
 
       {imageConfigOpen && (
         <ImageConfigModal

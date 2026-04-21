@@ -1594,3 +1594,42 @@ body {
 .image-canvas-config-link:hover {
   color: #9cf;
 }
+
+/* Interface chip bar */
+.interface-chip-bar {
+  display: flex;
+  flex-direction: row;
+  overflow-x: auto;
+  gap: 6px;
+  padding: 6px 10px 6px 58px;
+  background: #111;
+  border-bottom: 1px solid #333;
+  flex-shrink: 0;
+  height: 40px;
+  align-items: center;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+
+.interface-chip-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.interface-chip {
+  flex-shrink: 0;
+  padding: 3px 14px;
+  border-radius: 999px;
+  border: 1px solid #444;
+  background: #1e1e1e;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  touch-action: manipulation;
+}
+
+.interface-chip--active {
+  background: #2a4a7f;
+  border-color: #4a7acf;
+  color: #e8f0ff;
+}
