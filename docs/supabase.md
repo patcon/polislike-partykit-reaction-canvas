@@ -47,13 +47,12 @@ Edit the `serve.build.define` section with your actual values:
 
 ```json
 "define": {
-  "process.env.PARTYKIT_HOST": "'polislike-partykit-reaction-canvas.patcon.partykit.dev'",
   "process.env.PARTYKIT_SUPABASE_URL": "\"https://your-project.supabase.co\"",
   "process.env.PARTYKIT_SUPABASE_ANON_KEY": "\"eyJ...your-anon-key...\""
 }
 ```
 
-These values are bundled into the client-side JavaScript at build time — both for `npm run dev` and `npm run deploy`. The anon key is safe to commit since it only grants access to the `reaction_events` table and RLS is intentionally permissive.
+These values are bundled into the client-side JavaScript at build time — both for `pnpm run dev` and `pnpm run deploy`. The anon key is safe to commit since it only grants access to the `reaction_events` table and RLS is intentionally permissive.
 
 > **Note:** `npx partykit env add` does **not** work for this — PartyKit cloud env vars are only available to server-side code (`party/server.ts`), not to the client-side esbuild `define` step. Credentials must be embedded directly in `partykit.json`.
 >

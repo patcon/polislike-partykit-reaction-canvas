@@ -13,11 +13,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: "npm"
-      - run: npm ci
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
       - run: npm run deploy -- --with-vars
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
