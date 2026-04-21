@@ -13,8 +13,7 @@ type PlatformKey = keyof Omit<SocialConfig, 'default'>;
 
 interface Platform {
   key: PlatformKey;
-  label: string;
-  action: 'open-url' | 'copy-and-open';
+  mainLabel: string;
   buildUrl?: (text: string) => string;
   openUrl?: string;
 }
@@ -22,26 +21,22 @@ interface Platform {
 const PLATFORMS: Platform[] = [
   {
     key: 'twitter',
-    label: 'Post to Twitter / X',
-    action: 'open-url',
+    mainLabel: 'Share to Twitter / X',
     buildUrl: text => `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`,
   },
   {
     key: 'bluesky',
-    label: 'Post to Bluesky',
-    action: 'open-url',
+    mainLabel: 'Share to Bluesky',
     buildUrl: text => `https://bsky.app/intent/compose?text=${encodeURIComponent(text)}`,
   },
   {
     key: 'mastodon',
-    label: 'Share on Mastodon',
-    action: 'open-url',
+    mainLabel: 'Share on Mastodon',
     buildUrl: text => `https://mastodonshare.com/?text=${encodeURIComponent(text)}`,
   },
   {
     key: 'instagram',
-    label: 'Instagram',
-    action: 'copy-and-open',
+    mainLabel: 'Open Instagram',
     openUrl: 'https://www.instagram.com',
   },
 ];
@@ -58,6 +53,15 @@ const BTN: React.CSSProperties = {
   textAlign: 'left',
 };
 
+const COPY_BTN: React.CSSProperties = {
+  ...BTN,
+  padding: '14px 16px',
+  flexShrink: 0,
+  textAlign: 'center',
+  fontSize: 18,
+  color: '#888',
+};
+
 export default function SocialPanel({ socialConfig }: SocialPanelProps) {
   const [copiedKey, setCopiedKey] = useState<PlatformKey | null>(null);
 
@@ -68,7 +72,8 @@ export default function SocialPanel({ socialConfig }: SocialPanelProps) {
   const handleOpen = (p: Platform) => {
     if (!socialConfig) return;
     const text = buildPostText(socialConfig.default, socialConfig[p.key]);
-    window.open(p.action === 'open-url' ? p.buildUrl!(text) : p.openUrl, '_blank', 'noopener,noreferrer');
+    const url = p.buildUrl ? p.buildUrl(text) : p.openUrl!;
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   const handleCopy = async (p: Platform) => {
@@ -108,24 +113,18 @@ export default function SocialPanel({ socialConfig }: SocialPanelProps) {
         <p style={{ color: '#555', fontSize: 14 }}>No social sharing links configured yet.</p>
       ) : (
         visiblePlatforms.map(p => (
-          p.action === 'copy-and-open' ? (
-            <div key={p.key} style={{ width: '100%', maxWidth: 320, display: 'flex', gap: 8 }}>
-              <button onClick={() => handleCopy(p)} style={{ ...BTN, flex: 1 }}>
-                {copiedKey === p.key ? 'Copied!' : `Copy ${p.label} text`}
-              </button>
-              <button onClick={() => handleOpen(p)} style={{ ...BTN, flex: 1 }}>
-                Open {p.label}
-              </button>
-            </div>
-          ) : (
-            <button
-              key={p.key}
-              onClick={() => handleOpen(p)}
-              style={{ ...BTN, width: '100%', maxWidth: 320 }}
-            >
-              {p.label}
+          <div key={p.key} style={{ width: '100%', maxWidth: 320, display: 'flex', gap: 8 }}>
+            <button onClick={() => handleOpen(p)} style={{ ...BTN, flex: 1 }}>
+              {p.mainLabel}
             </button>
-          )
+            <button
+              onClick={() => handleCopy(p)}
+              style={{ ...COPY_BTN, color: copiedKey === p.key ? '#6f6' : '#888' }}
+              title="Copy post text"
+            >
+              {copiedKey === p.key ? '✓' : '⎘'}
+            </button>
+          </div>
         ))
       )}
     </div>
