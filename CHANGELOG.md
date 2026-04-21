@@ -18,6 +18,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - V4 admin: confirm dialog on the Clear button shows the current event count before discarding ([`d579f85`](https://github.com/patcon/polislike-partykit-reaction-canvas/commit/d579f85))
 
 ### Fixed
+- All versions: preview deployments now connect to their own isolated PartyKit server instead of production — replaced the hardcoded `process.env.PARTYKIT_HOST` build-time define with `window.location.hostname` so each environment (local dev, staging, PR preview, production) automatically uses its own server
 - V4 admin: fix vertical bounce when swiping the tab bar on iOS/Android — added `touch-action: pan-x` and `overscroll-behavior-x: contain` so the browser treats tab-bar swipes as horizontal-only ([`d579f85`](https://github.com/patcon/polislike-partykit-reaction-canvas/commit/d579f85))
 
 ## Week 21 (2026-04-13)

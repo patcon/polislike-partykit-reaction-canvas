@@ -52,7 +52,7 @@ export default function SimpleReactionCanvasAppV1() {
   }, []);
 
   const socket = usePartySocket({
-    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : process.env.PARTYKIT_HOST,
+    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : window.location.hostname,
     room: room,
     onMessage(evt) {
       try {

@@ -8,7 +8,6 @@
     "build": {
       "entry": "app/client.tsx",
       "define": {
-        "process.env.PARTYKIT_HOST": "'your-project-name.your-username.partykit.dev'",
         "process.env.PARTYKIT_SUPABASE_URL": "\"https://your-project.supabase.co\"",
         "process.env.PARTYKIT_SUPABASE_ANON_KEY": "\"your-supabase-anon-key\""
       }

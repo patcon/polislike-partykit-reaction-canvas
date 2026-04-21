@@ -7,14 +7,17 @@ on:
 jobs:
   delete-preview:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 18
-          cache: "npm"
-      - run: npm ci
-      - run: npx partykit delete --preview pr-${{ github.event.pull_request.number }} --force
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec partykit delete --preview pr-${{ github.event.pull_request.number }} --force
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
