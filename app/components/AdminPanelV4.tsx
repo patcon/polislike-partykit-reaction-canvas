@@ -846,7 +846,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               </button>
               <button
                 className="v3-admin-btn v3-admin-btn--destructive"
-                onClick={clearEvents}
+                onClick={() => { if (confirm(`Clear all ${eventCount} recorded events?`)) clearEvents(); }}
                 disabled={eventCount === 0}
               >
                 ✕ Clear
