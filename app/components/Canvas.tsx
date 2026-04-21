@@ -43,6 +43,7 @@ interface CanvasProps {
   onActivityTriggered?: (activityName: string) => void;
   onRoomImageUrlChange?: (url: string) => void;
   onActivityChange?: (activity: 'canvas' | 'soccer' | 'image-canvas') => void;
+  onSocialConfigChange?: (config: { default: string; twitter: string; bluesky: string; mastodon: string; instagram: string } | null) => void;
 }
 
 // Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
@@ -66,7 +67,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onRoomImageUrlChange, onActivityChange, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -135,6 +136,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           }
           if ('ballState' in data && data.ballState) setBallPos({ x: data.ballState.x, y: data.ballState.y });
           if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore);
+          if ('roomSocialConfig' in data) onSocialConfigChange?.(data.roomSocialConfig ?? null);
           onConnectedAsViewer?.(data.isViewer ?? false, data.userCap ?? null);
           onViewerCount?.(data.viewerCount ?? 0);
           return;
@@ -192,6 +194,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           if (data.ball) setBallPos({ x: data.ball.x, y: data.ball.y });
           if (data.score) setSoccerScore(data.score);
           if (data.activity !== 'soccer') setBallPos(null);
+          return;
+        }
+
+        if (data.type === 'socialConfigChanged') {
+          onSocialConfigChange?.(data.config ?? null);
           return;
         }
 

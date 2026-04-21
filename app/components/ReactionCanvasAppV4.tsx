@@ -4,6 +4,8 @@ import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
 import InterfaceChipBar from "./InterfaceChipBar";
+import SocialPanel from "./SocialPanel";
+import type { SocialConfig } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
@@ -43,6 +45,7 @@ function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
   const interfaces = ['canvas'];
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
+  if (p.get('interface') === 'social') interfaces.push('social');
   return interfaces;
 }
 
@@ -72,6 +75,8 @@ export default function ReactionCanvasAppV4() {
   const [unlockedInterfaces] = useState(() => getUnlockedInterfaces());
   const [activeInterface, setActiveInterface] = useState(() => {
     const unlocked = getUnlockedInterfaces();
+    const saved = localStorage.getItem('v4-active-interface');
+    if (saved && unlocked.includes(saved)) return saved;
     return unlocked.includes('emcee') ? 'emcee' : 'canvas';
   });
   const [userId] = useState(() => getPersistentUserId());
@@ -88,10 +93,15 @@ export default function ReactionCanvasAppV4() {
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const [serverImageUrl, setServerImageUrl] = useState('');
+  const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
   const [activity, setActivity] = useState<'canvas' | 'soccer' | 'image-canvas'>('canvas');
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem('v4-active-interface', activeInterface);
+  }, [activeInterface]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -124,6 +134,7 @@ export default function ReactionCanvasAppV4() {
   const INTERFACE_CHIPS = [
     { key: 'canvas', label: 'Canvas' },
     { key: 'emcee', label: 'Emcee' },
+    { key: 'social', label: 'Social' },
   ];
 
   return (
@@ -137,8 +148,11 @@ export default function ReactionCanvasAppV4() {
       )}
       {activeInterface === 'emcee' ? (
         <AdminPanelV4 room={room} />
-      ) : (
-        <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
+      ) : activeInterface === 'social' ? (
+        <SocialPanel socialConfig={serverSocialConfig} />
+      ) : null}
+      {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: activeInterface === 'canvas' ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
@@ -194,6 +208,7 @@ export default function ReactionCanvasAppV4() {
             }}
             onRoomImageUrlChange={setServerImageUrl}
             onActivityChange={setActivity}
+            onSocialConfigChange={setServerSocialConfig}
             debug={debug}
           />
           {!isViewer && (
@@ -225,7 +240,6 @@ export default function ReactionCanvasAppV4() {
             />
           )}
         </div>
-      )}
     </div>
   );
 }
