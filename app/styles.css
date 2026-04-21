@@ -1126,6 +1126,18 @@ body {
   cursor: not-allowed;
 }
 
+/* AdminPanelV4 mobile-friendly tab bar */
+.admin-v4-tab-bar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+
+.admin-v4-tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
 
 /* Responsive ghost cursors control */
 @media (max-width: 768px) {

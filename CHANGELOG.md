@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- V4 admin: mobile-friendly layout — replaced the two-column desktop layout with a single-column tab-based UI; "Record" tab consolidates recording controls, status, playback, and the events table; config tabs (Labels, Anchors, Avatars, Interface, Events, People) are now top-level tabs in a horizontally-scrollable tab bar; "Peek Canvas" is now a toggle button in the persistent header that opens a full-screen overlay rather than a tab
+- V4 admin: recorded events table is always visible in the Record tab, even before any events have been captured
+- V4 admin: JSON download is available while recording is in progress, not only after stopping
+- V4 admin: confirm dialog on the Clear button shows the current event count before discarding
 - V4 admin: Participants tab — lists all connected users grouped by their current valence zone (using the active label set for group headings); users with no active cursor appear under "Lurking"; flat list available via grouping dropdown; row layout includes a disabled action button placeholder for future per-user actions
 - V4 admin: Image Canvas interface mode — admin selects "Image Canvas" in the Interfaces tab and uses the adjacent "config" link to set a public image URL; the image is broadcast to all participants as the canvas background (fitted with `object-fit: contain`); cursor positions are normalized to image-relative coordinates so reactions stay anchored to the same image content regardless of screen size
 - V4 admin: renamed "Canvas" interface option to "Reaction Canvas" in the Interfaces tab
@@ -17,6 +21,7 @@ All notable changes to this project will be documented in this file.
 - Onboarding V2: per-element opacity sliders in the style grid (radial / trace / cursor / fill), replacing the single global opacity slider; trace and fill sliders dim alongside their other controls when in 2d time slice mode
 
 ### Fixed
+- V4 admin: fix vertical bounce when swiping the tab bar on iOS/Android — added `touch-action: pan-x` and `overscroll-behavior-x: contain` so the browser treats tab-bar swipes as horizontal-only
 - Index: fix Android scroll bug where top cards were unreachable — changed `justify-content: center` to `justify-content: flex-start` on `.index-app` to prevent inaccessible top overflow in flex scroll containers
 - Onboarding V2: fix black chord/dot outlines appearing on fill surface when radial/cursor opacity is 0 — chord and dot materials now have `depthWrite:false`, consistent with trace and fill materials
 - Onboarding V2: fix fill surface origin — fill now anchors to each chord's historically-correct root position (stored alongside tip in history) instead of always the global canvas centre; fixes parallel mode where each chord has a distinct root x-position, and correctly tracks the root through geometry transitions
