@@ -125,6 +125,11 @@ interface TriggerActivityEvent {
   activityName: 'githubUsername';
 }
 
+interface SetSocialConfigEvent {
+  type: 'setSocialConfig';
+  config: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
+}
+
 interface SubmitGithubUsernameEvent {
   type: 'submitGithubUsername';
   username: string;
@@ -150,7 +155,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SetSocialConfigEvent;
 
 // ===== SOCCER PHYSICS CONSTANTS =====
 const SOCCER_BALL_R = 2;      // % of canvas
@@ -178,6 +183,7 @@ export default class Server implements Party.Server {
   private roomAvatarStyle: string | null = null;
   private currentActivity: 'canvas' | 'soccer' | 'image-canvas' = 'canvas';
   private roomImageUrl: string = '';
+  private roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null = null;
   private ballState = { x: 50, y: 50, vx: 2, vy: 1 };
   private soccerScore = { left: 0, right: 0 };
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
@@ -274,6 +280,7 @@ export default class Server implements Party.Server {
       roomAvatarStyle: this.roomAvatarStyle,
       currentActivity: this.currentActivity,
       roomImageUrl: this.roomImageUrl,
+      roomSocialConfig: this.roomSocialConfig,
       ballState: this.currentActivity === 'soccer' ? this.ballState : null,
       soccerScore: this.soccerScore,
       isViewer,
@@ -407,6 +414,9 @@ export default class Server implements Party.Server {
         this.githubSubmissions.push(submission);
         // Broadcast to admins so they see it live
         this.room.broadcast(JSON.stringify({ type: 'githubUsernameSubmitted', ...submission }));
+      } else if (event.type === 'setSocialConfig') {
+        this.roomSocialConfig = event.config;
+        this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
       } else if (event.type === 'requestJoin') {
         if (!this.viewerConnectionIds.has(sender.id)) return;
         if (this.userCap !== null && this.participantCount() >= this.userCap) {

@@ -27,3 +27,10 @@ export interface Statement {
   timecode: number;
   text: string;
 }
+
+export interface SocialConfig {
+  default: string;
+  twitter: string;
+  bluesky: string;
+  mastodon: string;
+}

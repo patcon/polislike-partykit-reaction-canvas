@@ -5,6 +5,8 @@ import type { ReactionRegion, ReactionAnchors } from "../utils/voteRegion";
 import { REACTION_LABEL_PRESETS, getCustomLabelHistory, saveCustomLabelToHistory, removeCustomLabelFromHistory } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
 import ImageConfigModal from "./ImageConfigModal";
+import SocialConfigModal from "./SocialConfigModal";
+import type { SocialConfig } from "../types";
 
 function ParticipantRow({ userId, region, labels }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet }) {
   const regionColor = region === 'positive' ? '#4a4' : region === 'negative' ? '#a44' : region === 'neutral' ? '#aa4' : '#555';
@@ -81,6 +83,8 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [soccerScore, setSoccerScore] = useState({ left: 0, right: 0 });
   const [imageConfigOpen, setImageConfigOpen] = useState(false);
   const [roomImageUrl, setRoomImageUrl] = useState('');
+  const [socialConfigOpen, setSocialConfigOpen] = useState(false);
+  const [roomSocialConfig, setRoomSocialConfig] = useState<SocialConfig | null>(null);
 
   // Events (GitHub submissions) state
   interface GithubSubmission {
@@ -194,6 +198,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           if ('roomAvatarStyle' in data) setAvatarStyle(data.roomAvatarStyle ?? null);
           if ('currentActivity' in data) setActivity(data.currentActivity ?? 'canvas');
           if ('roomImageUrl' in data) setRoomImageUrl(data.roomImageUrl ?? '');
+          if ('roomSocialConfig' in data) setRoomSocialConfig(data.roomSocialConfig ?? null);
           if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore);
           if (data.userCap !== undefined) {
             setUserCap(data.userCap);
@@ -224,6 +229,11 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
         if (data.type === 'imageUrlChanged') {
           setRoomImageUrl(data.url ?? '');
+          return;
+        }
+
+        if (data.type === 'socialConfigChanged') {
+          setRoomSocialConfig(data.config ?? null);
           return;
         }
 
@@ -646,6 +656,11 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const sendImageUrl = (url: string) => {
     setRoomImageUrl(url);
     socket.send(JSON.stringify({ type: 'setImageUrl', url }));
+  };
+
+  const sendSocialConfig = (config: SocialConfig) => {
+    setRoomSocialConfig(config);
+    socket.send(JSON.stringify({ type: 'setSocialConfig', config }));
   };
 
   const resetSoccerScore = () => {
@@ -1280,6 +1295,23 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             )}
 
             <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>
+              <p style={{ marginBottom: 12, fontWeight: 600 }}>Social sharing</p>
+              <p style={{ marginBottom: 12, color: '#888', fontSize: 13 }}>Configure prefilled text for participant share buttons. Participants with <code>?interface=social</code> see a button per platform.</p>
+              <div style={{ background: '#222', border: '1px solid #444', borderRadius: 8, padding: '12px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <p style={{ fontWeight: 600, margin: '0 0 2px' }}>Social butterfly</p>
+                  <p style={{ color: '#888', fontSize: 13, margin: 0 }}>Bluesky · Twitter / X · Mastodon</p>
+                </div>
+                <button
+                  className="image-canvas-config-link"
+                  onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}
+                >
+                  config
+                </button>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>
               <p style={{ marginBottom: 4, fontWeight: 600 }}>Popups</p>
               <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Push a one-time form to all participants. Submissions appear in the Events tab.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1438,6 +1470,13 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           currentUrl={roomImageUrl}
           onSubmit={sendImageUrl}
           onClose={() => setImageConfigOpen(false)}
+        />
+      )}
+      {socialConfigOpen && (
+        <SocialConfigModal
+          current={roomSocialConfig}
+          onSubmit={sendSocialConfig}
+          onClose={() => setSocialConfigOpen(false)}
         />
       )}
     </div>
