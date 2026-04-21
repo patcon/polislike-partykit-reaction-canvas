@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 
 const CAM_MODES = ['static', 'lerp', 'exp', 'spring', 'quat'];
-const DEFAULT_HOST = 'polislike-partykit-reaction-canvas.patcon.partykit.dev';
 
 interface SceneActions {
   togglePlay: () => void;
@@ -799,7 +798,7 @@ export default function ValenceViz() {
       if (wsReconnectTimer) clearTimeout(wsReconnectTimer);
       setWsStatusText('connecting…'); setWsStatusCls('connecting');
       setWsConnected(false);
-      const host=window.location.port==='1999'?`${window.location.hostname}:1999`:DEFAULT_HOST;
+      const host=window.location.port==='1999'?`${window.location.hostname}:1999`:window.location.hostname;
       const proto=window.location.port==='1999'?'ws':'wss';
       const userId=crypto.randomUUID();
       ws=new WebSocket(`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`);

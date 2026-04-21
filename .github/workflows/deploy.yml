@@ -22,4 +22,3 @@ jobs:
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
-          PARTYKIT_HOST: polislike-partykit-reaction-canvas.patcon.partykit.dev

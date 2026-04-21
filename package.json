@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "partykit dev --live",
     "deploy": "npm run cachebust && partykit deploy",
-    "deploy:staging": "npm run cachebust && PARTYKIT_HOST=staging.polislike-partykit-reaction-canvas.patcon.partykit.dev partykit deploy --preview staging --with-vars",
+    "deploy:staging": "npm run cachebust && partykit deploy --preview staging --with-vars",
     "cachebust": "node scripts/build-with-cachebust.js",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build"

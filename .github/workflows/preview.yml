@@ -22,7 +22,6 @@ jobs:
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
-          PARTYKIT_HOST: pr-${{ github.event.pull_request.number }}.polislike-partykit-reaction-canvas.patcon.partykit.dev
       - uses: actions/github-script@v7
         with:
           script: |

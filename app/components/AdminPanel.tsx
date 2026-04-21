@@ -26,7 +26,7 @@ export default function AdminPanel({ room }: AdminPanelProps) {
   const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(false);
 
   const socket = usePartySocket({
-    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : process.env.PARTYKIT_HOST,
+    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : window.location.hostname,
     room: room,
     query: { isAdmin: 'true' },
     onMessage(evt) {
