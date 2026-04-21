@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Added
+- V4 admin: mobile-friendly layout — replaced the two-column desktop layout with a single-column tab-based UI; "Record" tab consolidates recording controls, status, playback, and the events table; config tabs (Labels, Anchors, Avatars, Interface, Events, People) are now top-level tabs in a horizontally-scrollable tab bar; "Peek Canvas" is now a toggle button in the persistent header that opens a full-screen overlay rather than a tab
 - V4 admin: Participants tab — lists all connected users grouped by their current valence zone (using the active label set for group headings); users with no active cursor appear under "Lurking"; flat list available via grouping dropdown; row layout includes a disabled action button placeholder for future per-user actions
 - V4 admin: Image Canvas interface mode — admin selects "Image Canvas" in the Interfaces tab and uses the adjacent "config" link to set a public image URL; the image is broadcast to all participants as the canvas background (fitted with `object-fit: contain`); cursor positions are normalized to image-relative coordinates so reactions stay anchored to the same image content regardless of screen size
 - V4 admin: renamed "Canvas" interface option to "Reaction Canvas" in the Interfaces tab
