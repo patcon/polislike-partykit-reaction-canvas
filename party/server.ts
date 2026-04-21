@@ -161,6 +161,10 @@ interface AcceptInterfaceEvent {
   interfaceName: string;
 }
 
+interface ClearPushedInterfacesEvent {
+  type: 'clearPushedInterfaces';
+}
+
 interface Vote {
   userId: string;
   statementId: number;
@@ -168,7 +172,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -482,6 +486,9 @@ export default class Server implements Party.Server {
         sender.send(JSON.stringify({ type: 'joinApproved' }));
         this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }), [sender.id]);
         sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
+      } else if (event.type === 'clearPushedInterfaces') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        this.room.broadcast(JSON.stringify({ type: 'pushedInterfacesCleared' }));
       } else if (event.type === 'pushInterface') {
         if (!this.adminConnectionIds.has(sender.id)) return;
         const targets = this.getTargetConnections(event.targetUserId, event.targetRegion);

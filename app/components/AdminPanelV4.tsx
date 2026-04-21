@@ -1320,6 +1320,17 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             </div>
 
             <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>
+              <p style={{ marginBottom: 4, fontWeight: 600 }}>Role assignments</p>
+              <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Push interface invitations to participants from the Participants tab. Use this to revoke all pushed roles.</p>
+              <button
+                className="v3-admin-btn v3-admin-btn--destructive"
+                onClick={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
+              >
+                Clear all role assignments
+              </button>
+            </div>
+
+            <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>
               <p style={{ marginBottom: 4, fontWeight: 600 }}>Popups</p>
               <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Push a one-time form to all participants. Submissions appear in the Events tab.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

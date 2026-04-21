@@ -219,6 +219,14 @@ export default function ReactionCanvasAppV4() {
               if (activityName === 'githubUsername') setShowGithubModal(true);
             }}
             onInterfacePushed={(name) => setPushedInterface(name)}
+            onPushedInterfacesCleared={() => {
+              localStorage.removeItem(PUSHED_INTERFACES_KEY);
+              setUnlockedInterfaces(getUnlockedInterfaces());
+              setActiveInterface(prev => {
+                const urlBased = getUnlockedInterfaces();
+                return urlBased.includes(prev) ? prev : (urlBased.includes('emcee') ? 'emcee' : 'canvas');
+              });
+            }}
             onRoomImageUrlChange={setServerImageUrl}
             onActivityChange={setActivity}
             onSocialConfigChange={setServerSocialConfig}
