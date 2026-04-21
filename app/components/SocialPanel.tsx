@@ -14,7 +14,7 @@ type PlatformKey = keyof Omit<SocialConfig, 'default'>;
 interface Platform {
   key: PlatformKey;
   label: string;
-  action: 'open-url' | 'copy-then-open';
+  action: 'open-url' | 'copy-and-open';
   buildUrl?: (text: string) => string;
   openUrl?: string;
 }
@@ -40,11 +40,23 @@ const PLATFORMS: Platform[] = [
   },
   {
     key: 'instagram',
-    label: 'Share on Instagram',
-    action: 'copy-then-open',
+    label: 'Instagram',
+    action: 'copy-and-open',
     openUrl: 'https://www.instagram.com',
   },
 ];
+
+const BTN: React.CSSProperties = {
+  padding: '14px 20px',
+  background: '#1a1a1a',
+  border: '1px solid #444',
+  borderRadius: 8,
+  color: '#eee',
+  fontSize: 15,
+  fontFamily: 'monospace',
+  cursor: 'pointer',
+  textAlign: 'left',
+};
 
 export default function SocialPanel({ socialConfig }: SocialPanelProps) {
   const [copiedKey, setCopiedKey] = useState<PlatformKey | null>(null);
@@ -53,18 +65,18 @@ export default function SocialPanel({ socialConfig }: SocialPanelProps) {
     ? PLATFORMS.filter(p => buildPostText(socialConfig.default, socialConfig[p.key]).length > 0)
     : [];
 
-  const handleClick = async (p: Platform) => {
+  const handleOpen = (p: Platform) => {
     if (!socialConfig) return;
     const text = buildPostText(socialConfig.default, socialConfig[p.key]);
+    window.open(p.action === 'open-url' ? p.buildUrl!(text) : p.openUrl, '_blank', 'noopener,noreferrer');
+  };
 
-    if (p.action === 'copy-then-open') {
-      try { await navigator.clipboard.writeText(text); } catch { /* clipboard unavailable on HTTP */ }
-      setCopiedKey(p.key);
-      setTimeout(() => setCopiedKey(null), 2000);
-      window.open(p.openUrl, '_blank', 'noopener,noreferrer');
-    } else {
-      window.open(p.buildUrl!(text), '_blank', 'noopener,noreferrer');
-    }
+  const handleCopy = async (p: Platform) => {
+    if (!socialConfig) return;
+    const text = buildPostText(socialConfig.default, socialConfig[p.key]);
+    try { await navigator.clipboard.writeText(text); } catch { /* clipboard unavailable on HTTP */ }
+    setCopiedKey(p.key);
+    setTimeout(() => setCopiedKey(null), 2000);
   };
 
   return (
@@ -84,25 +96,24 @@ export default function SocialPanel({ socialConfig }: SocialPanelProps) {
         <p style={{ color: '#555', fontSize: 14 }}>No social sharing links configured yet.</p>
       ) : (
         visiblePlatforms.map(p => (
-          <button
-            key={p.key}
-            onClick={() => handleClick(p)}
-            style={{
-              width: '100%',
-              maxWidth: 320,
-              padding: '14px 20px',
-              background: '#1a1a1a',
-              border: '1px solid #444',
-              borderRadius: 8,
-              color: '#eee',
-              fontSize: 15,
-              fontFamily: 'monospace',
-              cursor: 'pointer',
-              textAlign: 'left',
-            }}
-          >
-            {copiedKey === p.key ? 'Copied! Opening Instagram…' : p.label}
-          </button>
+          p.action === 'copy-and-open' ? (
+            <div key={p.key} style={{ width: '100%', maxWidth: 320, display: 'flex', gap: 8 }}>
+              <button onClick={() => handleCopy(p)} style={{ ...BTN, flex: 1 }}>
+                {copiedKey === p.key ? 'Copied!' : `Copy ${p.label} text`}
+              </button>
+              <button onClick={() => handleOpen(p)} style={{ ...BTN, flex: 1 }}>
+                Open {p.label}
+              </button>
+            </div>
+          ) : (
+            <button
+              key={p.key}
+              onClick={() => handleOpen(p)}
+              style={{ ...BTN, width: '100%', maxWidth: 320 }}
+            >
+              {p.label}
+            </button>
+          )
         ))
       )}
     </div>
