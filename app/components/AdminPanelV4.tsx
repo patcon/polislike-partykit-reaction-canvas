@@ -8,7 +8,7 @@ import ImageConfigModal from "./ImageConfigModal";
 import SocialConfigModal from "./SocialConfigModal";
 import type { SocialConfig } from "../types";
 
-function ParticipantRow({ userId, region, labels }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet }) {
+function ParticipantRow({ userId, region, labels, onPush }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet; onPush: () => void }) {
   const regionColor = region === 'positive' ? '#4a4' : region === 'negative' ? '#a44' : region === 'neutral' ? '#aa4' : '#555';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: '#1a1a1a', borderRadius: 4 }}>
@@ -16,7 +16,7 @@ function ParticipantRow({ userId, region, labels }: { userId: string; region: Re
       <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#ccc', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {userId}
       </span>
-      <button disabled style={{ opacity: 0.3, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>
+      <button onClick={onPush} style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'pointer' }}>
         ···
       </button>
     </div>
@@ -67,6 +67,9 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence'>('valence');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const staleTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const [pushTarget, setPushTarget] = useState<{ kind: 'user'; userId: string } | { kind: 'region'; region: ReactionRegion | null } | null>(null);
+  const [pendingInterfaceName, setPendingInterfaceName] = useState('');
+  const [interfaceAcceptances, setInterfaceAcceptances] = useState<{ userId: string; interfaceName: string }[]>([]);
 
   // Labels config state
   const [labelSelected, setLabelSelected] = useState<string>('default');
@@ -255,6 +258,11 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             avatarUrl: data.avatarUrl ?? null,
             timestamp: data.timestamp,
           }]);
+          return;
+        }
+
+        if (data.type === 'interfaceAccepted') {
+          setInterfaceAcceptances(prev => [...prev, { userId: data.userId, interfaceName: data.interfaceName }]);
           return;
         }
 
@@ -1404,6 +1412,51 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               </select>
             </div>
 
+            {pushTarget && (
+              <div style={{ marginBottom: 16, padding: '12px 14px', background: '#1e1e1e', border: '1px solid #444', borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: 12, color: '#888' }}>
+                  Push interface to{' '}
+                  {pushTarget.kind === 'user'
+                    ? <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{pushTarget.userId}</span>
+                    : <span style={{ color: '#ccc' }}>{pushTarget.region === null ? 'Lurking' : activeLabels[pushTarget.region]} group</span>
+                  }:
+                </div>
+                <input
+                  type="text"
+                  placeholder="Interface name (e.g. facilitator)"
+                  value={pendingInterfaceName}
+                  onChange={e => setPendingInterfaceName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Escape') { setPushTarget(null); setPendingInterfaceName(''); } }}
+                  autoFocus
+                  style={{ background: '#333', border: '1px solid #555', color: '#eee', borderRadius: 6, padding: '8px 10px', fontSize: 13 }}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => {
+                      if (!pendingInterfaceName.trim()) return;
+                      socket.send(JSON.stringify({
+                        type: 'pushInterface',
+                        ...(pushTarget.kind === 'user' ? { targetUserId: pushTarget.userId } : { targetRegion: pushTarget.region }),
+                        interfaceName: pendingInterfaceName.trim(),
+                      }));
+                      setPushTarget(null);
+                      setPendingInterfaceName('');
+                    }}
+                    disabled={!pendingInterfaceName.trim()}
+                    style={{ flex: 1, padding: '8px', background: '#2a5cba', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer', opacity: pendingInterfaceName.trim() ? 1 : 0.45 }}
+                  >
+                    Send
+                  </button>
+                  <button
+                    onClick={() => { setPushTarget(null); setPendingInterfaceName(''); }}
+                    style={{ padding: '8px 14px', background: 'none', border: '1px solid #444', color: '#888', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
             {connectedUsers.size === 0 ? (
               <p style={{ color: '#666', fontSize: 13 }}>No participants connected.</p>
             ) : participantGrouping === 'none' ? (
@@ -1411,7 +1464,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                 {[...connectedUsers].map(userId => {
                   const cursor = liveCursors.get(userId);
                   const region = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null;
-                  return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} />;
+                  return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />;
                 })}
               </div>
             ) : (
@@ -1439,7 +1492,10 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1, cursor: 'pointer' }} onClick={toggleCollapse}>
                           {groupLabel} ({members.length})
                         </span>
-                        <button disabled style={{ opacity: 0.3, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>
+                        <button
+                          onClick={() => { setPushTarget({ kind: 'region', region }); setPendingInterfaceName(''); }}
+                          style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'pointer' }}
+                        >
                           ···
                         </button>
                       </div>
@@ -1452,13 +1508,24 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                               <button disabled style={{ opacity: 0, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>···</button>
                             </div>
                           ) : members.map(userId => (
-                            <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} />
+                            <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />
                           ))}
                         </div>
                       )}
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {interfaceAcceptances.length > 0 && (
+              <div style={{ marginTop: 20, borderTop: '1px solid #333', paddingTop: 14 }}>
+                <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Acceptances</div>
+                {interfaceAcceptances.map((a, i) => (
+                  <div key={i} style={{ fontSize: 12, color: '#6c6', fontFamily: 'monospace', padding: '2px 0' }}>
+                    ✓ {a.userId} accepted "{a.interfaceName}"
+                  </div>
+                ))}
               </div>
             )}
           </div>

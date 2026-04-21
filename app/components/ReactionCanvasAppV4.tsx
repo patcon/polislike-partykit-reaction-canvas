@@ -7,6 +7,7 @@ import InterfaceChipBar from "./InterfaceChipBar";
 import SocialPanel from "./SocialPanel";
 import type { SocialConfig } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
+import InterfacePushModal from "./InterfacePushModal";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { getReactionLabelSet } from "../voteLabels";
@@ -98,6 +99,7 @@ export default function ReactionCanvasAppV4() {
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
+  const [pushedInterface, setPushedInterface] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem('v4-active-interface', activeInterface);
@@ -206,6 +208,7 @@ export default function ReactionCanvasAppV4() {
             onActivityTriggered={(activityName) => {
               if (activityName === 'githubUsername') setShowGithubModal(true);
             }}
+            onInterfacePushed={(name) => setPushedInterface(name)}
             onRoomImageUrlChange={setServerImageUrl}
             onActivityChange={setActivity}
             onSocialConfigChange={setServerSocialConfig}
@@ -237,6 +240,16 @@ export default function ReactionCanvasAppV4() {
                 }));
               }}
               onDismiss={() => setShowGithubModal(false)}
+            />
+          )}
+          {pushedInterface && (
+            <InterfacePushModal
+              interfaceName={pushedInterface}
+              onAccept={() => {
+                socketSendRef.current?.(JSON.stringify({ type: 'acceptInterface', interfaceName: pushedInterface }));
+                setPushedInterface(null);
+              }}
+              onDecline={() => setPushedInterface(null)}
             />
           )}
         </div>
