@@ -12,9 +12,10 @@ export default function SocialConfigModal({ onSubmit, onClose, current }: Social
   const [twitter, setTwitter] = useState(current?.twitter ?? '');
   const [bluesky, setBluesky] = useState(current?.bluesky ?? '');
   const [mastodon, setMastodon] = useState(current?.mastodon ?? '');
+  const [instagram, setInstagram] = useState(current?.instagram ?? '');
 
   const handleSave = () => {
-    onSubmit({ default: defaultText, twitter, bluesky, mastodon });
+    onSubmit({ default: defaultText, twitter, bluesky, mastodon, instagram });
     onClose();
   };
 
@@ -63,6 +64,16 @@ export default function SocialConfigModal({ onSubmit, onClose, current }: Social
               value={mastodon}
               onChange={e => setMastodon(e.target.value)}
               placeholder="@handle@instance"
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 12, color: '#aaa' }}>Instagram (text copied to clipboard)</span>
+            <input
+              className="github-modal-input"
+              type="text"
+              value={instagram}
+              onChange={e => setInstagram(e.target.value)}
+              placeholder="@handle"
             />
           </label>
         </div>

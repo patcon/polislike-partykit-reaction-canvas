@@ -33,4 +33,5 @@ export interface SocialConfig {
   twitter: string;
   bluesky: string;
   mastodon: string;
+  instagram: string;
 }

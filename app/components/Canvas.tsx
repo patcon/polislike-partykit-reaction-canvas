@@ -43,7 +43,7 @@ interface CanvasProps {
   onActivityTriggered?: (activityName: string) => void;
   onRoomImageUrlChange?: (url: string) => void;
   onActivityChange?: (activity: 'canvas' | 'soccer' | 'image-canvas') => void;
-  onSocialConfigChange?: (config: { default: string; twitter: string; bluesky: string; mastodon: string } | null) => void;
+  onSocialConfigChange?: (config: { default: string; twitter: string; bluesky: string; mastodon: string; instagram: string } | null) => void;
 }
 
 // Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
