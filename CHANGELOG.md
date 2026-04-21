@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 22 (2026-04-20)
 
 ### Added
+- V4 admin: removed "Peek Canvas" button and overlay — the emcee can now switch to the Canvas chip in the interface bar to see the live canvas directly ([#33](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/33))
 - V4: interface chip bar — when the emcee interface is unlocked, a scrollable chip bar appears at the top letting the user switch between "Canvas" (participant view) and "Emcee" (admin panel); interfaces are mutually exclusive and fill the area below the bar ([#33](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/33))
 - V4: `?interface=emcee` URL param — canonical way to unlock the emcee interface; `?admin=true` is now a deprecated alias that still works ([#33](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/33))
 - Share QR button strips role params (`?interface`, `?admin`) and `?forceView` from the shared URL so participants always receive a clean participant link
