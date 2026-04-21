@@ -1375,7 +1375,11 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                     {!collapsed && (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                         {members.length === 0 ? (
-                          <div style={{ padding: '4px 10px', color: '#444', fontSize: 12, fontStyle: 'italic' }}>empty</div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px' }}>
+                            <span style={{ width: 8, height: 8, flexShrink: 0 }} />
+                            <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#444', fontStyle: 'italic', flex: 1 }}>empty</span>
+                            <button disabled style={{ opacity: 0, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>···</button>
+                          </div>
                         ) : members.map(userId => (
                           <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} />
                         ))}
