@@ -121,7 +121,8 @@ Custom labels can be passed as a base64-encoded `labels` param using `encodeCust
 | `room` | string | PartyKit room name; defaults to `"default"` |
 | `labels` | preset key or base64 custom | Selects a reaction label preset; falls back to localStorage / `default` if omitted |
 | `forceView` | `mobile` | Bypasses the mobile-only QR gate; shows the canvas on desktop |
-| `admin` | `true` | Renders `AdminPanelV4` for recording reaction data as JSON download |
+| `interface` | `emcee` | Unlocks the emcee interface chip; shows chip bar and defaults to emcee panel |
+| `admin` | `true` | **Deprecated** alias for `?interface=emcee`; still works for backward compatibility |
 
 ## V5 URL params
 
