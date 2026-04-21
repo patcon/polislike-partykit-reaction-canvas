@@ -23,6 +23,10 @@ npx vitest           # Run Storybook-based tests via Playwright/Chromium (headle
 
 `npm run dev` runs both the frontend and `party/server.ts` locally on port 1999. The app is accessible at `localhost:1999` or any local network IP on port 1999 (e.g. `10.x.x.x:1999`). The WebSocket host is detected by port — if you're on port 1999, sockets connect to the local server; otherwise they connect to the deployed server.
 
+### PartyKit CLI notes
+
+Use `--force` (not `--yes`) to skip confirmation prompts — e.g. `npx partykit delete --preview stg --force`. `--yes` is not a valid partykit option and will error.
+
 ### Deploy rules
 
 > **Never deploy uncommitted changes.** Always commit `party/server.ts` (and any other changed files) before running `npm run deploy`.
