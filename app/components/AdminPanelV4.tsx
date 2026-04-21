@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import usePartySocket from "partysocket/react";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
 import type { ReactionRegion, ReactionAnchors } from "../utils/voteRegion";
@@ -6,6 +6,21 @@ import { REACTION_LABEL_PRESETS, getCustomLabelHistory, saveCustomLabelToHistory
 import type { ReactionLabelSet } from "../voteLabels";
 import Canvas from "./Canvas";
 import ImageConfigModal from "./ImageConfigModal";
+
+function ParticipantRow({ userId, region, labels }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet }) {
+  const regionColor = region === 'positive' ? '#4a4' : region === 'negative' ? '#a44' : region === 'neutral' ? '#aa4' : '#555';
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: '#1a1a1a', borderRadius: 4 }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: regionColor, flexShrink: 0 }} />
+      <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#ccc', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {userId}
+      </span>
+      <button disabled style={{ opacity: 0.3, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>
+        ···
+      </button>
+    </div>
+  );
+}
 
 interface AdminPanelV4Props {
   room: string;
@@ -47,12 +62,19 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   }, []);
   const [isRecording, setIsRecording] = useState(false);
   const [mode, setMode] = useState<RecordingMode>('positions');
-  const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars' | 'interfaces' | 'events'>('labels');
+  const [configTab, setConfigTab] = useState<'labels' | 'anchors' | 'avatars' | 'interfaces' | 'events' | 'participants'>('labels');
   const [eventCount, setEventCount] = useState(0);
   const [serverRecording, setServerRecording] = useState(false);
   const [userCap, setUserCap] = useState<number | null>(null);
   const [capInput, setCapInput] = useState<string>('');
   const [presenceCount, setPresenceCount] = useState<number>(0);
+
+  // Participants tab state
+  const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
+  const [liveCursors, setLiveCursors] = useState<Map<string, {x: number; y: number}>>(new Map());
+  const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence'>('valence');
+  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
+  const staleTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   // Labels config state
   const [labelSelected, setLabelSelected] = useState<string>('default');
@@ -117,6 +139,17 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     setNeutralX(local.neutralX);
     setNeutralY(local.neutralY);
   };
+
+  const activeLabels = useMemo<ReactionLabelSet>(() => {
+    if (labelSelected === 'custom') return { positive: customPositive || 'Positive', negative: customNegative || 'Negative', neutral: customNeutral || 'Neutral' };
+    return REACTION_LABEL_PRESETS[labelSelected] ?? REACTION_LABEL_PRESETS['default'];
+  }, [labelSelected, customPositive, customNegative, customNeutral]);
+
+  const activeAnchors = useMemo<ReactionAnchors>(() => ({
+    positive: { x: parseFloat(positiveX), y: parseFloat(positiveY) },
+    negative: { x: parseFloat(negativeX), y: parseFloat(negativeY) },
+    neutral:  { x: parseFloat(neutralX),  y: parseFloat(neutralY)  },
+  }), [positiveX, positiveY, negativeX, negativeY, neutralX, neutralY]);
 
   const [displayEvents, setDisplayEvents] = useState<object[]>([]);
   const MAX_TABLE_ROWS = 200;
@@ -223,6 +256,36 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             timestamp: data.timestamp,
           }]);
           return;
+        }
+
+        // Participant tracking — always runs regardless of recording state
+        if (data.type === 'userJoined' || data.type === 'userLeft') {
+          if (data.type === 'userJoined') {
+            setConnectedUsers(prev => new Set([...prev, data.userId]));
+          } else {
+            setConnectedUsers(prev => { const s = new Set(prev); s.delete(data.userId); return s; });
+            setLiveCursors(prev => { const m = new Map(prev); m.delete(data.userId); return m; });
+            clearTimeout(staleTimersRef.current.get(data.userId));
+            staleTimersRef.current.delete(data.userId);
+          }
+        }
+
+        if (data.type === 'move' || data.type === 'touch') {
+          const { userId: cursorUserId, x: cx, y: cy } = data.position;
+          setConnectedUsers(prev => new Set([...prev, cursorUserId]));
+          setLiveCursors(prev => new Map(prev).set(cursorUserId, { x: cx, y: cy }));
+          clearTimeout(staleTimersRef.current.get(cursorUserId));
+          staleTimersRef.current.set(cursorUserId, setTimeout(() => {
+            setLiveCursors(prev => { const m = new Map(prev); m.delete(cursorUserId); return m; });
+            staleTimersRef.current.delete(cursorUserId);
+          }, 3000));
+        }
+
+        if (data.type === 'remove') {
+          const { userId: removedId } = data.position;
+          setLiveCursors(prev => { const m = new Map(prev); m.delete(removedId); return m; });
+          clearTimeout(staleTimersRef.current.get(removedId));
+          staleTimersRef.current.delete(removedId);
         }
 
         if (!isRecordingRef.current) return;
@@ -889,7 +952,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
       {/* Tab bar */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid #444' }}>
-        {(['labels', 'anchors', 'avatars', 'interfaces', 'events'] as const).map(tab => (
+        {(['labels', 'anchors', 'avatars', 'interfaces', 'events', 'participants'] as const).map(tab => (
           <button
             key={tab}
             onClick={() => setConfigTab(tab)}
@@ -906,7 +969,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               textTransform: 'capitalize',
             }}
           >
-            {tab === 'labels' ? 'Labels' : tab === 'anchors' ? 'Anchors' : tab === 'avatars' ? 'Avatars' : tab === 'interfaces' ? 'Interfaces' : `Events${githubSubmissions.length > 0 ? ` (${githubSubmissions.length})` : ''}`}
+            {tab === 'labels' ? 'Labels' : tab === 'anchors' ? 'Anchors' : tab === 'avatars' ? 'Avatars' : tab === 'interfaces' ? 'Interfaces' : tab === 'events' ? `Events${githubSubmissions.length > 0 ? ` (${githubSubmissions.length})` : ''}` : `Participants${connectedUsers.size > 0 ? ` (${connectedUsers.size})` : ''}`}
           </button>
         ))}
       </div>
@@ -1251,6 +1314,80 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {configTab === 'participants' && (
+        <div>
+          <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+            <label style={{ color: '#aaa', fontSize: 13 }}>Group by:</label>
+            <select
+              value={participantGrouping}
+              onChange={e => setParticipantGrouping(e.target.value as 'none' | 'valence')}
+              style={{ background: '#222', color: '#eee', border: '1px solid #555', padding: '4px 8px', borderRadius: 4 }}
+            >
+              <option value="valence">Valence Zone</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+
+          {connectedUsers.size === 0 ? (
+            <p style={{ color: '#666', fontSize: 13 }}>No participants connected.</p>
+          ) : participantGrouping === 'none' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+              {[...connectedUsers].map(userId => {
+                const cursor = liveCursors.get(userId);
+                const region = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null;
+                return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} />;
+              })}
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {(['positive', 'negative', 'neutral', null] as (ReactionRegion | null)[]).map(region => {
+                const groupKey = String(region);
+                const members = [...connectedUsers].filter(userId => {
+                  const cursor = liveCursors.get(userId);
+                  if (!cursor) return region === null;
+                  return computeReactionRegion(cursor.x, cursor.y, activeAnchors) === region;
+                });
+                const groupLabel = region === null ? 'Lurking' : activeLabels[region];
+                const collapsed = collapsedGroups.has(groupKey);
+                const toggleCollapse = () => setCollapsedGroups(prev => {
+                  const s = new Set(prev);
+                  s.has(groupKey) ? s.delete(groupKey) : s.add(groupKey);
+                  return s;
+                });
+                return (
+                  <div key={groupKey}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: collapsed ? 0 : 6, paddingRight: 10 }}>
+                      <button onClick={toggleCollapse} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: 0, fontSize: 10, width: 12, textAlign: 'center', flexShrink: 0 }}>
+                        {collapsed ? '▶' : '▼'}
+                      </button>
+                      <span style={{ fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1, cursor: 'pointer' }} onClick={toggleCollapse}>
+                        {groupLabel} ({members.length})
+                      </span>
+                      <button disabled style={{ opacity: 0.3, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>
+                        ···
+                      </button>
+                    </div>
+                    {!collapsed && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                        {members.length === 0 ? (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px' }}>
+                            <span style={{ width: 8, height: 8, flexShrink: 0 }} />
+                            <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#444', fontStyle: 'italic', flex: 1 }}>empty</span>
+                            <button disabled style={{ opacity: 0, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>···</button>
+                          </div>
+                        ) : members.map(userId => (
+                          <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
