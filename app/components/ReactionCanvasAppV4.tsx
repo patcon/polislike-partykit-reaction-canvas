@@ -29,13 +29,20 @@ function isMobileForced(): boolean {
 
 const CHIP_BAR_HEIGHT = 40;
 
+// Redirect deprecated ?admin=true to canonical ?interface=emcee
+(function redirectDeprecatedAdminParam() {
+  const p = new URLSearchParams(window.location.search);
+  if (p.get('admin') === 'true') {
+    p.delete('admin');
+    p.set('interface', 'emcee');
+    history.replaceState(null, '', `?${p}${window.location.hash}`);
+  }
+})();
+
 function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
   const interfaces = ['canvas'];
-  // @deprecated ?admin=true — use ?interface=emcee instead
-  if (p.get('interface') === 'emcee' || p.get('admin') === 'true') {
-    interfaces.push('emcee');
-  }
+  if (p.get('interface') === 'emcee') interfaces.push('emcee');
   return interfaces;
 }
 
