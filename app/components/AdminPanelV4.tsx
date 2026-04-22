@@ -103,7 +103,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [selectedMomentId, setSelectedMomentId] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const staleTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const [pushTarget, setPushTarget] = useState<{ kind: 'user'; userId: string } | { kind: 'region'; region: ReactionRegion | null } | null>(null);
+  const [pushTarget, setPushTarget] = useState<{ kind: 'user'; userId: string } | { kind: 'region'; region: ReactionRegion | null } | { kind: 'users'; userIds: string[]; label: string } | null>(null);
   const [pendingInterfaceName, setPendingInterfaceName] = useState('social');
   const [interfaceAcceptances, setInterfaceAcceptances] = useState<{ userId: string; interfaceName: string }[]>([]);
   const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
@@ -1572,7 +1572,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                                 <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 2, background: '#252525', border: '1px solid #444', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100, minWidth: 160 }}>
                                   <button
                                     onPointerDown={e => e.stopPropagation()}
-                                    onClick={() => { setOpenMenuGroupKey(null); setPushTarget({ kind: 'region', region }); setPendingInterfaceName('social'); }}
+                                    onClick={() => { setOpenMenuGroupKey(null); setPushTarget({ kind: 'users', userIds: members, label: groupLabel }); setPendingInterfaceName('social'); }}
                                     style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
                                   >
                                     Offer interface…
@@ -1902,7 +1902,9 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               Offer interface to{' '}
               {pushTarget.kind === 'user'
                 ? <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{pushTarget.userId}</span>
-                : <span style={{ color: '#ccc' }}>{pushTarget.region === null ? 'Lurking' : activeLabels[pushTarget.region]} group</span>
+                : pushTarget.kind === 'users'
+                  ? <span style={{ color: '#ccc' }}>{pushTarget.label} ({pushTarget.userIds.length})</span>
+                  : <span style={{ color: '#ccc' }}>{pushTarget.region === null ? 'Lurking' : activeLabels[pushTarget.region]} group</span>
               }
             </div>
             <select
@@ -1919,7 +1921,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                 onClick={() => {
                   socket.send(JSON.stringify({
                     type: 'pushInterface',
-                    ...(pushTarget.kind === 'user' ? { targetUserId: pushTarget.userId } : { targetRegion: pushTarget.region }),
+                    ...(pushTarget.kind === 'user' ? { targetUserId: pushTarget.userId } : pushTarget.kind === 'users' ? { targetUserIds: pushTarget.userIds } : { targetRegion: pushTarget.region }),
                     interfaceName: pendingInterfaceName,
                   }));
                   setPushTarget(null);

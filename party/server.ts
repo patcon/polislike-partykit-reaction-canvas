@@ -152,6 +152,7 @@ interface PushInterfaceEvent {
   type: 'pushInterface';
   targetUserId?: string;
   targetRegion?: 'positive' | 'negative' | 'neutral' | null;
+  targetUserIds?: string[];
   interfaceName: string;
   payload?: Record<string, unknown>;
 }
@@ -273,13 +274,14 @@ export default class Server implements Party.Server {
     return this.viewerConnectionIds.size;
   }
 
-  private getTargetConnections(targetUserId?: string, targetRegion?: 'positive' | 'negative' | 'neutral' | null): Party.Connection[] {
+  private getTargetConnections(targetUserId?: string, targetRegion?: 'positive' | 'negative' | 'neutral' | null, targetUserIds?: string[]): Party.Connection[] {
     const anchors = this.roomAnchors ?? DEFAULT_ANCHORS;
     return [...this.room.getConnections()].filter(conn => {
       if (this.adminConnectionIds.has(conn.id)) return false;
       const userId = this.connectionUserMap.get(conn.id);
       if (!userId) return false;
       if (targetUserId !== undefined) return userId === targetUserId;
+      if (targetUserIds !== undefined) return targetUserIds.includes(userId);
       const pos = this.cursorPositions.get(userId);
       if (!pos) return targetRegion === null;
       return computeReactionRegionServer(pos.x, pos.y, anchors) === targetRegion;
@@ -499,7 +501,7 @@ export default class Server implements Party.Server {
         this.room.broadcast(JSON.stringify({ type: 'pushedInterfacesCleared' }));
       } else if (event.type === 'pushInterface') {
         if (!this.adminConnectionIds.has(sender.id)) return;
-        const targets = this.getTargetConnections(event.targetUserId, event.targetRegion);
+        const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
         const msg = JSON.stringify({ type: 'interfacePushed', interfaceName: event.interfaceName, payload: event.payload ?? {} });
         for (const conn of targets) conn.send(msg);
       } else if (event.type === 'acceptInterface') {
