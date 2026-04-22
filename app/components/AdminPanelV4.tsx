@@ -790,6 +790,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     setMoments(updated);
     localStorage.setItem(`v4-moments-${room}`, JSON.stringify(updated));
     setMomentLabelInput('');
+    setEditingMomentId(null);
   };
 
   const tabLabel = (tab: AdminTab): string => {
@@ -1698,21 +1699,64 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         {/* MOMENTS tab */}
         {activeTab === 'moments' && (
           <div>
-            <div style={{ marginBottom: 20, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <input
-                value={momentLabelInput}
-                onChange={e => setMomentLabelInput(e.target.value)}
-                placeholder="Optional label…"
-                onKeyDown={e => e.key === 'Enter' && snapMoment()}
-                style={{ background: '#222', color: '#eee', border: '1px solid #555', padding: '6px 10px', borderRadius: 4, fontSize: 13 }}
-              />
-              <button
-                onClick={snapMoment}
-                style={{ padding: '14px', background: '#1a7a3c', color: '#fff', border: 'none', borderRadius: 6, fontSize: 15, fontWeight: 700, cursor: 'pointer' }}
-              >
-                Snap Moment
-              </button>
-            </div>
+            {/* "Now" card — preview of current state, doubles as snap form */}
+            {(() => {
+              const nowCounts = { positive: 0, negative: 0, neutral: 0, lurking: 0 };
+              for (const userId of seenUsers) {
+                const cursor = liveCursors.get(userId);
+                const r = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null;
+                if (r === 'positive') nowCounts.positive++;
+                else if (r === 'negative') nowCounts.negative++;
+                else if (r === 'neutral') nowCounts.neutral++;
+                else nowCounts.lurking++;
+              }
+              const isEditingNow = editingMomentId === '__now__';
+              return (
+                <div style={{ border: '1px solid #1a7a3c', borderRadius: 6, overflow: 'hidden', marginBottom: 20 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#1e1e1e' }}>
+                    <button
+                      onClick={snapMoment}
+                      style={{ fontSize: 10, color: '#1a7a3c', background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: 12, textAlign: 'center', flexShrink: 0, fontWeight: 700, lineHeight: 1 }}
+                      title="Snap moment"
+                    >⊕</button>
+                    {isEditingNow ? (
+                      <input
+                        autoFocus
+                        value={momentLabelInput}
+                        onChange={e => setMomentLabelInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === 'Escape') setEditingMomentId(null);
+                        }}
+                        onBlur={() => setEditingMomentId(null)}
+                        placeholder="Label for next snap…"
+                        style={{ flex: 1, background: '#2a2a2a', color: '#eee', border: '1px solid #555', padding: '2px 6px', borderRadius: 3, fontSize: 13 }}
+                      />
+                    ) : (
+                      <span style={{ flex: 1, fontSize: 13, color: momentLabelInput ? '#ddd' : '#555', fontStyle: momentLabelInput ? 'normal' : 'italic' }}>
+                        {momentLabelInput || 'Now'}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => { setEditingMomentId('__now__'); }}
+                      style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
+                      title="Set label"
+                    >✏</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, padding: '6px 30px', background: '#181818', fontSize: 12, flexWrap: 'wrap' }}>
+                    <span style={{ color: '#4c4' }}>{activeLabels.positive}: {nowCounts.positive}</span>
+                    <span style={{ color: '#c44' }}>{activeLabels.negative}: {nowCounts.negative}</span>
+                    <span style={{ color: '#88a' }}>{activeLabels.neutral}: {nowCounts.neutral}</span>
+                    {nowCounts.lurking > 0 && <span style={{ color: '#555' }}>Lurking: {nowCounts.lurking}</span>}
+                  </div>
+                  <button
+                    onClick={snapMoment}
+                    style={{ display: 'block', width: '100%', padding: '12px', background: '#1a7a3c', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Snap Moment
+                  </button>
+                </div>
+              );
+            })()}
 
             {moments.length === 0 ? (
               <p style={{ color: '#666', fontSize: 13 }}>No moments captured yet.</p>
