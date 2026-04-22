@@ -1502,7 +1502,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                 onChange={e => setParticipantGrouping(e.target.value as 'none' | 'valence' | 'moment')}
                 style={{ background: '#222', color: '#eee', border: '1px solid #555', padding: '4px 8px', borderRadius: 4 }}
               >
-                <option value="valence">Valence: Current</option>
+                <option value="valence">Valence: Now</option>
                 <option value="none">None</option>
                 <option value="moment">Valence: Moments</option>
               </select>
