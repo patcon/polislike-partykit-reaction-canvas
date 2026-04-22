@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is that Monday and Week 0 = 2025-11-17.
 
+## Week 23 (2026-04-27)
+
+### Added
+- V4 emcee: new Moments tab — snap a labeled snapshot of where all participants are, view collapsed stats per valence zone, expand to see the per-participant breakdown, and rename moments inline; snapshots persist via localStorage
+- V4 People tab: new "Valence: Moments" Group By option — pick a past moment snapshot and group participants by their region at that time, with full "Offer interface" support; "Valence Zone" renamed to "Valence: Current"
+
 ## Week 22 (2026-04-20)
 
 ### Fixed
