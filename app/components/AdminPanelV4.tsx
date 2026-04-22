@@ -61,7 +61,14 @@ function anchorToLocal(anchors: ReactionAnchors) {
   };
 }
 
-type AdminTab = 'record' | 'labels' | 'anchors' | 'avatars' | 'interfaces' | 'events' | 'participants';
+type AdminTab = 'record' | 'labels' | 'anchors' | 'avatars' | 'interfaces' | 'events' | 'participants' | 'moments';
+
+interface MomentSnapshot {
+  id: string;
+  label: string;
+  timestamp: number;
+  regions: Record<string, 'positive' | 'negative' | 'neutral' | null>;
+}
 
 export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
@@ -83,10 +90,20 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     } catch { return new Set(); }
   });
   const [liveCursors, setLiveCursors] = useState<Map<string, {x: number; y: number}>>(new Map());
-  const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence'>('valence');
+  const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence' | 'moment'>('valence');
+  const [moments, setMoments] = useState<MomentSnapshot[]>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`v4-moments-${room}`) ?? '[]');
+    } catch { return []; }
+  });
+  const [momentLabelInput, setMomentLabelInput] = useState('');
+  const [expandedMoments, setExpandedMoments] = useState<Set<string>>(new Set());
+  const [editingMomentId, setEditingMomentId] = useState<string | null>(null);
+  const [editingMomentLabel, setEditingMomentLabel] = useState('');
+  const [selectedMomentId, setSelectedMomentId] = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const staleTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const [pushTarget, setPushTarget] = useState<{ kind: 'user'; userId: string } | { kind: 'region'; region: ReactionRegion | null } | null>(null);
+  const [pushTarget, setPushTarget] = useState<{ kind: 'user'; userId: string } | { kind: 'region'; region: ReactionRegion | null } | { kind: 'users'; userIds: string[]; label: string } | null>(null);
   const [pendingInterfaceName, setPendingInterfaceName] = useState('social');
   const [interfaceAcceptances, setInterfaceAcceptances] = useState<{ userId: string; interfaceName: string }[]>([]);
   const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
@@ -757,15 +774,35 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
     width: 64,
   };
 
+  const snapMoment = () => {
+    const regions: Record<string, 'positive' | 'negative' | 'neutral' | null> = {};
+    for (const userId of seenUsers) {
+      const cursor = liveCursors.get(userId);
+      regions[userId] = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null;
+    }
+    const newMoment: MomentSnapshot = {
+      id: crypto.randomUUID(),
+      label: momentLabelInput.trim() || `Moment ${moments.length + 1}`,
+      timestamp: Date.now(),
+      regions,
+    };
+    const updated = [newMoment, ...moments];
+    setMoments(updated);
+    localStorage.setItem(`v4-moments-${room}`, JSON.stringify(updated));
+    setMomentLabelInput('');
+    setEditingMomentId(null);
+  };
+
   const tabLabel = (tab: AdminTab): string => {
     if (tab === 'events') return githubSubmissions.length > 0 ? `Events (${githubSubmissions.length})` : 'Events';
     if (tab === 'participants') return connectedUsers.size > 0 ? `People (${connectedUsers.size})` : 'People';
+    if (tab === 'moments') return moments.length > 0 ? `Moments (${moments.length})` : 'Moments';
     if (tab === 'interfaces') return 'Interface';
     if (tab === 'record') return 'Record';
     return tab.charAt(0).toUpperCase() + tab.slice(1);
   };
 
-  const ALL_TABS: AdminTab[] = ['record', 'labels', 'anchors', 'avatars', 'interfaces', 'events', 'participants'];
+  const ALL_TABS: AdminTab[] = ['record', 'labels', 'anchors', 'avatars', 'interfaces', 'events', 'participants', 'moments'];
 
   return (
     <div
@@ -1462,13 +1499,30 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               <label style={{ color: '#aaa', fontSize: 13 }}>Group by:</label>
               <select
                 value={participantGrouping}
-                onChange={e => setParticipantGrouping(e.target.value as 'none' | 'valence')}
+                onChange={e => setParticipantGrouping(e.target.value as 'none' | 'valence' | 'moment')}
                 style={{ background: '#222', color: '#eee', border: '1px solid #555', padding: '4px 8px', borderRadius: 4 }}
               >
-                <option value="valence">Valence Zone</option>
+                <option value="valence">Valence: Now</option>
                 <option value="none">None</option>
+                <option value="moment">Valence: Moments</option>
               </select>
             </div>
+
+            {participantGrouping === 'moment' && (
+              <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+                <label style={{ color: '#aaa', fontSize: 13 }}>Moment:</label>
+                <select
+                  value={selectedMomentId ?? ''}
+                  onChange={e => setSelectedMomentId(e.target.value || null)}
+                  style={{ background: '#222', color: '#eee', border: '1px solid #555', padding: '4px 8px', borderRadius: 4 }}
+                >
+                  <option value="">— select a moment —</option>
+                  {moments.map(m => (
+                    <option key={m.id} value={m.id}>{m.label} ({new Date(m.timestamp).toLocaleTimeString()})</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {seenUsers.size === 0 ? (
               <p style={{ color: '#666', fontSize: 13 }}>No participants seen yet.</p>
@@ -1481,6 +1535,71 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                   return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} online={online} isMenuOpen={openMenuUserId === userId} onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)} onOfferInterface={() => { setOpenMenuUserId(null); setPushTarget({ kind: 'user', userId }); setPendingInterfaceName('social'); }} />;
                 })}
               </div>
+            ) : participantGrouping === 'moment' ? (
+              (() => {
+                const chosenMoment = moments.find(m => m.id === selectedMomentId);
+                if (!chosenMoment) return <p style={{ color: '#666', fontSize: 13 }}>Select a moment above to group participants.</p>;
+                return (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    {(['positive', 'negative', 'neutral', null] as (ReactionRegion | null)[]).map(region => {
+                      const groupKey = String(region);
+                      const members = [...seenUsers].filter(userId => (chosenMoment.regions[userId] ?? null) === region);
+                      const groupLabel = region === null ? 'Lurking' : activeLabels[region];
+                      const collapsed = collapsedGroups.has(`moment-${groupKey}`);
+                      const toggleCollapse = () => setCollapsedGroups(prev => {
+                        const s = new Set(prev);
+                        const key = `moment-${groupKey}`;
+                        s.has(key) ? s.delete(key) : s.add(key);
+                        return s;
+                      });
+                      return (
+                        <div key={groupKey}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: collapsed ? 0 : 6, paddingRight: 10 }}>
+                            <button onClick={toggleCollapse} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: 0, fontSize: 10, width: 12, textAlign: 'center', flexShrink: 0 }}>
+                              {collapsed ? '▶' : '▼'}
+                            </button>
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1, cursor: 'pointer' }} onClick={toggleCollapse}>
+                              {groupLabel} ({members.length})
+                            </span>
+                            <div style={{ position: 'relative' }}>
+                              <button
+                                onClick={() => setOpenMenuGroupKey(prev => prev === groupKey ? null : groupKey)}
+                                style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'pointer' }}
+                              >
+                                ···
+                              </button>
+                              {openMenuGroupKey === groupKey && (
+                                <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 2, background: '#252525', border: '1px solid #444', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100, minWidth: 160 }}>
+                                  <button
+                                    onPointerDown={e => e.stopPropagation()}
+                                    onClick={() => { setOpenMenuGroupKey(null); setPushTarget({ kind: 'users', userIds: members, label: groupLabel }); setPendingInterfaceName('social'); }}
+                                    style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+                                  >
+                                    Offer interface…
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          {!collapsed && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                              {members.length === 0 ? (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px' }}>
+                                  <span style={{ width: 8, height: 8, flexShrink: 0 }} />
+                                  <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#444', fontStyle: 'italic', flex: 1 }}>empty</span>
+                                </div>
+                              ) : members.map(userId => {
+                                const online = connectedUsers.has(userId);
+                                return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} online={online} isMenuOpen={openMenuUserId === userId} onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)} onOfferInterface={() => { setOpenMenuUserId(null); setPushTarget({ kind: 'user', userId }); setPendingInterfaceName('social'); }} />;
+                              })}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                );
+              })()
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {(['positive', 'negative', 'neutral', null] as (ReactionRegion | null)[]).map(region => {
@@ -1576,6 +1695,198 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             )}
           </div>
         )}
+
+        {/* MOMENTS tab */}
+        {activeTab === 'moments' && (
+          <div>
+            {/* "Now" card — preview of current state, doubles as snap form */}
+            {(() => {
+              const nowCounts = { positive: 0, negative: 0, neutral: 0, lurking: 0 };
+              for (const userId of seenUsers) {
+                const cursor = liveCursors.get(userId);
+                const r = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null;
+                if (r === 'positive') nowCounts.positive++;
+                else if (r === 'negative') nowCounts.negative++;
+                else if (r === 'neutral') nowCounts.neutral++;
+                else nowCounts.lurking++;
+              }
+              const isEditingNow = editingMomentId === '__now__';
+              const nowExpanded = expandedMoments.has('__now__');
+              return (
+                <div style={{ border: '2px solid #1a7a3c', borderRadius: 6, overflow: 'hidden', marginBottom: 20 }}>
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#162b1e', cursor: 'pointer' }}
+                    onClick={() => setExpandedMoments(prev => { const s = new Set(prev); s.has('__now__') ? s.delete('__now__') : s.add('__now__'); return s; })}
+                  >
+                    <span style={{ fontSize: 10, color: '#4c4', width: 12, textAlign: 'center', flexShrink: 0 }}>{nowExpanded ? '▼' : '▶'}</span>
+                    {isEditingNow ? (
+                      <input
+                        autoFocus
+                        value={momentLabelInput}
+                        onChange={e => setMomentLabelInput(e.target.value)}
+                        onKeyDown={e => {
+                          if (e.key === 'Enter' || e.key === 'Escape') setEditingMomentId(null);
+                        }}
+                        onBlur={() => setEditingMomentId(null)}
+                        onClick={e => e.stopPropagation()}
+                        placeholder="Label for next snap…"
+                        style={{ flex: 1, background: '#1e3828', color: '#eee', border: '1px solid #2a6040', padding: '2px 6px', borderRadius: 3, fontSize: 13 }}
+                      />
+                    ) : (
+                      <span style={{ flex: 1, fontSize: 13, color: momentLabelInput ? '#cec' : '#7c7', fontStyle: momentLabelInput ? 'normal' : 'italic', fontWeight: 600 }}>
+                        {momentLabelInput || 'Now'}
+                      </span>
+                    )}
+                    <button
+                      onClick={e => { e.stopPropagation(); setEditingMomentId('__now__'); }}
+                      style={{ background: 'none', border: 'none', color: '#4a4', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
+                      title="Set label"
+                    >✏</button>
+                  </div>
+                  <div style={{ display: 'flex', gap: 16, padding: '6px 30px', background: '#111e16', fontSize: 12, flexWrap: 'wrap' }}>
+                    <span style={{ color: '#4c4' }}>{activeLabels.positive}: {nowCounts.positive}</span>
+                    <span style={{ color: '#c44' }}>{activeLabels.negative}: {nowCounts.negative}</span>
+                    <span style={{ color: '#88a' }}>{activeLabels.neutral}: {nowCounts.neutral}</span>
+                    {nowCounts.lurking > 0 && <span style={{ color: '#555' }}>Lurking: {nowCounts.lurking}</span>}
+                  </div>
+                  {nowExpanded && (
+                    <div style={{ padding: '8px 10px 12px', background: '#0e1a12' }}>
+                      {(['positive', 'negative', 'neutral', null] as (ReactionRegion | null)[]).map(region => {
+                        const members = [...seenUsers].filter(userId => {
+                          const cursor = liveCursors.get(userId);
+                          return (cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null) === region;
+                        });
+                        const groupLabel = region === null ? 'Lurking' : activeLabels[region];
+                        return (
+                          <div key={String(region)} style={{ marginBottom: 10 }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: '#4a4', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+                              {groupLabel} ({members.length})
+                            </div>
+                            {members.length === 0 ? (
+                              <div style={{ fontSize: 12, color: '#2a4a2a', fontStyle: 'italic', paddingLeft: 8 }}>empty</div>
+                            ) : members.map(userId => {
+                              const online = connectedUsers.has(userId);
+                              const regionColor = region === 'positive' ? '#4a4' : region === 'negative' ? '#a44' : region === 'neutral' ? '#66a' : '#555';
+                              return (
+                                <div key={userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px' }}>
+                                  <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: online ? regionColor : '#333', display: 'inline-block' }} />
+                                  <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#7a7', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userId}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <button
+                    onClick={snapMoment}
+                    style={{ display: 'block', width: '100%', padding: '12px', background: '#1a7a3c', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    Snap Moment
+                  </button>
+                </div>
+              );
+            })()}
+
+            {moments.length === 0 ? (
+              <p style={{ color: '#666', fontSize: 13 }}>No moments captured yet.</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                {moments.map(moment => {
+                  const counts = { positive: 0, negative: 0, neutral: 0, lurking: 0 };
+                  for (const r of Object.values(moment.regions)) {
+                    if (r === 'positive') counts.positive++;
+                    else if (r === 'negative') counts.negative++;
+                    else if (r === 'neutral') counts.neutral++;
+                    else counts.lurking++;
+                  }
+                  const expanded = expandedMoments.has(moment.id);
+                  const isEditing = editingMomentId === moment.id;
+                  return (
+                    <div key={moment.id} style={{ border: '1px solid #333', borderRadius: 6, overflow: 'hidden' }}>
+                      <div
+                        style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#1e1e1e', cursor: 'pointer' }}
+                        onClick={() => setExpandedMoments(prev => { const s = new Set(prev); s.has(moment.id) ? s.delete(moment.id) : s.add(moment.id); return s; })}
+                      >
+                        <span style={{ fontSize: 10, color: '#666', width: 12, textAlign: 'center', flexShrink: 0 }}>{expanded ? '▼' : '▶'}</span>
+                        {isEditing ? (
+                          <input
+                            autoFocus
+                            value={editingMomentLabel}
+                            onChange={e => setEditingMomentLabel(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                const updated = moments.map(m => m.id === moment.id ? { ...m, label: editingMomentLabel.trim() || m.label } : m);
+                                setMoments(updated);
+                                localStorage.setItem(`v4-moments-${room}`, JSON.stringify(updated));
+                                setEditingMomentId(null);
+                              } else if (e.key === 'Escape') {
+                                setEditingMomentId(null);
+                              }
+                            }}
+                            onBlur={() => setEditingMomentId(null)}
+                            onClick={e => e.stopPropagation()}
+                            style={{ flex: 1, background: '#2a2a2a', color: '#eee', border: '1px solid #555', padding: '2px 6px', borderRadius: 3, fontSize: 13 }}
+                          />
+                        ) : (
+                          <span style={{ flex: 1, fontSize: 13, color: '#ddd' }}>{moment.label}</span>
+                        )}
+                        <span style={{ fontSize: 11, color: '#555', flexShrink: 0 }}>{new Date(moment.timestamp).toLocaleTimeString()}</span>
+                        <button
+                          onClick={e => { e.stopPropagation(); setEditingMomentId(moment.id); setEditingMomentLabel(moment.label); }}
+                          style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
+                          title="Rename"
+                        >✏</button>
+                        <button
+                          onClick={e => { e.stopPropagation(); if (window.confirm(`Delete "${moment.label}"?`)) { const updated = moments.filter(m => m.id !== moment.id); setMoments(updated); localStorage.setItem(`v4-moments-${room}`, JSON.stringify(updated)); } }}
+                          style={{ background: 'none', border: 'none', color: '#633', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
+                          title="Delete"
+                        >✕</button>
+                      </div>
+                      <div style={{ display: 'flex', gap: 16, padding: '6px 30px', background: '#181818', fontSize: 12, flexWrap: 'wrap' }}>
+                        <span style={{ color: '#4c4' }}>{activeLabels.positive}: {counts.positive}</span>
+                        <span style={{ color: '#c44' }}>{activeLabels.negative}: {counts.negative}</span>
+                        <span style={{ color: '#88a' }}>{activeLabels.neutral}: {counts.neutral}</span>
+                        {counts.lurking > 0 && <span style={{ color: '#555' }}>Lurking: {counts.lurking}</span>}
+                      </div>
+                      {expanded && (
+                        <div style={{ padding: '8px 10px 12px', background: '#151515' }}>
+                          {(['positive', 'negative', 'neutral', null] as (ReactionRegion | null)[]).map(region => {
+                            const groupKey = String(region);
+                            const members = Object.entries(moment.regions)
+                              .filter(([, r]) => (r ?? null) === region)
+                              .map(([uid]) => uid);
+                            const groupLabel = region === null ? 'Lurking' : activeLabels[region];
+                            return (
+                              <div key={groupKey} style={{ marginBottom: 10 }}>
+                                <div style={{ fontSize: 11, fontWeight: 600, color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+                                  {groupLabel} ({members.length})
+                                </div>
+                                {members.length === 0 ? (
+                                  <div style={{ fontSize: 12, color: '#444', fontStyle: 'italic', paddingLeft: 8 }}>empty</div>
+                                ) : members.map(userId => {
+                                  const online = connectedUsers.has(userId);
+                                  const regionColor = region === 'positive' ? '#4a4' : region === 'negative' ? '#a44' : region === 'neutral' ? '#66a' : '#555';
+                                  return (
+                                    <div key={userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px' }}>
+                                      <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: online ? regionColor : '#333', display: 'inline-block' }} />
+                                      <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#aaa', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userId}</span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {pushTarget && (
@@ -1591,7 +1902,9 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               Offer interface to{' '}
               {pushTarget.kind === 'user'
                 ? <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{pushTarget.userId}</span>
-                : <span style={{ color: '#ccc' }}>{pushTarget.region === null ? 'Lurking' : activeLabels[pushTarget.region]} group</span>
+                : pushTarget.kind === 'users'
+                  ? <span style={{ color: '#ccc' }}>{pushTarget.label} ({pushTarget.userIds.length})</span>
+                  : <span style={{ color: '#ccc' }}>{pushTarget.region === null ? 'Lurking' : activeLabels[pushTarget.region]} group</span>
               }
             </div>
             <select
@@ -1608,7 +1921,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                 onClick={() => {
                   socket.send(JSON.stringify({
                     type: 'pushInterface',
-                    ...(pushTarget.kind === 'user' ? { targetUserId: pushTarget.userId } : { targetRegion: pushTarget.region }),
+                    ...(pushTarget.kind === 'user' ? { targetUserId: pushTarget.userId } : pushTarget.kind === 'users' ? { targetUserIds: pushTarget.userIds } : { targetRegion: pushTarget.region }),
                     interfaceName: pendingInterfaceName,
                   }));
                   setPushTarget(null);

@@ -1,8 +1,12 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is that Monday and Week 0 = 2025-11-17.
+All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
 ## Week 22 (2026-04-20)
+
+### Added
+- V4 emcee: new Moments tab — snap a labeled snapshot of where all participants are, view collapsed stats per valence zone, expand to see the per-participant breakdown, and rename moments inline; snapshots persist via localStorage ([#46](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/46))
+- V4 People tab: new "Valence: Moments" Group By option — pick a past moment snapshot and group participants by their region at that time, with full "Offer interface" support; "Valence Zone" renamed to "Valence: Current" ([#46](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/46))
 
 ### Fixed
 - V4 emcee panel no longer overflows the screen when the interface chip bar is visible — the panel now fills the remaining height instead of claiming the full 100vh ([#42](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/42))
