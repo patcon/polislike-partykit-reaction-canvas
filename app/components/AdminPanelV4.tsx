@@ -1711,14 +1711,14 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                 else nowCounts.lurking++;
               }
               const isEditingNow = editingMomentId === '__now__';
+              const nowExpanded = expandedMoments.has('__now__');
               return (
-                <div style={{ border: '1px solid #1a7a3c', borderRadius: 6, overflow: 'hidden', marginBottom: 20 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#1e1e1e' }}>
-                    <button
-                      onClick={snapMoment}
-                      style={{ fontSize: 10, color: '#1a7a3c', background: 'none', border: 'none', cursor: 'pointer', padding: 0, width: 12, textAlign: 'center', flexShrink: 0, fontWeight: 700, lineHeight: 1 }}
-                      title="Snap moment"
-                    >⊕</button>
+                <div style={{ border: '2px solid #1a7a3c', borderRadius: 6, overflow: 'hidden', marginBottom: 20 }}>
+                  <div
+                    style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: '#162b1e', cursor: 'pointer' }}
+                    onClick={() => setExpandedMoments(prev => { const s = new Set(prev); s.has('__now__') ? s.delete('__now__') : s.add('__now__'); return s; })}
+                  >
+                    <span style={{ fontSize: 10, color: '#4c4', width: 12, textAlign: 'center', flexShrink: 0 }}>{nowExpanded ? '▼' : '▶'}</span>
                     {isEditingNow ? (
                       <input
                         autoFocus
@@ -1728,26 +1728,57 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                           if (e.key === 'Enter' || e.key === 'Escape') setEditingMomentId(null);
                         }}
                         onBlur={() => setEditingMomentId(null)}
+                        onClick={e => e.stopPropagation()}
                         placeholder="Label for next snap…"
-                        style={{ flex: 1, background: '#2a2a2a', color: '#eee', border: '1px solid #555', padding: '2px 6px', borderRadius: 3, fontSize: 13 }}
+                        style={{ flex: 1, background: '#1e3828', color: '#eee', border: '1px solid #2a6040', padding: '2px 6px', borderRadius: 3, fontSize: 13 }}
                       />
                     ) : (
-                      <span style={{ flex: 1, fontSize: 13, color: momentLabelInput ? '#ddd' : '#555', fontStyle: momentLabelInput ? 'normal' : 'italic' }}>
+                      <span style={{ flex: 1, fontSize: 13, color: momentLabelInput ? '#cec' : '#7c7', fontStyle: momentLabelInput ? 'normal' : 'italic', fontWeight: 600 }}>
                         {momentLabelInput || 'Now'}
                       </span>
                     )}
                     <button
-                      onClick={() => { setEditingMomentId('__now__'); }}
-                      style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
+                      onClick={e => { e.stopPropagation(); setEditingMomentId('__now__'); }}
+                      style={{ background: 'none', border: 'none', color: '#4a4', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
                       title="Set label"
                     >✏</button>
                   </div>
-                  <div style={{ display: 'flex', gap: 16, padding: '6px 30px', background: '#181818', fontSize: 12, flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: 16, padding: '6px 30px', background: '#111e16', fontSize: 12, flexWrap: 'wrap' }}>
                     <span style={{ color: '#4c4' }}>{activeLabels.positive}: {nowCounts.positive}</span>
                     <span style={{ color: '#c44' }}>{activeLabels.negative}: {nowCounts.negative}</span>
                     <span style={{ color: '#88a' }}>{activeLabels.neutral}: {nowCounts.neutral}</span>
                     {nowCounts.lurking > 0 && <span style={{ color: '#555' }}>Lurking: {nowCounts.lurking}</span>}
                   </div>
+                  {nowExpanded && (
+                    <div style={{ padding: '8px 10px 12px', background: '#0e1a12' }}>
+                      {(['positive', 'negative', 'neutral', null] as (ReactionRegion | null)[]).map(region => {
+                        const members = [...seenUsers].filter(userId => {
+                          const cursor = liveCursors.get(userId);
+                          return (cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null) === region;
+                        });
+                        const groupLabel = region === null ? 'Lurking' : activeLabels[region];
+                        return (
+                          <div key={String(region)} style={{ marginBottom: 10 }}>
+                            <div style={{ fontSize: 11, fontWeight: 600, color: '#4a4', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+                              {groupLabel} ({members.length})
+                            </div>
+                            {members.length === 0 ? (
+                              <div style={{ fontSize: 12, color: '#2a4a2a', fontStyle: 'italic', paddingLeft: 8 }}>empty</div>
+                            ) : members.map(userId => {
+                              const online = connectedUsers.has(userId);
+                              const regionColor = region === 'positive' ? '#4a4' : region === 'negative' ? '#a44' : region === 'neutral' ? '#66a' : '#555';
+                              return (
+                                <div key={userId} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 8px' }}>
+                                  <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: online ? regionColor : '#333', display: 'inline-block' }} />
+                                  <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#7a7', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{userId}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                   <button
                     onClick={snapMoment}
                     style={{ display: 'block', width: '100%', padding: '12px', background: '#1a7a3c', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
@@ -1807,6 +1838,11 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                           style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
                           title="Rename"
                         >✏</button>
+                        <button
+                          onClick={e => { e.stopPropagation(); if (window.confirm(`Delete "${moment.label}"?`)) { const updated = moments.filter(m => m.id !== moment.id); setMoments(updated); localStorage.setItem(`v4-moments-${room}`, JSON.stringify(updated)); } }}
+                          style={{ background: 'none', border: 'none', color: '#633', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
+                          title="Delete"
+                        >✕</button>
                       </div>
                       <div style={{ display: 'flex', gap: 16, padding: '6px 30px', background: '#181818', fontSize: 12, flexWrap: 'wrap' }}>
                         <span style={{ color: '#4c4' }}>{activeLabels.positive}: {counts.positive}</span>
