@@ -770,7 +770,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   return (
     <div
       className="v3-admin-panel"
-      style={{ padding: 0, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+      style={{ padding: 0, flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
       {/* === PERSISTENT HEADER === */}
       <div style={{ flexShrink: 0, borderBottom: '2px solid #444' }}>

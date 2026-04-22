@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 22 (2026-04-20)
 
+### Fixed
+- V4 emcee panel no longer overflows the screen when the interface chip bar is visible — the panel now fills the remaining height instead of claiming the full 100vh ([#42](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/42))
+
 ### Changed
 - V4 People tab: clicking `···` on a participant row now opens a dropdown menu with "Offer interface…"; choosing it opens a dialog with a select limited to "social" and "emcee" (replaces the free-text input)
 
