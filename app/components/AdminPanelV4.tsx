@@ -8,7 +8,7 @@ import ImageConfigModal from "./ImageConfigModal";
 import SocialConfigModal from "./SocialConfigModal";
 import type { SocialConfig } from "../types";
 
-function ParticipantRow({ userId, region, labels, onPush, online }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet; onPush: () => void; online: boolean }) {
+function ParticipantRow({ userId, region, labels, online, isMenuOpen, onMenuToggle, onOfferInterface }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet; online: boolean; isMenuOpen: boolean; onMenuToggle: () => void; onOfferInterface: () => void; }) {
   const regionColor = region === 'positive' ? '#4a4' : region === 'negative' ? '#a44' : region === 'neutral' ? '#aa4' : '#555';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: '#1a1a1a', borderRadius: 4, opacity: online ? 1 : 0.4 }}>
@@ -16,9 +16,22 @@ function ParticipantRow({ userId, region, labels, onPush, online }: { userId: st
       <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#ccc', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {userId}
       </span>
-      <button onClick={onPush} disabled={!online} style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: online ? 'pointer' : 'not-allowed', opacity: online ? 1 : 0 }}>
-        ···
-      </button>
+      <div style={{ position: 'relative' }}>
+        <button onClick={onMenuToggle} disabled={!online} style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: online ? 'pointer' : 'not-allowed', opacity: online ? 1 : 0 }}>
+          ···
+        </button>
+        {isMenuOpen && (
+          <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 2, background: '#252525', border: '1px solid #444', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100, minWidth: 160 }}>
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => { onOfferInterface(); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+            >
+              Offer interface…
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -74,8 +87,16 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const staleTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const [pushTarget, setPushTarget] = useState<{ kind: 'user'; userId: string } | { kind: 'region'; region: ReactionRegion | null } | null>(null);
-  const [pendingInterfaceName, setPendingInterfaceName] = useState('');
+  const [pendingInterfaceName, setPendingInterfaceName] = useState('social');
   const [interfaceAcceptances, setInterfaceAcceptances] = useState<{ userId: string; interfaceName: string }[]>([]);
+  const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
+  const [openMenuGroupKey, setOpenMenuGroupKey] = useState<string | null>(null);
+  useEffect(() => {
+    if (!openMenuUserId && !openMenuGroupKey) return;
+    const handler = () => { setOpenMenuUserId(null); setOpenMenuGroupKey(null); };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [openMenuUserId, openMenuGroupKey]);
 
   // Labels config state
   const [labelSelected, setLabelSelected] = useState<string>('default');
@@ -749,7 +770,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   return (
     <div
       className="v3-admin-panel"
-      style={{ padding: 0, height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
+      style={{ padding: 0, flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
     >
       {/* === PERSISTENT HEADER === */}
       <div style={{ flexShrink: 0, borderBottom: '2px solid #444' }}>
@@ -1449,51 +1470,6 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               </select>
             </div>
 
-            {pushTarget && (
-              <div style={{ marginBottom: 16, padding: '12px 14px', background: '#1e1e1e', border: '1px solid #444', borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: 12, color: '#888' }}>
-                  Push interface to{' '}
-                  {pushTarget.kind === 'user'
-                    ? <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{pushTarget.userId}</span>
-                    : <span style={{ color: '#ccc' }}>{pushTarget.region === null ? 'Lurking' : activeLabels[pushTarget.region]} group</span>
-                  }:
-                </div>
-                <input
-                  type="text"
-                  placeholder="Interface name (e.g. facilitator)"
-                  value={pendingInterfaceName}
-                  onChange={e => setPendingInterfaceName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Escape') { setPushTarget(null); setPendingInterfaceName(''); } }}
-                  autoFocus
-                  style={{ background: '#333', border: '1px solid #555', color: '#eee', borderRadius: 6, padding: '8px 10px', fontSize: 13 }}
-                />
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => {
-                      if (!pendingInterfaceName.trim()) return;
-                      socket.send(JSON.stringify({
-                        type: 'pushInterface',
-                        ...(pushTarget.kind === 'user' ? { targetUserId: pushTarget.userId } : { targetRegion: pushTarget.region }),
-                        interfaceName: pendingInterfaceName.trim(),
-                      }));
-                      setPushTarget(null);
-                      setPendingInterfaceName('');
-                    }}
-                    disabled={!pendingInterfaceName.trim()}
-                    style={{ flex: 1, padding: '8px', background: '#2a5cba', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer', opacity: pendingInterfaceName.trim() ? 1 : 0.45 }}
-                  >
-                    Send
-                  </button>
-                  <button
-                    onClick={() => { setPushTarget(null); setPendingInterfaceName(''); }}
-                    style={{ padding: '8px 14px', background: 'none', border: '1px solid #444', color: '#888', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
             {seenUsers.size === 0 ? (
               <p style={{ color: '#666', fontSize: 13 }}>No participants seen yet.</p>
             ) : participantGrouping === 'none' ? (
@@ -1502,7 +1478,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                   const online = connectedUsers.has(userId);
                   const cursor = liveCursors.get(userId);
                   const region = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null;
-                  return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} online={online} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />;
+                  return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} online={online} isMenuOpen={openMenuUserId === userId} onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)} onOfferInterface={() => { setOpenMenuUserId(null); setPushTarget({ kind: 'user', userId }); setPendingInterfaceName('social'); }} />;
                 })}
               </div>
             ) : (
@@ -1531,12 +1507,25 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1, cursor: 'pointer' }} onClick={toggleCollapse}>
                           {groupLabel} ({members.length}{region === null && offlineMembers.length > 0 ? ` + ${offlineMembers.length} offline` : ''})
                         </span>
-                        <button
-                          onClick={() => { setPushTarget({ kind: 'region', region }); setPendingInterfaceName(''); }}
-                          style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'pointer' }}
-                        >
-                          ···
-                        </button>
+                        <div style={{ position: 'relative' }}>
+                          <button
+                            onClick={() => setOpenMenuGroupKey(prev => prev === groupKey ? null : groupKey)}
+                            style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'pointer' }}
+                          >
+                            ···
+                          </button>
+                          {openMenuGroupKey === groupKey && (
+                            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 2, background: '#252525', border: '1px solid #444', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100, minWidth: 160 }}>
+                              <button
+                                onPointerDown={e => e.stopPropagation()}
+                                onClick={() => { setOpenMenuGroupKey(null); setPushTarget({ kind: 'region', region }); setPendingInterfaceName('social'); }}
+                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+                              >
+                                Offer interface…
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       {!collapsed && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1548,10 +1537,10 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                             </div>
                           ) : null}
                           {members.map(userId => (
-                            <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} online={true} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />
+                            <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} online={true} isMenuOpen={openMenuUserId === userId} onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)} onOfferInterface={() => { setOpenMenuUserId(null); setPushTarget({ kind: 'user', userId }); setPendingInterfaceName('social'); }} />
                           ))}
                           {region === null && offlineMembers.map(userId => (
-                            <ParticipantRow key={userId} userId={userId} region={null} labels={activeLabels} online={false} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />
+                            <ParticipantRow key={userId} userId={userId} region={null} labels={activeLabels} online={false} isMenuOpen={false} onMenuToggle={() => {}} onOfferInterface={() => {}} />
                           ))}
                         </div>
                       )}
@@ -1589,6 +1578,56 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         )}
       </div>
 
+      {pushTarget && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onPointerDown={() => { setPushTarget(null); setPendingInterfaceName('social'); }}
+        >
+          <div
+            style={{ background: '#1e1e1e', border: '1px solid #444', borderRadius: 10, padding: '20px 20px 16px', width: 280, display: 'flex', flexDirection: 'column', gap: 12 }}
+            onPointerDown={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 13, color: '#888' }}>
+              Offer interface to{' '}
+              {pushTarget.kind === 'user'
+                ? <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{pushTarget.userId}</span>
+                : <span style={{ color: '#ccc' }}>{pushTarget.region === null ? 'Lurking' : activeLabels[pushTarget.region]} group</span>
+              }
+            </div>
+            <select
+              value={pendingInterfaceName}
+              onChange={e => setPendingInterfaceName(e.target.value)}
+              autoFocus
+              style={{ background: '#333', border: '1px solid #555', color: '#eee', borderRadius: 6, padding: '8px 10px', fontSize: 13 }}
+            >
+              <option value="social">social</option>
+              <option value="emcee">emcee</option>
+            </select>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {
+                  socket.send(JSON.stringify({
+                    type: 'pushInterface',
+                    ...(pushTarget.kind === 'user' ? { targetUserId: pushTarget.userId } : { targetRegion: pushTarget.region }),
+                    interfaceName: pendingInterfaceName,
+                  }));
+                  setPushTarget(null);
+                  setPendingInterfaceName('social');
+                }}
+                style={{ flex: 1, padding: '8px', background: '#2a5cba', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+              >
+                Send
+              </button>
+              <button
+                onClick={() => { setPushTarget(null); setPendingInterfaceName('social'); }}
+                style={{ padding: '8px 14px', background: 'none', border: '1px solid #444', color: '#888', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {imageConfigOpen && (
         <ImageConfigModal
           currentUrl={roomImageUrl}
