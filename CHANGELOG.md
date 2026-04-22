@@ -5,8 +5,8 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Added
-- V4 emcee: new Moments tab — snap a labeled snapshot of where all participants are, view collapsed stats per valence zone, expand to see the per-participant breakdown, and rename moments inline; snapshots persist via localStorage
-- V4 People tab: new "Valence: Moments" Group By option — pick a past moment snapshot and group participants by their region at that time, with full "Offer interface" support; "Valence Zone" renamed to "Valence: Current"
+- V4 emcee: new Moments tab — snap a labeled snapshot of where all participants are, view collapsed stats per valence zone, expand to see the per-participant breakdown, and rename moments inline; snapshots persist via localStorage ([#46](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/46))
+- V4 People tab: new "Valence: Moments" Group By option — pick a past moment snapshot and group participants by their region at that time, with full "Offer interface" support; "Valence Zone" renamed to "Valence: Current" ([#46](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/46))
 
 ## Week 22 (2026-04-20)
 
