@@ -213,6 +213,15 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             setUserCap(data.userCap);
             setCapInput(data.userCap !== null ? String(data.userCap) : '');
           }
+          if (Array.isArray(data.connectedUserIds) && data.connectedUserIds.length > 0) {
+            const ids: string[] = data.connectedUserIds;
+            setConnectedUsers(prev => new Set([...prev, ...ids]));
+            setSeenUsers(prev => {
+              const next = new Set([...prev, ...ids]);
+              localStorage.setItem(`v4-seen-users-${room}`, JSON.stringify([...next]));
+              return next;
+            });
+          }
           return;
         }
 

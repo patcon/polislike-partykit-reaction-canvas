@@ -321,6 +321,13 @@ export default class Server implements Party.Server {
       this.room.broadcast(JSON.stringify({ type: 'userJoined', userId, isViewer }), [conn.id]);
     }
 
+    // Unique participant userIds currently connected (for admin snapshot on join)
+    const connectedUserIds = [...new Set(
+      [...this.connectionUserMap.entries()]
+        .filter(([cid]) => cid !== conn.id && !this.adminConnectionIds.has(cid))
+        .map(([, uid]) => uid)
+    )];
+
     // Send welcome message with current active statement, queue info, and statements pool
     conn.send(JSON.stringify({
       type: 'connected',
@@ -343,6 +350,7 @@ export default class Server implements Party.Server {
       isViewer,
       userCap: this.userCap,
       viewerCount: vCount,
+      connectedUserIds,
     }));
   }
 
