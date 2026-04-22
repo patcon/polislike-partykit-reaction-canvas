@@ -90,12 +90,13 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
   const [pendingInterfaceName, setPendingInterfaceName] = useState('social');
   const [interfaceAcceptances, setInterfaceAcceptances] = useState<{ userId: string; interfaceName: string }[]>([]);
   const [openMenuUserId, setOpenMenuUserId] = useState<string | null>(null);
+  const [openMenuGroupKey, setOpenMenuGroupKey] = useState<string | null>(null);
   useEffect(() => {
-    if (!openMenuUserId) return;
-    const handler = () => setOpenMenuUserId(null);
+    if (!openMenuUserId && !openMenuGroupKey) return;
+    const handler = () => { setOpenMenuUserId(null); setOpenMenuGroupKey(null); };
     document.addEventListener('pointerdown', handler);
     return () => document.removeEventListener('pointerdown', handler);
-  }, [openMenuUserId]);
+  }, [openMenuUserId, openMenuGroupKey]);
 
   // Labels config state
   const [labelSelected, setLabelSelected] = useState<string>('default');
@@ -1469,49 +1470,6 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               </select>
             </div>
 
-            {pushTarget && (
-              <div style={{ marginBottom: 16, padding: '12px 14px', background: '#1e1e1e', border: '1px solid #444', borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={{ fontSize: 12, color: '#888' }}>
-                  Push interface to{' '}
-                  {pushTarget.kind === 'user'
-                    ? <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{pushTarget.userId}</span>
-                    : <span style={{ color: '#ccc' }}>{pushTarget.region === null ? 'Lurking' : activeLabels[pushTarget.region]} group</span>
-                  }:
-                </div>
-                <select
-                  value={pendingInterfaceName}
-                  onChange={e => setPendingInterfaceName(e.target.value)}
-                  autoFocus
-                  style={{ background: '#333', border: '1px solid #555', color: '#eee', borderRadius: 6, padding: '8px 10px', fontSize: 13 }}
-                >
-                  <option value="social">social</option>
-                  <option value="emcee">emcee</option>
-                </select>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <button
-                    onClick={() => {
-                      socket.send(JSON.stringify({
-                        type: 'pushInterface',
-                        ...(pushTarget.kind === 'user' ? { targetUserId: pushTarget.userId } : { targetRegion: pushTarget.region }),
-                        interfaceName: pendingInterfaceName,
-                      }));
-                      setPushTarget(null);
-                      setPendingInterfaceName('social');
-                    }}
-                    style={{ flex: 1, padding: '8px', background: '#2a5cba', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
-                  >
-                    Send
-                  </button>
-                  <button
-                    onClick={() => { setPushTarget(null); setPendingInterfaceName('social'); }}
-                    style={{ padding: '8px 14px', background: 'none', border: '1px solid #444', color: '#888', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
-
             {seenUsers.size === 0 ? (
               <p style={{ color: '#666', fontSize: 13 }}>No participants seen yet.</p>
             ) : participantGrouping === 'none' ? (
@@ -1549,12 +1507,25 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1, cursor: 'pointer' }} onClick={toggleCollapse}>
                           {groupLabel} ({members.length}{region === null && offlineMembers.length > 0 ? ` + ${offlineMembers.length} offline` : ''})
                         </span>
-                        <button
-                          onClick={() => { setPushTarget({ kind: 'region', region }); setPendingInterfaceName(''); }}
-                          style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'pointer' }}
-                        >
-                          ···
-                        </button>
+                        <div style={{ position: 'relative' }}>
+                          <button
+                            onClick={() => setOpenMenuGroupKey(prev => prev === groupKey ? null : groupKey)}
+                            style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'pointer' }}
+                          >
+                            ···
+                          </button>
+                          {openMenuGroupKey === groupKey && (
+                            <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 2, background: '#252525', border: '1px solid #444', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100, minWidth: 160 }}>
+                              <button
+                                onPointerDown={e => e.stopPropagation()}
+                                onClick={() => { setOpenMenuGroupKey(null); setPushTarget({ kind: 'region', region }); setPendingInterfaceName('social'); }}
+                                style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+                              >
+                                Offer interface…
+                              </button>
+                            </div>
+                          )}
+                        </div>
                       </div>
                       {!collapsed && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
@@ -1607,6 +1578,56 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         )}
       </div>
 
+      {pushTarget && (
+        <div
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+          onPointerDown={() => { setPushTarget(null); setPendingInterfaceName('social'); }}
+        >
+          <div
+            style={{ background: '#1e1e1e', border: '1px solid #444', borderRadius: 10, padding: '20px 20px 16px', width: 280, display: 'flex', flexDirection: 'column', gap: 12 }}
+            onPointerDown={e => e.stopPropagation()}
+          >
+            <div style={{ fontSize: 13, color: '#888' }}>
+              Offer interface to{' '}
+              {pushTarget.kind === 'user'
+                ? <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{pushTarget.userId}</span>
+                : <span style={{ color: '#ccc' }}>{pushTarget.region === null ? 'Lurking' : activeLabels[pushTarget.region]} group</span>
+              }
+            </div>
+            <select
+              value={pendingInterfaceName}
+              onChange={e => setPendingInterfaceName(e.target.value)}
+              autoFocus
+              style={{ background: '#333', border: '1px solid #555', color: '#eee', borderRadius: 6, padding: '8px 10px', fontSize: 13 }}
+            >
+              <option value="social">social</option>
+              <option value="emcee">emcee</option>
+            </select>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {
+                  socket.send(JSON.stringify({
+                    type: 'pushInterface',
+                    ...(pushTarget.kind === 'user' ? { targetUserId: pushTarget.userId } : { targetRegion: pushTarget.region }),
+                    interfaceName: pendingInterfaceName,
+                  }));
+                  setPushTarget(null);
+                  setPendingInterfaceName('social');
+                }}
+                style={{ flex: 1, padding: '8px', background: '#2a5cba', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+              >
+                Send
+              </button>
+              <button
+                onClick={() => { setPushTarget(null); setPendingInterfaceName('social'); }}
+                style={{ padding: '8px 14px', background: 'none', border: '1px solid #444', color: '#888', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {imageConfigOpen && (
         <ImageConfigModal
           currentUrl={roomImageUrl}
