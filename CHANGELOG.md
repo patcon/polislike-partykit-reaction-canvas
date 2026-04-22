@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is that Monday and Week 0 = 2025-11-17.
+All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
 ## Week 22 (2026-04-20)
 

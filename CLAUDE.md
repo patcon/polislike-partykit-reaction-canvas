@@ -8,7 +8,7 @@ A real-time collaborative voting canvas built on PartyKit (WebSockets) and React
 
 ## Contribution rules
 
-**Always update `CHANGELOG.md`** when making any user-facing change (features, fixes, behaviour changes, config changes). Do this in the same commit as the code change. Add entries under the current week's section (e.g. `## Week 22 (2026-04-20)`); if it doesn't exist yet, create it at the top. Week 0 = Mon 2025-11-17; each week is +7 days. Releases cut every Monday morning ET — start a new week section on each Monday. Link each entry to the relevant PR, issue, or commit (in that priority order).
+**Always update `CHANGELOG.md`** when making any user-facing change (features, fixes, behaviour changes, config changes). Do this in the same commit as the code change. Add entries under the current week's section (e.g. `## Week 22 (2026-04-20)`); if it doesn't exist yet, create it at the top. Week 0 starts Mon 2025-11-17; each week is +7 days (the date in the header is the Monday the week starts on). Releases cut every Monday morning ET — start a new week section on each Monday. Link each entry to the relevant PR, issue, or commit (in that priority order).
 
 ## Dev commands
 
