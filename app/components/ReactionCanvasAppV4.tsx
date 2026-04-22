@@ -7,6 +7,7 @@ import InterfaceChipBar from "./InterfaceChipBar";
 import SocialPanel from "./SocialPanel";
 import type { SocialConfig } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
+import InterfacePushModal from "./InterfacePushModal";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { getReactionLabelSet } from "../voteLabels";
@@ -41,11 +42,21 @@ const CHIP_BAR_HEIGHT = 40;
   }
 })();
 
+const PUSHED_INTERFACES_KEY = 'v4-pushed-interfaces';
+
 function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
   const interfaces = ['canvas'];
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
   if (p.get('interface') === 'social') interfaces.push('social');
+  try {
+    const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
+    if (Array.isArray(stored)) {
+      for (const key of stored) {
+        if (typeof key === 'string' && !interfaces.includes(key)) interfaces.push(key);
+      }
+    }
+  } catch { /* ignore */ }
   return interfaces;
 }
 
@@ -72,7 +83,7 @@ function MobileOnlyGate() {
 }
 
 export default function ReactionCanvasAppV4() {
-  const [unlockedInterfaces] = useState(() => getUnlockedInterfaces());
+  const [unlockedInterfaces, setUnlockedInterfaces] = useState(() => getUnlockedInterfaces());
   const [activeInterface, setActiveInterface] = useState(() => {
     const unlocked = getUnlockedInterfaces();
     const saved = localStorage.getItem('v4-active-interface');
@@ -98,6 +109,7 @@ export default function ReactionCanvasAppV4() {
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
+  const [pushedInterface, setPushedInterface] = useState<string | null>(null);
 
   useEffect(() => {
     localStorage.setItem('v4-active-interface', activeInterface);
@@ -131,17 +143,17 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const INTERFACE_CHIPS = [
-    { key: 'canvas', label: 'Canvas' },
-    { key: 'emcee', label: 'Emcee' },
-    { key: 'social', label: 'Social' },
-  ];
+  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social' };
+  const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
+    key,
+    label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
+  }));
 
   return (
     <div className="v2-app-container">
       {showChipBar && (
         <InterfaceChipBar
-          interfaces={INTERFACE_CHIPS.filter(c => unlockedInterfaces.includes(c.key))}
+          interfaces={INTERFACE_CHIPS}
           active={activeInterface}
           onSelect={setActiveInterface}
         />
@@ -206,6 +218,15 @@ export default function ReactionCanvasAppV4() {
             onActivityTriggered={(activityName) => {
               if (activityName === 'githubUsername') setShowGithubModal(true);
             }}
+            onInterfacePushed={(name) => setPushedInterface(name)}
+            onPushedInterfacesCleared={() => {
+              localStorage.removeItem(PUSHED_INTERFACES_KEY);
+              setUnlockedInterfaces(getUnlockedInterfaces());
+              setActiveInterface(prev => {
+                const urlBased = getUnlockedInterfaces();
+                return urlBased.includes(prev) ? prev : (urlBased.includes('emcee') ? 'emcee' : 'canvas');
+              });
+            }}
             onRoomImageUrlChange={setServerImageUrl}
             onActivityChange={setActivity}
             onSocialConfigChange={setServerSocialConfig}
@@ -237,6 +258,27 @@ export default function ReactionCanvasAppV4() {
                 }));
               }}
               onDismiss={() => setShowGithubModal(false)}
+            />
+          )}
+          {pushedInterface && (
+            <InterfacePushModal
+              interfaceName={pushedInterface}
+              onAccept={() => {
+                socketSendRef.current?.(JSON.stringify({ type: 'acceptInterface', interfaceName: pushedInterface }));
+                setUnlockedInterfaces(prev => {
+                  if (prev.includes(pushedInterface)) return prev;
+                  try {
+                    const stored: string[] = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
+                    if (!stored.includes(pushedInterface)) {
+                      localStorage.setItem(PUSHED_INTERFACES_KEY, JSON.stringify([...stored, pushedInterface]));
+                    }
+                  } catch { /* ignore */ }
+                  return [...prev, pushedInterface];
+                });
+                setActiveInterface(pushedInterface);
+                setPushedInterface(null);
+              }}
+              onDecline={() => setPushedInterface(null)}
             />
           )}
         </div>

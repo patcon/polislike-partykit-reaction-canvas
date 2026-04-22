@@ -8,15 +8,15 @@ import ImageConfigModal from "./ImageConfigModal";
 import SocialConfigModal from "./SocialConfigModal";
 import type { SocialConfig } from "../types";
 
-function ParticipantRow({ userId, region, labels }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet }) {
+function ParticipantRow({ userId, region, labels, onPush, online }: { userId: string; region: ReactionRegion | null; labels: ReactionLabelSet; onPush: () => void; online: boolean }) {
   const regionColor = region === 'positive' ? '#4a4' : region === 'negative' ? '#a44' : region === 'neutral' ? '#aa4' : '#555';
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: '#1a1a1a', borderRadius: 4 }}>
-      <span style={{ width: 8, height: 8, borderRadius: '50%', background: regionColor, flexShrink: 0 }} />
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: '#1a1a1a', borderRadius: 4, opacity: online ? 1 : 0.4 }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: online ? regionColor : '#333', flexShrink: 0 }} />
       <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#ccc', flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
         {userId}
       </span>
-      <button disabled style={{ opacity: 0.3, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>
+      <button onClick={onPush} disabled={!online} style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: online ? 'pointer' : 'not-allowed', opacity: online ? 1 : 0 }}>
         ···
       </button>
     </div>
@@ -63,10 +63,19 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
 
   // Participants tab state
   const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
+  const [seenUsers, setSeenUsers] = useState<Set<string>>(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(`v4-seen-users-${room}`) ?? '[]');
+      return new Set(Array.isArray(stored) ? stored : []);
+    } catch { return new Set(); }
+  });
   const [liveCursors, setLiveCursors] = useState<Map<string, {x: number; y: number}>>(new Map());
   const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence'>('valence');
   const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
   const staleTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const [pushTarget, setPushTarget] = useState<{ kind: 'user'; userId: string } | { kind: 'region'; region: ReactionRegion | null } | null>(null);
+  const [pendingInterfaceName, setPendingInterfaceName] = useState('');
+  const [interfaceAcceptances, setInterfaceAcceptances] = useState<{ userId: string; interfaceName: string }[]>([]);
 
   // Labels config state
   const [labelSelected, setLabelSelected] = useState<string>('default');
@@ -204,6 +213,15 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             setUserCap(data.userCap);
             setCapInput(data.userCap !== null ? String(data.userCap) : '');
           }
+          if (Array.isArray(data.connectedUserIds) && data.connectedUserIds.length > 0) {
+            const ids: string[] = data.connectedUserIds;
+            setConnectedUsers(prev => new Set([...prev, ...ids]));
+            setSeenUsers(prev => {
+              const next = new Set([...prev, ...ids]);
+              localStorage.setItem(`v4-seen-users-${room}`, JSON.stringify([...next]));
+              return next;
+            });
+          }
           return;
         }
 
@@ -258,10 +276,25 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
           return;
         }
 
+        if (data.type === 'interfaceAccepted') {
+          setInterfaceAcceptances(prev => [...prev, { userId: data.userId, interfaceName: data.interfaceName }]);
+          return;
+        }
+
+        const addSeenUser = (userId: string) => {
+          setSeenUsers(prev => {
+            if (prev.has(userId)) return prev;
+            const next = new Set([...prev, userId]);
+            localStorage.setItem(`v4-seen-users-${room}`, JSON.stringify([...next]));
+            return next;
+          });
+        };
+
         // Participant tracking — always runs regardless of recording state
         if (data.type === 'userJoined' || data.type === 'userLeft') {
           if (data.type === 'userJoined') {
             setConnectedUsers(prev => new Set([...prev, data.userId]));
+            addSeenUser(data.userId);
           } else {
             setConnectedUsers(prev => { const s = new Set(prev); s.delete(data.userId); return s; });
             setLiveCursors(prev => { const m = new Map(prev); m.delete(data.userId); return m; });
@@ -273,6 +306,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
         if (data.type === 'move' || data.type === 'touch') {
           const { userId: cursorUserId, x: cx, y: cy } = data.position;
           setConnectedUsers(prev => new Set([...prev, cursorUserId]));
+          addSeenUser(cursorUserId);
           setLiveCursors(prev => new Map(prev).set(cursorUserId, { x: cx, y: cy }));
           clearTimeout(staleTimersRef.current.get(cursorUserId));
           staleTimersRef.current.set(cursorUserId, setTimeout(() => {
@@ -1312,6 +1346,17 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             </div>
 
             <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>
+              <p style={{ marginBottom: 4, fontWeight: 600 }}>Role assignments</p>
+              <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Push interface invitations to participants from the Participants tab. Use this to revoke all pushed roles.</p>
+              <button
+                className="v3-admin-btn v3-admin-btn--destructive"
+                onClick={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
+              >
+                Clear all role assignments
+              </button>
+            </div>
+
+            <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>
               <p style={{ marginBottom: 4, fontWeight: 600 }}>Popups</p>
               <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Push a one-time form to all participants. Submissions appear in the Events tab.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -1404,14 +1449,60 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
               </select>
             </div>
 
-            {connectedUsers.size === 0 ? (
-              <p style={{ color: '#666', fontSize: 13 }}>No participants connected.</p>
+            {pushTarget && (
+              <div style={{ marginBottom: 16, padding: '12px 14px', background: '#1e1e1e', border: '1px solid #444', borderRadius: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={{ fontSize: 12, color: '#888' }}>
+                  Push interface to{' '}
+                  {pushTarget.kind === 'user'
+                    ? <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{pushTarget.userId}</span>
+                    : <span style={{ color: '#ccc' }}>{pushTarget.region === null ? 'Lurking' : activeLabels[pushTarget.region]} group</span>
+                  }:
+                </div>
+                <input
+                  type="text"
+                  placeholder="Interface name (e.g. facilitator)"
+                  value={pendingInterfaceName}
+                  onChange={e => setPendingInterfaceName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Escape') { setPushTarget(null); setPendingInterfaceName(''); } }}
+                  autoFocus
+                  style={{ background: '#333', border: '1px solid #555', color: '#eee', borderRadius: 6, padding: '8px 10px', fontSize: 13 }}
+                />
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button
+                    onClick={() => {
+                      if (!pendingInterfaceName.trim()) return;
+                      socket.send(JSON.stringify({
+                        type: 'pushInterface',
+                        ...(pushTarget.kind === 'user' ? { targetUserId: pushTarget.userId } : { targetRegion: pushTarget.region }),
+                        interfaceName: pendingInterfaceName.trim(),
+                      }));
+                      setPushTarget(null);
+                      setPendingInterfaceName('');
+                    }}
+                    disabled={!pendingInterfaceName.trim()}
+                    style={{ flex: 1, padding: '8px', background: '#2a5cba', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer', opacity: pendingInterfaceName.trim() ? 1 : 0.45 }}
+                  >
+                    Send
+                  </button>
+                  <button
+                    onClick={() => { setPushTarget(null); setPendingInterfaceName(''); }}
+                    style={{ padding: '8px 14px', background: 'none', border: '1px solid #444', color: '#888', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {seenUsers.size === 0 ? (
+              <p style={{ color: '#666', fontSize: 13 }}>No participants seen yet.</p>
             ) : participantGrouping === 'none' ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                {[...connectedUsers].map(userId => {
+                {[...seenUsers].map(userId => {
+                  const online = connectedUsers.has(userId);
                   const cursor = liveCursors.get(userId);
                   const region = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null;
-                  return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} />;
+                  return <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} online={online} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />;
                 })}
               </div>
             ) : (
@@ -1423,6 +1514,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                     if (!cursor) return region === null;
                     return computeReactionRegion(cursor.x, cursor.y, activeAnchors) === region;
                   });
+                  const offlineMembers = [...seenUsers].filter(userId => !connectedUsers.has(userId));
                   const groupLabel = region === null ? 'Lurking' : activeLabels[region];
                   const collapsed = collapsedGroups.has(groupKey);
                   const toggleCollapse = () => setCollapsedGroups(prev => {
@@ -1437,28 +1529,60 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
                           {collapsed ? '▶' : '▼'}
                         </button>
                         <span style={{ fontSize: 12, fontWeight: 600, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', flex: 1, cursor: 'pointer' }} onClick={toggleCollapse}>
-                          {groupLabel} ({members.length})
+                          {groupLabel} ({members.length}{region === null && offlineMembers.length > 0 ? ` + ${offlineMembers.length} offline` : ''})
                         </span>
-                        <button disabled style={{ opacity: 0.3, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>
+                        <button
+                          onClick={() => { setPushTarget({ kind: 'region', region }); setPendingInterfaceName(''); }}
+                          style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'pointer' }}
+                        >
                           ···
                         </button>
                       </div>
                       {!collapsed && (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                          {members.length === 0 ? (
+                          {members.length === 0 && (region !== null || offlineMembers.length === 0) ? (
                             <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px' }}>
                               <span style={{ width: 8, height: 8, flexShrink: 0 }} />
                               <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#444', fontStyle: 'italic', flex: 1 }}>empty</span>
                               <button disabled style={{ opacity: 0, fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'not-allowed' }}>···</button>
                             </div>
-                          ) : members.map(userId => (
-                            <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} />
+                          ) : null}
+                          {members.map(userId => (
+                            <ParticipantRow key={userId} userId={userId} region={region} labels={activeLabels} online={true} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />
+                          ))}
+                          {region === null && offlineMembers.map(userId => (
+                            <ParticipantRow key={userId} userId={userId} region={null} labels={activeLabels} online={false} onPush={() => { setPushTarget({ kind: 'user', userId }); setPendingInterfaceName(''); }} />
                           ))}
                         </div>
                       )}
                     </div>
                   );
                 })}
+              </div>
+            )}
+
+            {seenUsers.size > 0 && (
+              <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  onClick={() => {
+                    localStorage.removeItem(`v4-seen-users-${room}`);
+                    setSeenUsers(new Set());
+                  }}
+                  style={{ fontSize: 11, color: '#555', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
+                >
+                  Clear history
+                </button>
+              </div>
+            )}
+
+            {interfaceAcceptances.length > 0 && (
+              <div style={{ marginTop: 20, borderTop: '1px solid #333', paddingTop: 14 }}>
+                <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Acceptances</div>
+                {interfaceAcceptances.map((a, i) => (
+                  <div key={i} style={{ fontSize: 12, color: '#6c6', fontFamily: 'monospace', padding: '2px 0' }}>
+                    ✓ {a.userId} accepted "{a.interfaceName}"
+                  </div>
+                ))}
               </div>
             )}
           </div>

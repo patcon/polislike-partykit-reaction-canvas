@@ -148,6 +148,23 @@ interface PlaybackCursorBroadcastEvent {
   position: CursorPosition;
 }
 
+interface PushInterfaceEvent {
+  type: 'pushInterface';
+  targetUserId?: string;
+  targetRegion?: 'positive' | 'negative' | 'neutral' | null;
+  interfaceName: string;
+  payload?: Record<string, unknown>;
+}
+
+interface AcceptInterfaceEvent {
+  type: 'acceptInterface';
+  interfaceName: string;
+}
+
+interface ClearPushedInterfacesEvent {
+  type: 'clearPushedInterfaces';
+}
+
 interface Vote {
   userId: string;
   statementId: number;
@@ -155,7 +172,34 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SetSocialConfigEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent;
+
+// ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
+const DEFAULT_ANCHORS = {
+  positive: { x: 95, y: 5  },
+  negative: { x: 5,  y: 95 },
+  neutral:  { x: 95, y: 95 },
+};
+
+function computeReactionRegionServer(nx: number, ny: number, anchors: ReactionAnchors): 'positive' | 'negative' | 'neutral' | null {
+  const x = nx / 100, y = ny / 100;
+  const pos = { x: anchors.positive.x / 100, y: anchors.positive.y / 100 };
+  const neg = { x: anchors.negative.x / 100, y: anchors.negative.y / 100 };
+  const neu = { x: anchors.neutral.x  / 100, y: anchors.neutral.y  / 100 };
+  const denom = (neg.y - neu.y) * (pos.x - neu.x) + (neu.x - neg.x) * (pos.y - neu.y);
+  if (Math.abs(denom) < 1e-10) {
+    const dp = Math.hypot(x - pos.x, y - pos.y);
+    const dn = Math.hypot(x - neg.x, y - neg.y);
+    const du = Math.hypot(x - neu.x, y - neu.y);
+    const m = Math.min(dp, dn, du);
+    return m === dp ? 'positive' : m === dn ? 'negative' : 'neutral';
+  }
+  const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
+  const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
+  const wNeu = 1 - wPos - wNeg;
+  const max = Math.max(wPos, wNeg, wNeu);
+  return max === wPos ? 'positive' : max === wNeg ? 'negative' : 'neutral';
+}
 
 // ===== SOCCER PHYSICS CONSTANTS =====
 const SOCCER_BALL_R = 2;      // % of canvas
@@ -229,6 +273,19 @@ export default class Server implements Party.Server {
     return this.viewerConnectionIds.size;
   }
 
+  private getTargetConnections(targetUserId?: string, targetRegion?: 'positive' | 'negative' | 'neutral' | null): Party.Connection[] {
+    const anchors = this.roomAnchors ?? DEFAULT_ANCHORS;
+    return [...this.room.getConnections()].filter(conn => {
+      if (this.adminConnectionIds.has(conn.id)) return false;
+      const userId = this.connectionUserMap.get(conn.id);
+      if (!userId) return false;
+      if (targetUserId !== undefined) return userId === targetUserId;
+      const pos = this.cursorPositions.get(userId);
+      if (!pos) return targetRegion === null;
+      return computeReactionRegionServer(pos.x, pos.y, anchors) === targetRegion;
+    });
+  }
+
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     // A websocket just connected!
     const url = new URL(ctx.request.url);
@@ -264,6 +321,13 @@ export default class Server implements Party.Server {
       this.room.broadcast(JSON.stringify({ type: 'userJoined', userId, isViewer }), [conn.id]);
     }
 
+    // Unique participant userIds currently connected (for admin snapshot on join)
+    const connectedUserIds = [...new Set(
+      [...this.connectionUserMap.entries()]
+        .filter(([cid]) => cid !== conn.id && !this.adminConnectionIds.has(cid))
+        .map(([, uid]) => uid)
+    )];
+
     // Send welcome message with current active statement, queue info, and statements pool
     conn.send(JSON.stringify({
       type: 'connected',
@@ -286,6 +350,7 @@ export default class Server implements Party.Server {
       isViewer,
       userCap: this.userCap,
       viewerCount: vCount,
+      connectedUserIds,
     }));
   }
 
@@ -429,6 +494,21 @@ export default class Server implements Party.Server {
         sender.send(JSON.stringify({ type: 'joinApproved' }));
         this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }), [sender.id]);
         sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
+      } else if (event.type === 'clearPushedInterfaces') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        this.room.broadcast(JSON.stringify({ type: 'pushedInterfacesCleared' }));
+      } else if (event.type === 'pushInterface') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        const targets = this.getTargetConnections(event.targetUserId, event.targetRegion);
+        const msg = JSON.stringify({ type: 'interfacePushed', interfaceName: event.interfaceName, payload: event.payload ?? {} });
+        for (const conn of targets) conn.send(msg);
+      } else if (event.type === 'acceptInterface') {
+        const userId = this.connectionUserMap.get(sender.id);
+        if (!userId) return;
+        const msg = JSON.stringify({ type: 'interfaceAccepted', userId, interfaceName: event.interfaceName });
+        for (const conn of this.room.getConnections()) {
+          if (this.adminConnectionIds.has(conn.id)) conn.send(msg);
+        }
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
