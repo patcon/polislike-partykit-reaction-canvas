@@ -129,8 +129,12 @@ export default function ReactionCanvasAppV4() {
     if (hapticFlashTimeoutRef.current) clearTimeout(hapticFlashTimeoutRef.current);
     setHapticFlashing(true);
     hapticFlashTimeoutRef.current = setTimeout(() => setHapticFlashing(false), 500);
-    if (hapticEnabled && WebHaptics.isSupported) triggerHaptic('nudge');
-  }, [hapticEnabled, triggerHaptic]);
+    if (hapticEnabled && WebHaptics.isSupported) {
+      triggerHaptic('nudge');
+    } else if (!WebHaptics.isSupported && !suppressHapticModal) {
+      setHapticPending(true);
+    }
+  }, [hapticEnabled, suppressHapticModal, triggerHaptic]);
 
   const handleRoomLabelsChange = useCallback((labels: ReactionLabelSet | null) => {
     if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
