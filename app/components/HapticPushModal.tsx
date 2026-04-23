@@ -13,7 +13,7 @@ export default function HapticPushModal({ onAccept, onDecline }: HapticPushModal
         {canVibrate ? (
           <>
             <div className="github-modal-body">
-              The facilitator wants to get your attention with a haptic buzz. Allow it?
+              The facilitator wants to get your attention with a haptic buzz. Allow it? <span style={{ color: '#888', fontSize: '0.9em' }}>(unless silent mode)</span>
             </div>
             <button className="github-modal-btn-primary" onClick={onAccept}>Buzz me</button>
             <button className="github-modal-btn-dismiss" onClick={onDecline}>Not now</button>
