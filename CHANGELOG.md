@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 22 (2026-04-20)
 
 ### Added
-- V4: participants now receive a haptic buzz + indicator flash when the emcee silently changes the reaction labels or switches the canvas activity (Reaction Canvas / Soccer / Image Canvas); does not fire on the emcee's device or on initial page load ([#54](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/54))
+- V4: participants now receive a haptic buzz + indicator flash when the emcee silently changes the reaction labels, switches the canvas activity (Reaction Canvas / Soccer / Image Canvas), or sets a new image in Image Canvas; does not fire on the emcee's device or on initial page load ([#54](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/54))
 
 ### Added
 - V4: haptic indicator button beside the QR share button — flashes when a buzz signal arrives; tap to toggle haptics on/off; on devices without haptic support it stays in "off" state but still flashes to show the signal arrived

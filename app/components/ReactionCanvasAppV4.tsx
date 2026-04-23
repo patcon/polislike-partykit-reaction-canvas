@@ -142,6 +142,11 @@ export default function ReactionCanvasAppV4() {
     setActivity(act);
   }, [isEmcee, triggerBuzzForUpdate]);
 
+  const handleRoomImageUrlChange = useCallback((url: string) => {
+    if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
+    setServerImageUrl(url);
+  }, [isEmcee, triggerBuzzForUpdate]);
+
   useEffect(() => {
     localStorage.setItem('v4-active-interface', activeInterface);
   }, [activeInterface]);
@@ -274,7 +279,7 @@ export default function ReactionCanvasAppV4() {
                 return urlBased.includes(prev) ? prev : (urlBased.includes('emcee') ? 'emcee' : 'canvas');
               });
             }}
-            onRoomImageUrlChange={setServerImageUrl}
+            onRoomImageUrlChange={handleRoomImageUrlChange}
             onActivityChange={handleActivityChange}
             onSocialConfigChange={setServerSocialConfig}
             debug={debug}
