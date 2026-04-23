@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 22 (2026-04-20)
 
 ### Added
+- Storybook: baseline stories for `AdminPanelV4` — 11 stories cover all 8 tabs (render + key static assertions) plus two local-state interaction tests (`LabelsCustomInputsReveal`, `EventsEmptyState`) to catch hook/prop mis-wiring in the component split refactor ([`HEAD`](https://github.com/patcon/polislike-partykit-reaction-canvas/commit/main))
+
+### Added
 - V4 emcee: new Moments tab — snap a labeled snapshot of where all participants are, view collapsed stats per valence zone, expand to see the per-participant breakdown, and rename moments inline; snapshots persist via localStorage ([#46](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/46))
 - V4 People tab: new "Valence: Moments" Group By option — pick a past moment snapshot and group participants by their region at that time, with full "Offer interface" support; "Valence Zone" renamed to "Valence: Current" ([#46](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/46))
 
