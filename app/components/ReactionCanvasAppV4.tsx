@@ -17,6 +17,7 @@ import { getReactionLabelSet } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
 import { getPersistentUserId } from "../utils/userId";
 import ShareQRButton from "./ShareQRButton";
+import HapticIndicatorButton from "./HapticIndicatorButton";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -114,6 +115,10 @@ export default function ReactionCanvasAppV4() {
   const [showGithubModal, setShowGithubModal] = useState(false);
   const [pushedInterface, setPushedInterface] = useState<string | null>(null);
   const [hapticPending, setHapticPending] = useState(false);
+  const [suppressHapticModal, setSuppressHapticModal] = useState(false);
+  const [hapticEnabled, setHapticEnabled] = useState(WebHaptics.isSupported);
+  const [hapticFlashing, setHapticFlashing] = useState(false);
+  const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { trigger: triggerHaptic } = useWebHaptics();
 
   useEffect(() => {
@@ -197,6 +202,13 @@ export default function ReactionCanvasAppV4() {
           <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
           <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
           <ShareQRButton />
+          <HapticIndicatorButton
+            enabled={hapticEnabled}
+            flashing={hapticFlashing}
+            canVibrate={WebHaptics.isSupported}
+            onToggle={() => { if (WebHaptics.isSupported) setHapticEnabled(prev => !prev); }}
+            onShowInfo={() => setHapticPending(true)}
+          />
           {touchPos && (
             <div
               className="v2-touch-indicator"
@@ -225,9 +237,12 @@ export default function ReactionCanvasAppV4() {
             }}
             onInterfacePushed={(name) => setPushedInterface(name)}
             onHapticPushed={() => {
-              if (WebHaptics.isSupported) {
+              if (hapticFlashTimeoutRef.current) clearTimeout(hapticFlashTimeoutRef.current);
+              setHapticFlashing(true);
+              hapticFlashTimeoutRef.current = setTimeout(() => setHapticFlashing(false), 500);
+              if (hapticEnabled && WebHaptics.isSupported) {
                 triggerHaptic('nudge');
-              } else {
+              } else if (!WebHaptics.isSupported && !suppressHapticModal) {
                 setHapticPending(true);
               }
             }}
@@ -296,6 +311,8 @@ export default function ReactionCanvasAppV4() {
           {hapticPending && (
             <HapticPushModal
               onDismiss={() => setHapticPending(false)}
+              suppressed={suppressHapticModal}
+              onSuppressChange={setSuppressHapticModal}
             />
           )}
         </div>

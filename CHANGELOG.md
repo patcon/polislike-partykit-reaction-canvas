@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 22 (2026-04-20)
 
 ### Added
+- V4: haptic indicator button beside the QR share button — flashes when a buzz signal arrives; tap to toggle haptics on/off; on devices without haptic support it stays in "off" state but still flashes to show the signal arrived
 - V4 People tab: emcee can now send a haptic buzz to individual participants, groups, or reaction regions — a confirmation modal shows the target before sending, and participants see a permission dialog before their device vibrates ([#34](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/34))
 
 ### Fixed

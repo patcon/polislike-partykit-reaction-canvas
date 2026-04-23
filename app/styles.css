@@ -1510,6 +1510,32 @@ body {
   opacity: 0.9;
 }
 
+.haptic-indicator-btn {
+  position: absolute;
+  top: 96px;
+  left: 8px;
+  z-index: 200;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.haptic-indicator-btn--off {
+  color: rgba(0, 0, 0, 0.15);
+  cursor: default;
+}
+
+.haptic-indicator-btn--flash {
+  color: rgba(0, 0, 0, 0.75);
+}
+
 .share-qr-modal {
   position: fixed;
   inset: 0;
