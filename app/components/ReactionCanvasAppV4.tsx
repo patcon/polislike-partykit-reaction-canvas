@@ -286,7 +286,7 @@ export default function ReactionCanvasAppV4() {
           )}
           {hapticPending && (
             <HapticPushModal
-              onAccept={() => { navigator.vibrate([100, 50, 100]); setHapticPending(false); }}
+              onAccept={() => setHapticPending(false)}
               onDecline={() => setHapticPending(false)}
             />
           )}
