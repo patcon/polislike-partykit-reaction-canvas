@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Changed
 - Refactor: split `AdminPanelV4` (1960 lines) into `AdminPanelV4/` directory — 6 custom hooks (`useAnchors`, `useLabels`, `useRoomConfig`, `useRecording`, `usePlayback`, `useParticipants`), 8 tab components, `ParticipantRow`, `OfferInterfaceModal`, and a thin `index.tsx` orchestrator; no behavior changes
+- CI: typecheck (`tsc --noEmit`) and Storybook/Playwright tests (`vitest run`) now run as a required `check` job before every deploy (PR previews and production); add `typecheck` and `test` scripts to `package.json`
 
 ### Added
 - Storybook: baseline stories for `AdminPanelV4` — 11 stories cover all 8 tabs (render + key static assertions) plus two local-state interaction tests (`LabelsCustomInputsReveal`, `EventsEmptyState`) to catch hook/prop mis-wiring in the component split refactor ([`5722984`](https://github.com/patcon/polislike-partykit-reaction-canvas/commit/5722984))
