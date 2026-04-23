@@ -5,9 +5,10 @@ interface Props {
   flashing: boolean;
   canVibrate: boolean;
   onToggle: () => void;
+  onShowInfo?: () => void;
 }
 
-export default function HapticIndicatorButton({ enabled, flashing, canVibrate, onToggle }: Props) {
+export default function HapticIndicatorButton({ enabled, flashing, canVibrate, onToggle, onShowInfo }: Props) {
   const classes = [
     'haptic-indicator-btn',
     flashing ? 'haptic-indicator-btn--flash' : '',
@@ -17,7 +18,7 @@ export default function HapticIndicatorButton({ enabled, flashing, canVibrate, o
   return (
     <button
       className={classes}
-      onClick={canVibrate ? onToggle : undefined}
+      onClick={canVibrate ? onToggle : onShowInfo}
       aria-label={enabled ? "Disable haptic feedback" : "Enable haptic feedback"}
     >
       {enabled ? <LuVibrate size={20} /> : <LuVibrateOff size={20} />}

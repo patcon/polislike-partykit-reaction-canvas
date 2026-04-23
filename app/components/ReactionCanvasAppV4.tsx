@@ -207,6 +207,7 @@ export default function ReactionCanvasAppV4() {
             flashing={hapticFlashing}
             canVibrate={WebHaptics.isSupported}
             onToggle={() => { if (WebHaptics.isSupported) setHapticEnabled(prev => !prev); }}
+            onShowInfo={() => setHapticPending(true)}
           />
           {touchPos && (
             <div
@@ -310,7 +311,8 @@ export default function ReactionCanvasAppV4() {
           {hapticPending && (
             <HapticPushModal
               onDismiss={() => setHapticPending(false)}
-              onSuppress={() => setSuppressHapticModal(true)}
+              suppressed={suppressHapticModal}
+              onSuppressChange={setSuppressHapticModal}
             />
           )}
         </div>

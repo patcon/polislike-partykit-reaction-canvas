@@ -2,14 +2,15 @@ import { useState } from "react";
 
 interface HapticPushModalProps {
   onDismiss: () => void;
-  onSuppress: () => void;
+  suppressed: boolean;
+  onSuppressChange: (suppress: boolean) => void;
 }
 
-export default function HapticPushModal({ onDismiss, onSuppress }: HapticPushModalProps) {
-  const [suppress, setSuppress] = useState(false);
+export default function HapticPushModal({ onDismiss, suppressed, onSuppressChange }: HapticPushModalProps) {
+  const [suppress, setSuppress] = useState(suppressed);
 
   const handleOk = () => {
-    if (suppress) onSuppress();
+    onSuppressChange(suppress);
     onDismiss();
   };
 
