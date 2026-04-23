@@ -4,15 +4,28 @@ interface HapticPushModalProps {
 }
 
 export default function HapticPushModal({ onAccept, onDecline }: HapticPushModalProps) {
+  const canVibrate = typeof navigator.vibrate === 'function';
+
   return (
     <div className="github-modal-overlay" onClick={onDecline}>
       <div className="github-modal" onClick={e => e.stopPropagation()}>
         <div className="github-modal-title">Attention request</div>
-        <div className="github-modal-body">
-          The facilitator wants to get your attention with a haptic buzz. Allow it?
-        </div>
-        <button className="github-modal-btn-primary" onClick={onAccept}>Buzz me</button>
-        <button className="github-modal-btn-dismiss" onClick={onDecline}>Not now</button>
+        {canVibrate ? (
+          <>
+            <div className="github-modal-body">
+              The facilitator wants to get your attention with a haptic buzz. Allow it?
+            </div>
+            <button className="github-modal-btn-primary" onClick={onAccept}>Buzz me</button>
+            <button className="github-modal-btn-dismiss" onClick={onDecline}>Not now</button>
+          </>
+        ) : (
+          <>
+            <div className="github-modal-body">
+              The facilitator tried to get your attention with a haptic buzz, but your device doesn't support it.
+            </div>
+            <button className="github-modal-btn-dismiss" onClick={onDecline}>OK</button>
+          </>
+        )}
       </div>
     </div>
   );
