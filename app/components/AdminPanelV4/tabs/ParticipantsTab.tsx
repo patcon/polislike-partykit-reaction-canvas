@@ -28,6 +28,7 @@ interface ParticipantsTabProps {
   activeLabels: ReactionLabelSet;
   activeAnchors: ReactionAnchors;
   room: string;
+  selfUserId?: string;
 }
 
 function ParticipantsTabInner({
@@ -38,7 +39,7 @@ function ParticipantsTabInner({
   openMenuUserId, setOpenMenuUserId,
   openMenuGroupKey, setOpenMenuGroupKey,
   setPushTarget, setPendingInterfaceName,
-  interfaceAcceptances, activeLabels, activeAnchors, room,
+  interfaceAcceptances, activeLabels, activeAnchors, room, selfUserId,
 }: ParticipantsTabProps) {
   const offerInterface = (target: PushTarget) => {
     setPushTarget(target);
@@ -99,6 +100,7 @@ function ParticipantsTabInner({
                 region={region}
                 labels={activeLabels}
                 online={online}
+                isSelf={userId === selfUserId}
                 isMenuOpen={openMenuUserId === userId}
                 onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)}
                 onOfferInterface={() => { setOpenMenuUserId(null); offerInterface({ kind: 'user', userId }); }}
@@ -162,6 +164,7 @@ function ParticipantsTabInner({
                               region={region}
                               labels={activeLabels}
                               online={online}
+                              isSelf={userId === selfUserId}
                               isMenuOpen={openMenuUserId === userId}
                               onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)}
                               onOfferInterface={() => { setOpenMenuUserId(null); offerInterface({ kind: 'user', userId }); }}
@@ -233,13 +236,14 @@ function ParticipantsTabInner({
                         region={region}
                         labels={activeLabels}
                         online={true}
+                        isSelf={userId === selfUserId}
                         isMenuOpen={openMenuUserId === userId}
                         onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)}
                         onOfferInterface={() => { setOpenMenuUserId(null); offerInterface({ kind: 'user', userId }); }}
                       />
                     ))}
                     {region === null && offlineMembers.map(userId => (
-                      <ParticipantRow key={userId} userId={userId} region={null} labels={activeLabels} online={false} isMenuOpen={false} onMenuToggle={() => {}} onOfferInterface={() => {}} />
+                      <ParticipantRow key={userId} userId={userId} region={null} labels={activeLabels} online={false} isSelf={userId === selfUserId} isMenuOpen={false} onMenuToggle={() => {}} onOfferInterface={() => {}} />
                     ))}
                   </div>
                 )}

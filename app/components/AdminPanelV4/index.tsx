@@ -25,9 +25,10 @@ const ALL_TABS: AdminTab[] = ['record', 'labels', 'anchors', 'avatars', 'interfa
 
 interface AdminPanelV4Props {
   room: string;
+  selfUserId?: string;
 }
 
-export default function AdminPanelV4({ room }: AdminPanelV4Props) {
+export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
   const [activeTab, setActiveTab]             = useState<AdminTab>('record');
   const [presenceCount, setPresenceCount]     = useState<number>(0);
   const [githubSubmissions, setGithubSubmissions] = useState<GithubSubmission[]>([]);
@@ -266,6 +267,7 @@ export default function AdminPanelV4({ room }: AdminPanelV4Props) {
             activeLabels={labels.activeLabels}
             activeAnchors={anchors.activeAnchors}
             room={room}
+            selfUserId={selfUserId}
           />
         )}
         {activeTab === 'moments' && (

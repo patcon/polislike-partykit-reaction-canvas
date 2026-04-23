@@ -159,7 +159,7 @@ export default function ReactionCanvasAppV4() {
         />
       )}
       {activeInterface === 'emcee' ? (
-        <AdminPanelV4 room={room} />
+        <AdminPanelV4 room={room} selfUserId={userId} />
       ) : activeInterface === 'social' ? (
         <SocialPanel socialConfig={serverSocialConfig} />
       ) : null}
