@@ -8,6 +8,8 @@ A real-time collaborative voting canvas built on PartyKit (WebSockets) and React
 
 ## Contribution rules
 
+**Always merge PRs with** `gh pr merge --merge --delete-branch` to delete both the local and remote branch automatically after merging. Only skip `--delete-branch` if explicitly asked to keep the branch.
+
 **Always update `CHANGELOG.md`** when making any user-facing change (features, fixes, behaviour changes, config changes). Do this in the same commit as the code change. Add entries under the current week's section (e.g. `## Week 22 (2026-04-20)`); if it doesn't exist yet, create it at the top. Week 0 starts Mon 2025-11-17; each week is +7 days (the date in the header is the Monday the week starts on). Releases cut every Monday morning ET — start a new week section on each Monday. Link each entry to the relevant PR, issue, or commit (in that priority order).
 
 ## Dev commands
