@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { generateUUID } from "../../../utils/userId";
 import { computeReactionRegion } from "../../../utils/voteRegion";
 import type { ReactionAnchors } from "../../../utils/voteRegion";
 import type { MomentSnapshot, PushTarget } from "../types";
@@ -58,7 +59,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
       regions[userId] = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchorsRef.current) : null;
     }
     const newMoment: MomentSnapshot = {
-      id: crypto.randomUUID(),
+      id: generateUUID(),
       label: momentLabelInput.trim() || `Moment ${moments.length + 1}`,
       timestamp: Date.now(),
       regions,

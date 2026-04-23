@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { generateUUID } from "../utils/userId";
 
 const CAM_MODES = ['static', 'lerp', 'exp', 'spring', 'quat'];
 
@@ -800,7 +801,7 @@ export default function ValenceViz() {
       setWsConnected(false);
       const host=window.location.port==='1999'?`${window.location.hostname}:1999`:window.location.hostname;
       const proto=window.location.port==='1999'?'ws':'wss';
-      const userId=crypto.randomUUID();
+      const userId=generateUUID();
       ws=new WebSocket(`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`);
       ws.onopen=()=>{
         wsConnectedLocal=true;
