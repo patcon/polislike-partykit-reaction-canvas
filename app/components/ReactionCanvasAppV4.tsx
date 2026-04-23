@@ -115,6 +115,7 @@ export default function ReactionCanvasAppV4() {
   const [showGithubModal, setShowGithubModal] = useState(false);
   const [pushedInterface, setPushedInterface] = useState<string | null>(null);
   const [hapticPending, setHapticPending] = useState(false);
+  const [suppressHapticModal, setSuppressHapticModal] = useState(false);
   const [hapticEnabled, setHapticEnabled] = useState(WebHaptics.isSupported);
   const [hapticFlashing, setHapticFlashing] = useState(false);
   const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -240,7 +241,7 @@ export default function ReactionCanvasAppV4() {
               hapticFlashTimeoutRef.current = setTimeout(() => setHapticFlashing(false), 500);
               if (hapticEnabled && WebHaptics.isSupported) {
                 triggerHaptic('nudge');
-              } else if (!WebHaptics.isSupported) {
+              } else if (!WebHaptics.isSupported && !suppressHapticModal) {
                 setHapticPending(true);
               }
             }}
@@ -309,6 +310,7 @@ export default function ReactionCanvasAppV4() {
           {hapticPending && (
             <HapticPushModal
               onDismiss={() => setHapticPending(false)}
+              onSuppress={() => setSuppressHapticModal(true)}
             />
           )}
         </div>
