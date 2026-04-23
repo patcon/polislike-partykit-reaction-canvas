@@ -9,7 +9,9 @@
     "deploy:staging": "pnpm run cachebust && partykit deploy --preview staging",
     "cachebust": "node scripts/build-with-cachebust.js",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.98.0",
