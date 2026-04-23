@@ -10,9 +10,10 @@ interface ParticipantRowProps {
   isMenuOpen: boolean;
   onMenuToggle: () => void;
   onOfferInterface: () => void;
+  onSendHaptic: () => void;
 }
 
-export default function ParticipantRow({ userId, region, labels, online, isSelf, isMenuOpen, onMenuToggle, onOfferInterface }: ParticipantRowProps) {
+export default function ParticipantRow({ userId, region, labels, online, isSelf, isMenuOpen, onMenuToggle, onOfferInterface, onSendHaptic }: ParticipantRowProps) {
   const regionColor = region === 'positive' ? '#4a4' : region === 'negative' ? '#a44' : region === 'neutral' ? '#aa4' : '#555';
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', background: '#1a1a1a', borderRadius: 4, opacity: online ? 1 : 0.4 }}>
@@ -32,6 +33,13 @@ export default function ParticipantRow({ userId, region, labels, online, isSelf,
               style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
             >
               Offer interface…
+            </button>
+            <button
+              onPointerDown={e => e.stopPropagation()}
+              onClick={() => { onSendHaptic(); }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+            >
+              Send buzz…
             </button>
           </div>
         )}

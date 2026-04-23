@@ -9,6 +9,7 @@ import { useRecording } from "./hooks/useRecording";
 import { usePlayback } from "./hooks/usePlayback";
 import { useParticipants } from "./hooks/useParticipants";
 import OfferInterfaceModal from "./OfferInterfaceModal";
+import HapticConfirmModal from "./HapticConfirmModal";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -17,7 +18,7 @@ import InterfacesTab from "./tabs/InterfacesTab";
 import EventsTab from "./tabs/EventsTab";
 import ParticipantsTab from "./tabs/ParticipantsTab";
 import MomentsTab from "./tabs/MomentsTab";
-import type { AdminTab, GithubSubmission } from "./types";
+import type { AdminTab, GithubSubmission, PushTarget } from "./types";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 import type { ReactionLabelSet } from "../../voteLabels";
 
@@ -32,6 +33,7 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
   const [activeTab, setActiveTab]             = useState<AdminTab>('record');
   const [presenceCount, setPresenceCount]     = useState<number>(0);
   const [githubSubmissions, setGithubSubmissions] = useState<GithubSubmission[]>([]);
+  const [pendingHapticTarget, setPendingHapticTarget] = useState<PushTarget | null>(null);
 
   // Ref-based dispatch so all hooks see the same handler regardless of creation order
   const dispatchRef = useRef<(data: Record<string, unknown>) => void>(() => {});
@@ -263,6 +265,7 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
             setOpenMenuGroupKey={participants.setOpenMenuGroupKey}
             setPushTarget={participants.setPushTarget}
             setPendingInterfaceName={participants.setPendingInterfaceName}
+            onSendHaptic={setPendingHapticTarget}
             interfaceAcceptances={participants.interfaceAcceptances}
             activeLabels={labels.activeLabels}
             activeAnchors={anchors.activeAnchors}
@@ -294,6 +297,21 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
       </div>
 
       {/* === MODALS === */}
+      {pendingHapticTarget && (
+        <HapticConfirmModal
+          pushTarget={pendingHapticTarget}
+          activeLabels={labels.activeLabels}
+          onSend={() => {
+            const msg: Record<string, unknown> = { type: 'pushHaptic' };
+            if (pendingHapticTarget.kind === 'user') msg.targetUserId = pendingHapticTarget.userId;
+            else if (pendingHapticTarget.kind === 'users') msg.targetUserIds = pendingHapticTarget.userIds;
+            else if (pendingHapticTarget.kind === 'region') msg.targetRegion = pendingHapticTarget.region;
+            socket.send(JSON.stringify(msg));
+            setPendingHapticTarget(null);
+          }}
+          onClose={() => setPendingHapticTarget(null)}
+        />
+      )}
       {participants.pushTarget && (
         <OfferInterfaceModal
           pushTarget={participants.pushTarget}
