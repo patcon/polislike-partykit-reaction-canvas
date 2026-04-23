@@ -9,6 +9,8 @@ import type { SocialConfig } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
 import InterfacePushModal from "./InterfacePushModal";
 import HapticPushModal from "./HapticPushModal";
+import { WebHaptics } from "web-haptics";
+import { useWebHaptics } from "web-haptics/react";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { getReactionLabelSet } from "../voteLabels";
@@ -112,6 +114,7 @@ export default function ReactionCanvasAppV4() {
   const [showGithubModal, setShowGithubModal] = useState(false);
   const [pushedInterface, setPushedInterface] = useState<string | null>(null);
   const [hapticPending, setHapticPending] = useState(false);
+  const { trigger: triggerHaptic } = useWebHaptics();
 
   useEffect(() => {
     localStorage.setItem('v4-active-interface', activeInterface);
@@ -221,7 +224,13 @@ export default function ReactionCanvasAppV4() {
               if (activityName === 'githubUsername') setShowGithubModal(true);
             }}
             onInterfacePushed={(name) => setPushedInterface(name)}
-            onHapticPushed={() => setHapticPending(true)}
+            onHapticPushed={() => {
+              if (WebHaptics.isSupported) {
+                triggerHaptic('nudge');
+              } else {
+                setHapticPending(true);
+              }
+            }}
             onPushedInterfacesCleared={() => {
               localStorage.removeItem(PUSHED_INTERFACES_KEY);
               setUnlockedInterfaces(getUnlockedInterfaces());
@@ -286,8 +295,7 @@ export default function ReactionCanvasAppV4() {
           )}
           {hapticPending && (
             <HapticPushModal
-              onAccept={() => setHapticPending(false)}
-              onDecline={() => setHapticPending(false)}
+              onDismiss={() => setHapticPending(false)}
             />
           )}
         </div>
