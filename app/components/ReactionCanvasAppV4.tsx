@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
@@ -119,7 +119,37 @@ export default function ReactionCanvasAppV4() {
   const [hapticEnabled, setHapticEnabled] = useState(WebHaptics.isSupported);
   const [hapticFlashing, setHapticFlashing] = useState(false);
   const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasConnectedRef = useRef(false);
   const { trigger: triggerHaptic } = useWebHaptics();
+
+  // Derived early so useCallback deps below can reference it (must still be before any early return)
+  const isEmcee = unlockedInterfaces.includes('emcee');
+
+  const triggerBuzzForUpdate = useCallback(() => {
+    if (hapticFlashTimeoutRef.current) clearTimeout(hapticFlashTimeoutRef.current);
+    setHapticFlashing(true);
+    hapticFlashTimeoutRef.current = setTimeout(() => setHapticFlashing(false), 500);
+    if (hapticEnabled && WebHaptics.isSupported) {
+      triggerHaptic('nudge');
+    } else if (!WebHaptics.isSupported && !suppressHapticModal) {
+      setHapticPending(true);
+    }
+  }, [hapticEnabled, suppressHapticModal, triggerHaptic]);
+
+  const handleRoomLabelsChange = useCallback((labels: ReactionLabelSet | null) => {
+    if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
+    setServerLabels(labels);
+  }, [isEmcee, triggerBuzzForUpdate]);
+
+  const handleActivityChange = useCallback((act: 'canvas' | 'soccer' | 'image-canvas') => {
+    if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
+    setActivity(act);
+  }, [isEmcee, triggerBuzzForUpdate]);
+
+  const handleRoomImageUrlChange = useCallback((url: string) => {
+    if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
+    setServerImageUrl(url);
+  }, [isEmcee, triggerBuzzForUpdate]);
 
   useEffect(() => {
     localStorage.setItem('v4-active-interface', activeInterface);
@@ -138,8 +168,6 @@ export default function ReactionCanvasAppV4() {
   const handleJoinRequest = () => {
     socketSendRef.current?.(JSON.stringify({ type: 'requestJoin' }));
   };
-
-  const isEmcee = unlockedInterfaces.includes('emcee');
 
   if (!isEmcee && !isTouchDevice() && !isMobileForced()) {
     return <MobileOnlyGate />;
@@ -225,7 +253,8 @@ export default function ReactionCanvasAppV4() {
             onActiveCursorCountChange={setActiveCursorCount}
             onSimulatedCursorCountChange={setSimulatedCursorCount}
             onRecordingStateChange={setIsRecording}
-            onRoomLabelsChange={setServerLabels}
+            onConnected={() => { hasConnectedRef.current = true; }}
+            onRoomLabelsChange={handleRoomLabelsChange}
             onRoomAnchorsChange={setServerAnchors}
             onViewerCount={setViewerCount}
             onConnectedAsViewer={(viewer, cap) => { setIsViewer(viewer); setUserCap(cap); }}
@@ -254,8 +283,8 @@ export default function ReactionCanvasAppV4() {
                 return urlBased.includes(prev) ? prev : (urlBased.includes('emcee') ? 'emcee' : 'canvas');
               });
             }}
-            onRoomImageUrlChange={setServerImageUrl}
-            onActivityChange={setActivity}
+            onRoomImageUrlChange={handleRoomImageUrlChange}
+            onActivityChange={handleActivityChange}
             onSocialConfigChange={setServerSocialConfig}
             debug={debug}
           />
