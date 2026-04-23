@@ -24,6 +24,7 @@ interface ParticipantsTabProps {
   setOpenMenuGroupKey: (v: string | null | ((prev: string | null) => string | null)) => void;
   setPushTarget: (v: PushTarget | null) => void;
   setPendingInterfaceName: (v: string) => void;
+  onSendHaptic: (target: PushTarget) => void;
   interfaceAcceptances: { userId: string; interfaceName: string }[];
   activeLabels: ReactionLabelSet;
   activeAnchors: ReactionAnchors;
@@ -38,7 +39,7 @@ function ParticipantsTabInner({
   collapsedGroups, setCollapsedGroups,
   openMenuUserId, setOpenMenuUserId,
   openMenuGroupKey, setOpenMenuGroupKey,
-  setPushTarget, setPendingInterfaceName,
+  setPushTarget, setPendingInterfaceName, onSendHaptic,
   interfaceAcceptances, activeLabels, activeAnchors, room, selfUserId,
 }: ParticipantsTabProps) {
   const offerInterface = (target: PushTarget) => {
@@ -104,6 +105,7 @@ function ParticipantsTabInner({
                 isMenuOpen={openMenuUserId === userId}
                 onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)}
                 onOfferInterface={() => { setOpenMenuUserId(null); offerInterface({ kind: 'user', userId }); }}
+                onSendHaptic={() => { setOpenMenuUserId(null); onSendHaptic({ kind: 'user', userId }); }}
               />
             );
           })}
@@ -144,6 +146,13 @@ function ParticipantsTabInner({
                             >
                               Offer interface…
                             </button>
+                            <button
+                              onPointerDown={e => e.stopPropagation()}
+                              onClick={() => { setOpenMenuGroupKey(null); onSendHaptic({ kind: 'users', userIds: members, label: groupLabel }); }}
+                              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+                            >
+                              Send buzz…
+                            </button>
                           </div>
                         )}
                       </div>
@@ -168,6 +177,7 @@ function ParticipantsTabInner({
                               isMenuOpen={openMenuUserId === userId}
                               onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)}
                               onOfferInterface={() => { setOpenMenuUserId(null); offerInterface({ kind: 'user', userId }); }}
+                              onSendHaptic={() => { setOpenMenuUserId(null); onSendHaptic({ kind: 'user', userId }); }}
                             />
                           );
                         })}
@@ -216,6 +226,13 @@ function ParticipantsTabInner({
                         >
                           Offer interface…
                         </button>
+                        <button
+                          onPointerDown={e => e.stopPropagation()}
+                          onClick={() => { setOpenMenuGroupKey(null); onSendHaptic({ kind: 'region', region }); }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+                        >
+                          Send buzz…
+                        </button>
                       </div>
                     )}
                   </div>
@@ -240,10 +257,11 @@ function ParticipantsTabInner({
                         isMenuOpen={openMenuUserId === userId}
                         onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)}
                         onOfferInterface={() => { setOpenMenuUserId(null); offerInterface({ kind: 'user', userId }); }}
+                        onSendHaptic={() => { setOpenMenuUserId(null); onSendHaptic({ kind: 'user', userId }); }}
                       />
                     ))}
                     {region === null && offlineMembers.map(userId => (
-                      <ParticipantRow key={userId} userId={userId} region={null} labels={activeLabels} online={false} isSelf={userId === selfUserId} isMenuOpen={false} onMenuToggle={() => {}} onOfferInterface={() => {}} />
+                      <ParticipantRow key={userId} userId={userId} region={null} labels={activeLabels} online={false} isSelf={userId === selfUserId} isMenuOpen={false} onMenuToggle={() => {}} onOfferInterface={() => {}} onSendHaptic={() => {}} />
                     ))}
                   </div>
                 )}

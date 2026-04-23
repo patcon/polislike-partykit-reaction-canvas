@@ -8,6 +8,7 @@ import SocialPanel from "./SocialPanel";
 import type { SocialConfig } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
 import InterfacePushModal from "./InterfacePushModal";
+import HapticPushModal from "./HapticPushModal";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { getReactionLabelSet } from "../voteLabels";
@@ -110,6 +111,7 @@ export default function ReactionCanvasAppV4() {
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
   const [pushedInterface, setPushedInterface] = useState<string | null>(null);
+  const [hapticPending, setHapticPending] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('v4-active-interface', activeInterface);
@@ -219,6 +221,7 @@ export default function ReactionCanvasAppV4() {
               if (activityName === 'githubUsername') setShowGithubModal(true);
             }}
             onInterfacePushed={(name) => setPushedInterface(name)}
+            onHapticPushed={() => setHapticPending(true)}
             onPushedInterfacesCleared={() => {
               localStorage.removeItem(PUSHED_INTERFACES_KEY);
               setUnlockedInterfaces(getUnlockedInterfaces());
@@ -279,6 +282,12 @@ export default function ReactionCanvasAppV4() {
                 setPushedInterface(null);
               }}
               onDecline={() => setPushedInterface(null)}
+            />
+          )}
+          {hapticPending && (
+            <HapticPushModal
+              onAccept={() => { navigator.vibrate([100, 50, 100]); setHapticPending(false); }}
+              onDecline={() => setHapticPending(false)}
             />
           )}
         </div>

@@ -166,6 +166,13 @@ interface ClearPushedInterfacesEvent {
   type: 'clearPushedInterfaces';
 }
 
+interface PushHapticEvent {
+  type: 'pushHaptic';
+  targetUserId?: string;
+  targetRegion?: 'positive' | 'negative' | 'neutral' | null;
+  targetUserIds?: string[];
+}
+
 interface Vote {
   userId: string;
   statementId: number;
@@ -173,7 +180,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -503,6 +510,11 @@ export default class Server implements Party.Server {
         if (!this.adminConnectionIds.has(sender.id)) return;
         const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
         const msg = JSON.stringify({ type: 'interfacePushed', interfaceName: event.interfaceName, payload: event.payload ?? {} });
+        for (const conn of targets) conn.send(msg);
+      } else if (event.type === 'pushHaptic') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
+        const msg = JSON.stringify({ type: 'hapticPushed' });
         for (const conn of targets) conn.send(msg);
       } else if (event.type === 'acceptInterface') {
         const userId = this.connectionUserMap.get(sender.id);

@@ -43,6 +43,7 @@ interface CanvasProps {
   onActivityTriggered?: (activityName: string) => void;
   onInterfacePushed?: (interfaceName: string) => void;
   onPushedInterfacesCleared?: () => void;
+  onHapticPushed?: () => void;
   onRoomImageUrlChange?: (url: string) => void;
   onActivityChange?: (activity: 'canvas' | 'soccer' | 'image-canvas') => void;
   onSocialConfigChange?: (config: { default: string; twitter: string; bluesky: string; mastodon: string; instagram: string } | null) => void;
@@ -69,7 +70,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -216,6 +217,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
         if (data.type === 'pushedInterfacesCleared') {
           onPushedInterfacesCleared?.();
+          return;
+        }
+
+        if (data.type === 'hapticPushed') {
+          onHapticPushed?.();
           return;
         }
 
