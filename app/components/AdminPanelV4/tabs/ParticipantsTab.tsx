@@ -25,6 +25,7 @@ interface ParticipantsTabProps {
   setPushTarget: (v: PushTarget | null) => void;
   setPendingInterfaceName: (v: string) => void;
   onSendHaptic: (target: PushTarget) => void;
+  onSendPopup: (target: PushTarget) => void;
   interfaceAcceptances: { userId: string; interfaceName: string }[];
   activeLabels: ReactionLabelSet;
   activeAnchors: ReactionAnchors;
@@ -39,7 +40,7 @@ function ParticipantsTabInner({
   collapsedGroups, setCollapsedGroups,
   openMenuUserId, setOpenMenuUserId,
   openMenuGroupKey, setOpenMenuGroupKey,
-  setPushTarget, setPendingInterfaceName, onSendHaptic,
+  setPushTarget, setPendingInterfaceName, onSendHaptic, onSendPopup,
   interfaceAcceptances, activeLabels, activeAnchors, room, selfUserId,
 }: ParticipantsTabProps) {
   const offerInterface = (target: PushTarget) => {
@@ -106,6 +107,7 @@ function ParticipantsTabInner({
                 onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)}
                 onOfferInterface={() => { setOpenMenuUserId(null); offerInterface({ kind: 'user', userId }); }}
                 onSendHaptic={() => { setOpenMenuUserId(null); onSendHaptic({ kind: 'user', userId }); }}
+                onSendPopup={() => { setOpenMenuUserId(null); onSendPopup({ kind: 'user', userId }); }}
               />
             );
           })}
@@ -153,6 +155,13 @@ function ParticipantsTabInner({
                             >
                               Send buzz…
                             </button>
+                            <button
+                              onPointerDown={e => e.stopPropagation()}
+                              onClick={() => { setOpenMenuGroupKey(null); onSendPopup({ kind: 'users', userIds: members, label: groupLabel }); }}
+                              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+                            >
+                              Send popup…
+                            </button>
                           </div>
                         )}
                       </div>
@@ -178,6 +187,7 @@ function ParticipantsTabInner({
                               onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)}
                               onOfferInterface={() => { setOpenMenuUserId(null); offerInterface({ kind: 'user', userId }); }}
                               onSendHaptic={() => { setOpenMenuUserId(null); onSendHaptic({ kind: 'user', userId }); }}
+                              onSendPopup={() => { setOpenMenuUserId(null); onSendPopup({ kind: 'user', userId }); }}
                             />
                           );
                         })}
@@ -233,6 +243,13 @@ function ParticipantsTabInner({
                         >
                           Send buzz…
                         </button>
+                        <button
+                          onPointerDown={e => e.stopPropagation()}
+                          onClick={() => { setOpenMenuGroupKey(null); onSendPopup({ kind: 'region', region }); }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+                        >
+                          Send popup…
+                        </button>
                       </div>
                     )}
                   </div>
@@ -258,10 +275,11 @@ function ParticipantsTabInner({
                         onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)}
                         onOfferInterface={() => { setOpenMenuUserId(null); offerInterface({ kind: 'user', userId }); }}
                         onSendHaptic={() => { setOpenMenuUserId(null); onSendHaptic({ kind: 'user', userId }); }}
+                        onSendPopup={() => { setOpenMenuUserId(null); onSendPopup({ kind: 'user', userId }); }}
                       />
                     ))}
                     {region === null && offlineMembers.map(userId => (
-                      <ParticipantRow key={userId} userId={userId} region={null} labels={activeLabels} online={false} isSelf={userId === selfUserId} isMenuOpen={false} onMenuToggle={() => {}} onOfferInterface={() => {}} onSendHaptic={() => {}} />
+                      <ParticipantRow key={userId} userId={userId} region={null} labels={activeLabels} online={false} isSelf={userId === selfUserId} isMenuOpen={false} onMenuToggle={() => {}} onOfferInterface={() => {}} onSendHaptic={() => {}} onSendPopup={() => {}} />
                     ))}
                   </div>
                 )}

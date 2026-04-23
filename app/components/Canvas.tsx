@@ -3,6 +3,7 @@ import usePartySocket from "partysocket/react";
 import * as d3 from "d3";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
+import type { ActivityMode } from "../types";
 
 interface CursorPosition {
   x: number; // Normalized coordinates (0-100)
@@ -45,7 +46,7 @@ interface CanvasProps {
   onPushedInterfacesCleared?: () => void;
   onHapticPushed?: () => void;
   onRoomImageUrlChange?: (url: string) => void;
-  onActivityChange?: (activity: 'canvas' | 'soccer' | 'image-canvas') => void;
+  onActivityChange?: (activity: ActivityMode) => void;
   onSocialConfigChange?: (config: { default: string; twitter: string; bluesky: string; mastodon: string; instagram: string } | null) => void;
   onConnected?: () => void;
 }
@@ -76,7 +77,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
-  const [activity, setActivity] = useState<'canvas' | 'soccer' | 'image-canvas'>('canvas');
+  const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [imageUrl, setImageUrl] = useState('');
   const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [ballPos, setBallPos] = useState<{ x: number; y: number } | null>(null);

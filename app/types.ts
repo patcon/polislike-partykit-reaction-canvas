@@ -28,6 +28,8 @@ export interface Statement {
   text: string;
 }
 
+export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social';
+
 export interface SocialConfig {
   default: string;
   twitter: string;

@@ -1,4 +1,5 @@
 import type * as Party from "partykit/server";
+import type { ActivityMode } from "../app/types";
 // Ghost cursor imports (for demo purposes - can be easily removed)
 import { createNoise2D } from 'simplex-noise';
 
@@ -103,7 +104,7 @@ interface SetRoomAvatarStyleEvent {
 
 interface SetActivityEvent {
   type: 'setActivity';
-  activity: 'canvas' | 'soccer' | 'image-canvas';
+  activity: ActivityMode;
 }
 
 interface SetImageUrlEvent {
@@ -233,7 +234,7 @@ export default class Server implements Party.Server {
   private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
   private roomAnchors: ReactionAnchors | null = null;
   private roomAvatarStyle: string | null = null;
-  private currentActivity: 'canvas' | 'soccer' | 'image-canvas' = 'canvas';
+  private currentActivity: ActivityMode = 'canvas';
   private roomImageUrl: string = '';
   private roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null = null;
   private ballState = { x: 50, y: 50, vx: 2, vy: 1 };
