@@ -201,9 +201,14 @@ export default function ReactionCanvasAppV4() {
       ) : activeInterface === 'social' ? (
         <SocialPanel socialConfig={serverSocialConfig} />
       ) : null}
+      {/* When activity is 'social', show SocialPanel as a flex sibling (fills the
+          remaining height below the chip bar, same as the chip-based case).
+          Canvas container is hidden but stays mounted to keep the socket alive. */}
+      {activeInterface === 'canvas' && activity === 'social' && (
+        <SocialPanel socialConfig={serverSocialConfig} />
+      )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: activeInterface === 'canvas' ? undefined : 'none' }}>
-          {activity === 'social' && <SocialPanel socialConfig={serverSocialConfig} />}
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
