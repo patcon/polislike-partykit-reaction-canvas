@@ -10,9 +10,9 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: "pnpm"
@@ -28,11 +28,11 @@ jobs:
     permissions:
       pull-requests: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
         with:
           node-version: 18
           cache: "pnpm"
@@ -41,7 +41,7 @@ jobs:
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
-      - uses: actions/github-script@v7
+      - uses: actions/github-script@v9
         with:
           script: |
             const num = context.payload.pull_request.number;
