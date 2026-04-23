@@ -437,7 +437,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
     // When an image is active, map image-relative 0-100 coords to screen pixels
     let toScreenX = (n: number) => (n / 100) * dimensions.width;
     let toScreenY = (n: number) => (n / 100) * dimensions.height;
-    if (imageUrl && imageNaturalSize) {
+    if (activity === 'image-canvas' && imageUrl && imageNaturalSize) {
       const scale = Math.min(dimensions.width / imageNaturalSize.w, dimensions.height / imageNaturalSize.h);
       const dispW = imageNaturalSize.w * scale;
       const dispH = imageNaturalSize.h * scale;

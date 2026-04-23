@@ -243,7 +243,7 @@ export default function ReactionCanvasAppV4() {
               onTouchPosition={setTouchPos}
               heightOffset={chipBarOffset}
               anchors={anchors}
-              imageUrl={serverImageUrl || undefined}
+              imageUrl={activity === 'image-canvas' ? (serverImageUrl || undefined) : undefined}
             />
           )}
           {showGithubModal && (

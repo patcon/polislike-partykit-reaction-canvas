@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 22 (2026-04-20)
 
+### Fixed
+- V4: image-canvas coordinate remapping no longer leaks into the regular reaction canvas — `Canvas` now gates the image-relative cursor math on `activity === 'image-canvas'`, and `TouchLayer` is only given `imageUrl` when that activity is active ([#37](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/37))
+
 ### Changed
 - Refactor: split `AdminPanelV4` (1960 lines) into `AdminPanelV4/` directory — 6 custom hooks (`useAnchors`, `useLabels`, `useRoomConfig`, `useRecording`, `usePlayback`, `useParticipants`), 8 tab components, `ParticipantRow`, `OfferInterfaceModal`, and a thin `index.tsx` orchestrator; no behavior changes
 - CI: typecheck (`tsc --noEmit`) and Storybook/Playwright tests (`vitest run`) now run as a required `check` job before every deploy (PR previews and production); add `typecheck` and `test` scripts to `package.json`
