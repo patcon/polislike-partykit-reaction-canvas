@@ -47,6 +47,10 @@ function MomentsTabInner({
   const recognitionRef = useRef<any>(null);
 
   const requestMicAccess = () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setMicState('error');
+      return;
+    }
     setMicState('requesting');
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(() => setMicState('ready'))
