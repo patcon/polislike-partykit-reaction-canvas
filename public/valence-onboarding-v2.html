@@ -6,8 +6,9 @@
 <title>valence wave — cross-section</title>
 <style>
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{overflow-x:hidden}
   :root{--bg:#0f0f0e;--border:rgba(200,198,190,0.1);--text:rgba(200,198,190,0.75);--text-dim:rgba(200,198,190,0.35);--accent:rgba(200,198,190,0.55)}
-  body{background:var(--bg);color:var(--text);font-family:'DM Mono','Courier New',monospace;font-size:11px;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;letter-spacing:.03em}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono','Courier New',monospace;font-size:11px;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;letter-spacing:.03em;max-width:100vw;overflow-x:hidden}
   h1{font-size:10px;font-weight:400;letter-spacing:.22em;text-transform:lowercase;color:var(--text-dim)}
   #vp{cursor:default;touch-action:none}
   #vp.orbiting{cursor:grab}
@@ -70,6 +71,8 @@
   #conn-status.connecting{color:rgba(100,100,200,0.7)}
   #room-input:focus{border-color:rgba(200,198,190,.35)!important}
   @media(max-width:540px){
+    #vp{width:100%}
+    #vp canvas{width:100%!important;height:auto!important}
     .row{flex-wrap:wrap}
     .sep{flex-basis:100%;height:0;width:0}
     #orbit-hint{display:none}
