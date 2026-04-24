@@ -330,6 +330,7 @@ export default function ReactionCanvasAppV4() {
               onSubmit={(stars) => {
                 socketSendRef.current?.(JSON.stringify({
                   type: 'submitFeedbackStars',
+                  userId,
                   stars,
                   timestamp: Date.now(),
                 }));

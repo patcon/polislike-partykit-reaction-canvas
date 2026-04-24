@@ -131,6 +131,7 @@ interface TriggerActivityEvent {
 
 interface SubmitFeedbackStarsEvent {
   type: 'submitFeedbackStars';
+  userId: string;
   stars: number;
   timestamp: number;
 }
@@ -506,7 +507,7 @@ export default class Server implements Party.Server {
         // Broadcast to admins so they see it live
         this.room.broadcast(JSON.stringify({ type: 'githubUsernameSubmitted', ...submission }));
       } else if (event.type === 'submitFeedbackStars') {
-        this.room.broadcast(JSON.stringify({ type: 'feedbackStarsSubmitted', userId: sender.id, stars: event.stars, timestamp: event.timestamp || Date.now() }));
+        this.room.broadcast(JSON.stringify({ type: 'feedbackStarsSubmitted', userId: event.userId, stars: event.stars, timestamp: event.timestamp || Date.now() }));
       } else if (event.type === 'setSocialConfig') {
         this.roomSocialConfig = event.config;
         this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
