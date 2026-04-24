@@ -7,6 +7,7 @@ import InterfaceChipBar from "./InterfaceChipBar";
 import SocialPanel from "./SocialPanel";
 import type { ActivityMode, SocialConfig } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
+import FeedbackStarsModal from "./FeedbackStarsModal";
 import InterfacePushModal from "./InterfacePushModal";
 import HapticPushModal from "./HapticPushModal";
 import { WebHaptics } from "web-haptics";
@@ -113,6 +114,7 @@ export default function ReactionCanvasAppV4() {
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
+  const [showFeedbackStarsModal, setShowFeedbackStarsModal] = useState(false);
   const [pushedInterface, setPushedInterface] = useState<string | null>(null);
   const [hapticPending, setHapticPending] = useState(false);
   const [suppressHapticModal, setSuppressHapticModal] = useState(false);
@@ -269,6 +271,7 @@ export default function ReactionCanvasAppV4() {
             onSocketReady={(send) => { socketSendRef.current = send; }}
             onActivityTriggered={(activityName) => {
               if (activityName === 'githubUsername') setShowGithubModal(true);
+              if (activityName === 'feedbackStars') setShowFeedbackStarsModal(true);
             }}
             onInterfacePushed={(name) => setPushedInterface(name)}
             onHapticPushed={() => {
@@ -320,6 +323,19 @@ export default function ReactionCanvasAppV4() {
                 }));
               }}
               onDismiss={() => setShowGithubModal(false)}
+            />
+          )}
+          {showFeedbackStarsModal && (
+            <FeedbackStarsModal
+              onSubmit={(stars) => {
+                socketSendRef.current?.(JSON.stringify({
+                  type: 'submitFeedbackStars',
+                  stars,
+                  timestamp: Date.now(),
+                }));
+                setShowFeedbackStarsModal(false);
+              }}
+              onDismiss={() => setShowFeedbackStarsModal(false)}
             />
           )}
           {pushedInterface && (

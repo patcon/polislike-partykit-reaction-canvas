@@ -14,7 +14,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     } catch { return new Set(); }
   });
   const [liveCursors, setLiveCursors]         = useState<Map<string, { x: number; y: number }>>(new Map());
-  const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence'>('valence');
+  const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence' | 'feedbackStars'>('valence');
   const [moments, setMoments]                 = useState<MomentSnapshot[]>(() => {
     try {
       return JSON.parse(localStorage.getItem(`v4-moments-${room}`) ?? '[]');
@@ -31,6 +31,11 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
   const [interfaceAcceptances, setInterfaceAcceptances] = useState<{ userId: string; interfaceName: string }[]>([]);
   const [openMenuUserId, setOpenMenuUserId]       = useState<string | null>(null);
   const [openMenuGroupKey, setOpenMenuGroupKey]   = useState<string | null>(null);
+  const [feedbackStars, setFeedbackStars]         = useState<Record<string, number>>(() => {
+    try {
+      return JSON.parse(localStorage.getItem(`v4-feedback-stars-${room}`) ?? '{}');
+    } catch { return {}; }
+  });
 
   const staleTimersRef    = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const activeAnchorsRef  = useRef<ReactionAnchors>(activeAnchors);
@@ -84,6 +89,17 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
   };
 
   const handleSocketEvent = (data: Record<string, unknown>) => {
+    if (data.type === 'feedbackStarsSubmitted') {
+      const userId = data.userId as string;
+      const stars = data.stars as number;
+      setFeedbackStars(prev => {
+        const next = { ...prev, [userId]: stars };
+        localStorage.setItem(`v4-feedback-stars-${room}`, JSON.stringify(next));
+        return next;
+      });
+      return;
+    }
+
     if (data.type === 'interfaceAccepted') {
       setInterfaceAcceptances(prev => [...prev, { userId: data.userId as string, interfaceName: data.interfaceName as string }]);
       return;
@@ -138,6 +154,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     interfaceAcceptances,
     openMenuUserId, setOpenMenuUserId,
     openMenuGroupKey, setOpenMenuGroupKey,
+    feedbackStars,
     snapMoment,
     applyConnected,
     handleSocketEvent,

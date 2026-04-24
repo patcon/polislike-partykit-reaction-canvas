@@ -123,10 +123,16 @@ interface SetUserCapEvent {
 
 interface TriggerActivityEvent {
   type: 'triggerActivity';
-  activityName: 'githubUsername';
+  activityName: 'githubUsername' | 'feedbackStars';
   targetUserId?: string;
   targetRegion?: 'positive' | 'negative' | 'neutral' | null;
   targetUserIds?: string[];
+}
+
+interface SubmitFeedbackStarsEvent {
+  type: 'submitFeedbackStars';
+  stars: number;
+  timestamp: number;
 }
 
 interface SetSocialConfigEvent {
@@ -184,7 +190,7 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -499,6 +505,8 @@ export default class Server implements Party.Server {
         this.githubSubmissions.push(submission);
         // Broadcast to admins so they see it live
         this.room.broadcast(JSON.stringify({ type: 'githubUsernameSubmitted', ...submission }));
+      } else if (event.type === 'submitFeedbackStars') {
+        this.room.broadcast(JSON.stringify({ type: 'feedbackStarsSubmitted', userId: sender.id, stars: event.stars, timestamp: event.timestamp || Date.now() }));
       } else if (event.type === 'setSocialConfig') {
         this.roomSocialConfig = event.config;
         this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));

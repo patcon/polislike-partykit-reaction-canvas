@@ -1,14 +1,22 @@
+import { useState } from "react";
 import type { ReactionLabelSet } from "../../voteLabels";
 import type { PushTarget } from "./types";
 
 interface SendPopupModalProps {
   pushTarget: PushTarget;
   activeLabels: ReactionLabelSet;
-  onSend: () => void;
+  onSend: (activityName: string) => void;
   onClose: () => void;
 }
 
+const POPUP_OPTIONS = [
+  { activityName: 'githubUsername', label: 'Coder role', description: 'Asks for their GitHub username to confirm they can contribute code.' },
+  { activityName: 'feedbackStars', label: '★ Star rating', description: 'Asks participants to rate their experience on a 1–5 star scale.' },
+] as const;
+
 export default function SendPopupModal({ pushTarget, activeLabels, onSend, onClose }: SendPopupModalProps) {
+  const [selected, setSelected] = useState<string>('githubUsername');
+
   const targetDescription =
     pushTarget.kind === 'user'
       ? <span style={{ color: '#ccc', fontFamily: 'monospace' }}>{pushTarget.userId}</span>
@@ -28,13 +36,21 @@ export default function SendPopupModal({ pushTarget, activeLabels, onSend, onClo
         <div style={{ fontSize: 13, color: '#888' }}>
           Send popup to {targetDescription}
         </div>
-        <div style={{ background: '#252525', border: '1px solid #333', borderRadius: 6, padding: '10px 12px' }}>
-          <p style={{ fontWeight: 600, margin: '0 0 2px', fontSize: 13, color: '#ddd' }}>Coder role</p>
-          <p style={{ color: '#666', fontSize: 12, margin: 0 }}>Asks for their GitHub username to confirm they can contribute code.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {POPUP_OPTIONS.map(opt => (
+            <div
+              key={opt.activityName}
+              onClick={() => setSelected(opt.activityName)}
+              style={{ background: selected === opt.activityName ? '#1e2d4a' : '#252525', border: `1px solid ${selected === opt.activityName ? '#2a5cba' : '#333'}`, borderRadius: 6, padding: '10px 12px', cursor: 'pointer' }}
+            >
+              <p style={{ fontWeight: 600, margin: '0 0 2px', fontSize: 13, color: '#ddd' }}>{opt.label}</p>
+              <p style={{ color: '#666', fontSize: 12, margin: 0 }}>{opt.description}</p>
+            </div>
+          ))}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
-            onClick={onSend}
+            onClick={() => onSend(selected)}
             autoFocus
             style={{ flex: 1, padding: '8px', background: '#2a5cba', color: '#fff', border: 'none', borderRadius: 6, fontSize: 13, cursor: 'pointer' }}
           >
