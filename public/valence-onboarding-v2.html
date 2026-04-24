@@ -220,7 +220,7 @@
   </div>
 
   <div class="row" style="margin-top:4px">
-    <label class="check-item"><input type="checkbox" id="style-past-like-cursor" checked onchange="setStylePastLikeCursor(this.checked)"><span>style past like cursor</span></label>
+    <label class="check-item"><input type="checkbox" id="style-past-like-cursor" onchange="setStylePastLikeCursor(this.checked)"><span>style past like cursor</span></label>
   </div>
 
   <hr class="divider">
@@ -698,7 +698,7 @@ function closeQrModal(){document.getElementById('qr-modal').style.display='none'
 // ── Valence state ─────────────────────────────────────────
 let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:15,g:15,b:14,a:1}};
 let styles={radial:'valence',cursor:'valence',trace:'valence',fill:'valence'};
-let stylePastLikeCursor=true;
+let stylePastLikeCursor=false;
 function setStylePastLikeCursor(v){stylePastLikeCursor=v;}
 let paused=false, geoMode='diametric', animMode='sequential';
 let traceMode='correlated', orderMode='random', exitAnim='origin', entryMode='persistent';
