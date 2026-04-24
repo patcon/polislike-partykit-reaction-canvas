@@ -11,7 +11,10 @@ interface InterfacesTabProps {
   setImageConfigOpen: (v: boolean) => void;
   setSocialConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
+  setVisualizerConfigOpen: (v: boolean) => void;
   onClearRoleAssignments: () => void;
+  onPushVisualizer: () => void;
+  onSwitchToVisualizer: () => void;
 }
 
 const QR_ICON = (
@@ -41,7 +44,10 @@ export default function InterfacesTab({
   activity, soccerScore,
   sendActivity, resetSoccerScore,
   setImageConfigOpen, setSocialConfigOpen, setCanvasSettingsOpen,
+  setVisualizerConfigOpen,
   onClearRoleAssignments,
+  onPushVisualizer,
+  onSwitchToVisualizer,
 }: InterfacesTabProps) {
   const [patchDialogOpen, setPatchDialogOpen] = useState(false);
   const patchUrl = getPatchUrl('social');
@@ -130,6 +136,17 @@ export default function InterfacesTab({
           <button className="v3-admin-btn v3-admin-btn--destructive" onClick={resetSoccerScore}>Reset Score</button>
         </div>
       )}
+
+      {/* Visualizer */}
+      <div style={{ marginTop: 24, borderTop: '1px solid #2a2a2a', paddingTop: 16 }}>
+        <p style={{ marginBottom: 4, fontWeight: 600 }}>Visualizer</p>
+        <p style={{ marginBottom: 12, color: '#888', fontSize: 13 }}>Three.js live-trace display — camera synced across all viewers.</p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button className="v3-admin-btn" onClick={onSwitchToVisualizer}>Switch to Visualizer</button>
+          <button className="v3-admin-btn" onClick={() => setVisualizerConfigOpen(true)}><IoMdSettings style={{ verticalAlign: 'middle', marginRight: 4 }} />Config</button>
+          <button className="v3-admin-btn" onClick={onPushVisualizer}>Push to room</button>
+        </div>
+      </div>
 
       {/* Role assignments */}
       <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>

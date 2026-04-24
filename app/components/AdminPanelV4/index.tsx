@@ -12,6 +12,8 @@ import OfferInterfaceModal from "./OfferInterfaceModal";
 import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
 import CanvasSettingsModal from "./CanvasSettingsModal";
+import VisualizerConfigModal from "./VisualizerConfigModal";
+import { useVisualizerConfig } from "./hooks/useVisualizerConfig";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -23,15 +25,17 @@ import MomentsTab from "./tabs/MomentsTab";
 import type { AdminTab, GithubSubmission, PushTarget } from "./types";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 import type { ReactionLabelSet } from "../../voteLabels";
+import type { VizConfig } from "../../types";
 
 const ALL_TABS: AdminTab[] = ['record', 'labels', 'anchors', 'avatars', 'interfaces', 'events', 'participants', 'moments'];
 
 interface AdminPanelV4Props {
   room: string;
   selfUserId?: string;
+  onSwitchToVisualizer?: () => void;
 }
 
-export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
+export default function AdminPanelV4({ room, selfUserId, onSwitchToVisualizer }: AdminPanelV4Props) {
   const tabStorageKey = `v4-admin-tab-${room}`;
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     const saved = localStorage.getItem(tabStorageKey);
@@ -42,6 +46,8 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
   const [githubSubmissions, setGithubSubmissions] = useState<GithubSubmission[]>([]);
   const [pendingHapticTarget, setPendingHapticTarget] = useState<PushTarget | null>(null);
   const [pendingPopupTarget, setPendingPopupTarget]   = useState<PushTarget | null>(null);
+  const [vizConfigOpen, setVizConfigOpen] = useState(false);
+  const [serverVizConfig, setServerVizConfig] = useState<VizConfig | null>(null);
 
   // Mic state for Moments tab voice annotation
   type MicState = 'idle' | 'requesting' | 'ready' | 'recording' | 'error';
@@ -105,6 +111,7 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
   const anchors      = useAnchors(socket);
   const labels       = useLabels(socket);
   const roomConfig   = useRoomConfig(socket);
+  const { vizConfig, sendVizConfig } = useVisualizerConfig(socket, serverVizConfig);
   const recording    = useRecording(socket, room);
   const playback     = usePlayback(socket, anchors.activeAnchors);
   const participants = useParticipants(socket, room, anchors.activeAnchors);
@@ -125,6 +132,7 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
       if (data.recordingState !== undefined) recording.setServerRecording(data.recordingState as boolean);
       if ('roomLabels' in data) labels.applyServerLabels(data.roomLabels as ReactionLabelSet | null);
       if ('roomAnchors' in data) anchors.applyServerAnchors(data.roomAnchors as ReactionAnchors | null);
+      if (data.vizConfig) setServerVizConfig(data.vizConfig as VizConfig);
       roomConfig.applyConnected(data);
       participants.applyConnected(data);
       return;
@@ -289,7 +297,10 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
             setImageConfigOpen={roomConfig.setImageConfigOpen}
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
+            setVisualizerConfigOpen={setVizConfigOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
+            onPushVisualizer={() => socket.send(JSON.stringify({ type: 'pushInterface', interfaceName: 'visualizer' }))}
+            onSwitchToVisualizer={() => onSwitchToVisualizer?.()}
           />
         )}
         {activeTab === 'events' && (
@@ -453,6 +464,12 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
           onClose={() => roomConfig.setSocialConfigOpen(false)}
         />
       )}
+      <VisualizerConfigModal
+        open={vizConfigOpen}
+        onClose={() => setVizConfigOpen(false)}
+        vizConfig={vizConfig}
+        sendVizConfig={sendVizConfig}
+      />
     </div>
   );
 }

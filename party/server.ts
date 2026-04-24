@@ -1,5 +1,5 @@
 import type * as Party from "partykit/server";
-import type { ActivityMode } from "../app/types";
+import type { ActivityMode, VizConfig, VizCameraState } from "../app/types";
 // Ghost cursor imports (for demo purposes - can be easily removed)
 import { createNoise2D } from 'simplex-noise';
 
@@ -196,7 +196,17 @@ interface SetNowLabelEvent {
   label: string;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent;
+interface SetVisualizerConfigEvent {
+  type: 'setVisualizerConfig';
+  config: VizConfig;
+}
+
+interface SetCameraStateEvent {
+  type: 'setCameraState';
+  state: VizCameraState;
+}
+
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | SetVisualizerConfigEvent | SetCameraStateEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -258,6 +268,8 @@ export default class Server implements Party.Server {
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
   private soccerInterval?: NodeJS.Timeout;
   private cursorPositions = new Map<string, { x: number; y: number }>();
+  private vizConfig: VizConfig | null = null;
+  private vizCameraState: VizCameraState | null = null;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -378,6 +390,8 @@ export default class Server implements Party.Server {
       userCap: this.userCap,
       viewerCount: vCount,
       connectedUserIds,
+      vizConfig: this.vizConfig,
+      vizCameraState: this.vizCameraState,
     }));
   }
 
@@ -553,6 +567,14 @@ export default class Server implements Party.Server {
         for (const conn of this.room.getConnections()) {
           if (this.adminConnectionIds.has(conn.id)) conn.send(msg);
         }
+      } else if (event.type === 'setVisualizerConfig') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        this.vizConfig = event.config;
+        this.room.broadcast(JSON.stringify({ type: 'visualizerConfigChanged', config: this.vizConfig }));
+      } else if (event.type === 'setCameraState') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        this.vizCameraState = event.state;
+        this.room.broadcast(JSON.stringify({ type: 'cameraStateChanged', state: this.vizCameraState }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);

@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Added
+- V4 Visualizer: new `?interface=visualizer` interface — a React-wrapped Three.js live-valence-trace visualization; emcee always has the Visualizer chip, participants get it via the "Push to room" button in the Interface tab
+- V4 Visualizer: all visualization settings (geometry, animation, colors, opacity, timing, style) are controlled from a ⚙ Config dialog in the emcee's Interface tab and broadcast live to all Visualizer viewers
+- V4 Visualizer: 3D camera is synced across all Visualizer viewers when the emcee drags/zooms; emcee-only connections (opened via "Switch to Visualizer" in the Interface tab) broadcast camera state to the room via `setCameraState` PartyKit messages
+
 - Valence onboarding v2: "style past like cursor" checkbox — when unchecked, trace and fill segments retain the color they held at the moment they were drawn rather than retroactively reflecting the cursor's current valence
 
 ### Fixed

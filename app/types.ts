@@ -30,6 +30,39 @@ export interface Statement {
 
 export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social';
 
+export interface VizConfig {
+  viewMode: '2d' | '2d-ts' | '3d';
+  geometry: 'diametric' | 'parallel' | 'linear' | 'radial';
+  animation: 'sequential' | 'simultaneous';
+  traces: 'correlated' | 'random';
+  order: 'random' | 'grouped';
+  groups: number;
+  chords: number;
+  showGuides: boolean;
+  cursorStyle: 'valence' | 'group';
+  radialStyle: 'valence' | 'group';
+  stylePastLikeCursor: boolean;
+  cursorOpacity: number;
+  radialOpacity: number;
+  colorPositive: string;
+  colorNegative: string;
+  colorNeutral: string;
+  eventFrequency: number;
+  driftSpeed: number;
+  exitAnimation: 'origin' | 'none';
+  chordPersistence: 'persistent' | 'redistributed';
+  radialWidth: number;
+  cursorSize: number;
+  useGeometry: boolean;
+}
+
+export interface VizCameraState {
+  viewMode: '2d' | '2d-ts' | '3d';
+  theta: number;
+  phi: number;
+  radius: number;
+}
+
 export interface SocialConfig {
   default: string;
   twitter: string;
