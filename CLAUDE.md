@@ -6,6 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A real-time collaborative voting canvas built on PartyKit (WebSockets) and React. Participants move their cursor/touch into AGREE/DISAGREE/PASS regions of a canvas; cursor positions are shared live across all connected users.
 
+## Vocabulary — git actions
+
+**"push"** and **"commit"** are equivalent — both mean git commit/push on the current branch. Never interpret either as merging a PR.
+**"merge"** means merging a PR, and only when the user says it explicitly.
+
+If the user says "push" or "commit" right after one was already done, treat it as a mistake — do not merge.
+
 ## Contribution rules
 
 **Always merge PRs with** `gh pr merge --merge --delete-branch` to delete both the local and remote branch automatically after merging. Only skip `--delete-branch` if explicitly asked to keep the branch.
