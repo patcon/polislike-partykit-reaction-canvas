@@ -66,7 +66,7 @@ export const InterfacesTab: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByText('Interface'));
-    await expect(canvas.getByText('Social sharing')).toBeInTheDocument();
+    await expect(canvas.getByText('Social Sharing')).toBeInTheDocument();
   },
 };
 
