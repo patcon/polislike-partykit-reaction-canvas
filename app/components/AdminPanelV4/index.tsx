@@ -269,6 +269,8 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
             setPendingInterfaceName={participants.setPendingInterfaceName}
             onSendHaptic={setPendingHapticTarget}
             onSendPopup={setPendingPopupTarget}
+            feedbackStars={participants.feedbackStars}
+            setFeedbackStars={participants.setFeedbackStars}
             interfaceAcceptances={participants.interfaceAcceptances}
             activeLabels={labels.activeLabels}
             activeAnchors={anchors.activeAnchors}
@@ -329,8 +331,8 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
         <SendPopupModal
           pushTarget={pendingPopupTarget}
           activeLabels={labels.activeLabels}
-          onSend={() => {
-            const msg: Record<string, unknown> = { type: 'triggerActivity', activityName: 'githubUsername' };
+          onSend={(activityName) => {
+            const msg: Record<string, unknown> = { type: 'triggerActivity', activityName };
             if (pendingPopupTarget.kind === 'user') msg.targetUserId = pendingPopupTarget.userId;
             else if (pendingPopupTarget.kind === 'users') msg.targetUserIds = pendingPopupTarget.userIds;
             else if (pendingPopupTarget.kind === 'region') msg.targetRegion = pendingPopupTarget.region;

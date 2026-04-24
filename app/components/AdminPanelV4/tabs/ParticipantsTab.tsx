@@ -11,8 +11,8 @@ interface ParticipantsTabProps {
   seenUsers: Set<string>;
   setSeenUsers: (v: Set<string>) => void;
   liveCursors: Map<string, { x: number; y: number }>;
-  participantGrouping: 'none' | 'valence';
-  setParticipantGrouping: (v: 'none' | 'valence') => void;
+  participantGrouping: 'none' | 'valence' | 'feedbackStars';
+  setParticipantGrouping: (v: 'none' | 'valence' | 'feedbackStars') => void;
   moments: MomentSnapshot[];
   selectedMomentId: string | null;
   setSelectedMomentId: (v: string | null) => void;
@@ -26,6 +26,8 @@ interface ParticipantsTabProps {
   setPendingInterfaceName: (v: string) => void;
   onSendHaptic: (target: PushTarget) => void;
   onSendPopup: (target: PushTarget) => void;
+  feedbackStars: Record<string, number>;
+  setFeedbackStars: (v: Record<string, number>) => void;
   interfaceAcceptances: { userId: string; interfaceName: string }[];
   activeLabels: ReactionLabelSet;
   activeAnchors: ReactionAnchors;
@@ -41,6 +43,7 @@ function ParticipantsTabInner({
   openMenuUserId, setOpenMenuUserId,
   openMenuGroupKey, setOpenMenuGroupKey,
   setPushTarget, setPendingInterfaceName, onSendHaptic, onSendPopup,
+  feedbackStars, setFeedbackStars,
   interfaceAcceptances, activeLabels, activeAnchors, room, selfUserId,
 }: ParticipantsTabProps) {
   const offerInterface = (target: PushTarget) => {
@@ -62,13 +65,14 @@ function ParticipantsTabInner({
         <label style={{ color: '#aaa', fontSize: 13 }}>Group by:</label>
         <select
           value={participantGrouping}
-          onChange={e => setParticipantGrouping(e.target.value as 'none' | 'valence')}
+          onChange={e => setParticipantGrouping(e.target.value as 'none' | 'valence' | 'feedbackStars')}
           style={{ background: '#222', color: '#eee', border: '1px solid #555', padding: '4px 8px', borderRadius: 4 }}
         >
           <option value="valence">Valence</option>
+          <option value="feedbackStars">Feedback Stars</option>
           <option value="none">None</option>
         </select>
-        {participantGrouping === 'valence' && (
+        {participantGrouping === 'valence' && moments.length > 0 && (
           <select
             value={selectedMomentId ?? ''}
             onChange={e => setSelectedMomentId(e.target.value || null)}
@@ -104,6 +108,91 @@ function ParticipantsTabInner({
                 onSendHaptic={() => { setOpenMenuUserId(null); onSendHaptic({ kind: 'user', userId }); }}
                 onSendPopup={() => { setOpenMenuUserId(null); onSendPopup({ kind: 'user', userId }); }}
               />
+            );
+          })}
+        </div>
+      ) : participantGrouping === 'feedbackStars' ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {[5, 4, 3, 2, 1, 0, -1].map(stars => {
+            const groupKey = `feedback-${stars}`;
+            const groupLabel = stars === -1 ? 'No response' : '★'.repeat(stars) + '☆'.repeat(5 - stars);
+            const members = [...seenUsers].filter(userId =>
+              stars === -1 ? feedbackStars[userId] === undefined : feedbackStars[userId] === stars
+            );
+            const collapsed = collapsedGroups.has(groupKey);
+            return (
+              <div key={groupKey}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: collapsed ? 0 : 6, paddingRight: 10 }}>
+                  <button onClick={() => toggleGroupCollapse(groupKey)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer', padding: 0, fontSize: 10, width: 12, textAlign: 'center', flexShrink: 0 }}>
+                    {collapsed ? '▶' : '▼'}
+                  </button>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#888', letterSpacing: '0.08em', flex: 1, cursor: 'pointer' }} onClick={() => toggleGroupCollapse(groupKey)}>
+                    {groupLabel} ({members.length})
+                  </span>
+                  <div style={{ position: 'relative' }}>
+                    <button
+                      onClick={() => setOpenMenuGroupKey(prev => prev === groupKey ? null : groupKey)}
+                      style={{ fontSize: 11, padding: '2px 8px', background: '#333', border: '1px solid #555', color: '#aaa', borderRadius: 3, cursor: 'pointer' }}
+                    >
+                      ···
+                    </button>
+                    {openMenuGroupKey === groupKey && (
+                      <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 2, background: '#252525', border: '1px solid #444', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100, minWidth: 160 }}>
+                        <button
+                          onPointerDown={e => e.stopPropagation()}
+                          onClick={() => { setOpenMenuGroupKey(null); offerInterface({ kind: 'users', userIds: members, label: groupLabel }); }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+                        >
+                          Offer interface…
+                        </button>
+                        <button
+                          onPointerDown={e => e.stopPropagation()}
+                          onClick={() => { setOpenMenuGroupKey(null); onSendHaptic({ kind: 'users', userIds: members, label: groupLabel }); }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+                        >
+                          Send buzz…
+                        </button>
+                        <button
+                          onPointerDown={e => e.stopPropagation()}
+                          onClick={() => { setOpenMenuGroupKey(null); onSendPopup({ kind: 'users', userIds: members, label: groupLabel }); }}
+                          style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
+                        >
+                          Send popup…
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {!collapsed && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {members.length === 0 ? (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px' }}>
+                        <span style={{ width: 8, height: 8, flexShrink: 0 }} />
+                        <span style={{ fontFamily: 'monospace', fontSize: 12, color: '#444', fontStyle: 'italic', flex: 1 }}>empty</span>
+                      </div>
+                    ) : members.map(userId => {
+                      const online = connectedUsers.has(userId);
+                      const cursor = liveCursors.get(userId);
+                      const region = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchors) : null;
+                      return (
+                        <ParticipantRow
+                          key={userId}
+                          userId={userId}
+                          region={region}
+                          labels={activeLabels}
+                          online={online}
+                          isSelf={userId === selfUserId}
+                          isMenuOpen={openMenuUserId === userId}
+                          onMenuToggle={() => setOpenMenuUserId(prev => prev === userId ? null : userId)}
+                          onOfferInterface={() => { setOpenMenuUserId(null); offerInterface({ kind: 'user', userId }); }}
+                          onSendHaptic={() => { setOpenMenuUserId(null); onSendHaptic({ kind: 'user', userId }); }}
+                          onSendPopup={() => { setOpenMenuUserId(null); onSendPopup({ kind: 'user', userId }); }}
+                        />
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -285,7 +374,18 @@ function ParticipantsTabInner({
       )}
 
       {seenUsers.size > 0 && (
-        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+          {Object.keys(feedbackStars).length > 0 && (
+            <button
+              onClick={() => {
+                localStorage.removeItem(`v4-feedback-stars-${room}`);
+                setFeedbackStars({});
+              }}
+              style={{ fontSize: 11, color: '#555', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
+            >
+              Clear feedback
+            </button>
+          )}
           <button
             onClick={() => {
               localStorage.removeItem(`v4-seen-users-${room}`);
