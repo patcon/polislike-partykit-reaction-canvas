@@ -92,8 +92,16 @@ export default function InterfacesTab({
                     onChange={() => sendActivity(id)}
                   />
                 </td>
-                {/* Commons — placeholder */}
-                <td style={{ textAlign: 'center', padding: '10px 8px', color: '#3a3a3a' }}>—</td>
+                {/* Commons */}
+                <td style={{ textAlign: 'center', padding: '10px 8px' }}>
+                  <input
+                    type="radio"
+                    name="activity-commons"
+                    value={id}
+                    checked={isActive}
+                    onChange={() => sendActivity(id)}
+                  />
+                </td>
                 {/* Patch */}
                 <td style={{ textAlign: 'center', padding: '10px 0 10px 8px' }}>
                   {patchable ? (
