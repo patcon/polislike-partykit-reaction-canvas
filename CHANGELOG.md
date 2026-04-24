@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Added
+- V4 Moments tab: press-and-hold mic button at the bottom of the tab uses the browser's Web Speech API to pre-fill the upcoming "Now" moment label by voice — button starts disabled and requests mic permission on first tap; each hold-to-speak overrides the previous label
 - V4 People tab: "Send popup…" now shows two selectable options — "Coder role" (GitHub username) and "★ Star rating" (feedback); selecting star rating sends a 1–5 star modal to participants, and their responses are stored in the emcee's localStorage ([#30](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/30))
 - V4 People tab: new "Feedback Stars" group-by option — groups all seen participants into buckets by their submitted star rating (5★ down to 0★ plus "No response"), enabling the emcee to target high or low scorers with follow-up actions ([#30](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/30))
 

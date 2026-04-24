@@ -42,6 +42,34 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
   const [pendingHapticTarget, setPendingHapticTarget] = useState<PushTarget | null>(null);
   const [pendingPopupTarget, setPendingPopupTarget]   = useState<PushTarget | null>(null);
 
+  // Mic state for Moments tab voice annotation
+  type MicState = 'idle' | 'requesting' | 'ready' | 'recording' | 'error';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const SpeechRecognitionCtor: (new () => any) | null = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null;
+  const [micState, setMicState] = useState<MicState>(SpeechRecognitionCtor ? 'idle' : 'error');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const micRecognitionRef = useRef<any>(null);
+  const requestMicAccess = () => {
+    if (!navigator.mediaDevices?.getUserMedia) { setMicState('error'); return; }
+    setMicState('requesting');
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(() => setMicState('ready'))
+      .catch(() => setMicState('error'));
+  };
+  const startMicRecording = () => {
+    if (!SpeechRecognitionCtor) return;
+    const r = new SpeechRecognitionCtor();
+    r.continuous = false;
+    r.interimResults = false;
+    r.onresult = (e: any) => participants.setMomentLabelInput(e.results[0][0].transcript); // eslint-disable-line @typescript-eslint/no-explicit-any
+    r.onend = () => setMicState('ready');
+    r.onerror = () => setMicState('ready');
+    micRecognitionRef.current = r;
+    r.start();
+    setMicState('recording');
+  };
+  const stopMicRecording = () => micRecognitionRef.current?.stop();
+
   // Ref-based dispatch so all hooks see the same handler regardless of creation order
   const dispatchRef = useRef<(data: Record<string, unknown>) => void>(() => {});
 
@@ -300,6 +328,42 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
           />
         )}
       </div>
+
+      {/* === MOMENTS MIC BUTTON === */}
+      {activeTab === 'moments' && (
+        <div style={{ flexShrink: 0, borderTop: '1px solid #222', padding: '8px 16px calc(8px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <button
+            disabled={micState === 'requesting' || micState === 'error'}
+            onClick={micState === 'idle' ? requestMicAccess : undefined}
+            onPointerDown={micState === 'ready' ? startMicRecording : undefined}
+            onPointerUp={micState === 'recording' ? stopMicRecording : undefined}
+            onPointerLeave={micState === 'recording' ? stopMicRecording : undefined}
+            style={{
+              width: '100%',
+              padding: '14px',
+              borderRadius: 8,
+              border: 'none',
+              fontSize: 14,
+              fontWeight: 700,
+              cursor: micState === 'requesting' || micState === 'error' ? 'not-allowed' : 'pointer',
+              background: micState === 'recording' ? '#7a1a1a' : micState === 'ready' ? '#1a3a1a' : '#222',
+              color: micState === 'error' ? '#666' : micState === 'recording' ? '#faa' : micState === 'ready' ? '#4c4' : '#aaa',
+              transition: 'background 0.15s',
+              userSelect: 'none',
+              touchAction: 'none',
+            }}
+          >
+            {micState === 'idle' && '🎤 Enable mic'}
+            {micState === 'requesting' && 'Requesting mic…'}
+            {micState === 'ready' && '🎤 Hold to speak'}
+            {micState === 'recording' && '● Release to set label'}
+            {micState === 'error' && '🎤 Mic unavailable'}
+          </button>
+          <span style={{ fontSize: 11, color: '#555', textAlign: 'center', visibility: micState === 'error' ? 'visible' : 'hidden' }}>
+            {SpeechRecognitionCtor ? 'Check browser mic permissions' : 'Speech recognition not supported in this browser'}
+          </span>
+        </div>
+      )}
 
       {/* === MODALS === */}
       {pendingHapticTarget && (
