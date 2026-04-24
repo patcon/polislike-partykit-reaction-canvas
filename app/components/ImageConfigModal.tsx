@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 
 const DEFAULT_IMAGE_URL = 'https://pbs.twimg.com/media/DY_tjS0WsAADhmT.jpg';
 const HISTORY_KEY = 'imageUrlHistory';
@@ -22,18 +22,8 @@ interface ImageConfigModalProps {
 export default function ImageConfigModal({ onSubmit, onClose, currentUrl }: ImageConfigModalProps) {
   const [urlInput, setUrlInput] = useState(currentUrl ?? '');
   const [history] = useState<string[]>(getImageUrlHistory);
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const filtered = history.filter(u =>
-    !urlInput || u.toLowerCase().includes(urlInput.toLowerCase())
-  );
-  const showDropdown = dropdownOpen && filtered.length > 0;
-
   const select = (url: string) => {
     setUrlInput(url);
-    setDropdownOpen(false);
-    inputRef.current?.blur();
   };
 
   const handleSubmit = () => {
@@ -53,62 +43,52 @@ export default function ImageConfigModal({ onSubmit, onClose, currentUrl }: Imag
       <div className="github-modal">
         <p className="github-modal-title">Image Canvas</p>
         <p className="github-modal-body">Enter a public image URL to display as the canvas background. All participants will see the same image.</p>
-        <div style={{ position: 'relative' }}>
+        <div>
           <input
-            ref={inputRef}
             className="github-modal-input"
             type="url"
             value={urlInput}
             onChange={e => setUrlInput(e.target.value)}
-            onFocus={() => setDropdownOpen(true)}
-            onBlur={() => setTimeout(() => setDropdownOpen(false), 150)}
             onKeyDown={e => {
               if (e.key === 'Enter') handleSubmit();
-              if (e.key === 'Escape') setDropdownOpen(false);
             }}
             placeholder={DEFAULT_IMAGE_URL}
             autoFocus
           />
-          {showDropdown && (
+          {history.length > 0 && (
             <div style={{
-              position: 'absolute',
-              top: '100%',
-              left: 0,
-              right: 0,
-              marginTop: 4,
-              background: '#111',
-              border: '1px solid #444',
-              borderRadius: 8,
-              boxShadow: '0 4px 16px rgba(0,0,0,0.5)',
-              zIndex: 10,
-              maxHeight: 200,
-              overflowY: 'auto',
+              display: 'flex',
+              gap: 8,
+              overflowX: 'auto',
+              marginTop: 8,
+              paddingBottom: 4,
             }}>
-              {filtered.map(url => (
+              {history.map(url => (
                 <button
                   key={url}
                   type="button"
                   onMouseDown={e => { e.preventDefault(); select(url); }}
                   style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '8px 12px',
+                    padding: 0,
+                    border: urlInput === url ? '2px solid #4a9eff' : '2px solid transparent',
+                    borderRadius: 6,
                     background: 'none',
-                    border: 'none',
-                    color: '#ccc',
-                    fontSize: 12,
-                    fontFamily: 'monospace',
                     cursor: 'pointer',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
-                    borderBottom: '1px solid #2a2a2a',
+                    flexShrink: 0,
                   }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#222')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'none')}
+                  title={url}
                 >
-                  {url}
+                  <img
+                    src={url}
+                    alt=""
+                    style={{
+                      width: 56,
+                      height: 40,
+                      objectFit: 'cover',
+                      borderRadius: 4,
+                      display: 'block',
+                    }}
+                  />
                 </button>
               ))}
             </div>
