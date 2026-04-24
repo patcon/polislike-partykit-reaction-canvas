@@ -11,6 +11,7 @@ import { useParticipants } from "./hooks/useParticipants";
 import OfferInterfaceModal from "./OfferInterfaceModal";
 import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
+import CanvasSettingsModal from "./CanvasSettingsModal";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -107,6 +108,12 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
   const recording    = useRecording(socket, room);
   const playback     = usePlayback(socket, anchors.activeAnchors);
   const participants = useParticipants(socket, room, anchors.activeAnchors);
+
+  // Broadcast the "Now" label to participants whenever the setting or label text changes
+  useEffect(() => {
+    const label = roomConfig.showNowLabelOnCanvas ? participants.momentLabelInput : '';
+    socket.send(JSON.stringify({ type: 'setNowLabel', label }));
+  }, [roomConfig.showNowLabelOnCanvas, participants.momentLabelInput]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep dispatch ref fresh on every render so handlers always see the latest state
   dispatchRef.current = (data) => {
@@ -281,6 +288,7 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
             resetSoccerScore={roomConfig.resetSoccerScore}
             setImageConfigOpen={roomConfig.setImageConfigOpen}
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
+            setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
           />
         )}
@@ -426,6 +434,16 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
           currentUrl={roomConfig.roomImageUrl}
           onSubmit={roomConfig.sendImageUrl}
           onClose={() => roomConfig.setImageConfigOpen(false)}
+        />
+      )}
+      {roomConfig.canvasSettingsOpen && (
+        <CanvasSettingsModal
+          showNowLabel={roomConfig.showNowLabelOnCanvas}
+          onChangeShowNowLabel={(v) => {
+            roomConfig.setShowNowLabelOnCanvas(v);
+            localStorage.setItem('v4-showNowLabelOnCanvas', String(v));
+          }}
+          onClose={() => roomConfig.setCanvasSettingsOpen(false)}
         />
       )}
       {roomConfig.socialConfigOpen && (

@@ -9,6 +9,10 @@ export function useRoomConfig(socket: PartySocket) {
   const [imageConfigOpen, setImageConfigOpen] = useState(false);
   const [roomImageUrl, setRoomImageUrl]       = useState('');
   const [socialConfigOpen, setSocialConfigOpen] = useState(false);
+  const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false);
+  const [showNowLabelOnCanvas, setShowNowLabelOnCanvas] = useState(() =>
+    localStorage.getItem('v4-showNowLabelOnCanvas') === 'true'
+  );
   const [roomSocialConfig, setRoomSocialConfig] = useState<SocialConfig | null>(null);
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
@@ -90,5 +94,7 @@ export function useRoomConfig(socket: PartySocket) {
     sendUserCap,
     applyConnected,
     handleSocketEvent,
+    canvasSettingsOpen, setCanvasSettingsOpen,
+    showNowLabelOnCanvas, setShowNowLabelOnCanvas,
   };
 }

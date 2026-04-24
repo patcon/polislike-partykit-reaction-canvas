@@ -49,6 +49,7 @@ interface CanvasProps {
   onActivityChange?: (activity: ActivityMode) => void;
   onSocialConfigChange?: (config: { default: string; twitter: string; bluesky: string; mastodon: string; instagram: string } | null) => void;
   onConnected?: () => void;
+  onNowLabelChange?: (label: string) => void;
 }
 
 // Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
@@ -72,7 +73,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onConnected, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onConnected, onNowLabelChange, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -82,6 +83,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [ballPos, setBallPos] = useState<{ x: number; y: number } | null>(null);
   const [soccerScore, setSoccerScore] = useState({ left: 0, right: 0 });
+  const [nowLabel, setNowLabel] = useState('');
 
   useEffect(() => {
     onActiveCursorCountChange?.(cursors.size);
@@ -139,6 +141,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
             setImageUrl(url);
             onRoomImageUrlChange?.(url);
           }
+          if ('nowLabel' in data) {
+            const lbl = (data.nowLabel as string) ?? '';
+            setNowLabel(lbl);
+            onNowLabelChange?.(lbl);
+          }
           if ('ballState' in data && data.ballState) setBallPos({ x: data.ballState.x, y: data.ballState.y });
           if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore);
           if ('roomSocialConfig' in data) onSocialConfigChange?.(data.roomSocialConfig ?? null);
@@ -190,6 +197,13 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           const url = data.url ?? '';
           setImageUrl(url);
           onRoomImageUrlChange?.(url);
+          return;
+        }
+
+        if (data.type === 'nowLabelChanged') {
+          const lbl = (data.label as string) ?? '';
+          setNowLabel(lbl);
+          onNowLabelChange?.(lbl);
           return;
         }
 

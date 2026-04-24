@@ -1181,6 +1181,23 @@ body {
   font-size: 0.85em;
 }
 
+.canvas-now-label {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #eee;
+  font-size: 1.2rem;
+  font-family: 'DM Mono', monospace;
+  pointer-events: none;
+  z-index: 10;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 12px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
 .viewer-mode-banner {
   position: absolute;
   top: 12px;

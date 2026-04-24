@@ -10,6 +10,7 @@ interface InterfacesTabProps {
   resetSoccerScore: () => void;
   setImageConfigOpen: (v: boolean) => void;
   setSocialConfigOpen: (v: boolean) => void;
+  setCanvasSettingsOpen: (v: boolean) => void;
   onClearRoleAssignments: () => void;
 }
 
@@ -39,7 +40,7 @@ const ROWS: { id: ActivityMode; label: string; desc: string; patchable: boolean 
 export default function InterfacesTab({
   activity, soccerScore,
   sendActivity, resetSoccerScore,
-  setImageConfigOpen, setSocialConfigOpen,
+  setImageConfigOpen, setSocialConfigOpen, setCanvasSettingsOpen,
   onClearRoleAssignments,
 }: InterfacesTabProps) {
   const [patchDialogOpen, setPatchDialogOpen] = useState(false);
@@ -69,6 +70,9 @@ export default function InterfacesTab({
                   <label style={{ cursor: 'pointer', display: 'block' }} htmlFor={`activity-${id}`}>
                     <span style={{ fontWeight: isActive ? 600 : 400, color: isActive ? '#eee' : '#bbb' }}>{label}</span>
                     <span style={{ color: '#666', marginLeft: 8 }}>{desc}</span>
+                    {id === 'canvas' && (
+                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setCanvasSettingsOpen(true); }}><IoMdSettings /></button>
+                    )}
                     {id === 'image-canvas' && (
                       <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}><IoMdSettings /></button>
                     )}

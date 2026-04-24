@@ -110,6 +110,7 @@ export default function ReactionCanvasAppV4() {
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const [serverImageUrl, setServerImageUrl] = useState('');
   const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
+  const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
@@ -295,8 +296,12 @@ export default function ReactionCanvasAppV4() {
             onRoomImageUrlChange={handleRoomImageUrlChange}
             onActivityChange={handleActivityChange}
             onSocialConfigChange={setServerSocialConfig}
+            onNowLabelChange={setNowLabel}
             debug={debug}
           />
+          {nowLabel && (
+            <div className="canvas-now-label">{nowLabel}</div>
+          )}
           {!isViewer && activity !== 'social' && (
             <TouchLayer
               room={room}

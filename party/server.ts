@@ -191,7 +191,12 @@ interface Vote {
   timestamp: number;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent;
+interface SetNowLabelEvent {
+  type: 'setNowLabel';
+  label: string;
+}
+
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -246,6 +251,7 @@ export default class Server implements Party.Server {
   private roomAvatarStyle: string | null = null;
   private currentActivity: ActivityMode = 'canvas';
   private roomImageUrl: string = '';
+  private nowLabel: string = '';
   private roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null = null;
   private ballState = { x: 50, y: 50, vx: 2, vy: 1 };
   private soccerScore = { left: 0, right: 0 };
@@ -364,6 +370,7 @@ export default class Server implements Party.Server {
       roomAvatarStyle: this.roomAvatarStyle,
       currentActivity: this.currentActivity,
       roomImageUrl: this.roomImageUrl,
+      nowLabel: this.nowLabel,
       roomSocialConfig: this.roomSocialConfig,
       ballState: this.currentActivity === 'soccer' ? this.ballState : null,
       soccerScore: this.soccerScore,
@@ -477,6 +484,9 @@ export default class Server implements Party.Server {
           ball: this.currentActivity === 'soccer' ? this.ballState : null,
           score: this.soccerScore,
         }));
+      } else if (event.type === 'setNowLabel') {
+        this.nowLabel = event.label;
+        this.room.broadcast(JSON.stringify({ type: 'nowLabelChanged', label: this.nowLabel }));
       } else if (event.type === 'setImageUrl') {
         this.roomImageUrl = event.url;
         this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
