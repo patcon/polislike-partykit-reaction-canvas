@@ -1,6 +1,7 @@
 import "./styles.css";
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
+import { QRCodeSVG } from "qrcode.react";
 import SimpleReactionCanvasAppV1 from "./components/SimpleReactionCanvasAppV1";
 import ReactionCanvasAppV2 from "./components/ReactionCanvasAppV2";
 import ReactionCanvasAppV4 from "./components/ReactionCanvasAppV4";
@@ -8,9 +9,14 @@ import ReactionCanvasAppV5 from "./components/ReactionCanvasAppV5";
 import ValenceViz from "./components/ValenceViz";
 
 function IndexApp() {
+  const pageUrl = window.location.origin + window.location.pathname;
   return (
     <div className="index-app">
       <h1 className="index-title">Polislike Reaction Canvas Apps</h1>
+      <div className="index-qr">
+        <QRCodeSVG value={pageUrl} size={120} />
+        <p className="index-qr-label">{pageUrl}</p>
+      </div>
       <div className="app-cards">
         <a href="?room=irc6creOFGs#v5" className="app-card app-card--youtube">
           <div className="app-card-content">
