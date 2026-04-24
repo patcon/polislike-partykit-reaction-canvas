@@ -73,10 +73,12 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
     return () => { try { r.abort(); } catch {} };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Let SpeechRecognition request the permission itself — no getUserMedia, which would hold the mic stream open
+  // getUserMedia + immediate track stop: requests permission without holding the mic stream open
   const requestMicAccess = () => {
     setMicState('requesting');
-    try { micRecognitionRef.current?.start(); } catch { setMicState('ready'); }
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => { stream.getTracks().forEach(t => t.stop()); setMicState('ready'); })
+      .catch(() => setMicState('error'));
   };
   const startMicRecording = () => {
     try { micRecognitionRef.current?.start(); setMicState('recording'); } catch {}
