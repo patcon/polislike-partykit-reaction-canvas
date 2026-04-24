@@ -231,21 +231,21 @@ function ParticipantsTabInner({
                       <div style={{ position: 'absolute', right: 0, top: '100%', marginTop: 2, background: '#252525', border: '1px solid #444', borderRadius: 6, boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 100, minWidth: 160 }}>
                         <button
                           onPointerDown={e => e.stopPropagation()}
-                          onClick={() => { setOpenMenuGroupKey(null); offerInterface({ kind: 'region', region }); }}
+                          onClick={() => { setOpenMenuGroupKey(null); offerInterface({ kind: 'users', userIds: members, label: groupLabel }); }}
                           style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
                         >
                           Offer interface…
                         </button>
                         <button
                           onPointerDown={e => e.stopPropagation()}
-                          onClick={() => { setOpenMenuGroupKey(null); onSendHaptic({ kind: 'region', region }); }}
+                          onClick={() => { setOpenMenuGroupKey(null); onSendHaptic({ kind: 'users', userIds: members, label: groupLabel }); }}
                           style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
                         >
                           Send buzz…
                         </button>
                         <button
                           onPointerDown={e => e.stopPropagation()}
-                          onClick={() => { setOpenMenuGroupKey(null); onSendPopup({ kind: 'region', region }); }}
+                          onClick={() => { setOpenMenuGroupKey(null); onSendPopup({ kind: 'users', userIds: members, label: groupLabel }); }}
                           style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', background: 'none', border: 'none', color: '#ddd', fontSize: 13, cursor: 'pointer' }}
                         >
                           Send popup…

@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Fixed
 - V4 People tab: "Send popup…" now sends the coder-role popup only to the targeted user/group/region instead of broadcasting to all participants
+- V4 People tab: group-level actions (Offer interface, Send buzz, Send popup) in the valence grouping now snapshot membership at click time — people who move after the menu opens are no longer included or excluded
 
 ### Added
 - V4 Interface tab: restructured as a table with Solo / Commons / Patch columns — Social Sharing promoted to a first-class radio row alongside Reaction Canvas, Image Canvas, and Soccer; Commons column is a placeholder for the future front-of-room screen ([#55](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/55))
