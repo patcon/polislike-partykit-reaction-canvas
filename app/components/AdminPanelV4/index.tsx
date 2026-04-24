@@ -331,7 +331,7 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
 
       {/* === MOMENTS MIC BUTTON === */}
       {activeTab === 'moments' && (
-        <div style={{ flexShrink: 0, borderTop: '1px solid #222', padding: '8px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ flexShrink: 0, borderTop: '1px solid #222', padding: '8px 16px calc(8px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 6 }}>
           <button
             disabled={micState === 'requesting' || micState === 'error'}
             onClick={micState === 'idle' ? requestMicAccess : undefined}
@@ -359,11 +359,9 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
             {micState === 'recording' && '● Release to set label'}
             {micState === 'error' && '🎤 Mic unavailable'}
           </button>
-          {micState === 'error' && (
-            <span style={{ fontSize: 11, color: '#555', textAlign: 'center' }}>
-              {SpeechRecognitionCtor ? 'Check browser mic permissions' : 'Speech recognition not supported in this browser'}
-            </span>
-          )}
+          <span style={{ fontSize: 11, color: '#555', textAlign: 'center', visibility: micState === 'error' ? 'visible' : 'hidden' }}>
+            {SpeechRecognitionCtor ? 'Check browser mic permissions' : 'Speech recognition not supported in this browser'}
+          </span>
         </div>
       )}
 
