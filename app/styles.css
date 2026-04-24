@@ -1183,7 +1183,6 @@ body {
 
 .canvas-now-label {
   position: absolute;
-  top: 16px;
   left: 50%;
   transform: translateX(-50%);
   color: #eee;
@@ -1193,9 +1192,12 @@ body {
   z-index: 10;
   text-align: center;
   background: rgba(0, 0, 0, 0.4);
-  padding: 4px 12px;
+  padding: 4px 16px;
   border-radius: 4px;
-  white-space: nowrap;
+  max-width: min(60vw, 380px);
+  width: max-content;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .viewer-mode-banner {

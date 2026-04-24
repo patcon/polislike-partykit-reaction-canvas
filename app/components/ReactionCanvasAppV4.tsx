@@ -300,7 +300,12 @@ export default function ReactionCanvasAppV4() {
             debug={debug}
           />
           {nowLabel && (
-            <div className="canvas-now-label">{nowLabel}</div>
+            <div
+              className="canvas-now-label"
+              style={{ top: `calc(${anchors.positive.y}% + 60px)` }}
+            >
+              {nowLabel}
+            </div>
           )}
           {!isViewer && activity !== 'social' && (
             <TouchLayer
