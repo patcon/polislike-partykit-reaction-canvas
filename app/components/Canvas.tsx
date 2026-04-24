@@ -131,7 +131,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
             setAvatarStyle(data.roomAvatarStyle ?? null);
             onRoomAvatarStyleChange?.(data.roomAvatarStyle ?? null);
           }
-          if ('currentActivity' in data) {
+          if (readOnly && 'commonsActivity' in data) {
+            const act = data.commonsActivity ?? 'canvas';
+            setActivity(act);
+            onActivityChange?.(act);
+          } else if (!readOnly && 'currentActivity' in data) {
             const act = data.currentActivity ?? 'canvas';
             setActivity(act);
             onActivityChange?.(act);
@@ -207,13 +211,21 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           return;
         }
 
-        if (data.type === 'activityChanged') {
+        if (data.type === 'activityChanged' && !readOnly) {
           const act = data.activity ?? 'canvas';
           setActivity(act);
           onActivityChange?.(act);
           if (data.ball) setBallPos({ x: data.ball.x, y: data.ball.y });
           if (data.score) setSoccerScore(data.score);
           if (data.activity !== 'soccer') setBallPos(null);
+          return;
+        }
+
+        if (data.type === 'commonsActivityChanged' && readOnly) {
+          const act = data.activity ?? 'canvas';
+          setActivity(act);
+          onActivityChange?.(act);
+          if (act !== 'soccer') setBallPos(null);
           return;
         }
 

@@ -5,6 +5,7 @@ import type PartySocket from "partysocket";
 export function useRoomConfig(socket: PartySocket) {
   const [avatarStyle, setAvatarStyle]         = useState<string | null>(null);
   const [activity, setActivity]               = useState<ActivityMode>('canvas');
+  const [commonsActivity, setCommonsActivity] = useState<ActivityMode>('canvas');
   const [soccerScore, setSoccerScore]         = useState({ left: 0, right: 0 });
   const [imageConfigOpen, setImageConfigOpen] = useState(false);
   const [roomImageUrl, setRoomImageUrl]       = useState('');
@@ -25,6 +26,11 @@ export function useRoomConfig(socket: PartySocket) {
   const sendActivity = (act: ActivityMode) => {
     setActivity(act);
     socket.send(JSON.stringify({ type: 'setActivity', activity: act }));
+  };
+
+  const sendCommonsActivity = (act: ActivityMode) => {
+    setCommonsActivity(act);
+    socket.send(JSON.stringify({ type: 'setCommonsActivity', activity: act }));
   };
 
   const sendImageUrl = (url: string) => {
@@ -50,6 +56,7 @@ export function useRoomConfig(socket: PartySocket) {
   const applyConnected = (data: Record<string, unknown>) => {
     if ('roomAvatarStyle' in data) setAvatarStyle((data.roomAvatarStyle as string | null) ?? null);
     if ('currentActivity' in data) setActivity((data.currentActivity as ActivityMode) ?? 'canvas');
+    if ('commonsActivity' in data) setCommonsActivity((data.commonsActivity as ActivityMode) ?? 'canvas');
     if ('roomImageUrl' in data) setRoomImageUrl((data.roomImageUrl as string) ?? '');
     if ('roomSocialConfig' in data) setRoomSocialConfig((data.roomSocialConfig as SocialConfig | null) ?? null);
     if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore as { left: number; right: number });
@@ -64,6 +71,8 @@ export function useRoomConfig(socket: PartySocket) {
       setAvatarStyle((data.avatarStyle as string | null) ?? null);
     } else if (data.type === 'activityChanged') {
       setActivity((data.activity as ActivityMode) ?? 'canvas');
+    } else if (data.type === 'commonsActivityChanged') {
+      setCommonsActivity((data.activity as ActivityMode) ?? 'canvas');
     } else if (data.type === 'imageUrlChanged') {
       setRoomImageUrl((data.url as string) ?? '');
     } else if (data.type === 'socialConfigChanged') {
@@ -88,6 +97,8 @@ export function useRoomConfig(socket: PartySocket) {
     capInput, setCapInput,
     sendAvatarStyle,
     sendActivity,
+    sendCommonsActivity,
+    commonsActivity,
     sendImageUrl,
     sendSocialConfig,
     resetSoccerScore,

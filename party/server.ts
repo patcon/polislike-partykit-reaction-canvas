@@ -107,6 +107,11 @@ interface SetActivityEvent {
   activity: ActivityMode;
 }
 
+interface SetCommonsActivityEvent {
+  type: 'setCommonsActivity';
+  activity: ActivityMode;
+}
+
 interface SetImageUrlEvent {
   type: 'setImageUrl';
   url: string;
@@ -196,7 +201,7 @@ interface SetNowLabelEvent {
   label: string;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetCommonsActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -250,6 +255,7 @@ export default class Server implements Party.Server {
   private roomAnchors: ReactionAnchors | null = null;
   private roomAvatarStyle: string | null = null;
   private currentActivity: ActivityMode = 'canvas';
+  private commonsActivity: ActivityMode = 'canvas';
   private roomImageUrl: string = '';
   private nowLabel: string = '';
   private roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null = null;
@@ -369,6 +375,7 @@ export default class Server implements Party.Server {
       roomAnchors: this.roomAnchors,
       roomAvatarStyle: this.roomAvatarStyle,
       currentActivity: this.currentActivity,
+      commonsActivity: this.commonsActivity,
       roomImageUrl: this.roomImageUrl,
       nowLabel: this.nowLabel,
       roomSocialConfig: this.roomSocialConfig,
@@ -484,6 +491,9 @@ export default class Server implements Party.Server {
           ball: this.currentActivity === 'soccer' ? this.ballState : null,
           score: this.soccerScore,
         }));
+      } else if (event.type === 'setCommonsActivity') {
+        this.commonsActivity = event.activity;
+        this.room.broadcast(JSON.stringify({ type: 'commonsActivityChanged', activity: this.commonsActivity }));
       } else if (event.type === 'setNowLabel') {
         this.nowLabel = event.label;
         this.room.broadcast(JSON.stringify({ type: 'nowLabelChanged', label: this.nowLabel }));

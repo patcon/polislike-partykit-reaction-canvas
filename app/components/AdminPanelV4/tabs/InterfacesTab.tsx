@@ -5,8 +5,10 @@ import type { ActivityMode } from "../../../types";
 
 interface InterfacesTabProps {
   activity: ActivityMode;
+  commonsActivity: ActivityMode;
   soccerScore: { left: number; right: number };
   sendActivity: (act: ActivityMode) => void;
+  sendCommonsActivity: (act: ActivityMode) => void;
   resetSoccerScore: () => void;
   setImageConfigOpen: (v: boolean) => void;
   setSocialConfigOpen: (v: boolean) => void;
@@ -38,8 +40,8 @@ const ROWS: { id: ActivityMode; label: string; desc: string; patchable: boolean 
 ];
 
 export default function InterfacesTab({
-  activity, soccerScore,
-  sendActivity, resetSoccerScore,
+  activity, commonsActivity, soccerScore,
+  sendActivity, sendCommonsActivity, resetSoccerScore,
   setImageConfigOpen, setSocialConfigOpen, setCanvasSettingsOpen,
   onClearRoleAssignments,
 }: InterfacesTabProps) {
@@ -98,8 +100,8 @@ export default function InterfacesTab({
                     type="radio"
                     name="activity-commons"
                     value={id}
-                    checked={isActive}
-                    onChange={() => sendActivity(id)}
+                    checked={commonsActivity === id}
+                    onChange={() => sendCommonsActivity(id)}
                   />
                 </td>
                 {/* Patch */}
