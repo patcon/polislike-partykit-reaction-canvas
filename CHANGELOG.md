@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Fixed
 - Valence onboarding v2: WebSocket connect now works on LAN IPs (e.g. `192.168.x.x`) — `crypto.randomUUID` is unavailable in non-secure contexts, replaced with a UUID v4 fallback using `Math.random`
+- Valence onboarding v2: configuration panel no longer requires horizontal scrolling on mobile — rows now wrap, compound rows (geometry/animation, traces/order) break cleanly at their separator, disabled alpha sliders and 3D orbit hint hidden on narrow screens
 
 ### Added
 - V4 Interfaces tab: Reaction Canvas now has a gear (⚙) settings dialog — first setting is "Show 'Now' label on canvas", which broadcasts the current moment label as a live text overlay at the top of the canvas for all participants; the overlay clears automatically when the moment is snapped
