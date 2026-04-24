@@ -320,10 +320,13 @@ export function createVisualizerScene(
   let isDragging = false, dragLast = { x: 0, y: 0 }, dtBase = 0, dpBase = 0;
   let lastTouchDist = 0, touchBase = { dt: 0, dp: 0 }, touchStart = { x: 0, y: 0 };
 
-  function emitCamera() {
-    if (opts.onCameraChange) {
-      opts.onCameraChange({ viewMode, theta: camTheta + orbitDTheta, phi: camPhi + orbitDPhi, radius: camRadius + orbitDRadius });
-    }
+  let lastEmit = 0;
+  function emitCamera(force = false) {
+    if (!opts.onCameraChange) return;
+    const now = Date.now();
+    if (!force && now - lastEmit < 80) return;
+    lastEmit = now;
+    opts.onCameraChange({ viewMode, theta: camTheta + orbitDTheta, phi: camPhi + orbitDPhi, radius: camRadius + orbitDRadius });
   }
 
   renderer.domElement.addEventListener('mousedown', (e: MouseEvent) => {
@@ -339,9 +342,10 @@ export function createVisualizerScene(
     orbitDTheta = dtBase - (e.clientX - dragLast.x) * 0.009;
     orbitDPhi = dpBase + (e.clientY - dragLast.y) * 0.009;
     applyCam();
+    emitCamera();
   };
   const onMouseUp = () => {
-    if (isDragging) { isDragging = false; emitCamera(); }
+    if (isDragging) { isDragging = false; emitCamera(true); }
   };
   window.addEventListener('mousemove', onMouseMove);
   window.addEventListener('mouseup', onMouseUp);
@@ -371,6 +375,7 @@ export function createVisualizerScene(
       orbitDTheta = touchBase.dt - (e.touches[0].clientX - touchStart.x) * 0.009;
       orbitDPhi = touchBase.dp + (e.touches[0].clientY - touchStart.y) * 0.009;
       applyCam();
+      emitCamera();
     } else if (e.touches.length === 2) {
       const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
       const scale = lastTouchDist / d;
@@ -378,12 +383,13 @@ export function createVisualizerScene(
       orbitDRadius = newEff - camRadius;
       lastTouchDist = d;
       applyCam();
+      emitCamera();
     }
     e.preventDefault();
   }, { passive: false });
 
   renderer.domElement.addEventListener('touchend', () => {
-    if (isDragging) { isDragging = false; emitCamera(); }
+    if (isDragging) { isDragging = false; emitCamera(true); }
   });
 
   // ── Valence state ───────────────────────────────────────
