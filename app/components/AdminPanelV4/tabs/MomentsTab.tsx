@@ -275,7 +275,7 @@ function MomentsTabInner({
       )}
 
       {/* Mic button */}
-      <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+      <div style={{ position: 'sticky', bottom: 0, marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, background: '#111', paddingBottom: 8, paddingTop: 8 }}>
         <button
           disabled={micState === 'requesting' || micState === 'error'}
           onClick={micState === 'idle' ? requestMicAccess : undefined}
