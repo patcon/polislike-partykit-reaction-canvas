@@ -36,10 +36,11 @@ function BtnGroup({ options, value, onChange }: { options: { label: string; valu
 }
 
 function Slider({ min, max, step, value, onChange, fmt }: { min: number; max: number; step: number; value: number; onChange: (v: number) => void; fmt?: (v: number) => string }) {
+  const safe = value ?? min;
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
-      <input type="range" min={min} max={max} step={step} value={value} onChange={e => onChange(Number(e.target.value))} style={{ flex: 1 }} />
-      <span style={{ color: '#888', fontSize: 11, minWidth: 36, textAlign: 'right' }}>{fmt ? fmt(value) : value}</span>
+      <input type="range" min={min} max={max} step={step} value={safe} onChange={e => onChange(Number(e.target.value))} style={{ flex: 1 }} />
+      <span style={{ color: '#888', fontSize: 11, minWidth: 36, textAlign: 'right' }}>{fmt ? fmt(safe) : safe}</span>
     </div>
   );
 }
