@@ -615,7 +615,7 @@ function cursorToValue(nx,ny){
 function addLiveChord(userId){
   if(liveChords.length>=MAX_LIVE)return;
   if(liveChords.find(lc=>lc.userId===userId))return;
-  liveChords.push({userId,value:0,arrivalT:0,hasTouched:false,history:[]});
+  liveChords.push({userId,value:0,arrivalT:0,hasTouched:false,lifted:false,history:[]});
 }
 function removeLiveChord(userId){
   const lc=liveChords.find(lc=>lc.userId===userId);
@@ -651,10 +651,12 @@ function connectWs(room){
         // Auto-add chord if user was already connected when we joined (missed userJoined)
         if(!liveChords.find(lc=>lc.userId===pos.userId)) addLiveChord(pos.userId);
         const lc=liveChords.find(lc=>lc.userId===pos.userId);
-        if(lc){lc.value=cursorToValue(pos.x,pos.y);lc.hasTouched=true;}
+        if(lc){lc.value=cursorToValue(pos.x,pos.y);lc.hasTouched=true;lc.lifted=false;}
       }
     }else if(data.type==='remove'){
-      const uid=data.userId||(data.position&&data.position.userId);if(uid)removeLiveChord(uid);
+      const uid=data.userId||(data.position&&data.position.userId);
+      const lc=liveChords.find(lc=>lc.userId===uid);
+      if(lc){lc.lifted=true;lc.value=0;}
     }
   };
   ws.onerror=()=>setConnStatus('connection error','warn');
@@ -1120,14 +1122,14 @@ function animate(){
         const nc=neutralRGBA(opacities.radial);
         const tc=liveElementRGBA(v,styles.radial,opacities.radial);
         liveCColArr.set([nc[0]/255,nc[1]/255,nc[2]/255,tc[0]/255,tc[1]/255,tc[2]/255],i*6);
-        if(lc.hasTouched){
+        if(lc.hasTouched&&!lc.lifted){
           liveDPosArr.set([tx,ty,tz],i*3);
           const dc=liveElementRGBA(v,styles.cursor,opacities.cursor);
           liveDColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
-          if(!paused&&lc.departT==null){lc.history.push([tx,ty,rx,ry,lc.value]);if(lc.history.length>TRACE_LEN)lc.history.shift();}
         }else{
           liveDPosArr.fill(0,i*3,(i+1)*3);liveDColArr.fill(0,i*3,(i+1)*3);
         }
+        if(lc.hasTouched&&!paused&&lc.departT==null){lc.history.push([tx,ty,rx,ry,lc.value]);if(lc.history.length>TRACE_LEN)lc.history.shift();}
       }else{
         liveCPosArr.fill(0,i*6,(i+1)*6);liveCColArr.fill(0,i*6,(i+1)*6);
         liveDPosArr.fill(0,i*3,(i+1)*3);liveDColArr.fill(0,i*3,(i+1)*3);
