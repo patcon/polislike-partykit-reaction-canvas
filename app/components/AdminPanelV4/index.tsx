@@ -109,10 +109,6 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
     URL.revokeObjectURL(url);
   };
 
-  const triggerGithubActivity = () => {
-    socket.send(JSON.stringify({ type: 'triggerActivity', activityName: 'githubUsername' }));
-  };
-
   return (
     <div
       className="v3-admin-panel"
@@ -329,7 +325,11 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
           pushTarget={pendingPopupTarget}
           activeLabels={labels.activeLabels}
           onSend={() => {
-            triggerGithubActivity();
+            const msg: Record<string, unknown> = { type: 'triggerActivity', activityName: 'githubUsername' };
+            if (pendingPopupTarget.kind === 'user') msg.targetUserId = pendingPopupTarget.userId;
+            else if (pendingPopupTarget.kind === 'users') msg.targetUserIds = pendingPopupTarget.userIds;
+            else if (pendingPopupTarget.kind === 'region') msg.targetRegion = pendingPopupTarget.region;
+            socket.send(JSON.stringify(msg));
             setPendingPopupTarget(null);
           }}
           onClose={() => setPendingPopupTarget(null)}

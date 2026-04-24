@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 22 (2026-04-20)
 
+### Fixed
+- V4 People tab: "Send popup…" now sends the coder-role popup only to the targeted user/group/region instead of broadcasting to all participants
+
 ### Added
 - V4 Interface tab: restructured as a table with Solo / Commons / Patch columns — Social Sharing promoted to a first-class radio row alongside Reaction Canvas, Image Canvas, and Soccer; Commons column is a placeholder for the future front-of-room screen ([#55](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/55))
 - V4 Interface tab: Patch column with QR share button on the Social Sharing row — opens a dialog with `?interface=social` URL so participants can add the interface voluntarily without it being pushed; other rows show a greyed-out icon ([#55](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/55))

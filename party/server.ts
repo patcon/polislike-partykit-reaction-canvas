@@ -124,6 +124,9 @@ interface SetUserCapEvent {
 interface TriggerActivityEvent {
   type: 'triggerActivity';
   activityName: 'githubUsername';
+  targetUserId?: string;
+  targetRegion?: 'positive' | 'negative' | 'neutral' | null;
+  targetUserIds?: string[];
 }
 
 interface SetSocialConfigEvent {
@@ -478,7 +481,14 @@ export default class Server implements Party.Server {
         this.userCap = event.cap;
         this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
       } else if (event.type === 'triggerActivity') {
-        this.room.broadcast(JSON.stringify({ type: 'activityTriggered', activityName: event.activityName }));
+        const msg = JSON.stringify({ type: 'activityTriggered', activityName: event.activityName });
+        const hasTarget = event.targetUserId !== undefined || event.targetRegion !== undefined || event.targetUserIds !== undefined;
+        if (hasTarget) {
+          const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
+          for (const conn of targets) conn.send(msg);
+        } else {
+          this.room.broadcast(msg);
+        }
       } else if (event.type === 'submitGithubUsername') {
         const submission = {
           username: event.username,
