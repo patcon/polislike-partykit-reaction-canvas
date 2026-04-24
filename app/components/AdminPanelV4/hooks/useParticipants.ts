@@ -154,7 +154,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     interfaceAcceptances,
     openMenuUserId, setOpenMenuUserId,
     openMenuGroupKey, setOpenMenuGroupKey,
-    feedbackStars,
+    feedbackStars, setFeedbackStars,
     snapMoment,
     applyConnected,
     handleSocketEvent,

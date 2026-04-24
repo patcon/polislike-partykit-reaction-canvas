@@ -270,6 +270,7 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
             onSendHaptic={setPendingHapticTarget}
             onSendPopup={setPendingPopupTarget}
             feedbackStars={participants.feedbackStars}
+            setFeedbackStars={participants.setFeedbackStars}
             interfaceAcceptances={participants.interfaceAcceptances}
             activeLabels={labels.activeLabels}
             activeAnchors={anchors.activeAnchors}

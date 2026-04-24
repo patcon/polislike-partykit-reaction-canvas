@@ -27,6 +27,7 @@ interface ParticipantsTabProps {
   onSendHaptic: (target: PushTarget) => void;
   onSendPopup: (target: PushTarget) => void;
   feedbackStars: Record<string, number>;
+  setFeedbackStars: (v: Record<string, number>) => void;
   interfaceAcceptances: { userId: string; interfaceName: string }[];
   activeLabels: ReactionLabelSet;
   activeAnchors: ReactionAnchors;
@@ -42,7 +43,7 @@ function ParticipantsTabInner({
   openMenuUserId, setOpenMenuUserId,
   openMenuGroupKey, setOpenMenuGroupKey,
   setPushTarget, setPendingInterfaceName, onSendHaptic, onSendPopup,
-  feedbackStars,
+  feedbackStars, setFeedbackStars,
   interfaceAcceptances, activeLabels, activeAnchors, room, selfUserId,
 }: ParticipantsTabProps) {
   const offerInterface = (target: PushTarget) => {
@@ -373,7 +374,18 @@ function ParticipantsTabInner({
       )}
 
       {seenUsers.size > 0 && (
-        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ marginTop: 16, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+          {Object.keys(feedbackStars).length > 0 && (
+            <button
+              onClick={() => {
+                localStorage.removeItem(`v4-feedback-stars-${room}`);
+                setFeedbackStars({});
+              }}
+              style={{ fontSize: 11, color: '#555', background: 'none', border: 'none', cursor: 'pointer', padding: '2px 0' }}
+            >
+              Clear feedback
+            </button>
+          )}
           <button
             onClick={() => {
               localStorage.removeItem(`v4-seen-users-${room}`);
