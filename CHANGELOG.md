@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 22 (2026-04-20)
 
 ### Fixed
+- V4 admin: active tab is now persisted to localStorage per room — switching to the canvas and back no longer resets the tab to Record
 - V4 People tab: "Send popup…" now sends the coder-role popup only to the targeted user/group/region instead of broadcasting to all participants
 - V4 People tab: group-level actions (Offer interface, Send buzz, Send popup) in the valence grouping now snapshot membership at click time — people who move after the menu opens are no longer included or excluded
 

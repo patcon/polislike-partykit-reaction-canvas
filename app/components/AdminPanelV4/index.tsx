@@ -31,7 +31,12 @@ interface AdminPanelV4Props {
 }
 
 export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
-  const [activeTab, setActiveTab]             = useState<AdminTab>('record');
+  const tabStorageKey = `v4-admin-tab-${room}`;
+  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
+    const saved = localStorage.getItem(tabStorageKey);
+    return (ALL_TABS as string[]).includes(saved ?? '') ? (saved as AdminTab) : 'record';
+  });
+  const switchTab = (tab: AdminTab) => { setActiveTab(tab); localStorage.setItem(tabStorageKey, tab); };
   const [presenceCount, setPresenceCount]     = useState<number>(0);
   const [githubSubmissions, setGithubSubmissions] = useState<GithubSubmission[]>([]);
   const [pendingHapticTarget, setPendingHapticTarget] = useState<PushTarget | null>(null);
@@ -137,7 +142,7 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
           {ALL_TABS.map(tab => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => switchTab(tab)}
               style={{
                 padding: '8px 16px',
                 background: activeTab === tab ? '#333' : 'transparent',
