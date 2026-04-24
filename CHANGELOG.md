@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 22 (2026-04-20)
 
 ### Changed
+- V4 Image Canvas modal: replaced focus-triggered URL dropdown with a persistent thumbnail row — past images are always visible and clickable to populate the URL input ([#49](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/49))
 - V4 People tab: "Group by" simplified to Valence / None; moment picker merged into the same row as a second select defaulting to "Now", with saved moments as additional options
 
 ### Fixed

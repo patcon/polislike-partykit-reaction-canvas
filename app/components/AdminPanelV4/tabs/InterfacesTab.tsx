@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { IoMdSettings } from "react-icons/io";
 import type { ActivityMode } from "../../../types";
 
 interface InterfacesTabProps {
@@ -55,7 +56,7 @@ export default function InterfacesTab({
             <th style={{ textAlign: 'left', color: '#666', fontWeight: 500, padding: '0 8px 8px 0', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Interface</th>
             <th style={{ color: '#666', fontWeight: 500, padding: '0 8px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', width: 48, textAlign: 'center' }}>Solo</th>
             <th style={{ color: '#444', fontWeight: 500, padding: '0 8px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', width: 64, textAlign: 'center' }}>Commons</th>
-            <th style={{ color: '#666', fontWeight: 500, padding: '0 0 8px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', width: 48, textAlign: 'center' }}>Patch</th>
+            <th style={{ color: '#666', fontWeight: 500, padding: '0 0 8px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', width: 48, textAlign: 'center' }}>Share</th>
           </tr>
         </thead>
         <tbody>
@@ -69,10 +70,10 @@ export default function InterfacesTab({
                     <span style={{ fontWeight: isActive ? 600 : 400, color: isActive ? '#eee' : '#bbb' }}>{label}</span>
                     <span style={{ color: '#666', marginLeft: 8 }}>{desc}</span>
                     {id === 'image-canvas' && (
-                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}>config</button>
+                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}><IoMdSettings /></button>
                     )}
                     {id === 'social' && (
-                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}>config</button>
+                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>
                     )}
                   </label>
                 </td>

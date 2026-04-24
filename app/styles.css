@@ -1610,15 +1610,18 @@ body {
 .image-canvas-config-link {
   background: none;
   border: none;
-  color: #6af;
-  font-size: 12px;
+  color: #aaa;
+  font-size: 18px;
   cursor: pointer;
-  padding: 0 6px;
-  text-decoration: underline;
+  padding: 0;
+  margin-left: 10px;
+  text-decoration: none;
   vertical-align: middle;
+  display: inline-flex;
+  align-items: center;
 }
 .image-canvas-config-link:hover {
-  color: #9cf;
+  color: #eee;
 }
 
 /* Interface chip bar */
