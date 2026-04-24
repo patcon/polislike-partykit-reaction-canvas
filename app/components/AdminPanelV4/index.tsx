@@ -283,8 +283,10 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
         {activeTab === 'interfaces' && (
           <InterfacesTab
             activity={roomConfig.activity}
+            commonsActivity={roomConfig.commonsActivity}
             soccerScore={roomConfig.soccerScore}
             sendActivity={roomConfig.sendActivity}
+            sendCommonsActivity={roomConfig.sendCommonsActivity}
             resetSoccerScore={roomConfig.resetSoccerScore}
             setImageConfigOpen={roomConfig.setImageConfigOpen}
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}

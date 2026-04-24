@@ -51,6 +51,8 @@ const PUSHED_INTERFACES_KEY = 'v4-pushed-interfaces';
 
 function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
+  // presenter opens standalone — no chip bar, no canvas alongside
+  if (p.get('interface') === 'presenter') return ['presenter'];
   const interfaces = ['canvas'];
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
   if (p.get('interface') === 'social') interfaces.push('social');
@@ -93,7 +95,9 @@ export default function ReactionCanvasAppV4() {
     const unlocked = getUnlockedInterfaces();
     const saved = localStorage.getItem('v4-active-interface');
     if (saved && unlocked.includes(saved)) return saved;
-    return unlocked.includes('emcee') ? 'emcee' : 'canvas';
+    return unlocked.includes('emcee') ? 'emcee'
+         : unlocked.includes('presenter') ? 'presenter'
+         : 'canvas';
   });
   const [userId] = useState(() => getPersistentUserId());
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
@@ -127,6 +131,7 @@ export default function ReactionCanvasAppV4() {
 
   // Derived early so useCallback deps below can reference it (must still be before any early return)
   const isEmcee = unlockedInterfaces.includes('emcee');
+  const isPresenter = unlockedInterfaces.includes('presenter');
 
   const triggerBuzzForUpdate = useCallback(() => {
     if (hapticFlashTimeoutRef.current) clearTimeout(hapticFlashTimeoutRef.current);
@@ -140,19 +145,19 @@ export default function ReactionCanvasAppV4() {
   }, [hapticEnabled, suppressHapticModal, triggerHaptic]);
 
   const handleRoomLabelsChange = useCallback((labels: ReactionLabelSet | null) => {
-    if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
+    if (hasConnectedRef.current && !isEmcee && !isPresenter) triggerBuzzForUpdate();
     setServerLabels(labels);
-  }, [isEmcee, triggerBuzzForUpdate]);
+  }, [isEmcee, isPresenter, triggerBuzzForUpdate]);
 
   const handleActivityChange = useCallback((act: ActivityMode) => {
-    if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
+    if (hasConnectedRef.current && !isEmcee && !isPresenter) triggerBuzzForUpdate();
     setActivity(act);
-  }, [isEmcee, triggerBuzzForUpdate]);
+  }, [isEmcee, isPresenter, triggerBuzzForUpdate]);
 
   const handleRoomImageUrlChange = useCallback((url: string) => {
-    if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
+    if (hasConnectedRef.current && !isEmcee && !isPresenter) triggerBuzzForUpdate();
     setServerImageUrl(url);
-  }, [isEmcee, triggerBuzzForUpdate]);
+  }, [isEmcee, isPresenter, triggerBuzzForUpdate]);
 
   useEffect(() => {
     localStorage.setItem('v4-active-interface', activeInterface);
@@ -172,7 +177,7 @@ export default function ReactionCanvasAppV4() {
     socketSendRef.current?.(JSON.stringify({ type: 'requestJoin' }));
   };
 
-  if (!isEmcee && !isTouchDevice() && !isMobileForced()) {
+  if (!isEmcee && !isPresenter && !isTouchDevice() && !isMobileForced()) {
     return <MobileOnlyGate />;
   }
 
@@ -184,7 +189,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social' };
+  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', presenter: 'Common' };
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
@@ -207,11 +212,11 @@ export default function ReactionCanvasAppV4() {
       {/* When activity is 'social', show SocialPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).
           Canvas container is hidden but stays mounted to keep the socket alive. */}
-      {activeInterface === 'canvas' && activity === 'social' && (
+      {(activeInterface === 'canvas' || activeInterface === 'presenter') && activity === 'social' && (
         <SocialPanel socialConfig={serverSocialConfig} />
       )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social') ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: ((activeInterface === 'canvas' || activeInterface === 'presenter') && activity !== 'social') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
@@ -238,14 +243,14 @@ export default function ReactionCanvasAppV4() {
           </div>
           <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
           <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
-          <ShareQRButton />
-          <HapticIndicatorButton
+          {!isPresenter && <ShareQRButton />}
+          {!isPresenter && <HapticIndicatorButton
             enabled={hapticEnabled}
             flashing={hapticFlashing}
             canVibrate={WebHaptics.isSupported}
             onToggle={() => { if (WebHaptics.isSupported) setHapticEnabled(prev => !prev); }}
             onShowInfo={() => setHapticPending(true)}
-          />
+          />}
           {touchPos && (
             <div
               className="v2-touch-indicator"
@@ -255,6 +260,7 @@ export default function ReactionCanvasAppV4() {
           <Canvas
             room={room}
             userId={userId}
+            readOnly={isPresenter}
             colorCursorsByVote={true}
             currentReactionState={canvasBackgroundReactionState}
             heightOffset={chipBarOffset}
@@ -290,7 +296,10 @@ export default function ReactionCanvasAppV4() {
               setUnlockedInterfaces(getUnlockedInterfaces());
               setActiveInterface(prev => {
                 const urlBased = getUnlockedInterfaces();
-                return urlBased.includes(prev) ? prev : (urlBased.includes('emcee') ? 'emcee' : 'canvas');
+                return urlBased.includes(prev) ? prev
+                     : urlBased.includes('emcee') ? 'emcee'
+                     : urlBased.includes('presenter') ? 'presenter'
+                     : 'canvas';
               });
             }}
             onRoomImageUrlChange={handleRoomImageUrlChange}
@@ -307,7 +316,7 @@ export default function ReactionCanvasAppV4() {
               {nowLabel}
             </div>
           )}
-          {!isViewer && activity !== 'social' && (
+          {!isViewer && !isPresenter && activity !== 'social' && (
             <TouchLayer
               room={room}
               userId={userId}

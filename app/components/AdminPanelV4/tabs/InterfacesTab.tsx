@@ -5,8 +5,10 @@ import type { ActivityMode } from "../../../types";
 
 interface InterfacesTabProps {
   activity: ActivityMode;
+  commonsActivity: ActivityMode;
   soccerScore: { left: number; right: number };
   sendActivity: (act: ActivityMode) => void;
+  sendCommonsActivity: (act: ActivityMode) => void;
   resetSoccerScore: () => void;
   setImageConfigOpen: (v: boolean) => void;
   setSocialConfigOpen: (v: boolean) => void;
@@ -38,8 +40,8 @@ const ROWS: { id: ActivityMode; label: string; desc: string; patchable: boolean 
 ];
 
 export default function InterfacesTab({
-  activity, soccerScore,
-  sendActivity, resetSoccerScore,
+  activity, commonsActivity, soccerScore,
+  sendActivity, sendCommonsActivity, resetSoccerScore,
   setImageConfigOpen, setSocialConfigOpen, setCanvasSettingsOpen,
   onClearRoleAssignments,
 }: InterfacesTabProps) {
@@ -92,8 +94,16 @@ export default function InterfacesTab({
                     onChange={() => sendActivity(id)}
                   />
                 </td>
-                {/* Commons — placeholder */}
-                <td style={{ textAlign: 'center', padding: '10px 8px', color: '#3a3a3a' }}>—</td>
+                {/* Commons */}
+                <td style={{ textAlign: 'center', padding: '10px 8px' }}>
+                  <input
+                    type="radio"
+                    name="activity-commons"
+                    value={id}
+                    checked={commonsActivity === id}
+                    onChange={() => sendCommonsActivity(id)}
+                  />
+                </td>
                 {/* Patch */}
                 <td style={{ textAlign: 'center', padding: '10px 0 10px 8px' }}>
                   {patchable ? (
