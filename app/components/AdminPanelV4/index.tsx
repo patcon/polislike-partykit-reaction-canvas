@@ -10,6 +10,7 @@ import { usePlayback } from "./hooks/usePlayback";
 import { useParticipants } from "./hooks/useParticipants";
 import OfferInterfaceModal from "./OfferInterfaceModal";
 import HapticConfirmModal from "./HapticConfirmModal";
+import SendPopupModal from "./SendPopupModal";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -34,6 +35,7 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
   const [presenceCount, setPresenceCount]     = useState<number>(0);
   const [githubSubmissions, setGithubSubmissions] = useState<GithubSubmission[]>([]);
   const [pendingHapticTarget, setPendingHapticTarget] = useState<PushTarget | null>(null);
+  const [pendingPopupTarget, setPendingPopupTarget]   = useState<PushTarget | null>(null);
 
   // Ref-based dispatch so all hooks see the same handler regardless of creation order
   const dispatchRef = useRef<(data: Record<string, unknown>) => void>(() => {});
@@ -235,7 +237,6 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
             resetSoccerScore={roomConfig.resetSoccerScore}
             setImageConfigOpen={roomConfig.setImageConfigOpen}
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
-            triggerGithubActivity={triggerGithubActivity}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
           />
         )}
@@ -266,6 +267,7 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
             setPushTarget={participants.setPushTarget}
             setPendingInterfaceName={participants.setPendingInterfaceName}
             onSendHaptic={setPendingHapticTarget}
+            onSendPopup={setPendingPopupTarget}
             interfaceAcceptances={participants.interfaceAcceptances}
             activeLabels={labels.activeLabels}
             activeAnchors={anchors.activeAnchors}
@@ -320,6 +322,17 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
           activeLabels={labels.activeLabels}
           onSend={msg => socket.send(JSON.stringify(msg))}
           onClose={() => { participants.setPushTarget(null); participants.setPendingInterfaceName('social'); }}
+        />
+      )}
+      {pendingPopupTarget && (
+        <SendPopupModal
+          pushTarget={pendingPopupTarget}
+          activeLabels={labels.activeLabels}
+          onSend={() => {
+            triggerGithubActivity();
+            setPendingPopupTarget(null);
+          }}
+          onClose={() => setPendingPopupTarget(null)}
         />
       )}
       {roomConfig.imageConfigOpen && (

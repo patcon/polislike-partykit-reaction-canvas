@@ -5,7 +5,7 @@ import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
 import InterfaceChipBar from "./InterfaceChipBar";
 import SocialPanel from "./SocialPanel";
-import type { SocialConfig } from "../types";
+import type { ActivityMode, SocialConfig } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
 import InterfacePushModal from "./InterfacePushModal";
 import HapticPushModal from "./HapticPushModal";
@@ -109,7 +109,7 @@ export default function ReactionCanvasAppV4() {
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const [serverImageUrl, setServerImageUrl] = useState('');
   const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
-  const [activity, setActivity] = useState<'canvas' | 'soccer' | 'image-canvas'>('canvas');
+  const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
@@ -141,7 +141,7 @@ export default function ReactionCanvasAppV4() {
     setServerLabels(labels);
   }, [isEmcee, triggerBuzzForUpdate]);
 
-  const handleActivityChange = useCallback((act: 'canvas' | 'soccer' | 'image-canvas') => {
+  const handleActivityChange = useCallback((act: ActivityMode) => {
     if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
     setActivity(act);
   }, [isEmcee, triggerBuzzForUpdate]);
@@ -201,8 +201,14 @@ export default function ReactionCanvasAppV4() {
       ) : activeInterface === 'social' ? (
         <SocialPanel socialConfig={serverSocialConfig} />
       ) : null}
+      {/* When activity is 'social', show SocialPanel as a flex sibling (fills the
+          remaining height below the chip bar, same as the chip-based case).
+          Canvas container is hidden but stays mounted to keep the socket alive. */}
+      {activeInterface === 'canvas' && activity === 'social' && (
+        <SocialPanel socialConfig={serverSocialConfig} />
+      )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: activeInterface === 'canvas' ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
@@ -288,7 +294,7 @@ export default function ReactionCanvasAppV4() {
             onSocialConfigChange={setServerSocialConfig}
             debug={debug}
           />
-          {!isViewer && (
+          {!isViewer && activity !== 'social' && (
             <TouchLayer
               room={room}
               userId={userId}

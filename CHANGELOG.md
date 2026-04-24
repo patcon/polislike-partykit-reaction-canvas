@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 22 (2026-04-20)
 
 ### Added
+- V4 Interface tab: restructured as a table with Solo / Commons / Patch columns — Social Sharing promoted to a first-class radio row alongside Reaction Canvas, Image Canvas, and Soccer; Commons column is a placeholder for the future front-of-room screen ([#55](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/55))
+- V4 Interface tab: Patch column with QR share button on the Social Sharing row — opens a dialog with `?interface=social` URL so participants can add the interface voluntarily without it being pushed; other rows show a greyed-out icon ([#55](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/55))
+- V4 People tab: "Send popup…" added to `···` action menus on participant rows and group/region headers — opens a confirmation modal before dispatching the coder-role GitHub username popup ([#55](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/55))
+- V4: Social Sharing is now a broadcast canvas activity — when the emcee selects it from the Interface tab all participants' personal screens switch to the social sharing UI; selecting any other mode restores their canvas ([#55](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/55))
+
+### Changed
+- Refactor: extracted shared `ActivityMode` type to `app/types.ts` replacing 12 inline union literals across server and client
+- V4 Interface tab: coder-role popup trigger moved from Interface tab to the People tab "Send popup…" menu item
+
+### Added
 - V4: participants now receive a haptic buzz + indicator flash when the emcee silently changes the reaction labels, switches the canvas activity (Reaction Canvas / Soccer / Image Canvas), or sets a new image in Image Canvas; does not fire on the emcee's device or on initial page load ([#54](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/54))
 
 ### Added

@@ -1,10 +1,10 @@
 import { useState } from "react";
-import type { SocialConfig } from "../../../types";
+import type { ActivityMode, SocialConfig } from "../../../types";
 import type PartySocket from "partysocket";
 
 export function useRoomConfig(socket: PartySocket) {
   const [avatarStyle, setAvatarStyle]         = useState<string | null>(null);
-  const [activity, setActivity]               = useState<'canvas' | 'soccer' | 'image-canvas'>('canvas');
+  const [activity, setActivity]               = useState<ActivityMode>('canvas');
   const [soccerScore, setSoccerScore]         = useState({ left: 0, right: 0 });
   const [imageConfigOpen, setImageConfigOpen] = useState(false);
   const [roomImageUrl, setRoomImageUrl]       = useState('');
@@ -18,7 +18,7 @@ export function useRoomConfig(socket: PartySocket) {
     socket.send(JSON.stringify({ type: 'setRoomAvatarStyle', avatarStyle: style }));
   };
 
-  const sendActivity = (act: 'canvas' | 'soccer' | 'image-canvas') => {
+  const sendActivity = (act: ActivityMode) => {
     setActivity(act);
     socket.send(JSON.stringify({ type: 'setActivity', activity: act }));
   };
@@ -45,7 +45,7 @@ export function useRoomConfig(socket: PartySocket) {
 
   const applyConnected = (data: Record<string, unknown>) => {
     if ('roomAvatarStyle' in data) setAvatarStyle((data.roomAvatarStyle as string | null) ?? null);
-    if ('currentActivity' in data) setActivity((data.currentActivity as 'canvas' | 'soccer' | 'image-canvas') ?? 'canvas');
+    if ('currentActivity' in data) setActivity((data.currentActivity as ActivityMode) ?? 'canvas');
     if ('roomImageUrl' in data) setRoomImageUrl((data.roomImageUrl as string) ?? '');
     if ('roomSocialConfig' in data) setRoomSocialConfig((data.roomSocialConfig as SocialConfig | null) ?? null);
     if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore as { left: number; right: number });
@@ -59,7 +59,7 @@ export function useRoomConfig(socket: PartySocket) {
     if (data.type === 'roomAvatarStyleChanged') {
       setAvatarStyle((data.avatarStyle as string | null) ?? null);
     } else if (data.type === 'activityChanged') {
-      setActivity((data.activity as 'canvas' | 'soccer' | 'image-canvas') ?? 'canvas');
+      setActivity((data.activity as ActivityMode) ?? 'canvas');
     } else if (data.type === 'imageUrlChanged') {
       setRoomImageUrl((data.url as string) ?? '');
     } else if (data.type === 'socialConfigChanged') {
