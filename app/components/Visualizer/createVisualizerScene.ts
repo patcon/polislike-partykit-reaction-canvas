@@ -37,6 +37,9 @@ export const DEFAULT_VIZ_CONFIG: VizConfig = {
 export interface VisualizerScene {
   applyConfig(config: VizConfig): void;
   applyCamera(state: VizCameraState): void;
+  addLiveCursor(userId: string): void;
+  updateLiveCursor(userId: string, value: number, lifted: boolean): void;
+  removeLiveCursor(userId: string): void;
   dispose(): void;
 }
 
@@ -840,8 +843,22 @@ export function createVisualizerScene(
       }
       for (let j = 0; j < TRACE_SEGS; j++) {
         const base = (i * TRACE_SEGS + j) * FILL_VERTS_PER_SEG * 3;
-        liveFiPosArr.fill(0, base, base + FILL_VERTS_PER_SEG * 3);
-        liveFiColArr.fill(0, base, base + FILL_VERTS_PER_SEG * 3);
+        if (showTrace && lc && lc.hasTouched && j + 1 < hlen) {
+          const [ax, ay, orx, ory] = lc.history[j];
+          const [bx, by, brx, bry] = lc.history[j + 1];
+          const zA = -(hlen - 1 - j) * TRACE_Z_STEP; const zB = -(hlen - 1 - (j + 1)) * TRACE_Z_STEP;
+          const fadeA = j / (hlen - 1); const fadeB = (j + 1) / (hlen - 1);
+          const fc = liveElementRGBA(stylePastLikeCursor ? lc.value : (lc.history[j][4] ?? lc.value), styles.fill, 1);
+          const fr = fc[0], fg = fc[1], fb = fc[2];
+          const rA = (bgR + (fr - bgR) * fadeA) / 255, gA = (bgG + (fg - bgG) * fadeA) / 255, bA = (bgB + (fb - bgB) * fadeA) / 255;
+          const rB = (bgR + (fr - bgR) * fadeB) / 255, gB = (bgG + (fg - bgG) * fadeB) / 255, bB2 = (bgB + (fb - bgB) * fadeB) / 255;
+          const oR = bgR / 255, oG = bgG / 255, oB2 = bgB / 255;
+          liveFiPosArr.set([orx, ory, zA, ax, ay, zA, brx, bry, zB, ax, ay, zA, bx, by, zB, brx, bry, zB], base);
+          liveFiColArr.set([oR, oG, oB2, rA, gA, bA, oR, oG, oB2, rA, gA, bA, rB, gB, bB2, oR, oG, oB2], base);
+        } else {
+          liveFiPosArr.fill(0, base, base + FILL_VERTS_PER_SEG * 3);
+          liveFiColArr.fill(0, base, base + FILL_VERTS_PER_SEG * 3);
+        }
       }
     }
     liveTrGeo.attributes.position.needsUpdate = true;
@@ -850,6 +867,8 @@ export function createVisualizerScene(
     liveTrLines.visible = showTrace;
     liveFiGeo.attributes.position.needsUpdate = true;
     liveFiGeo.attributes.color.needsUpdate = true;
+    liveFiMat.opacity = opacities.fill;
+    liveFiMesh.visible = showTrace;
 
     renderer.render(scene, camera);
   }
@@ -914,5 +933,20 @@ export function createVisualizerScene(
     if (renderer.domElement.parentNode) renderer.domElement.parentNode.removeChild(renderer.domElement);
   }
 
-  return { applyConfig, applyCamera, dispose };
+  function addLiveCursor(userId: string) {
+    if (liveChords.length >= MAX_LIVE) return;
+    if (liveChords.find(lc => lc.userId === userId)) return;
+    liveChords.push({ userId, value: 0, arrivalT: 0, hasTouched: false, lifted: false, history: [] });
+  }
+  function updateLiveCursor(userId: string, value: number, lifted: boolean) {
+    let lc = liveChords.find(lc => lc.userId === userId);
+    if (!lc) { addLiveCursor(userId); lc = liveChords.find(lc => lc.userId === userId); }
+    if (lc) { lc.value = value; lc.hasTouched = true; lc.lifted = lifted; }
+  }
+  function removeLiveCursor(userId: string) {
+    const lc = liveChords.find(lc => lc.userId === userId);
+    if (lc) lc.lifted = true;
+  }
+
+  return { applyConfig, applyCamera, addLiveCursor, updateLiveCursor, removeLiveCursor, dispose };
 }
