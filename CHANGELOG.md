@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 23 (2026-04-27)
 
+### Fixed
+- V4 Moments tab: push-to-talk mic button bugfix (details TBD)
+
 ### Added
 - Index page: always-visible QR code linking to the index page itself, so facilitators can share the app list from any screen
 - V4 Moments tab: press-and-hold mic button at the bottom of the tab uses the browser's Web Speech API to pre-fill the upcoming "Now" moment label by voice — button starts disabled and requests mic permission on first tap; each hold-to-speak overrides the previous label
