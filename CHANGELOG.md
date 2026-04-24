@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 23 (2026-04-27)
 
+### Added
+- Valence onboarding v2: "style past like cursor" checkbox — when unchecked, trace and fill segments retain the color they held at the moment they were drawn rather than retroactively reflecting the cursor's current valence
+
 ### Fixed
 - Valence onboarding v2: WebSocket connect now works on LAN IPs (e.g. `192.168.x.x`) — `crypto.randomUUID` is unavailable in non-secure contexts, replaced with a UUID v4 fallback using `Math.random`
 - Valence onboarding v2: configuration panel no longer requires horizontal scrolling on mobile — rows now wrap, compound rows (geometry/animation, traces/order) break cleanly at their separator, disabled alpha sliders and 3D orbit hint hidden on narrow screens

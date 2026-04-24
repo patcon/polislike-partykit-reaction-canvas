@@ -219,6 +219,10 @@
     </div>
   </div>
 
+  <div class="row" style="margin-top:4px">
+    <label class="check-item"><input type="checkbox" id="style-past-like-cursor" checked onchange="setStylePastLikeCursor(this.checked)"><span>style past like cursor</span></label>
+  </div>
+
   <hr class="divider">
 
   <div class="row">
@@ -692,6 +696,8 @@ function closeQrModal(){document.getElementById('qr-modal').style.display='none'
 // ── Valence state ─────────────────────────────────────────
 let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:15,g:15,b:14,a:1}};
 let styles={radial:'valence',cursor:'valence',trace:'valence',fill:'valence'};
+let stylePastLikeCursor=true;
+function setStylePastLikeCursor(v){stylePastLikeCursor=v;}
 let paused=false, geoMode='diametric', animMode='sequential';
 let traceMode='correlated', orderMode='random', exitAnim='origin', entryMode='persistent';
 let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false, inParallelRadialTransition=false;
@@ -1066,7 +1072,7 @@ function animate(){
       dotPosArr.set([tx,ty,tz],i*3);
       const dc=elementRGBA(c,v,styles.cursor,opacities.cursor);
       dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
-      if(!paused){c.history.push([tx,ty,rx,ry]);if(c.history.length>TRACE_LEN)c.history.shift();}
+      if(!paused){c.history.push([tx,ty,rx,ry,c.value]);if(c.history.length>TRACE_LEN)c.history.shift();}
       if(showGuides&&i<n){
         const{posX,posY,negX,negY}=getGuidePoints(effI,effN,p1,p2,pp1,pp2,lp1,lp2);
         const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
@@ -1118,7 +1124,7 @@ function animate(){
           liveDPosArr.set([tx,ty,tz],i*3);
           const dc=liveElementRGBA(v,styles.cursor,opacities.cursor);
           liveDColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
-          if(!paused&&lc.departT==null){lc.history.push([tx,ty,rx,ry]);if(lc.history.length>TRACE_LEN)lc.history.shift();}
+          if(!paused&&lc.departT==null){lc.history.push([tx,ty,rx,ry,lc.value]);if(lc.history.length>TRACE_LEN)lc.history.shift();}
         }else{
           liveDPosArr.fill(0,i*3,(i+1)*3);liveDColArr.fill(0,i*3,(i+1)*3);
         }
@@ -1156,7 +1162,7 @@ function animate(){
         const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
         const fadeA=j/(hlen-1);
         const fadeB=(j+1)/(hlen-1);
-        const tc=elementRGBA(c,c.value,styles.trace,1);
+        const tc=elementRGBA(c,stylePastLikeCursor?c.value:(c.history[j][4]??c.value),styles.trace,1);
         const cr=tc[0],cg=tc[1],cb=tc[2];
         const rA=(bgR+(cr-bgR)*fadeA)/255,gA=(bgG+(cg-bgG)*fadeA)/255,bA=(bgB+(cb-bgB)*fadeA)/255;
         const rB=(bgR+(cr-bgR)*fadeB)/255,gB=(bgG+(cg-bgG)*fadeB)/255,bB=(bgB+(cb-bgB)*fadeB)/255;
@@ -1187,7 +1193,7 @@ function animate(){
         const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
         const fadeA=j/(hlen-1);
         const fadeB=(j+1)/(hlen-1);
-        const fc=elementRGBA(c,c.value,styles.fill,1);
+        const fc=elementRGBA(c,stylePastLikeCursor?c.value:(c.history[j][4]??c.value),styles.fill,1);
         const fr=fc[0],fg=fc[1],fb=fc[2];
         // Tip vertices: fill colour faded by age (matches trace fade logic)
         const rA=(bgR+(fr-bgR)*fadeA)/255,gA=(bgG+(fg-bgG)*fadeA)/255,bA=(bgB+(fb-bgB)*fadeA)/255;
@@ -1221,7 +1227,7 @@ function animate(){
         const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
         const fadeA=j/(hlen-1);
         const fadeB=(j+1)/(hlen-1);
-        const tc=liveElementRGBA(lc.value,styles.trace,1);
+        const tc=liveElementRGBA(stylePastLikeCursor?lc.value:(lc.history[j][4]??lc.value),styles.trace,1);
         const cr=tc[0],cg=tc[1],cb=tc[2];
         const rA=(bgR+(cr-bgR)*fadeA)/255,gA=(bgG+(cg-bgG)*fadeA)/255,bA=(bgB+(cb-bgB)*fadeA)/255;
         const rB=(bgR+(cr-bgR)*fadeB)/255,gG=(bgG+(cg-bgG)*fadeB)/255,bB=(bgB+(cb-bgB)*fadeB)/255;
@@ -1251,7 +1257,7 @@ function animate(){
         const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
         const fadeA=j/(hlen-1);
         const fadeB=(j+1)/(hlen-1);
-        const fc=liveElementRGBA(lc.value,styles.fill,1);
+        const fc=liveElementRGBA(stylePastLikeCursor?lc.value:(lc.history[j][4]??lc.value),styles.fill,1);
         const fr=fc[0],fg=fc[1],fb=fc[2];
         const rA=(bgR+(fr-bgR)*fadeA)/255,gA=(bgG+(fg-bgG)*fadeA)/255,bA=(bgB+(fb-bgB)*fadeA)/255;
         const rB=(bgR+(fr-bgR)*fadeB)/255,gB=(bgG+(fg-bgG)*fadeB)/255,bB=(bgB+(fb-bgB)*fadeB)/255;
