@@ -138,6 +138,14 @@ export default function VisualizerConfigModal({ open, onClose, vizConfig: c, sen
             <span style={LABEL}>Radial</span>
             <Slider min={0} max={1} step={0.02} value={c.radialOpacity} onChange={v => set({ radialOpacity: v })} fmt={v => v.toFixed(2)} />
           </div>
+          <div style={ROW}>
+            <span style={LABEL}>Trace</span>
+            <Slider min={0} max={1} step={0.02} value={c.traceOpacity} onChange={v => set({ traceOpacity: v })} fmt={v => v.toFixed(2)} />
+          </div>
+          <div style={ROW}>
+            <span style={LABEL}>Fill</span>
+            <Slider min={0} max={1} step={0.02} value={c.fillOpacity} onChange={v => set({ fillOpacity: v })} fmt={v => v.toFixed(2)} />
+          </div>
         </div>
 
         {/* Colors */}

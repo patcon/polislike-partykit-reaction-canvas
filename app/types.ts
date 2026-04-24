@@ -46,6 +46,8 @@ export interface VizConfig {
   stylePastLikeCursor: boolean;
   cursorOpacity: number;
   radialOpacity: number;
+  traceOpacity: number;
+  fillOpacity: number;
   colorPositive: string;
   colorNegative: string;
   colorNeutral: string;

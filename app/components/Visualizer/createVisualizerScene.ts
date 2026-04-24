@@ -20,6 +20,8 @@ export const DEFAULT_VIZ_CONFIG: VizConfig = {
   stylePastLikeCursor: false,
   cursorOpacity: 1.0,
   radialOpacity: 1.0,
+  traceOpacity: 0.8,
+  fillOpacity: 0.45,
   colorPositive: '#50ff8c',
   colorNegative: '#ff503c',
   colorNeutral: '#0f0f0e',
@@ -109,7 +111,7 @@ export function createVisualizerScene(
   let useGeo = DEFAULT_VIZ_CONFIG.useGeometry;
   let stylePastLikeCursor = DEFAULT_VIZ_CONFIG.stylePastLikeCursor;
   let styles = { radial: DEFAULT_VIZ_CONFIG.radialStyle, cursor: DEFAULT_VIZ_CONFIG.cursorStyle, trace: DEFAULT_VIZ_CONFIG.traceStyle, fill: DEFAULT_VIZ_CONFIG.fillStyle };
-  let opacities = { radial: DEFAULT_VIZ_CONFIG.radialOpacity, cursor: DEFAULT_VIZ_CONFIG.cursorOpacity, trace: 0.8, fill: 0.45 };
+  let opacities = { radial: DEFAULT_VIZ_CONFIG.radialOpacity, cursor: DEFAULT_VIZ_CONFIG.cursorOpacity, trace: DEFAULT_VIZ_CONFIG.traceOpacity, fill: DEFAULT_VIZ_CONFIG.fillOpacity };
   let colors = {
     pos: { ...hexToRgb(DEFAULT_VIZ_CONFIG.colorPositive), a: 1 },
     neg: { ...hexToRgb(DEFAULT_VIZ_CONFIG.colorNegative), a: 1 },
@@ -872,6 +874,8 @@ export function createVisualizerScene(
     styles.fill = config.fillStyle;
     opacities.cursor = config.cursorOpacity;
     opacities.radial = config.radialOpacity;
+    opacities.trace = config.traceOpacity;
+    opacities.fill = config.fillOpacity;
     colors.pos = { ...hexToRgb(config.colorPositive), a: 1 };
     colors.neg = { ...hexToRgb(config.colorNegative), a: 1 };
     colors.neutral = { ...hexToRgb(config.colorNeutral), a: 1 };
