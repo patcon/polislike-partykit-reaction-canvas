@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Added
+- V4: new `?interface=presenter` URL param opens a standalone read-only "Common" canvas — shows all participant cursors live, bypasses the mobile gate, excluded from presence count, no touch interaction; intended for projector/shared-display use
 - Valence onboarding v2: "style past like cursor" checkbox — when unchecked, trace and fill segments retain the color they held at the moment they were drawn rather than retroactively reflecting the cursor's current valence
 
 ### Fixed
