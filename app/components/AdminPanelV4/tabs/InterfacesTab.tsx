@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { IoMdSettings } from "react-icons/io";
 import type { ActivityMode } from "../../../types";
 
 interface InterfacesTabProps {
@@ -69,10 +70,10 @@ export default function InterfacesTab({
                     <span style={{ fontWeight: isActive ? 600 : 400, color: isActive ? '#eee' : '#bbb' }}>{label}</span>
                     <span style={{ color: '#666', marginLeft: 8 }}>{desc}</span>
                     {id === 'image-canvas' && (
-                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}>config</button>
+                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}><IoMdSettings /></button>
                     )}
                     {id === 'social' && (
-                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}>config</button>
+                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>
                     )}
                   </label>
                 </td>
