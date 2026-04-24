@@ -606,7 +606,7 @@ function connectWs(room){
   setConnStatus('connecting…','connecting');
   const host=window.location.port==='1999'?`${window.location.hostname}:1999`:DEFAULT_HOST;
   const proto=window.location.port==='1999'?'ws':'wss';
-  const userId=crypto.randomUUID();
+  const userId=crypto.randomUUID?.()??'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
   ws=new WebSocket(`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`);
   ws.onopen=()=>{
     wsConnectedFlag=true;
