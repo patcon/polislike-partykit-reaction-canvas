@@ -11,8 +11,8 @@ interface ParticipantsTabProps {
   seenUsers: Set<string>;
   setSeenUsers: (v: Set<string>) => void;
   liveCursors: Map<string, { x: number; y: number }>;
-  participantGrouping: 'none' | 'valence' | 'moment';
-  setParticipantGrouping: (v: 'none' | 'valence' | 'moment') => void;
+  participantGrouping: 'none' | 'valence';
+  setParticipantGrouping: (v: 'none' | 'valence') => void;
   moments: MomentSnapshot[];
   selectedMomentId: string | null;
   setSelectedMomentId: (v: string | null) => void;
@@ -62,30 +62,25 @@ function ParticipantsTabInner({
         <label style={{ color: '#aaa', fontSize: 13 }}>Group by:</label>
         <select
           value={participantGrouping}
-          onChange={e => setParticipantGrouping(e.target.value as 'none' | 'valence' | 'moment')}
+          onChange={e => setParticipantGrouping(e.target.value as 'none' | 'valence')}
           style={{ background: '#222', color: '#eee', border: '1px solid #555', padding: '4px 8px', borderRadius: 4 }}
         >
-          <option value="valence">Valence: Now</option>
+          <option value="valence">Valence</option>
           <option value="none">None</option>
-          <option value="moment">Valence: Moments</option>
         </select>
-      </div>
-
-      {participantGrouping === 'moment' && (
-        <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <label style={{ color: '#aaa', fontSize: 13 }}>Moment:</label>
+        {participantGrouping === 'valence' && (
           <select
             value={selectedMomentId ?? ''}
             onChange={e => setSelectedMomentId(e.target.value || null)}
             style={{ background: '#222', color: '#eee', border: '1px solid #555', padding: '4px 8px', borderRadius: 4 }}
           >
-            <option value="">— select a moment —</option>
+            <option value="">Now</option>
             {moments.map(m => (
               <option key={m.id} value={m.id}>{m.label} ({new Date(m.timestamp).toLocaleTimeString()})</option>
             ))}
           </select>
-        </div>
-      )}
+        )}
+      </div>
 
       {seenUsers.size === 0 ? (
         <p style={{ color: '#666', fontSize: 13 }}>No participants seen yet.</p>
@@ -112,7 +107,7 @@ function ParticipantsTabInner({
             );
           })}
         </div>
-      ) : participantGrouping === 'moment' ? (
+      ) : selectedMomentId !== null ? (
         (() => {
           const chosenMoment = moments.find(m => m.id === selectedMomentId);
           if (!chosenMoment) return <p style={{ color: '#666', fontSize: 13 }}>Select a moment above to group participants.</p>;

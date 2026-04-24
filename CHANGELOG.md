@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 22 (2026-04-20)
 
+### Changed
+- V4 People tab: "Group by" simplified to Valence / None; moment picker merged into the same row as a second select defaulting to "Now", with saved moments as additional options
+
 ### Fixed
 - V4 admin: active tab is now persisted to localStorage per room — switching to the canvas and back no longer resets the tab to Record
 - V4 People tab: "Send popup…" now sends the coder-role popup only to the targeted user/group/region instead of broadcasting to all participants

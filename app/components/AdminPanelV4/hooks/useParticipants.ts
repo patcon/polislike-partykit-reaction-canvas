@@ -14,7 +14,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     } catch { return new Set(); }
   });
   const [liveCursors, setLiveCursors]         = useState<Map<string, { x: number; y: number }>>(new Map());
-  const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence' | 'moment'>('valence');
+  const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence'>('valence');
   const [moments, setMoments]                 = useState<MomentSnapshot[]>(() => {
     try {
       return JSON.parse(localStorage.getItem(`v4-moments-${room}`) ?? '[]');
