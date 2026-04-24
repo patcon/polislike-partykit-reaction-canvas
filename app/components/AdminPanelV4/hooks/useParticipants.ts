@@ -20,7 +20,9 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
       return JSON.parse(localStorage.getItem(`v4-moments-${room}`) ?? '[]');
     } catch { return []; }
   });
-  const [momentLabelInput, setMomentLabelInput]   = useState('');
+  const [momentLabelInput, setMomentLabelInput]   = useState(() =>
+    localStorage.getItem(`v4-moment-label-${room}`) ?? ''
+  );
   const [expandedMoments, setExpandedMoments]     = useState<Set<string>>(new Set());
   const [editingMomentId, setEditingMomentId]     = useState<string | null>(null);
   const [editingMomentLabel, setEditingMomentLabel] = useState('');
@@ -73,6 +75,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     setMoments(updated);
     localStorage.setItem(`v4-moments-${room}`, JSON.stringify(updated));
     setMomentLabelInput('');
+    localStorage.removeItem(`v4-moment-label-${room}`);
     setEditingMomentId(null);
   };
 
@@ -143,7 +146,12 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     liveCursors,
     participantGrouping, setParticipantGrouping,
     moments, setMoments,
-    momentLabelInput, setMomentLabelInput,
+    momentLabelInput,
+    setMomentLabelInput: (val: string) => {
+      setMomentLabelInput(val);
+      if (val) localStorage.setItem(`v4-moment-label-${room}`, val);
+      else localStorage.removeItem(`v4-moment-label-${room}`);
+    },
     expandedMoments, setExpandedMoments,
     editingMomentId, setEditingMomentId,
     editingMomentLabel, setEditingMomentLabel,

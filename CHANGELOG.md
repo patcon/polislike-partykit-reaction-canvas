@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Added
 - V4 Interfaces tab: Reaction Canvas now has a gear (⚙) settings dialog — first setting is "Show 'Now' label on canvas", which broadcasts the current moment label as a live text overlay at the top of the canvas for all participants; the overlay clears automatically when the moment is snapped
+- V4 Moments tab: "Now" label input is persisted in localStorage per room — survives browser refresh; cleared on snap
 
 ### Fixed
 - V4 Image Canvas modal: URL input no longer auto-focuses on open, preventing the keyboard from popping up on mobile
