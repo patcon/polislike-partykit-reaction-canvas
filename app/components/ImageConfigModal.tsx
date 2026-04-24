@@ -3,6 +3,11 @@ import { useState } from "react";
 const DEFAULT_IMAGE_URL = 'https://pbs.twimg.com/media/DY_tjS0WsAADhmT.jpg';
 const HISTORY_KEY = 'imageUrlHistory';
 const MAX_HISTORY = 5;
+const DEFAULT_THUMBNAILS = [
+  'https://helpingwithmath.com/wp-content/uploads/2022/12/image-2.png',
+  'https://images.squarespace-cdn.com/content/v1/5e8cca3f54b123010e2d5787/1638312025516-N24QWFTNAC7F0FT3KKUQ/Schwartz-Model-v4-Copyright.png?format=2500w',
+  'https://i0.wp.com/upliftkids.org/wp-content/uploads/2022/04/Screen-Shot-2022-04-28-at-8.53.00-AM.png?w=1286&ssl=1',
+];
 
 function getImageUrlHistory(): string[] {
   try { return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '[]'); } catch { return []; }
@@ -22,6 +27,10 @@ interface ImageConfigModalProps {
 export default function ImageConfigModal({ onSubmit, onClose, currentUrl }: ImageConfigModalProps) {
   const [urlInput, setUrlInput] = useState(currentUrl ?? '');
   const [history] = useState<string[]>(getImageUrlHistory);
+  const thumbnails = [
+    ...history,
+    ...DEFAULT_THUMBNAILS.filter(u => !history.includes(u)),
+  ].slice(0, MAX_HISTORY);
   const select = (url: string) => {
     setUrlInput(url);
   };
@@ -55,7 +64,7 @@ export default function ImageConfigModal({ onSubmit, onClose, currentUrl }: Imag
             placeholder={DEFAULT_IMAGE_URL}
             autoFocus
           />
-          {history.length > 0 && (
+          {thumbnails.length > 0 && (
             <div style={{
               display: 'flex',
               gap: 8,
@@ -63,7 +72,7 @@ export default function ImageConfigModal({ onSubmit, onClose, currentUrl }: Imag
               marginTop: 8,
               paddingBottom: 4,
             }}>
-              {history.map(url => (
+              {thumbnails.map(url => (
                 <button
                   key={url}
                   type="button"
