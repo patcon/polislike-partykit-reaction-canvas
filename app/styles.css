@@ -1200,6 +1200,12 @@ body {
   word-break: break-word;
 }
 
+@media (min-width: 768px) {
+  .canvas-now-label {
+    max-width: 75vw;
+  }
+}
+
 .viewer-mode-banner {
   position: absolute;
   top: 12px;
