@@ -1617,6 +1617,8 @@ body {
   word-break: break-all;
   font-family: monospace;
   margin: 0;
+  user-select: all;
+  cursor: text;
 }
 
 .share-qr-modal-close {
