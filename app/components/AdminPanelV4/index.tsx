@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import ImageConfigModal from "../ImageConfigModal";
 import SocialConfigModal from "../SocialConfigModal";
@@ -49,26 +49,39 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
   const [micState, setMicState] = useState<MicState>(SpeechRecognitionCtor ? 'idle' : 'error');
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const micRecognitionRef = useRef<any>(null);
-  const requestMicAccess = () => {
-    if (!navigator.mediaDevices?.getUserMedia) { setMicState('error'); return; }
-    setMicState('requesting');
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(() => setMicState('ready'))
-      .catch(() => setMicState('error'));
-  };
-  const startMicRecording = () => {
+  // Stable ref so onresult always calls the latest setter without recreating the recognition instance
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const onMicResultRef = useRef<(e: any) => void>(() => {});
+  onMicResultRef.current = (e: any) => participants.setMomentLabelInput(e.results[0][0].transcript); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+  useEffect(() => {
     if (!SpeechRecognitionCtor) return;
     const r = new SpeechRecognitionCtor();
     r.continuous = false;
     r.interimResults = false;
-    r.onresult = (e: any) => participants.setMomentLabelInput(e.results[0][0].transcript); // eslint-disable-line @typescript-eslint/no-explicit-any
-    r.onend = () => setMicState('ready');
-    r.onerror = () => setMicState('ready');
+    r.onresult = (e: any) => onMicResultRef.current(e); // eslint-disable-line @typescript-eslint/no-explicit-any
+    r.onerror = (e: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      if (e.error === 'not-allowed' || e.error === 'service-not-allowed') setMicState('error');
+      else setMicState('ready');
+    };
+    r.onend = () => setMicState(s => s === 'error' ? 'error' : 'ready');
     micRecognitionRef.current = r;
-    r.start();
-    setMicState('recording');
+    // Skip "Enable mic" step if permission was already granted in a prior session
+    navigator.permissions?.query({ name: 'microphone' as PermissionName })
+      .then(s => { if (s.state === 'granted') setMicState('ready'); })
+      .catch(() => {});
+    return () => { try { r.abort(); } catch {} };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Let SpeechRecognition request the permission itself — no getUserMedia, which would hold the mic stream open
+  const requestMicAccess = () => {
+    setMicState('requesting');
+    try { micRecognitionRef.current?.start(); } catch { setMicState('ready'); }
   };
-  const stopMicRecording = () => micRecognitionRef.current?.stop();
+  const startMicRecording = () => {
+    try { micRecognitionRef.current?.start(); setMicState('recording'); } catch {}
+  };
+  const stopMicRecording = () => { try { micRecognitionRef.current?.stop(); } catch {} };
 
   // Ref-based dispatch so all hooks see the same handler regardless of creation order
   const dispatchRef = useRef<(data: Record<string, unknown>) => void>(() => {});

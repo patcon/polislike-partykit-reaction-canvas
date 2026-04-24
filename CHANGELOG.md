@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Fixed
-- V4 Moments tab: push-to-talk mic button bugfix (details TBD)
+- V4 Moments tab: push-to-talk mic button no longer locks up after enabling — root cause was `getUserMedia` holding the mic stream open and conflicting with `SpeechRecognition`; recognition instance is now created once and reused, and the Permissions API is used to skip the enable step if mic was already granted in a prior session
 
 ### Added
 - Index page: always-visible QR code linking to the index page itself, so facilitators can share the app list from any screen
