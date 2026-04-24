@@ -15,6 +15,8 @@ export const DEFAULT_VIZ_CONFIG: VizConfig = {
   showGuides: false,
   cursorStyle: 'valence',
   radialStyle: 'valence',
+  traceStyle: 'valence',
+  fillStyle: 'valence',
   stylePastLikeCursor: false,
   cursorOpacity: 1.0,
   radialOpacity: 1.0,
@@ -106,7 +108,7 @@ export function createVisualizerScene(
   let driftSpeed = DEFAULT_VIZ_CONFIG.driftSpeed;
   let useGeo = DEFAULT_VIZ_CONFIG.useGeometry;
   let stylePastLikeCursor = DEFAULT_VIZ_CONFIG.stylePastLikeCursor;
-  let styles = { radial: DEFAULT_VIZ_CONFIG.radialStyle, cursor: DEFAULT_VIZ_CONFIG.cursorStyle, trace: 'valence' as const, fill: 'valence' as const };
+  let styles = { radial: DEFAULT_VIZ_CONFIG.radialStyle, cursor: DEFAULT_VIZ_CONFIG.cursorStyle, trace: DEFAULT_VIZ_CONFIG.traceStyle, fill: DEFAULT_VIZ_CONFIG.fillStyle };
   let opacities = { radial: DEFAULT_VIZ_CONFIG.radialOpacity, cursor: DEFAULT_VIZ_CONFIG.cursorOpacity, trace: 0.8, fill: 0.45 };
   let colors = {
     pos: { ...hexToRgb(DEFAULT_VIZ_CONFIG.colorPositive), a: 1 },
@@ -866,6 +868,8 @@ export function createVisualizerScene(
     stylePastLikeCursor = config.stylePastLikeCursor;
     styles.cursor = config.cursorStyle;
     styles.radial = config.radialStyle;
+    styles.trace = config.traceStyle;
+    styles.fill = config.fillStyle;
     opacities.cursor = config.cursorOpacity;
     opacities.radial = config.radialOpacity;
     colors.pos = { ...hexToRgb(config.colorPositive), a: 1 };

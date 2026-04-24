@@ -41,6 +41,8 @@ export interface VizConfig {
   showGuides: boolean;
   cursorStyle: 'valence' | 'group';
   radialStyle: 'valence' | 'group';
+  traceStyle: 'valence' | 'group';
+  fillStyle: 'valence' | 'group';
   stylePastLikeCursor: boolean;
   cursorOpacity: number;
   radialOpacity: number;

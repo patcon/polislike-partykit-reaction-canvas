@@ -57,11 +57,11 @@ export default function VisualizerConfigModal({ open, onClose, vizConfig: c, sen
           <p style={HEADING}>View</p>
           <div style={ROW}>
             <span style={LABEL}>View mode</span>
-            <BtnGroup options={[{ label: '2D', value: '2d' }, { label: '2D time series', value: '2d-ts' }, { label: '3D', value: '3d' }]} value={c.viewMode} onChange={v => set({ viewMode: v as VizConfig['viewMode'] })} />
+            <BtnGroup options={[{ label: '2D time slice', value: '2d' }, { label: '2D time series', value: '2d-ts' }, { label: '3D', value: '3d' }]} value={c.viewMode} onChange={v => set({ viewMode: v as VizConfig['viewMode'] })} />
           </div>
           <div style={ROW}>
             <span style={LABEL}>Geometry</span>
-            <BtnGroup options={[{ label: 'diametric', value: 'diametric' }, { label: 'parallel', value: 'parallel' }, { label: 'linear', value: 'linear' }, { label: 'radial', value: 'radial' }]} value={c.geometry} onChange={v => set({ geometry: v as VizConfig['geometry'] })} />
+            <BtnGroup options={[{ label: 'parallel', value: 'parallel' }, { label: 'linear', value: 'linear' }, { label: 'diametric', value: 'diametric' }, { label: 'radial', value: 'radial' }]} value={c.geometry} onChange={v => set({ geometry: v as VizConfig['geometry'] })} />
           </div>
           <div style={ROW}>
             <span style={LABEL}>Animation</span>
@@ -110,6 +110,14 @@ export default function VisualizerConfigModal({ open, onClose, vizConfig: c, sen
           <div style={ROW}>
             <span style={LABEL}>Radial style</span>
             <BtnGroup options={[{ label: 'valence', value: 'valence' }, { label: 'group', value: 'group' }]} value={c.radialStyle} onChange={v => set({ radialStyle: v as VizConfig['radialStyle'] })} />
+          </div>
+          <div style={ROW}>
+            <span style={LABEL}>Trace style</span>
+            <BtnGroup options={[{ label: 'valence', value: 'valence' }, { label: 'group', value: 'group' }]} value={c.traceStyle} onChange={v => set({ traceStyle: v as VizConfig['traceStyle'] })} />
+          </div>
+          <div style={ROW}>
+            <span style={LABEL}>Fill style</span>
+            <BtnGroup options={[{ label: 'valence', value: 'valence' }, { label: 'group', value: 'group' }]} value={c.fillStyle} onChange={v => set({ fillStyle: v as VizConfig['fillStyle'] })} />
           </div>
           <div style={ROW}>
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', color: '#aaa', fontSize: 13 }}>
