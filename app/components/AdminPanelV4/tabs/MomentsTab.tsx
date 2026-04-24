@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useRef, useState } from "react";
 import { computeReactionRegion } from "../../../utils/voteRegion";
 import type { ReactionAnchors, ReactionRegion } from "../../../utils/voteRegion";
 import type { ReactionLabelSet } from "../../../voteLabels";
@@ -24,6 +24,15 @@ interface MomentsTabProps {
   room: string;
 }
 
+type MicState = 'idle' | 'requesting' | 'ready' | 'recording' | 'error';
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const SpeechRecognitionCtor: (new () => { continuous: boolean; interimResults: boolean; onresult: ((e: any) => void) | null; onend: (() => void) | null; onerror: (() => void) | null; start: () => void; stop: () => void }) | null =
+  typeof window !== 'undefined'
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null)
+    : null;
+
 function MomentsTabInner({
   moments, setMoments,
   seenUsers, connectedUsers, liveCursors,
@@ -33,6 +42,36 @@ function MomentsTabInner({
   editingMomentLabel, setEditingMomentLabel,
   snapMoment, activeLabels, activeAnchors, room,
 }: MomentsTabProps) {
+  const [micState, setMicState] = useState<MicState>(SpeechRecognitionCtor ? 'idle' : 'error');
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const recognitionRef = useRef<any>(null);
+
+  const requestMicAccess = () => {
+    setMicState('requesting');
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(() => setMicState('ready'))
+      .catch(() => setMicState('error'));
+  };
+
+  const startRecording = () => {
+    if (!SpeechRecognitionCtor) return;
+    const recognition = new SpeechRecognitionCtor();
+    recognition.continuous = false;
+    recognition.interimResults = false;
+    recognition.onresult = (e) => {
+      setMomentLabelInput(e.results[0][0].transcript);
+    };
+    recognition.onend = () => setMicState('ready');
+    recognition.onerror = () => setMicState('ready');
+    recognitionRef.current = recognition;
+    recognition.start();
+    setMicState('recording');
+  };
+
+  const stopRecording = () => {
+    recognitionRef.current?.stop();
+  };
+
   const toggleExpanded = (id: string) => {
     setExpandedMoments(prev => {
       const s = new Set(prev);
@@ -230,6 +269,42 @@ function MomentsTabInner({
           })}
         </div>
       )}
+
+      {/* Mic button */}
+      <div style={{ marginTop: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+        <button
+          disabled={micState === 'requesting' || micState === 'error'}
+          onClick={micState === 'idle' ? requestMicAccess : undefined}
+          onPointerDown={micState === 'ready' ? startRecording : undefined}
+          onPointerUp={micState === 'recording' ? stopRecording : undefined}
+          onPointerLeave={micState === 'recording' ? stopRecording : undefined}
+          style={{
+            width: '100%',
+            padding: '14px',
+            borderRadius: 8,
+            border: 'none',
+            fontSize: 14,
+            fontWeight: 700,
+            cursor: micState === 'requesting' || micState === 'error' ? 'not-allowed' : 'pointer',
+            background: micState === 'recording' ? '#7a1a1a' : micState === 'ready' ? '#1a3a1a' : '#222',
+            color: micState === 'error' ? '#666' : micState === 'recording' ? '#faa' : micState === 'ready' ? '#4c4' : '#aaa',
+            transition: 'background 0.15s',
+            userSelect: 'none',
+            touchAction: 'none',
+          }}
+        >
+          {micState === 'idle' && '🎤 Enable mic'}
+          {micState === 'requesting' && 'Requesting mic…'}
+          {micState === 'ready' && '🎤 Hold to speak'}
+          {micState === 'recording' && '● Release to set label'}
+          {micState === 'error' && '🎤 Mic unavailable'}
+        </button>
+        {micState === 'error' && (
+          <span style={{ fontSize: 11, color: '#555', textAlign: 'center' }}>
+            {SpeechRecognitionCtor ? 'Check browser mic permissions' : 'Speech recognition not supported in this browser'}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
