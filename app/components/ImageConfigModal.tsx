@@ -62,7 +62,6 @@ export default function ImageConfigModal({ onSubmit, onClose, currentUrl }: Imag
               if (e.key === 'Enter') handleSubmit();
             }}
             placeholder={DEFAULT_IMAGE_URL}
-            autoFocus
           />
           {thumbnails.length > 0 && (
             <div style={{

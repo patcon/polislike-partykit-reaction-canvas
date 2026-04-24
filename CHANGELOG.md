@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Fixed
+- V4 Image Canvas modal: URL input no longer auto-focuses on open, preventing the keyboard from popping up on mobile
 - V4 Moments tab: push-to-talk mic button no longer locks up after enabling — root cause was `getUserMedia` holding the mic stream open and conflicting with `SpeechRecognition`; recognition instance is now created once and reused, and the Permissions API is used to skip the enable step if mic was already granted in a prior session
 
 ### Added
