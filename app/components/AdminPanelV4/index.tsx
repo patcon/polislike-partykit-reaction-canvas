@@ -299,7 +299,6 @@ export default function AdminPanelV4({ room, selfUserId, onSwitchToVisualizer }:
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             setVisualizerConfigOpen={setVizConfigOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
-            onPushVisualizer={() => socket.send(JSON.stringify({ type: 'pushInterface', interfaceName: 'visualizer' }))}
             onSwitchToVisualizer={() => onSwitchToVisualizer?.()}
           />
         )}
