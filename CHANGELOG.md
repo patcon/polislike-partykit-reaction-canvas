@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 23 (2026-04-27)
 
+### Fixed
+- V4 haptic modal: "Show this popup when a buzz is sent" checkbox now defaults to unchecked on non-haptic devices
+
 ### Added
 - Valence onboarding v2: "style past like cursor" checkbox — when unchecked, trace and fill segments retain the color they held at the moment they were drawn rather than retroactively reflecting the cursor's current valence
 

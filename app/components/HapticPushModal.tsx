@@ -7,7 +7,7 @@ interface HapticPushModalProps {
 }
 
 export default function HapticPushModal({ onDismiss, suppressed, onSuppressChange }: HapticPushModalProps) {
-  const [suppress, setSuppress] = useState(suppressed);
+  const [suppress, setSuppress] = useState(true);
 
   const handleOk = () => {
     onSuppressChange(suppress);
