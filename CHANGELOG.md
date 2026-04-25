@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 23 (2026-04-27)
 
+### Added
+- Mood Sounds: volume slider (0–200%) added above the start button
+
 ### Fixed
 - V4 haptic modal: "Show this popup when a buzz is sent" checkbox now defaults to unchecked on non-haptic devices
 

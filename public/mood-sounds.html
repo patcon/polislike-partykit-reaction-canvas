@@ -186,6 +186,25 @@
     transition: color 0.3s;
   }
 
+  /* ── Volume row ── */
+  .volume-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 0.75rem;
+  }
+  .volume-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .volume-label {
+    font-size: 0.7rem;
+    color: #505070;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    width: 2.2rem;
+    text-align: right;
+  }
+  .volume-row input[type=range] { flex: 1; }
+
   /* ── Buttons ── */
   .btn-row { display: flex; gap: 8px; }
   button.ctrl {
@@ -378,6 +397,12 @@
       <div class="stat"><div class="stat-label">octave</div><div class="stat-value" id="stat-oct">—</div></div>
     </div>
 
+    <div class="volume-row">
+      <span class="volume-icon">🔈</span>
+      <input type="range" id="volume" min="0" max="200" value="100" step="1">
+      <span class="volume-label" id="volume-label">100%</span>
+    </div>
+
     <div class="btn-row">
       <button class="ctrl" id="btn-play">▶ start</button>
     </div>
@@ -483,6 +508,7 @@ let noteIndex = 0;
 let activeNotes = new Set();
 let audioCtx = null;
 let masterBus = null;
+let volumeNode = null;
 let bars = [];
 
 // ── Audience sync state ─────────────────────────────────────────
@@ -589,6 +615,8 @@ function applyAudienceMood() {
 
 // ── DOM refs ─────────────────────────────────────────────────────
 const moodSlider   = document.getElementById('mood');
+const volumeSlider = document.getElementById('volume');
+const volumeLabel  = document.getElementById('volume-label');
 const emojiEl      = document.getElementById('emoji');
 const emojiLoEl    = document.getElementById('emoji-lo');
 const emojiHiEl    = document.getElementById('emoji-hi');
@@ -927,6 +955,12 @@ moodSlider.addEventListener('input', () => {
   updateDisplay(mood / 100);
 });
 
+volumeSlider.addEventListener('input', () => {
+  const pct = parseInt(volumeSlider.value);
+  volumeLabel.textContent = pct + '%';
+  if (volumeNode) volumeNode.gain.value = pct / 100;
+});
+
 btnPlay.addEventListener('click', () => {
   if (!playing) {
     if (!audioCtx) {
@@ -937,7 +971,10 @@ btnPlay.addEventListener('click', () => {
       masterBus.ratio.value     = 6;
       masterBus.attack.value    = 0.003;
       masterBus.release.value   = 0.15;
-      masterBus.connect(audioCtx.destination);
+      volumeNode = audioCtx.createGain();
+      volumeNode.gain.value = parseInt(volumeSlider.value) / 100;
+      masterBus.connect(volumeNode);
+      volumeNode.connect(audioCtx.destination);
     }
     if (audioCtx.state === 'suspended') audioCtx.resume();
     playing = true;
