@@ -19,6 +19,7 @@ import type { ReactionLabelSet } from "../voteLabels";
 import { getPersistentUserId } from "../utils/userId";
 import ShareQRButton from "./ShareQRButton";
 import HapticIndicatorButton from "./HapticIndicatorButton";
+import Visualizer from "./Visualizer";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -52,8 +53,12 @@ const PUSHED_INTERFACES_KEY = 'v4-pushed-interfaces';
 function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
   const interfaces = ['canvas'];
-  if (p.get('interface') === 'emcee') interfaces.push('emcee');
+  if (p.get('interface') === 'emcee') {
+    interfaces.push('emcee');
+    interfaces.push('visualizer'); // emcee always gets the visualizer chip
+  }
   if (p.get('interface') === 'social') interfaces.push('social');
+  if (p.get('interface') === 'visualizer' && !interfaces.includes('visualizer')) interfaces.push('visualizer');
   try {
     const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
     if (Array.isArray(stored)) {
@@ -184,7 +189,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social' };
+  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', visualizer: 'Visualizer' };
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
@@ -200,9 +205,11 @@ export default function ReactionCanvasAppV4() {
         />
       )}
       {activeInterface === 'emcee' ? (
-        <AdminPanelV4 room={room} selfUserId={userId} />
+        <AdminPanelV4 room={room} selfUserId={userId} onSwitchToVisualizer={() => setActiveInterface('visualizer')} />
       ) : activeInterface === 'social' ? (
         <SocialPanel socialConfig={serverSocialConfig} />
+      ) : activeInterface === 'visualizer' ? (
+        <Visualizer room={room} isEmcee={isEmcee} />
       ) : null}
       {/* When activity is 'social', show SocialPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).

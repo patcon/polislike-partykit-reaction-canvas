@@ -11,7 +11,9 @@ interface InterfacesTabProps {
   setImageConfigOpen: (v: boolean) => void;
   setSocialConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
+  setVisualizerConfigOpen: (v: boolean) => void;
   onClearRoleAssignments: () => void;
+  onSwitchToVisualizer: () => void;
 }
 
 const QR_ICON = (
@@ -41,10 +43,12 @@ export default function InterfacesTab({
   activity, soccerScore,
   sendActivity, resetSoccerScore,
   setImageConfigOpen, setSocialConfigOpen, setCanvasSettingsOpen,
+  setVisualizerConfigOpen,
   onClearRoleAssignments,
+  onSwitchToVisualizer,
 }: InterfacesTabProps) {
-  const [patchDialogOpen, setPatchDialogOpen] = useState(false);
-  const patchUrl = getPatchUrl('social');
+  const [patchDialogInterface, setPatchDialogInterface] = useState<string | null>(null);
+  const patchDialogUrl = patchDialogInterface ? getPatchUrl(patchDialogInterface) : '';
 
   return (
     <div>
@@ -98,10 +102,10 @@ export default function InterfacesTab({
                 <td style={{ textAlign: 'center', padding: '10px 0 10px 8px' }}>
                   {patchable ? (
                     <button
-                      onClick={() => setPatchDialogOpen(true)}
+                      onClick={() => setPatchDialogInterface(id)}
                       style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 4, lineHeight: 0 }}
                       title="Share patch URL"
-                      aria-label="Share social interface URL"
+                      aria-label={`Share ${id} interface URL`}
                     >
                       {QR_ICON}
                     </button>
@@ -114,6 +118,29 @@ export default function InterfacesTab({
               </tr>
             );
           })}
+          <tr style={{ borderTop: '1px solid #2a2a2a' }}>
+            <td style={{ padding: '10px 8px 10px 0' }}>
+              <span style={{ color: '#bbb' }}>Visualizer</span>
+              <span style={{ color: '#666', marginLeft: 8 }}>Three.js live-trace display</span>
+              <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setVisualizerConfigOpen(true); }}><IoMdSettings /></button>
+            </td>
+            <td style={{ textAlign: 'center', padding: '10px 8px' }}>
+              <button
+                onClick={onSwitchToVisualizer}
+                title="Switch to Visualizer"
+                style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', fontSize: 14, padding: 2, lineHeight: 1 }}
+              >→</button>
+            </td>
+            <td style={{ textAlign: 'center', padding: '10px 8px', color: '#3a3a3a' }}>—</td>
+            <td style={{ textAlign: 'center', padding: '10px 0 10px 8px' }}>
+              <button
+                onClick={() => setPatchDialogInterface('visualizer')}
+                style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 4, lineHeight: 0 }}
+                title="Share Visualizer URL"
+                aria-label="Share Visualizer interface URL"
+              >{QR_ICON}</button>
+            </td>
+          </tr>
         </tbody>
       </table>
 
@@ -138,16 +165,16 @@ export default function InterfacesTab({
         <button className="v3-admin-btn v3-admin-btn--destructive" onClick={onClearRoleAssignments}>Clear all role assignments</button>
       </div>
 
-      {/* Patch dialog — social sharing URL */}
-      {patchDialogOpen && (
-        <div className="share-qr-modal" onClick={() => setPatchDialogOpen(false)}>
+      {/* Patch dialog — interface URL */}
+      {patchDialogInterface && (
+        <div className="share-qr-modal" onClick={() => setPatchDialogInterface(null)}>
           <div className="share-qr-modal-card" onClick={e => e.stopPropagation()}>
-            <p className="share-qr-modal-title">Social Sharing — add without push</p>
+            <p className="share-qr-modal-title">{patchDialogInterface === 'social' ? 'Social Sharing' : 'Visualizer'} — add without push</p>
             <div className="v2-mobile-gate-qr">
-              <QRCodeSVG value={patchUrl} size={220} />
+              <QRCodeSVG value={patchDialogUrl} size={220} />
             </div>
-            <p className="share-qr-modal-url">{patchUrl}</p>
-            <button className="share-qr-modal-close" onClick={() => setPatchDialogOpen(false)}>Close</button>
+            <p className="share-qr-modal-url">{patchDialogUrl}</p>
+            <button className="share-qr-modal-close" onClick={() => setPatchDialogInterface(null)}>Close</button>
           </div>
         </div>
       )}
