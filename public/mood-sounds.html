@@ -788,7 +788,7 @@ function animateBars(activeIdx, color, velocity) {
 function midiToFreq(note, bendSemitones) {
   return 440 * Math.pow(2, (note - 69 + bendSemitones) / 12);
 }
-const OSC_GAIN = { sawtooth: 0.032, square: 0.05, triangle: 0.10, sine: 0.20 };
+const OSC_GAIN = { sawtooth: 0.10, square: 0.15, triangle: 0.32, sine: 0.55 };
 function makeSawFilter(freq, vel) {
   const f = audioCtx.createBiquadFilter();
   f.type = 'lowpass';
@@ -966,14 +966,17 @@ btnPlay.addEventListener('click', () => {
     if (!audioCtx) {
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
       masterBus = audioCtx.createDynamicsCompressor();
-      masterBus.threshold.value = -18;
-      masterBus.knee.value      = 12;
-      masterBus.ratio.value     = 6;
+      masterBus.threshold.value = -24;
+      masterBus.knee.value      = 10;
+      masterBus.ratio.value     = 8;
       masterBus.attack.value    = 0.003;
       masterBus.release.value   = 0.15;
+      const makeupGain = audioCtx.createGain();
+      makeupGain.gain.value = 2.5;
       volumeNode = audioCtx.createGain();
       volumeNode.gain.value = parseInt(volumeSlider.value) / 100;
-      masterBus.connect(volumeNode);
+      masterBus.connect(makeupGain);
+      makeupGain.connect(volumeNode);
       volumeNode.connect(audioCtx.destination);
     }
     if (audioCtx.state === 'suspended') audioCtx.resume();
