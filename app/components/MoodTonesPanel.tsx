@@ -705,8 +705,8 @@ export default function MoodTonesPanel({ room }: { room: string }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: audienceSync ? 1 : 0.4 }}>
                 <span style={s.toggleLabel}>valence</span>
                 <div style={s.pillToggle}>
-                  <button style={s.pillBtn(valenceMode === 'continuous')} onClick={() => { if (audienceSync) setValenceMode('continuous'); }}>continuous</button>
-                  <button style={s.pillBtn(valenceMode === 'unit')}       onClick={() => { if (audienceSync) setValenceMode('unit'); }}>unit</button>
+                  <button style={s.pillBtn(valenceMode === 'continuous')} onClick={() => { if (audienceSync) setValenceMode('continuous'); }}>smooth</button>
+                  <button style={s.pillBtn(valenceMode === 'unit')}       onClick={() => { if (audienceSync) setValenceMode('unit'); }}>binary</button>
                 </div>
               </div>
             </div>
