@@ -757,6 +757,11 @@ export default function MoodTonesPanel({ room }: { room: string }) {
           <button style={s.playBtn(playing)} onClick={playing ? stopPlaying : startPlaying}>
             {playing ? '■ stop' : '▶ start'}
           </button>
+          {/iPhone|iPad|iPod/i.test(navigator.userAgent) && (
+            <div style={{ fontSize: '0.72rem', color: '#6060a0', marginTop: '0.4rem', textAlign: 'center', visibility: playing ? 'visible' : 'hidden' }}>
+              no sound? check silent switch
+            </div>
+          )}
         </div>
 
         {/* WS status + explain */}
