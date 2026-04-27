@@ -120,7 +120,7 @@ export default function ReactionCanvasAppV4() {
   const [showFeedbackStarsModal, setShowFeedbackStarsModal] = useState(false);
   const [pushedInterface, setPushedInterface] = useState<string | null>(null);
   const [hapticPending, setHapticPending] = useState(false);
-  const [suppressHapticModal, setSuppressHapticModal] = useState(false);
+  const [suppressHapticModal, setSuppressHapticModal] = useState(true);
   const [hapticEnabled, setHapticEnabled] = useState(WebHaptics.isSupported);
   const [hapticFlashing, setHapticFlashing] = useState(false);
   const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
