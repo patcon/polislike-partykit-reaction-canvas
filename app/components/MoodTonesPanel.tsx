@@ -297,7 +297,11 @@ export default function MoodTonesPanel({ room }: { room: string }) {
   const applyAudienceMood = useCallback(() => {
     if (!audienceSyncRef.current) return;
     const cursors = cursorsRef.current;
-    if (cursors.size === 0) return;
+    if (cursors.size === 0) {
+      moodRef.current = 50;
+      setMood(50);
+      return;
+    }
     let val: number;
     if (valenceModeRef.current === 'continuous') {
       let sum = 0;
