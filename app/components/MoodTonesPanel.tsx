@@ -710,11 +710,9 @@ export default function MoodTonesPanel({ room }: { room: string }) {
                 </div>
               </div>
             </div>
-            {audienceSync && (
-              <div style={{ ...s.audienceCount, marginTop: 5, marginLeft: 0 }}>
-                audience: <span style={{ color: '#8080b0', fontWeight: 600 }}>{audienceCount}</span>
-              </div>
-            )}
+            <div style={{ ...s.audienceCount, marginTop: 5, marginLeft: 0 }}>
+              audience: <span style={{ color: '#8080b0', fontWeight: 600 }}>{audienceCount}</span>
+            </div>
           </div>
 
           {/* Viz bars */}
