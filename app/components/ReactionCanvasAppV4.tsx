@@ -120,7 +120,9 @@ export default function ReactionCanvasAppV4() {
   const [showFeedbackStarsModal, setShowFeedbackStarsModal] = useState(false);
   const [pushedInterface, setPushedInterface] = useState<string | null>(null);
   const [hapticPending, setHapticPending] = useState(false);
-  const [suppressHapticModal, setSuppressHapticModal] = useState(true);
+  const [suppressHapticModal, setSuppressHapticModal] = useState(
+    () => localStorage.getItem('v4-suppress-haptic-modal') !== 'false'
+  );
   const [hapticEnabled, setHapticEnabled] = useState(WebHaptics.isSupported);
   const [hapticFlashing, setHapticFlashing] = useState(false);
   const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -381,7 +383,7 @@ export default function ReactionCanvasAppV4() {
             <HapticPushModal
               onDismiss={() => setHapticPending(false)}
               suppressed={suppressHapticModal}
-              onSuppressChange={setSuppressHapticModal}
+              onSuppressChange={v => { setSuppressHapticModal(v); localStorage.setItem('v4-suppress-haptic-modal', String(v)); }}
             />
           )}
         </div>
