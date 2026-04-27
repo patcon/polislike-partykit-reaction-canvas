@@ -693,25 +693,25 @@ export default function MoodTonesPanel({ room }: { room: string }) {
           </div>
 
           {/* Audience sync */}
-          <div style={s.syncRow}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={s.toggleLabel}>audience sync</span>
-              <div style={s.pillToggle}>
-                <button style={s.pillBtn(!audienceSync)} onClick={() => setAudienceSync(false)}>off</button>
-                <button style={s.pillBtn(audienceSync)}  onClick={() => setAudienceSync(true)}>on</button>
+          <div style={{ marginTop: '0.9rem', marginBottom: '0.9rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <span style={s.toggleLabel}>audience sync</span>
+                <div style={s.pillToggle}>
+                  <button style={s.pillBtn(!audienceSync)} onClick={() => setAudienceSync(false)}>off</button>
+                  <button style={s.pillBtn(audienceSync)}  onClick={() => setAudienceSync(true)}>on</button>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, opacity: audienceSync ? 1 : 0.4 }}>
+                <span style={s.toggleLabel}>valence</span>
+                <div style={s.pillToggle}>
+                  <button style={s.pillBtn(valenceMode === 'continuous')} onClick={() => { if (audienceSync) setValenceMode('continuous'); }}>continuous</button>
+                  <button style={s.pillBtn(valenceMode === 'unit')}       onClick={() => { if (audienceSync) setValenceMode('unit'); }}>unit</button>
+                </div>
               </div>
             </div>
             {audienceSync && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={s.toggleLabel}>valence</span>
-                <div style={s.pillToggle}>
-                  <button style={s.pillBtn(valenceMode === 'continuous')} onClick={() => setValenceMode('continuous')}>continuous</button>
-                  <button style={s.pillBtn(valenceMode === 'unit')}       onClick={() => setValenceMode('unit')}>unit</button>
-                </div>
-              </div>
-            )}
-            {audienceSync && (
-              <div style={s.audienceCount}>
+              <div style={{ ...s.audienceCount, marginTop: 5, marginLeft: 0 }}>
                 audience: <span style={{ color: '#8080b0', fontWeight: 600 }}>{audienceCount}</span>
               </div>
             )}
