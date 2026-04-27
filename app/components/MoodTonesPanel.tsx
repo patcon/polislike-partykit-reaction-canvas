@@ -590,9 +590,8 @@ export default function MoodTonesPanel({ room }: { room: string }) {
   // ── Inline styles ──────────────────────────────────────────────
   const s = {
     wrap: { padding: '1.25rem', maxWidth: 520, margin: '0 auto' } as React.CSSProperties,
-    presets: { display: 'flex', gap: 6, marginBottom: '1.25rem', flexWrap: 'wrap' as const },
+    presets: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: '1.25rem' },
     presetBtn: (active: boolean): React.CSSProperties => ({
-      flex: '1 1 100px', minWidth: 100,
       padding: '0.5rem 0.7rem', borderRadius: 10,
       border: `1px solid ${active ? '#5050a0' : '#2a2a3a'}`,
       background: active ? '#1e1e30' : '#141420',
