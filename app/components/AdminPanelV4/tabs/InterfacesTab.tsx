@@ -30,11 +30,12 @@ function getPatchUrl(interfaceName: string): string {
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
 }
 
-const ROWS: { id: ActivityMode; label: string; desc: string; patchable: boolean }[] = [
-  { id: 'canvas',       label: 'Reaction Canvas', desc: 'Standard reaction canvas',                       patchable: false },
-  { id: 'image-canvas', label: 'Image Canvas',    desc: 'React over a shared background image',           patchable: false },
-  { id: 'soccer',       label: 'Soccer',          desc: 'Top-down physics ball — kick with your cursor',  patchable: false },
-  { id: 'social',       label: 'Social Sharing',  desc: 'Bluesky · Twitter / X · Mastodon',              patchable: true  },
+const ROWS: { id: string; label: string; desc: string; patchable: boolean; activityMode: boolean }[] = [
+  { id: 'canvas',       label: 'Reaction Canvas', desc: 'Standard reaction canvas',                       patchable: false, activityMode: true  },
+  { id: 'image-canvas', label: 'Image Canvas',    desc: 'React over a shared background image',           patchable: false, activityMode: true  },
+  { id: 'soccer',       label: 'Soccer',          desc: 'Top-down physics ball — kick with your cursor',  patchable: false, activityMode: true  },
+  { id: 'social',       label: 'Social Sharing',  desc: 'Bluesky · Twitter / X · Mastodon',              patchable: true,  activityMode: true  },
+  { id: 'mood-tones',   label: 'Mood Tones',      desc: 'Generative audio keyed to audience reactions',  patchable: true,  activityMode: false },
 ];
 
 export default function InterfacesTab({
@@ -43,8 +44,8 @@ export default function InterfacesTab({
   setImageConfigOpen, setSocialConfigOpen, setCanvasSettingsOpen,
   onClearRoleAssignments,
 }: InterfacesTabProps) {
-  const [patchDialogOpen, setPatchDialogOpen] = useState(false);
-  const patchUrl = getPatchUrl('social');
+  const [patchInterface, setPatchInterface] = useState<string | null>(null);
+  const patchUrl = patchInterface ? getPatchUrl(patchInterface) : '';
 
   return (
     <div>
@@ -61,13 +62,13 @@ export default function InterfacesTab({
           </tr>
         </thead>
         <tbody>
-          {ROWS.map(({ id, label, desc, patchable }) => {
+          {ROWS.map(({ id, label, desc, patchable, activityMode }) => {
             const isActive = activity === id;
             return (
               <tr key={id} style={{ borderTop: '1px solid #2a2a2a' }}>
                 {/* Description */}
                 <td style={{ padding: '10px 8px 10px 0' }}>
-                  <label style={{ cursor: 'pointer', display: 'block' }} htmlFor={`activity-${id}`}>
+                  <label style={{ cursor: activityMode ? 'pointer' : 'default', display: 'block' }} htmlFor={activityMode ? `activity-${id}` : undefined}>
                     <span style={{ fontWeight: isActive ? 600 : 400, color: isActive ? '#eee' : '#bbb' }}>{label}</span>
                     <span style={{ color: '#666', marginLeft: 8 }}>{desc}</span>
                     {id === 'canvas' && (
@@ -83,14 +84,18 @@ export default function InterfacesTab({
                 </td>
                 {/* Solo */}
                 <td style={{ textAlign: 'center', padding: '10px 8px' }}>
-                  <input
-                    id={`activity-${id}`}
-                    type="radio"
-                    name="activity"
-                    value={id}
-                    checked={isActive}
-                    onChange={() => sendActivity(id)}
-                  />
+                  {activityMode ? (
+                    <input
+                      id={`activity-${id}`}
+                      type="radio"
+                      name="activity"
+                      value={id}
+                      checked={isActive}
+                      onChange={() => sendActivity(id as ActivityMode)}
+                    />
+                  ) : (
+                    <span style={{ color: '#3a3a3a', fontSize: 11 }}>—</span>
+                  )}
                 </td>
                 {/* Commons — placeholder */}
                 <td style={{ textAlign: 'center', padding: '10px 8px', color: '#3a3a3a' }}>—</td>
@@ -98,10 +103,10 @@ export default function InterfacesTab({
                 <td style={{ textAlign: 'center', padding: '10px 0 10px 8px' }}>
                   {patchable ? (
                     <button
-                      onClick={() => setPatchDialogOpen(true)}
+                      onClick={() => setPatchInterface(id)}
                       style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 4, lineHeight: 0 }}
                       title="Share patch URL"
-                      aria-label="Share social interface URL"
+                      aria-label={`Share ${label} interface URL`}
                     >
                       {QR_ICON}
                     </button>
@@ -138,16 +143,16 @@ export default function InterfacesTab({
         <button className="v3-admin-btn v3-admin-btn--destructive" onClick={onClearRoleAssignments}>Clear all role assignments</button>
       </div>
 
-      {/* Patch dialog — social sharing URL */}
-      {patchDialogOpen && (
-        <div className="share-qr-modal" onClick={() => setPatchDialogOpen(false)}>
+      {/* Patch dialog — share URL for patchable interfaces */}
+      {patchInterface && (
+        <div className="share-qr-modal" onClick={() => setPatchInterface(null)}>
           <div className="share-qr-modal-card" onClick={e => e.stopPropagation()}>
-            <p className="share-qr-modal-title">Social Sharing — add without push</p>
+            <p className="share-qr-modal-title">{ROWS.find(r => r.id === patchInterface)?.label} — add without push</p>
             <div className="v2-mobile-gate-qr">
               <QRCodeSVG value={patchUrl} size={220} />
             </div>
             <p className="share-qr-modal-url">{patchUrl}</p>
-            <button className="share-qr-modal-close" onClick={() => setPatchDialogOpen(false)}>Close</button>
+            <button className="share-qr-modal-close" onClick={() => setPatchInterface(null)}>Close</button>
           </div>
         </div>
       )}
