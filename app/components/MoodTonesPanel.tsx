@@ -247,7 +247,7 @@ const RESET_BARS: BarState[] = [0,1,2,3].map(() => ({ height: 3, color: [42,42,6
 export default function MoodTonesPanel({ room }: { room: string }) {
   const [activePreset, setActivePreset]   = useState<Preset>(PRESETS[0]);
   const [playing, setPlaying]             = useState(false);
-  const [mood, setMood]                   = useState(0);
+  const [mood, setMood]                   = useState(50);
   const [audienceSync, setAudienceSync]   = useState(true);
   const [valenceMode, setValenceMode]     = useState<'continuous'|'unit'>('continuous');
   const [volume, setVolume]               = useState(100);
@@ -265,7 +265,7 @@ export default function MoodTonesPanel({ room }: { room: string }) {
   const schedTimerRef = useRef<ReturnType<typeof setTimeout>|null>(null);
 
   // Loop-state refs (avoid stale closures in setTimeout tick)
-  const moodRef         = useRef(0);
+  const moodRef         = useRef(50);
   const playingRef      = useRef(false);
   const presetRef       = useRef<Preset>(PRESETS[0]);
   const noteIndexRef    = useRef(0);
@@ -561,8 +561,8 @@ export default function MoodTonesPanel({ room }: { room: string }) {
     setActivePreset(p);
     presetRef.current = p;
     if (!audienceSyncRef.current) {
-      moodRef.current = 0;
-      setMood(0);
+      moodRef.current = 50;
+      setMood(50);
     }
     noteIndexRef.current = 0;
     currentChordRef.current = [];
