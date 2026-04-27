@@ -256,7 +256,10 @@ export default function MoodTonesPanel({ room }: { room: string }) {
   const [bars, setBars]                   = useState<BarState[]>(RESET_BARS);
   const [wsStatus, setWsStatus]           = useState<'disconnected'|'connecting'|'connected'>('disconnected');
   const [audienceCount, setAudienceCount] = useState(0);
-  const [displayInfo, setDisplayInfo]     = useState({ emoji: PRESETS[0].waypoints[0].emoji, chordName: '—', velocity: '—', tempo: '—', octave: '—', explain: 'Select a preset and drag the slider.' });
+  const [displayInfo, setDisplayInfo]     = useState(() => {
+    const p = interpolateWaypoints(PRESETS[0], 0.5);
+    return { emoji: p.emoji, chordName: p.chordName, velocity: '—', tempo: '—', octave: '—', explain: 'Select a preset and drag the slider.' };
+  });
 
   // Audio refs
   const audioCtxRef   = useRef<AudioContext|null>(null);
@@ -567,11 +570,11 @@ export default function MoodTonesPanel({ room }: { room: string }) {
     noteIndexRef.current = 0;
     currentChordRef.current = [];
     setCurrentChord([]);
-    const wp = p.waypoints;
+    const mid = interpolateWaypoints(p, (audienceSyncRef.current ? moodRef.current : 50) / 100);
     setDisplayInfo(prev => ({
       ...prev,
-      emoji: wp[0].emoji,
-      chordName: wp[0].chordName,
+      emoji: mid.emoji,
+      chordName: mid.chordName,
       explain: 'Drag the slider to change mood.',
     }));
   }
