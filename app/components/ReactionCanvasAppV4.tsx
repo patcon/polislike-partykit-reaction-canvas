@@ -5,6 +5,7 @@ import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
 import InterfaceChipBar from "./InterfaceChipBar";
 import SocialPanel from "./SocialPanel";
+import MoodTonesPanel from "./MoodTonesPanel";
 import type { ActivityMode, SocialConfig } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
 import FeedbackStarsModal from "./FeedbackStarsModal";
@@ -54,6 +55,7 @@ function getUnlockedInterfaces(): string[] {
   const interfaces = ['canvas'];
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
   if (p.get('interface') === 'social') interfaces.push('social');
+  if (p.get('interface') === 'mood-tones') interfaces.push('mood-tones');
   try {
     const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
     if (Array.isArray(stored)) {
@@ -118,7 +120,9 @@ export default function ReactionCanvasAppV4() {
   const [showFeedbackStarsModal, setShowFeedbackStarsModal] = useState(false);
   const [pushedInterface, setPushedInterface] = useState<string | null>(null);
   const [hapticPending, setHapticPending] = useState(false);
-  const [suppressHapticModal, setSuppressHapticModal] = useState(false);
+  const [suppressHapticModal, setSuppressHapticModal] = useState(
+    () => localStorage.getItem('v4-suppress-haptic-modal') !== 'false'
+  );
   const [hapticEnabled, setHapticEnabled] = useState(WebHaptics.isSupported);
   const [hapticFlashing, setHapticFlashing] = useState(false);
   const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -184,7 +188,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social' };
+  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones' };
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
@@ -203,6 +207,8 @@ export default function ReactionCanvasAppV4() {
         <AdminPanelV4 room={room} selfUserId={userId} />
       ) : activeInterface === 'social' ? (
         <SocialPanel socialConfig={serverSocialConfig} />
+      ) : activeInterface === 'mood-tones' ? (
+        <MoodTonesPanel room={room} />
       ) : null}
       {/* When activity is 'social', show SocialPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).
@@ -210,8 +216,11 @@ export default function ReactionCanvasAppV4() {
       {activeInterface === 'canvas' && activity === 'social' && (
         <SocialPanel socialConfig={serverSocialConfig} />
       )}
+      {activeInterface === 'canvas' && activity === 'mood-tones' && (
+        <MoodTonesPanel room={room} />
+      )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social') ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
@@ -374,7 +383,7 @@ export default function ReactionCanvasAppV4() {
             <HapticPushModal
               onDismiss={() => setHapticPending(false)}
               suppressed={suppressHapticModal}
-              onSuppressChange={setSuppressHapticModal}
+              onSuppressChange={v => { setSuppressHapticModal(v); localStorage.setItem('v4-suppress-haptic-modal', String(v)); }}
             />
           )}
         </div>

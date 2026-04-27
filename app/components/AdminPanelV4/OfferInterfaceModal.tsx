@@ -52,6 +52,7 @@ export default function OfferInterfaceModal({
           style={{ background: '#333', border: '1px solid #555', color: '#eee', borderRadius: 6, padding: '8px 10px', fontSize: 13 }}
         >
           <option value="social">social</option>
+          <option value="mood-tones">mood-tones</option>
           <option value="emcee">emcee</option>
         </select>
         <div style={{ display: 'flex', gap: 8 }}>

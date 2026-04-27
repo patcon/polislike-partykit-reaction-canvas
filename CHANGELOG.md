@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ### Added
 - Mood Sounds: volume slider (0–200%) added above the start button
 - Mood Sounds: significantly boosted output level — tripled oscillator gains, tightened compressor, added 2.5× makeup gain after compression
+- V4: new `mood-tones` interface — ambient generative audio keyed to live audience reaction position; unlock via `?interface=mood-tones` or push from the People tab; audience sync defaults on
 
 ### Fixed
 - V4 haptic modal: "Show this popup when a buzz is sent" checkbox now defaults to unchecked on non-haptic devices
