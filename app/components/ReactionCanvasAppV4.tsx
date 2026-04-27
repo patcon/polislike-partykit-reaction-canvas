@@ -5,6 +5,7 @@ import TouchLayer from "./TouchLayer";
 import AdminPanelV4 from "./AdminPanelV4";
 import InterfaceChipBar from "./InterfaceChipBar";
 import SocialPanel from "./SocialPanel";
+import MoodTonesPanel from "./MoodTonesPanel";
 import type { ActivityMode, SocialConfig } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
 import FeedbackStarsModal from "./FeedbackStarsModal";
@@ -54,6 +55,7 @@ function getUnlockedInterfaces(): string[] {
   const interfaces = ['canvas'];
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
   if (p.get('interface') === 'social') interfaces.push('social');
+  if (p.get('interface') === 'mood-tones') interfaces.push('mood-tones');
   try {
     const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
     if (Array.isArray(stored)) {
@@ -184,7 +186,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social' };
+  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones' };
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
@@ -203,6 +205,8 @@ export default function ReactionCanvasAppV4() {
         <AdminPanelV4 room={room} selfUserId={userId} />
       ) : activeInterface === 'social' ? (
         <SocialPanel socialConfig={serverSocialConfig} />
+      ) : activeInterface === 'mood-tones' ? (
+        <MoodTonesPanel room={room} />
       ) : null}
       {/* When activity is 'social', show SocialPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).
