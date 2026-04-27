@@ -335,23 +335,23 @@ export default function MoodTonesPanel({ room }: { room: string }) {
 
       socket.onmessage = (evt) => {
         if (dead) return;
-        let data: { type: string; position?: { userId: string; x: number; y: number } };
+        let data: { type: string; count?: number; position?: { userId: string; x: number; y: number } };
         try { data = JSON.parse(evt.data as string); } catch { return; }
-        if (data.type === 'move' || data.type === 'touch') {
+        if (data.type === 'presenceCount') {
+          setAudienceCount(data.count ?? 0);
+        } else if (data.type === 'move' || data.type === 'touch') {
           const { userId, x, y } = data.position!;
           const region = computeRegion(x, y);
           const prevRegion = cursorRegionsRef.current.get(userId);
           cursorsRef.current.set(userId, { x, y, region });
           if (valenceModeRef.current === 'continuous' || region !== prevRegion) {
             cursorRegionsRef.current.set(userId, region);
-            setAudienceCount(cursorsRef.current.size);
             applyAudienceMood();
           }
         } else if (data.type === 'remove') {
           const { userId } = data.position!;
           cursorsRef.current.delete(userId);
           cursorRegionsRef.current.delete(userId);
-          setAudienceCount(cursorsRef.current.size);
           applyAudienceMood();
         }
       };
