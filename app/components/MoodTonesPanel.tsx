@@ -760,9 +760,11 @@ export default function MoodTonesPanel({ room }: { room: string }) {
         </div>
 
         {/* WS status + explain */}
-        <div style={s.wsStatus}>
-          {wsStatus === 'connected' ? `connected · room: ${room} · ${audienceCount} participant${audienceCount !== 1 ? 's' : ''}` : wsStatus === 'connecting' ? 'connecting…' : 'not connected'}
-        </div>
+        {wsStatus !== 'connected' && (
+          <div style={s.wsStatus}>
+            {wsStatus === 'connecting' ? 'connecting…' : 'not connected'}
+          </div>
+        )}
         <div style={s.explain}>{displayInfo.explain}</div>
       </div>
     </div>
