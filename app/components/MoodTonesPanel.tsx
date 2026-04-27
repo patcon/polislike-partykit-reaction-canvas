@@ -294,12 +294,18 @@ export default function MoodTonesPanel({ room }: { room: string }) {
   }, [volume]);
 
   // ── Audience mood ──────────────────────────────────────────────
+  const setMoodWithDisplay = useCallback((value: number) => {
+    moodRef.current = value;
+    setMood(value);
+    const p = interpolateWaypoints(presetRef.current, value / 100);
+    setDisplayInfo(prev => ({ ...prev, emoji: p.emoji, chordName: p.chordName }));
+  }, []);
+
   const applyAudienceMood = useCallback(() => {
     if (!audienceSyncRef.current) return;
     const cursors = cursorsRef.current;
     if (cursors.size === 0) {
-      moodRef.current = 50;
-      setMood(50);
+      setMoodWithDisplay(50);
       return;
     }
     let val: number;
@@ -315,10 +321,8 @@ export default function MoodTonesPanel({ room }: { room: string }) {
       }
       val = (sum / cursors.size + 1) / 2 * 100;
     }
-    const clamped = Math.round(clamp(val, 0, 100));
-    moodRef.current = clamped;
-    setMood(clamped);
-  }, []);
+    setMoodWithDisplay(Math.round(clamp(val, 0, 100)));
+  }, [setMoodWithDisplay]);
 
   useEffect(() => {
     if (audienceSync) applyAudienceMood();
