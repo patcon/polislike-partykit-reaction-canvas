@@ -35,7 +35,7 @@ const ROWS: { id: string; label: string; desc: string; patchable: boolean; activ
   { id: 'image-canvas', label: 'Image Canvas',    desc: 'React over a shared background image',           patchable: false, activityMode: true  },
   { id: 'soccer',       label: 'Soccer',          desc: 'Top-down physics ball — kick with your cursor',  patchable: false, activityMode: true  },
   { id: 'social',       label: 'Social Sharing',  desc: 'Bluesky · Twitter / X · Mastodon',              patchable: true,  activityMode: true  },
-  { id: 'mood-tones',   label: 'Mood Tones',      desc: 'Generative audio keyed to audience reactions',  patchable: true,  activityMode: false },
+  { id: 'mood-tones',   label: 'Mood Tones',      desc: 'Generative audio keyed to audience reactions',  patchable: true,  activityMode: true  },
 ];
 
 export default function InterfacesTab({
