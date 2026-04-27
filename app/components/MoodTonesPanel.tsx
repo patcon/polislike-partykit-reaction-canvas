@@ -696,7 +696,7 @@ export default function MoodTonesPanel({ room }: { room: string }) {
           <div style={{ marginTop: '0.9rem', marginBottom: '0.9rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' as const }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={s.toggleLabel}>audience sync</span>
+                <span style={s.toggleLabel}>user sync</span>
                 <div style={s.pillToggle}>
                   <button style={s.pillBtn(!audienceSync)} onClick={() => setAudienceSync(false)}>off</button>
                   <button style={s.pillBtn(audienceSync)}  onClick={() => setAudienceSync(true)}>on</button>
