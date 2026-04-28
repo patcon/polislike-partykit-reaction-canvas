@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Added
+- Event preview deployment: open an issue with the `event-preview` label to spin up a stealth preview on a secondary PartyKit project; close the issue to tear it down. The preview serves a bare redirect page (no tool branding) and the GitHub corner is compiled out of the bundle for event builds.
+
+### Added
 - Mood Sounds: volume slider (0–200%) added above the start button
 - Mood Sounds: significantly boosted output level — tripled oscillator gains, tightened compressor, added 2.5× makeup gain after compression
 - V4: new `mood-tones` interface — ambient generative audio keyed to live audience reaction position; unlock via `?interface=mood-tones` or push from the People tab; audience sync defaults on
