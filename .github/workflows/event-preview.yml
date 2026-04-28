@@ -48,11 +48,9 @@ jobs:
 
       - name: Generate event index.html
         env:
-          EVENT_TITLE: ${{ secrets.PARTYKIT_EVENT_TITLE }}
           REDIRECT_URL: ${{ steps.config.outputs.redirect_url }}
         run: |
-          sed -e "s|{{EVENT_TITLE}}|$EVENT_TITLE|g" \
-              -e "s|{{REDIRECT_URL}}|$REDIRECT_URL|g" \
+          sed "s|{{REDIRECT_URL}}|$REDIRECT_URL|g" \
               public/index.event.template.html > public/index.html
 
       - name: Deploy event preview
