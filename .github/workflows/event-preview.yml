@@ -1,0 +1,136 @@
+name: Deploy Event Preview
+
+on:
+  issues:
+    types: [labeled, closed]
+
+jobs:
+  deploy-event-preview:
+    if: github.event.action == 'labeled' && github.event.label.name == 'event-preview'
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 18
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+
+      - name: Parse issue config
+        id: config
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+        run: |
+          SLUG=$(echo "$ISSUE_BODY" | grep 'slug:' | sed 's/.*slug: *//' | tr -d '\r\n' | head -c 40)
+          [ -z "$SLUG" ] && SLUG="event-$ISSUE_NUMBER"
+          HASH=$(echo "$ISSUE_BODY" | grep 'hash:' | sed 's/.*hash: *//' | tr -d '\r\n' | head -c 10)
+          [ -z "$HASH" ] && HASH="v4"
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "redirect_url=/#$HASH" >> "$GITHUB_OUTPUT"
+
+      - name: Generate partykit.event.json
+        env:
+          PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
+        run: |
+          jq --arg name "$PARTYKIT_EVENT_PROJECT" \
+             '.name = $name | .serve.build.define["process.env.PARTYKIT_EVENT_BUILD"] = "\"true\""' \
+             partykit.json > partykit.event.json
+
+      - name: Generate event index.html
+        env:
+          EVENT_TITLE: ${{ secrets.PARTYKIT_EVENT_TITLE }}
+          REDIRECT_URL: ${{ steps.config.outputs.redirect_url }}
+        run: |
+          sed -e "s|{{EVENT_TITLE}}|$EVENT_TITLE|g" \
+              -e "s|{{REDIRECT_URL}}|$REDIRECT_URL|g" \
+              public/index.event.template.html > public/index.html
+
+      - name: Deploy event preview
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+          PARTYKIT_LOGIN: patcon
+          SLUG: ${{ steps.config.outputs.slug }}
+        run: |
+          pnpm exec partykit deploy --config partykit.event.json --preview "$SLUG"
+
+      - name: Post deployment comment
+        uses: actions/github-script@v9
+        env:
+          SLUG: ${{ steps.config.outputs.slug }}
+          PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
+        with:
+          script: |
+            const slug = process.env.SLUG;
+            const project = process.env.PARTYKIT_EVENT_PROJECT;
+            const url = `https://${slug}.${project}.patcon.partykit.dev`;
+            const marker = '<!-- event-preview-url -->';
+            const body = `${marker}\nEvent preview deployed: ${url}\n\nClose this issue to tear down the preview.`;
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+
+  delete-event-preview:
+    if: github.event.action == 'closed' && contains(toJson(github.event.issue.labels.*.name), 'event-preview')
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    permissions:
+      issues: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 18
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+
+      - name: Parse slug from issue
+        id: config
+        env:
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          SLUG=$(echo "$ISSUE_BODY" | grep 'slug:' | sed 's/.*slug: *//' | tr -d '\r\n' | head -c 40)
+          [ -z "$SLUG" ] && SLUG="event-$ISSUE_NUMBER"
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+
+      - name: Generate partykit.event.json
+        env:
+          PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
+        run: |
+          jq --arg name "$PARTYKIT_EVENT_PROJECT" \
+             '.name = $name | .serve.build.define["process.env.PARTYKIT_EVENT_BUILD"] = "\"true\""' \
+             partykit.json > partykit.event.json
+
+      - name: Delete event preview
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+          PARTYKIT_LOGIN: patcon
+          SLUG: ${{ steps.config.outputs.slug }}
+        run: |
+          pnpm exec partykit delete --config partykit.event.json --preview "$SLUG" --force
+
+      - name: Post teardown comment
+        uses: actions/github-script@v9
+        with:
+          script: |
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: 'Event preview torn down.',
+            });

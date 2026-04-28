@@ -150,7 +150,7 @@ function App() {
   else if (hash === '#valence-viz') page = <ValenceViz />;
   else page = <IndexApp />;
 
-  return <>{page}<GithubCorner /></>;
+  return <>{page}{process.env.PARTYKIT_EVENT_BUILD !== 'true' && <GithubCorner />}</>;
 }
 
 createRoot(document.getElementById("app")!).render(<App />);
