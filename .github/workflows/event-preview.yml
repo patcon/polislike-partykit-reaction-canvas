@@ -109,21 +109,16 @@ jobs:
           [ -z "$SLUG" ] && SLUG="event-$ISSUE_NUMBER"
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
 
-      - name: Generate partykit.event.json
-        env:
-          PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
-        run: |
-          jq --arg name "$PARTYKIT_EVENT_PROJECT" \
-             '.name = $name | .serve.build.define["PARTYKIT_EVENT_BUILD"] = "true"' \
-             partykit.json > partykit.event.json
-
       - name: Delete event preview
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
           SLUG: ${{ steps.config.outputs.slug }}
+          PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
         run: |
-          pnpm exec partykit delete --config partykit.event.json --preview "$SLUG" --force
+          jq --arg name "$PARTYKIT_EVENT_PROJECT" '.name = $name' partykit.json > partykit.tmp.json
+          mv partykit.tmp.json partykit.json
+          pnpm exec partykit delete --preview "$SLUG" --force
 
       - name: Redact preview URL and post teardown comment
         uses: actions/github-script@v9
