@@ -122,10 +122,25 @@ jobs:
         run: |
           pnpm exec partykit delete --config partykit.event.json --preview "$SLUG" --force
 
-      - name: Post teardown comment
+      - name: Redact preview URL and post teardown comment
         uses: actions/github-script@v9
         with:
           script: |
+            const marker = '<!-- event-preview-url -->';
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: `${marker}\nEvent preview torn down. Link: <link removed>`,
+              });
+            }
             await github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
