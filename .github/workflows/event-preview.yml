@@ -43,7 +43,7 @@ jobs:
           PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
         run: |
           jq --arg name "$PARTYKIT_EVENT_PROJECT" \
-             '.name = $name | .serve.build.define["process.env.PARTYKIT_EVENT_BUILD"] = "\"true\""' \
+             '.name = $name | .serve.build.define["PARTYKIT_EVENT_BUILD"] = "true"' \
              partykit.json > partykit.event.json
 
       - name: Generate event index.html
@@ -113,7 +113,7 @@ jobs:
           PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
         run: |
           jq --arg name "$PARTYKIT_EVENT_PROJECT" \
-             '.name = $name | .serve.build.define["process.env.PARTYKIT_EVENT_BUILD"] = "\"true\""' \
+             '.name = $name | .serve.build.define["PARTYKIT_EVENT_BUILD"] = "true"' \
              partykit.json > partykit.event.json
 
       - name: Delete event preview

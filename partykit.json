@@ -9,7 +9,8 @@
       "entry": "app/client.tsx",
       "define": {
         "process.env.PARTYKIT_SUPABASE_URL": "\"https://cufrmdhkoabpwilwztym.supabase.co\"",
-        "process.env.PARTYKIT_SUPABASE_ANON_KEY": "\"sb_publishable_HoNA1ULIi6X_bW9-4UJOMQ_zUuNogkJ\""
+        "process.env.PARTYKIT_SUPABASE_ANON_KEY": "\"sb_publishable_HoNA1ULIi6X_bW9-4UJOMQ_zUuNogkJ\"",
+        "PARTYKIT_EVENT_BUILD": "false"
       }
     }
   }

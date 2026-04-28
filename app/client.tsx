@@ -1,4 +1,5 @@
 import "./styles.css";
+declare const PARTYKIT_EVENT_BUILD: boolean;
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
@@ -150,7 +151,7 @@ function App() {
   else if (hash === '#valence-viz') page = <ValenceViz />;
   else page = <IndexApp />;
 
-  return <>{page}{process.env.PARTYKIT_EVENT_BUILD !== 'true' && <GithubCorner />}</>;
+  return <>{page}{!PARTYKIT_EVENT_BUILD && <GithubCorner />}</>;
 }
 
 createRoot(document.getElementById("app")!).render(<App />);
