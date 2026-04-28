@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 23 (2026-04-27)
 
+### Fixed
+- V4 mood-tones: WebSocket no longer hardcodes the production PartyKit host — derives host from `window.location` so preview deployments connect to their own server instead of prod
+
 ### Added
 - Event preview deployment: open an issue with the `event-preview` label to spin up a stealth preview on a secondary PartyKit project; close the issue to tear it down. The preview serves a bare redirect page (no tool branding) and the GitHub corner is compiled out of the bundle for event builds.
 

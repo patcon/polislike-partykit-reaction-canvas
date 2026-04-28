@@ -226,12 +226,10 @@ function interpolateWaypoints(preset: Preset, t: number): WaypointInterp {
 const OSC_GAIN: Record<string, number> = { sawtooth: 0.10, square: 0.15, triangle: 0.32, sine: 0.55 };
 
 // ── WebSocket URL ─────────────────────────────────────────────────
-const DEFAULT_HOST = 'polislike-partykit-reaction-canvas.patcon.partykit.dev';
-
 function makeWsUrl(room: string): string {
   const isLocal = window.location.port === '1999';
-  const host = isLocal ? `${window.location.hostname}:1999` : DEFAULT_HOST;
-  const proto = isLocal ? 'ws' : 'wss';
+  const host = isLocal ? `${window.location.hostname}:1999` : window.location.host;
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
   const uid = typeof crypto !== 'undefined' && (crypto as { randomUUID?: () => string }).randomUUID
     ? (crypto as { randomUUID: () => string }).randomUUID()
     : Math.random().toString(36).slice(2);
