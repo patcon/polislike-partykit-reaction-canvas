@@ -36,7 +36,6 @@ jobs:
           [ -z "$HASH" ] && HASH="v4"
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
           echo "hash=$HASH" >> "$GITHUB_OUTPUT"
-          echo "redirect_url=/#$HASH" >> "$GITHUB_OUTPUT"
 
       - name: Generate partykit.event.json
         env:
@@ -48,10 +47,14 @@ jobs:
 
       - name: Generate event index.html
         env:
-          REDIRECT_URL: ${{ steps.config.outputs.redirect_url }}
+          HASH: ${{ steps.config.outputs.hash }}
         run: |
-          sed "s|{{REDIRECT_URL}}|$REDIRECT_URL|g" \
-              public/index.event.template.html > public/index.html
+          pnpm run cachebust
+          sed -i 's|<title>[^<]*</title>|<title>App</title>|' public/index.html
+          sed -i '/<meta name="title"/d' public/index.html
+          sed -i '/<meta name="description"/d' public/index.html
+          sed -i '/<meta name="author"/d' public/index.html
+          sed -i "s|</head>|<script>if (!window.location.hash) window.location.hash = '#${HASH}';</script>\n  </head>|" public/index.html
 
       - name: Deploy event preview
         env:
