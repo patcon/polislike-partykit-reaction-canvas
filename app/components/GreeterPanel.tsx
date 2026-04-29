@@ -28,20 +28,52 @@ function extractSlug(eventUrl: string): string | null {
   }
 }
 
-async function fetchAttendees(slug: string): Promise<Attendee[]> {
+type AttendeeEdge = {
+  cursor: string;
+  node: {
+    user: {
+      slugId: string;
+      firstName: string;
+      lastName: string;
+      primaryPhoto: { transformUrl: string } | null;
+      defaultAvatarUrl: string;
+    };
+  };
+};
+
+async function fetchPage(slug: string, after?: string): Promise<{ edges: AttendeeEdge[]; hasNextPage: boolean }> {
+  const vars: Record<string, unknown> = { slug };
+  if (after) vars.after = after;
   const res = await fetch(GRAPHQL_URL, {
-    headers: { 'x-gqlvars': JSON.stringify({ slug }) },
+    headers: { 'x-gqlvars': JSON.stringify(vars) },
   });
   if (!res.ok) throw new Error(`Guild API returned ${res.status}`);
   const json = await res.json();
-  const edges: { node: { user: { slugId: string; firstName: string; lastName: string; primaryPhoto: { transformUrl: string } | null; defaultAvatarUrl: string } } }[] =
-    json?.data?.event?.inPersonAttendees?.edges ?? [];
-  return edges.map(({ node: { user } }) => ({
-    slugId: user.slugId,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    photoUrl: user.primaryPhoto?.transformUrl ?? user.defaultAvatarUrl,
-  }));
+  const attendees = json?.data?.event?.inPersonAttendees;
+  const edges: AttendeeEdge[] = attendees?.edges ?? [];
+  const hasNextPage: boolean = attendees?.pageInfo?.hasNextPage ?? (edges.length > 0 && edges.length === 10);
+  return { edges, hasNextPage };
+}
+
+async function fetchAttendees(slug: string): Promise<Attendee[]> {
+  const all: Attendee[] = [];
+  let after: string | undefined;
+
+  for (;;) {
+    const { edges, hasNextPage } = await fetchPage(slug, after);
+    for (const { cursor, node: { user } } of edges) {
+      all.push({
+        slugId: user.slugId,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        photoUrl: user.primaryPhoto?.transformUrl ?? user.defaultAvatarUrl,
+      });
+      after = cursor;
+    }
+    if (!hasNextPage || edges.length === 0) break;
+  }
+
+  return all;
 }
 
 export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
