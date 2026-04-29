@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 23 (2026-04-27)
 
+### Added
+- V4: new **Treevites** interface — live invite-tree leaderboard showing who invited whom (transitively). Every shareable QR code now carries an invite chain so the tree builds passively in the background; the leaderboard UI is only shown to participants who've been issued the interface via the People tab or the Interfaces "Share" QR. Closes [#68](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/68).
+
 ### Fixed
 - V4 mood-tones: WebSocket no longer hardcodes the production PartyKit host — derives host from `window.location` so preview deployments connect to their own server instead of prod
 

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { IoMdSettings } from "react-icons/io";
 import type { ActivityMode } from "../../../types";
+import { appendSelfToChain } from "../../../utils/inviteChain";
 
 interface InterfacesTabProps {
   activity: ActivityMode;
@@ -12,6 +13,8 @@ interface InterfacesTabProps {
   setSocialConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
   onClearRoleAssignments: () => void;
+  selfId?: string;
+  selfChain?: string[];
 }
 
 const QR_ICON = (
@@ -21,11 +24,14 @@ const QR_ICON = (
   </svg>
 );
 
-function getPatchUrl(interfaceName: string): string {
+function getPatchUrl(interfaceName: string, selfId?: string, selfChain?: string[]): string {
   const p = new URLSearchParams(window.location.search);
   p.delete('forceView');
   p.delete('admin');
   p.set('interface', interfaceName);
+  if (selfId && selfChain !== undefined) {
+    p.set('inviteChain', appendSelfToChain(selfChain, selfId).join(','));
+  }
   const qs = p.toString();
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
 }
@@ -36,16 +42,17 @@ const ROWS: { id: string; label: string; desc: string; patchable: boolean; activ
   { id: 'soccer',       label: 'Soccer',          desc: 'Top-down physics ball — kick with your cursor',  patchable: false, activityMode: true  },
   { id: 'social',       label: 'Social Sharing',  desc: 'Bluesky · Twitter / X · Mastodon',              patchable: true,  activityMode: true  },
   { id: 'mood-tones',   label: 'Mood Tones',      desc: 'Generative audio keyed to audience reactions',  patchable: true,  activityMode: true  },
+  { id: 'treevites',    label: 'Treevites',        desc: 'Live invite-tree leaderboard — who invited whom', patchable: true, activityMode: true  },
 ];
 
 export default function InterfacesTab({
   activity, soccerScore,
   sendActivity, resetSoccerScore,
   setImageConfigOpen, setSocialConfigOpen, setCanvasSettingsOpen,
-  onClearRoleAssignments,
+  onClearRoleAssignments, selfId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
-  const patchUrl = patchInterface ? getPatchUrl(patchInterface) : '';
+  const patchUrl = patchInterface ? getPatchUrl(patchInterface, selfId, selfChain) : '';
 
   return (
     <div>

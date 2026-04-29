@@ -196,7 +196,12 @@ interface SetNowLabelEvent {
   label: string;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent;
+interface RecordInvitationsEvent {
+  type: 'recordInvitations';
+  edges: Array<[string, string]>; // [inviterId, inviteeId]
+}
+
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -258,6 +263,7 @@ export default class Server implements Party.Server {
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
   private soccerInterval?: NodeJS.Timeout;
   private cursorPositions = new Map<string, { x: number; y: number }>();
+  private inviteEdges = new Map<string, string>(); // inviteeId -> inviterId
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -378,6 +384,7 @@ export default class Server implements Party.Server {
       userCap: this.userCap,
       viewerCount: vCount,
       connectedUserIds,
+      inviteEdges: Object.fromEntries(this.inviteEdges),
     }));
   }
 
@@ -552,6 +559,17 @@ export default class Server implements Party.Server {
         const msg = JSON.stringify({ type: 'interfaceAccepted', userId, interfaceName: event.interfaceName });
         for (const conn of this.room.getConnections()) {
           if (this.adminConnectionIds.has(conn.id)) conn.send(msg);
+        }
+      } else if (event.type === 'recordInvitations') {
+        const newEdges: Array<[string, string]> = [];
+        for (const [inviterId, inviteeId] of event.edges) {
+          if (!this.inviteEdges.has(inviteeId)) {
+            this.inviteEdges.set(inviteeId, inviterId);
+            newEdges.push([inviterId, inviteeId]);
+          }
+        }
+        if (newEdges.length > 0) {
+          this.room.broadcast(JSON.stringify({ type: 'inviteEdges', edges: newEdges }));
         }
       }
     } catch (e) {

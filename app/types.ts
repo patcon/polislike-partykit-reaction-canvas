@@ -28,7 +28,7 @@ export interface Statement {
   text: string;
 }
 
-export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social' | 'mood-tones';
+export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social' | 'mood-tones' | 'treevites';
 
 export interface SocialConfig {
   default: string;
