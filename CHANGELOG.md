@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 23 (2026-04-27)
 
+### Added
+- V4: new **Leaderboard** interface — invite-tree leaderboard showing downstream invite counts. Every shareable QR carries an invite chain so the tree builds passively; the leaderboard UI is only shown to participants issued the interface via the People tab or the Interfaces "Share" QR. Closes [#68](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/68). ([#69](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/69))
+- CI: PR preview deployments now report a GitHub Deployment status, so the PR header shows "This branch was successfully deployed" with a direct link to the preview environment. ([#69](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/69))
+
+### Fixed
+- V4 Leaderboard: selecting Leaderboard as the Solo interface from the Interfaces tab now correctly shows the leaderboard instead of the canvas. ([#69](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/69))
+- V4 Leaderboard: `?inviteChain` URL param is stripped after being read into localStorage, preventing accidental sharing of the raw invite chain. ([#69](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/69))
+- V4 Leaderboard: stored invite chain now takes priority over any `?inviteChain` URL param — once a parent is established, rescanning a different QR code cannot reassign parentage, preserving tree integrity across server restarts. ([#69](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/69))
+
 ### Fixed
 - V4 mood-tones: WebSocket no longer hardcodes the production PartyKit host — derives host from `window.location` so preview deployments connect to their own server instead of prod
 

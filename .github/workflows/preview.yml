@@ -27,6 +27,7 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     permissions:
       pull-requests: write
+      deployments: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -37,15 +38,46 @@ jobs:
           node-version: 18
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
+      - name: Create GitHub deployment
+        id: deployment
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const num = context.payload.pull_request.number;
+            const { data: deployment } = await github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.payload.pull_request.head.sha,
+              environment: `pr-${num}`,
+              auto_merge: false,
+              required_contexts: [],
+              description: `PR #${num} preview`,
+            });
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: deployment.id,
+              state: 'in_progress',
+            });
+            core.setOutput('deployment_id', deployment.id);
       - run: pnpm run cachebust && pnpm exec partykit deploy --preview pr-${{ github.event.pull_request.number }}
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
-      - uses: actions/github-script@v9
+      - name: Mark deployment success and post preview URL
+        uses: actions/github-script@v9
         with:
           script: |
             const num = context.payload.pull_request.number;
             const url = `https://pr-${num}.polislike-partykit-reaction-canvas.patcon.partykit.dev`;
+            await github.rest.repos.createDeploymentStatus({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
+              state: 'success',
+              environment_url: url,
+              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+            });
             const marker = '<!-- preview-url -->';
             const body = `${marker}\nPreview deployed: ${url}`;
             const { data: comments } = await github.rest.issues.listComments({

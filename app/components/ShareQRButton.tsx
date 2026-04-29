@@ -1,18 +1,27 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { appendSelfToChain } from "../utils/inviteChain";
 
-function getShareUrl(): string {
+function getShareUrl(selfId?: string, selfChain?: string[]): string {
   const p = new URLSearchParams(window.location.search);
   p.delete('forceView');
   p.delete('interface');
   p.delete('admin');
+  if (selfId && selfChain !== undefined) {
+    p.set('inviteChain', appendSelfToChain(selfChain, selfId).join(','));
+  }
   const qs = p.toString();
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
 }
 
-export default function ShareQRButton() {
+interface ShareQRButtonProps {
+  selfId?: string;
+  selfChain?: string[];
+}
+
+export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
-  const url = getShareUrl();
+  const url = getShareUrl(selfId, selfChain);
 
   return (
     <>

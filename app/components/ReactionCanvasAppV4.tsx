@@ -19,7 +19,9 @@ import { getReactionLabelSet } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
 import { getPersistentUserId } from "../utils/userId";
 import ShareQRButton from "./ShareQRButton";
+import { parseInviteChain, appendSelfToChain, chainToEdges, storeChain, getStoredChain } from "../utils/inviteChain";
 import HapticIndicatorButton from "./HapticIndicatorButton";
+import Treevites from "./Treevites";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -56,6 +58,7 @@ function getUnlockedInterfaces(): string[] {
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
   if (p.get('interface') === 'social') interfaces.push('social');
   if (p.get('interface') === 'mood-tones') interfaces.push('mood-tones');
+  if (p.get('interface') === 'treevites') interfaces.push('treevites');
   try {
     const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
     if (Array.isArray(stored)) {
@@ -98,6 +101,24 @@ export default function ReactionCanvasAppV4() {
     return unlocked.includes('emcee') ? 'emcee' : 'canvas';
   });
   const [userId] = useState(() => getPersistentUserId());
+  const [selfChain] = useState<string[]>(() => {
+    const room = getRoomParamFromUrl();
+    const urlChain = parseInviteChain(window.location.search);
+    const storedChain = getStoredChain(room);
+    // Stored chain takes priority — once a parent is established, rescanning
+    // a different QR must not reassign parentage (would corrupt the tree on
+    // server restart, since localStorage is the rebuild source of truth).
+    const chain = storedChain.length > 0 ? storedChain : urlChain;
+    if (chain.length > 0 && storedChain.length === 0) storeChain(room, chain);
+    if (urlChain.length > 0) {
+      const p = new URLSearchParams(window.location.search);
+      p.delete('inviteChain');
+      const qs = p.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
+    }
+    return chain;
+  });
+  const [inviteEdges, setInviteEdges] = useState<Record<string, string>>({});
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
   const [activeCursorCount, setActiveCursorCount] = useState<number>(0);
@@ -188,7 +209,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones' };
+  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones', treevites: 'Leaderboard' };
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
@@ -204,11 +225,13 @@ export default function ReactionCanvasAppV4() {
         />
       )}
       {activeInterface === 'emcee' ? (
-        <AdminPanelV4 room={room} selfUserId={userId} />
+        <AdminPanelV4 room={room} selfUserId={userId} selfChain={selfChain} />
       ) : activeInterface === 'social' ? (
         <SocialPanel socialConfig={serverSocialConfig} />
       ) : activeInterface === 'mood-tones' ? (
         <MoodTonesPanel room={room} />
+      ) : activeInterface === 'treevites' ? (
+        <Treevites selfId={userId} inviteEdges={inviteEdges} />
       ) : null}
       {/* When activity is 'social', show SocialPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).
@@ -219,8 +242,11 @@ export default function ReactionCanvasAppV4() {
       {activeInterface === 'canvas' && activity === 'mood-tones' && (
         <MoodTonesPanel room={room} />
       )}
+      {activeInterface === 'canvas' && activity === 'treevites' && (
+        <Treevites selfId={userId} inviteEdges={inviteEdges} />
+      )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones') ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
@@ -247,7 +273,7 @@ export default function ReactionCanvasAppV4() {
           </div>
           <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
           <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
-          <ShareQRButton />
+          <ShareQRButton selfId={userId} selfChain={selfChain} />
           <HapticIndicatorButton
             enabled={hapticEnabled}
             flashing={hapticFlashing}
@@ -271,7 +297,15 @@ export default function ReactionCanvasAppV4() {
             onActiveCursorCountChange={setActiveCursorCount}
             onSimulatedCursorCountChange={setSimulatedCursorCount}
             onRecordingStateChange={setIsRecording}
-            onConnected={() => { hasConnectedRef.current = true; }}
+            onConnected={(initialInviteEdges) => {
+              hasConnectedRef.current = true;
+              if (initialInviteEdges) setInviteEdges(initialInviteEdges);
+              const myChain = appendSelfToChain(selfChain, userId);
+              const edges = chainToEdges(myChain);
+              if (edges.length > 0) {
+                socketSendRef.current?.(JSON.stringify({ type: 'recordInvitations', edges }));
+              }
+            }}
             onRoomLabelsChange={handleRoomLabelsChange}
             onRoomAnchorsChange={setServerAnchors}
             onViewerCount={setViewerCount}
@@ -306,6 +340,7 @@ export default function ReactionCanvasAppV4() {
             onActivityChange={handleActivityChange}
             onSocialConfigChange={setServerSocialConfig}
             onNowLabelChange={setNowLabel}
+            onInviteEdges={(edges) => setInviteEdges(prev => ({ ...prev, ...edges }))}
             debug={debug}
           />
           {nowLabel && (

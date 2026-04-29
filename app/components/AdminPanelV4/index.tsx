@@ -29,9 +29,10 @@ const ALL_TABS: AdminTab[] = ['record', 'labels', 'anchors', 'avatars', 'interfa
 interface AdminPanelV4Props {
   room: string;
   selfUserId?: string;
+  selfChain?: string[];
 }
 
-export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
+export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanelV4Props) {
   const tabStorageKey = `v4-admin-tab-${room}`;
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     const saved = localStorage.getItem(tabStorageKey);
@@ -290,6 +291,8 @@ export default function AdminPanelV4({ room, selfUserId }: AdminPanelV4Props) {
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
+            selfId={selfUserId}
+            selfChain={selfChain}
           />
         )}
         {activeTab === 'events' && (
