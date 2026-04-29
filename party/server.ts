@@ -265,6 +265,7 @@ export default class Server implements Party.Server {
   private cursorPositions = new Map<string, { x: number; y: number }>();
   private inviteEdges = new Map<string, string>(); // inviteeId -> inviterId
   private roomHost: string | null = null;
+  private readonly BAT_SIGNAL_THRESHOLD = 3;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -322,17 +323,25 @@ export default class Server implements Party.Server {
   private async sendTelegramBatSignal(): Promise<void> {
     const token = this.room.env.TELEGRAM_BOT_TOKEN as string | undefined;
     const chatId = this.room.env.TELEGRAM_CHAT_ID as string | undefined;
-    if (!token || !chatId) return;
+    if (!token || !chatId) {
+      console.log(`[bat-signal] room=${this.room.id} skipped: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set`);
+      return;
+    }
 
     const host = this.roomHost ?? 'polislike-partykit-reaction-canvas.patcon.partykit.dev';
     const roomUrl = `https://${host}/?room=${encodeURIComponent(this.room.id)}`;
-    const text = `👀 Something's happening in the reaction canvas — ${roomUrl}`;
+    const text = `👀 Something's happening in the reaction canvas (${this.BAT_SIGNAL_THRESHOLD}+ devices in room) — ${roomUrl}`;
 
+    console.log(`[bat-signal] room=${this.room.id} firing → ${roomUrl}`);
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ chat_id: chatId, text }),
-    }).catch(() => {});
+    }).then(res => {
+      if (!res.ok) console.log(`[bat-signal] room=${this.room.id} Telegram error: ${res.status}`);
+    }).catch(err => {
+      console.log(`[bat-signal] room=${this.room.id} fetch failed: ${err}`);
+    });
   }
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
@@ -366,8 +375,7 @@ export default class Server implements Party.Server {
     const count = this.participantCount();
     const vCount = this.viewerCount();
 
-    const BAT_SIGNAL_THRESHOLD = 3;
-    if (!isAdmin && !isViewer && prevCount < BAT_SIGNAL_THRESHOLD && count >= BAT_SIGNAL_THRESHOLD) {
+    if (!isAdmin && !isViewer && prevCount < this.BAT_SIGNAL_THRESHOLD && count >= this.BAT_SIGNAL_THRESHOLD) {
       void this.sendTelegramBatSignal();
     }
     // Send directly to new connection (broadcast may not include it)
