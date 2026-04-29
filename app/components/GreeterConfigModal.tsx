@@ -19,7 +19,7 @@ export default function GreeterConfigModal({ onSubmit, onClose, current }: Greet
     <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="github-modal">
         <p className="github-modal-title">Greeter config</p>
-        <p className="github-modal-body">Set the Guild event URL to show in-person attendees.</p>
+        <p className="github-modal-body">Set a Guild event URL, or a group URL to auto-use the next upcoming event.</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 12, color: '#aaa' }}>Guild event URL</span>
@@ -28,7 +28,7 @@ export default function GreeterConfigModal({ onSubmit, onClose, current }: Greet
               type="text"
               value={eventUrl}
               onChange={e => setEventUrl(e.target.value)}
-              placeholder="https://guild.host/events/your-event-slug"
+              placeholder="https://guild.host/events/… or https://guild.host/your-group"
               autoFocus
             />
           </label>
