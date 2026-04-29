@@ -105,8 +105,11 @@ export default function ReactionCanvasAppV4() {
     const room = getRoomParamFromUrl();
     const urlChain = parseInviteChain(window.location.search);
     const storedChain = getStoredChain(room);
-    const chain = urlChain.length > 0 ? urlChain : storedChain;
-    if (chain.length > 0) storeChain(room, chain);
+    // Stored chain takes priority — once a parent is established, rescanning
+    // a different QR must not reassign parentage (would corrupt the tree on
+    // server restart, since localStorage is the rebuild source of truth).
+    const chain = storedChain.length > 0 ? storedChain : urlChain;
+    if (chain.length > 0 && storedChain.length === 0) storeChain(room, chain);
     if (urlChain.length > 0) {
       const p = new URLSearchParams(window.location.search);
       p.delete('inviteChain');
