@@ -233,8 +233,11 @@ export default function ReactionCanvasAppV4() {
       {activeInterface === 'canvas' && activity === 'mood-tones' && (
         <MoodTonesPanel room={room} />
       )}
+      {activeInterface === 'canvas' && activity === 'treevites' && (
+        <Treevites selfId={userId} inviteEdges={inviteEdges} />
+      )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones') ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
