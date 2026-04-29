@@ -65,6 +65,25 @@ _Coming soon._ Each participant watches and reacts independently; reactions are 
 
 ---
 
+## How to Contribute
+
+- **Join the community**: [Polislike+ User Group Discord](https://polislike.short.gy/discord)
+- **Attend a session**: [Weekly Polislike+ open call](https://polislike.short.gy/notes)
+- **Run an event**: Try the tool at your own event — see the [event runsheet](https://docs.google.com/document/d/1cGane1pzxbFAYxEUhoL3gL0Tsiw-FvQPXhkp_d_pspg/edit) to get started
+- **Improve the runsheet**: Contribute edits directly to the event runsheet
+- **Share interface ideas**: Open an issue with your ideas for new interaction modes
+- **Watch for activity**: Join the [Brigade Bat-Signal](#brigade-bat-signal) Telegram group to get notified when your trolling skills are needed to create swarm energy as people trial the tool
+
+---
+
+## Brigade Bat-Signal
+
+When 3+ unique devices join a room, a message fires automatically to a public Telegram group. The idea: anyone watching can swoop in, join the session, and add swarm energy as people trial the tool. Trolls welcome — if they can disrupt the experience, that's useful signal about what needs hardening. It's intentionally noisy and public, keeping the tool from being mistaken for anything private or production-ready.
+
+👉 [Join the Bat-Signal Telegram group](https://t.me/+5eIfDC36ICVmYjVh)
+
+---
+
 ## Dev
 
 ```bash
