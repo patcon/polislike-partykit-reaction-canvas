@@ -107,6 +107,12 @@ export default function ReactionCanvasAppV4() {
     const storedChain = getStoredChain(room);
     const chain = urlChain.length > 0 ? urlChain : storedChain;
     if (chain.length > 0) storeChain(room, chain);
+    if (urlChain.length > 0) {
+      const p = new URLSearchParams(window.location.search);
+      p.delete('inviteChain');
+      const qs = p.toString();
+      window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
+    }
     return chain;
   });
   const [inviteEdges, setInviteEdges] = useState<Record<string, string>>({});
