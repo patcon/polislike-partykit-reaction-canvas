@@ -318,6 +318,21 @@ export default class Server implements Party.Server {
     });
   }
 
+  private async sendTelegramBatSignal(): Promise<void> {
+    const token = this.room.env.TELEGRAM_BOT_TOKEN as string | undefined;
+    const chatId = this.room.env.TELEGRAM_CHAT_ID as string | undefined;
+    if (!token || !chatId) return;
+
+    const roomUrl = `https://polislike-partykit-reaction-canvas.patcon.partykit.dev/?room=${encodeURIComponent(this.room.id)}`;
+    const text = `👀 Something's happening in the reaction canvas — ${roomUrl}`;
+
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    }).catch(() => {});
+  }
+
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     // A websocket just connected!
     const url = new URL(ctx.request.url);
@@ -333,8 +348,10 @@ export default class Server implements Party.Server {
       this.adminConnectionIds.add(conn.id);
     }
 
+    const prevCount = this.participantCount();
+
     // Determine viewer status before adding to connectionUserMap
-    const isViewer = !isAdmin && this.userCap !== null && this.participantCount() >= this.userCap;
+    const isViewer = !isAdmin && this.userCap !== null && prevCount >= this.userCap;
 
     const userId = url.searchParams.get('userId') ?? conn.id;
     this.connectionUserMap.set(conn.id, userId);
@@ -344,6 +361,11 @@ export default class Server implements Party.Server {
 
     const count = this.participantCount();
     const vCount = this.viewerCount();
+
+    const BAT_SIGNAL_THRESHOLD = 3;
+    if (!isAdmin && !isViewer && prevCount < BAT_SIGNAL_THRESHOLD && count >= BAT_SIGNAL_THRESHOLD) {
+      void this.sendTelegramBatSignal();
+    }
     // Send directly to new connection (broadcast may not include it)
     conn.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
     // Notify all other connections
