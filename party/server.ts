@@ -141,6 +141,11 @@ interface SetSocialConfigEvent {
   config: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
 }
 
+interface SetGreeterConfigEvent {
+  type: 'setGreeterConfig';
+  config: { eventUrl: string } | null;
+}
+
 interface SubmitGithubUsernameEvent {
   type: 'submitGithubUsername';
   username: string;
@@ -201,7 +206,7 @@ interface RecordInvitationsEvent {
   edges: Array<[string, string]>; // [inviterId, inviteeId]
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -258,6 +263,7 @@ export default class Server implements Party.Server {
   private roomImageUrl: string = '';
   private nowLabel: string = '';
   private roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null = null;
+  private greeterConfig: { eventUrl: string } | null = null;
   private ballState = { x: 50, y: 50, vx: 2, vy: 1 };
   private soccerScore = { left: 0, right: 0 };
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
@@ -418,6 +424,7 @@ export default class Server implements Party.Server {
       roomImageUrl: this.roomImageUrl,
       nowLabel: this.nowLabel,
       roomSocialConfig: this.roomSocialConfig,
+      greeterConfig: this.greeterConfig,
       ballState: this.currentActivity === 'soccer' ? this.ballState : null,
       soccerScore: this.soccerScore,
       isViewer,
@@ -568,6 +575,9 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setSocialConfig') {
         this.roomSocialConfig = event.config;
         this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
+      } else if (event.type === 'setGreeterConfig') {
+        this.greeterConfig = event.config;
+        this.room.broadcast(JSON.stringify({ type: 'greeterConfigChanged', config: this.greeterConfig }));
       } else if (event.type === 'requestJoin') {
         if (!this.viewerConnectionIds.has(sender.id)) return;
         if (this.userCap !== null && this.participantCount() >= this.userCap) {

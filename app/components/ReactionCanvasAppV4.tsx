@@ -6,7 +6,8 @@ import AdminPanelV4 from "./AdminPanelV4";
 import InterfaceChipBar from "./InterfaceChipBar";
 import SocialPanel from "./SocialPanel";
 import MoodTonesPanel from "./MoodTonesPanel";
-import type { ActivityMode, SocialConfig } from "../types";
+import GreeterPanel from "./GreeterPanel";
+import type { ActivityMode, GreeterConfig, SocialConfig } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
 import FeedbackStarsModal from "./FeedbackStarsModal";
 import InterfacePushModal from "./InterfacePushModal";
@@ -59,6 +60,7 @@ function getUnlockedInterfaces(): string[] {
   if (p.get('interface') === 'social') interfaces.push('social');
   if (p.get('interface') === 'mood-tones') interfaces.push('mood-tones');
   if (p.get('interface') === 'treevites') interfaces.push('treevites');
+  if (p.get('interface') === 'greeter') interfaces.push('greeter');
   try {
     const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
     if (Array.isArray(stored)) {
@@ -133,6 +135,7 @@ export default function ReactionCanvasAppV4() {
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const [serverImageUrl, setServerImageUrl] = useState('');
   const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
+  const [serverGreeterConfig, setServerGreeterConfig] = useState<GreeterConfig | null>(null);
   const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
@@ -209,7 +212,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones', treevites: 'Leaderboard' };
+  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones', treevites: 'Leaderboard', greeter: 'Greeter' };
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
@@ -232,6 +235,8 @@ export default function ReactionCanvasAppV4() {
         <MoodTonesPanel room={room} />
       ) : activeInterface === 'treevites' ? (
         <Treevites selfId={userId} inviteEdges={inviteEdges} />
+      ) : activeInterface === 'greeter' ? (
+        <GreeterPanel greeterConfig={serverGreeterConfig} />
       ) : null}
       {/* When activity is 'social', show SocialPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).
@@ -245,8 +250,11 @@ export default function ReactionCanvasAppV4() {
       {activeInterface === 'canvas' && activity === 'treevites' && (
         <Treevites selfId={userId} inviteEdges={inviteEdges} />
       )}
+      {activeInterface === 'canvas' && activity === 'greeter' && (
+        <GreeterPanel greeterConfig={serverGreeterConfig} />
+      )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites') ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
@@ -339,6 +347,7 @@ export default function ReactionCanvasAppV4() {
             onRoomImageUrlChange={handleRoomImageUrlChange}
             onActivityChange={handleActivityChange}
             onSocialConfigChange={setServerSocialConfig}
+            onGreeterConfigChange={setServerGreeterConfig}
             onNowLabelChange={setNowLabel}
             onInviteEdges={(edges) => setInviteEdges(prev => ({ ...prev, ...edges }))}
             debug={debug}
@@ -351,7 +360,7 @@ export default function ReactionCanvasAppV4() {
               {nowLabel}
             </div>
           )}
-          {!isViewer && activity !== 'social' && (
+          {!isViewer && activity !== 'social' && activity !== 'greeter' && (
             <TouchLayer
               room={room}
               userId={userId}

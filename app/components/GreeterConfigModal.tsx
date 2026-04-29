@@ -1,0 +1,43 @@
+import { useState } from "react";
+import type { GreeterConfig } from "../types";
+
+interface GreeterConfigModalProps {
+  onSubmit: (config: GreeterConfig) => void;
+  onClose: () => void;
+  current?: GreeterConfig | null;
+}
+
+export default function GreeterConfigModal({ onSubmit, onClose, current }: GreeterConfigModalProps) {
+  const [eventUrl, setEventUrl] = useState(current?.eventUrl ?? '');
+
+  const handleSave = () => {
+    onSubmit({ eventUrl });
+    onClose();
+  };
+
+  return (
+    <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="github-modal">
+        <p className="github-modal-title">Greeter config</p>
+        <p className="github-modal-body">Set the Guild event URL to show in-person attendees.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 12, color: '#aaa' }}>Guild event URL</span>
+            <input
+              className="github-modal-input"
+              type="text"
+              value={eventUrl}
+              onChange={e => setEventUrl(e.target.value)}
+              placeholder="https://guild.host/events/your-event-slug"
+              autoFocus
+            />
+          </label>
+        </div>
+        <button className="github-modal-btn-primary" onClick={handleSave} style={{ marginTop: 16 }}>
+          Save
+        </button>
+        <button className="github-modal-btn-dismiss" onClick={onClose}>Cancel</button>
+      </div>
+    </div>
+  );
+}

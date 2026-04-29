@@ -54,6 +54,7 @@ export default function OfferInterfaceModal({
           <option value="social">social</option>
           <option value="mood-tones">mood-tones</option>
           <option value="treevites">treevites</option>
+          <option value="greeter">greeter</option>
           <option value="emcee">emcee</option>
         </select>
         <div style={{ display: 'flex', gap: 8 }}>

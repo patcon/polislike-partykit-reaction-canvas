@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ActivityMode, SocialConfig } from "../../../types";
+import type { ActivityMode, GreeterConfig, SocialConfig } from "../../../types";
 import type PartySocket from "partysocket";
 
 export function useRoomConfig(socket: PartySocket) {
@@ -14,6 +14,8 @@ export function useRoomConfig(socket: PartySocket) {
     localStorage.getItem('v4-showNowLabelOnCanvas') === 'true'
   );
   const [roomSocialConfig, setRoomSocialConfig] = useState<SocialConfig | null>(null);
+  const [greeterConfig, setGreeterConfig]     = useState<GreeterConfig | null>(null);
+  const [greeterConfigOpen, setGreeterConfigOpen] = useState(false);
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
 
@@ -37,6 +39,11 @@ export function useRoomConfig(socket: PartySocket) {
     socket.send(JSON.stringify({ type: 'setSocialConfig', config }));
   };
 
+  const sendGreeterConfig = (config: GreeterConfig) => {
+    setGreeterConfig(config);
+    socket.send(JSON.stringify({ type: 'setGreeterConfig', config }));
+  };
+
   const resetSoccerScore = () => {
     socket.send(JSON.stringify({ type: 'resetSoccerScore' }));
   };
@@ -52,6 +59,7 @@ export function useRoomConfig(socket: PartySocket) {
     if ('currentActivity' in data) setActivity((data.currentActivity as ActivityMode) ?? 'canvas');
     if ('roomImageUrl' in data) setRoomImageUrl((data.roomImageUrl as string) ?? '');
     if ('roomSocialConfig' in data) setRoomSocialConfig((data.roomSocialConfig as SocialConfig | null) ?? null);
+    if ('greeterConfig' in data) setGreeterConfig((data.greeterConfig as GreeterConfig | null) ?? null);
     if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore as { left: number; right: number });
     if (data.userCap !== undefined) {
       setUserCap(data.userCap as number | null);
@@ -68,6 +76,8 @@ export function useRoomConfig(socket: PartySocket) {
       setRoomImageUrl((data.url as string) ?? '');
     } else if (data.type === 'socialConfigChanged') {
       setRoomSocialConfig((data.config as SocialConfig | null) ?? null);
+    } else if (data.type === 'greeterConfigChanged') {
+      setGreeterConfig((data.config as GreeterConfig | null) ?? null);
     } else if (data.type === 'goalScored') {
       setSoccerScore(data.score as { left: number; right: number });
     } else if (data.type === 'userCapChanged') {
@@ -90,6 +100,9 @@ export function useRoomConfig(socket: PartySocket) {
     sendActivity,
     sendImageUrl,
     sendSocialConfig,
+    greeterConfig, setGreeterConfig,
+    greeterConfigOpen, setGreeterConfigOpen,
+    sendGreeterConfig,
     resetSoccerScore,
     sendUserCap,
     applyConnected,
