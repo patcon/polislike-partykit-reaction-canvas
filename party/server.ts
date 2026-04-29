@@ -264,6 +264,9 @@ export default class Server implements Party.Server {
   private soccerInterval?: NodeJS.Timeout;
   private cursorPositions = new Map<string, { x: number; y: number }>();
   private inviteEdges = new Map<string, string>(); // inviteeId -> inviterId
+  private roomHost: string | null = null;
+  private readonly BAT_SIGNAL_THRESHOLD = 3;
+  private seenUserIds = new Set<string>();
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -318,6 +321,30 @@ export default class Server implements Party.Server {
     });
   }
 
+  private async sendTelegramBatSignal(): Promise<void> {
+    const token = this.room.env.TELEGRAM_BOT_TOKEN as string | undefined;
+    const chatId = this.room.env.TELEGRAM_CHAT_ID as string | undefined;
+    if (!token || !chatId) {
+      console.log(`[bat-signal] room=${this.room.id} skipped: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not set`);
+      return;
+    }
+
+    const host = this.roomHost ?? 'polislike-partykit-reaction-canvas.patcon.partykit.dev';
+    const roomUrl = `https://${host}/?room=${encodeURIComponent(this.room.id)}`;
+    const text = `👀 Something's happening in the reaction canvas (${this.BAT_SIGNAL_THRESHOLD}+ devices in room) — ${roomUrl}`;
+
+    console.log(`[bat-signal] room=${this.room.id} firing → ${roomUrl}`);
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    }).then(res => {
+      if (!res.ok) console.log(`[bat-signal] room=${this.room.id} Telegram error: ${res.status}`);
+    }).catch(err => {
+      console.log(`[bat-signal] room=${this.room.id} fetch failed: ${err}`);
+    });
+  }
+
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     // A websocket just connected!
     const url = new URL(ctx.request.url);
@@ -328,13 +355,17 @@ export default class Server implements Party.Server {
   url: ${url.pathname}`
     );
 
+    if (!this.roomHost) this.roomHost = url.host;
+
     const isAdmin = url.searchParams.get('isAdmin') === 'true';
     if (isAdmin) {
       this.adminConnectionIds.add(conn.id);
     }
 
+    const prevCount = this.participantCount();
+
     // Determine viewer status before adding to connectionUserMap
-    const isViewer = !isAdmin && this.userCap !== null && this.participantCount() >= this.userCap;
+    const isViewer = !isAdmin && this.userCap !== null && prevCount >= this.userCap;
 
     const userId = url.searchParams.get('userId') ?? conn.id;
     this.connectionUserMap.set(conn.id, userId);
@@ -344,6 +375,15 @@ export default class Server implements Party.Server {
 
     const count = this.participantCount();
     const vCount = this.viewerCount();
+
+    const isNewUser = !isAdmin && !isViewer && !this.seenUserIds.has(userId);
+    if (isNewUser) {
+      const prevSeenCount = this.seenUserIds.size;
+      this.seenUserIds.add(userId);
+      if (prevSeenCount < this.BAT_SIGNAL_THRESHOLD && this.seenUserIds.size >= this.BAT_SIGNAL_THRESHOLD) {
+        void this.sendTelegramBatSignal();
+      }
+    }
     // Send directly to new connection (broadcast may not include it)
     conn.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
     // Notify all other connections

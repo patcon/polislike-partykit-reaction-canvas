@@ -5,6 +5,9 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Added
+- Server: **Brigade Bat-Signal** — when a room's participant count crosses 3, a Telegram message is sent to a configured group with a direct link to the room. Fires on every upward crossing (intentionally noisy). Requires `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` PartyKit secrets; silent no-op if absent. Closes [#23](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/23). ([#72](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/72))
+
+### Added
 - V4: new **Leaderboard** interface — invite-tree leaderboard showing downstream invite counts. Every shareable QR carries an invite chain so the tree builds passively; the leaderboard UI is only shown to participants issued the interface via the People tab or the Interfaces "Share" QR. Closes [#68](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/68). ([#69](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/69))
 - CI: PR preview deployments now report a GitHub Deployment status, so the PR header shows "This branch was successfully deployed" with a direct link to the preview environment. ([#69](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/69))
 
