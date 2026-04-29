@@ -100,6 +100,9 @@ web_modules/
 .env.production.local
 .env.local
 
+# PartyKit local dev secrets (mirrors production secrets set via `partykit secret add`)
+.dev.vars
+
 # parcel-bundler cache (https://parceljs.org/)
 
 .cache
