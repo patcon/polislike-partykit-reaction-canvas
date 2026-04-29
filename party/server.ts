@@ -266,6 +266,7 @@ export default class Server implements Party.Server {
   private inviteEdges = new Map<string, string>(); // inviteeId -> inviterId
   private roomHost: string | null = null;
   private readonly BAT_SIGNAL_THRESHOLD = 3;
+  private seenUserIds = new Set<string>();
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -375,8 +376,13 @@ export default class Server implements Party.Server {
     const count = this.participantCount();
     const vCount = this.viewerCount();
 
-    if (!isAdmin && !isViewer && prevCount < this.BAT_SIGNAL_THRESHOLD && count >= this.BAT_SIGNAL_THRESHOLD) {
-      void this.sendTelegramBatSignal();
+    const isNewUser = !isAdmin && !isViewer && !this.seenUserIds.has(userId);
+    if (isNewUser) {
+      const prevSeenCount = this.seenUserIds.size;
+      this.seenUserIds.add(userId);
+      if (prevSeenCount < this.BAT_SIGNAL_THRESHOLD && this.seenUserIds.size >= this.BAT_SIGNAL_THRESHOLD) {
+        void this.sendTelegramBatSignal();
+      }
     }
     // Send directly to new connection (broadcast may not include it)
     conn.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
