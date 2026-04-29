@@ -264,6 +264,7 @@ export default class Server implements Party.Server {
   private soccerInterval?: NodeJS.Timeout;
   private cursorPositions = new Map<string, { x: number; y: number }>();
   private inviteEdges = new Map<string, string>(); // inviteeId -> inviterId
+  private roomHost: string | null = null;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -323,7 +324,8 @@ export default class Server implements Party.Server {
     const chatId = this.room.env.TELEGRAM_CHAT_ID as string | undefined;
     if (!token || !chatId) return;
 
-    const roomUrl = `https://polislike-partykit-reaction-canvas.patcon.partykit.dev/?room=${encodeURIComponent(this.room.id)}`;
+    const host = this.roomHost ?? 'polislike-partykit-reaction-canvas.patcon.partykit.dev';
+    const roomUrl = `https://${host}/?room=${encodeURIComponent(this.room.id)}`;
     const text = `👀 Something's happening in the reaction canvas — ${roomUrl}`;
 
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -342,6 +344,8 @@ export default class Server implements Party.Server {
   room: ${this.room.id}
   url: ${url.pathname}`
     );
+
+    if (!this.roomHost) this.roomHost = url.host;
 
     const isAdmin = url.searchParams.get('isAdmin') === 'true';
     if (isAdmin) {
