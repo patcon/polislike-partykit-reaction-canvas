@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { ReactNode } from "react";
 
 interface TreevitesProps {
@@ -34,23 +35,23 @@ function countDescendants(node: TreeNode): number {
   return node.children.reduce((sum, child) => sum + 1 + countDescendants(child), 0);
 }
 
-function TreeNodeRow({ node, selfId, depth }: { node: TreeNode; selfId: string; depth: number }): ReactNode {
+function TreeNodeRow({ node, selfId, depth, showIndent }: { node: TreeNode; selfId: string; depth: number; showIndent: boolean }): ReactNode {
   const isSelf = node.id === selfId;
   const score = countDescendants(node);
   return (
     <li>
       <div
         className={`treevites-row${isSelf ? ' treevites-row--self' : ''}`}
-        style={{ paddingLeft: depth * 20 }}
+        style={showIndent && depth > 0 ? { paddingLeft: `${depth}ch` } : undefined}
       >
         <span className="treevites-id">{node.id}</span>
         {isSelf && <span className="treevites-you"> (you)</span>}
-        {score > 0 && <span className="treevites-score">{score}</span>}
+        <span className="treevites-score">{score}</span>
       </div>
       {node.children.length > 0 && (
         <ul className="treevites-children">
           {node.children.map(child => (
-            <TreeNodeRow key={child.id} node={child} selfId={selfId} depth={depth + 1} />
+            <TreeNodeRow key={child.id} node={child} selfId={selfId} depth={depth + 1} showIndent={showIndent} />
           ))}
         </ul>
       )}
@@ -59,21 +60,30 @@ function TreeNodeRow({ node, selfId, depth }: { node: TreeNode; selfId: string; 
 }
 
 export default function Treevites({ selfId, inviteEdges }: TreevitesProps) {
+  const [showIndent, setShowIndent] = useState(false);
   const roots = buildTree(inviteEdges);
   const isEmpty = Object.keys(inviteEdges).length === 0;
 
   return (
     <div className="treevites-container">
       <div className="treevites-header">
-        <h2 className="treevites-title">Treevites</h2>
-        <p className="treevites-subtitle">Invite leaderboard — numbers show transitive reach</p>
+        <h2 className="treevites-title">Leaderboard</h2>
+        <p className="treevites-subtitle">Invite stats — numbers show downstream invites</p>
       </div>
+      <label className="treevites-indent-toggle">
+        <input
+          type="checkbox"
+          checked={showIndent}
+          onChange={e => setShowIndent(e.target.checked)}
+        />
+        {' '}Show tree indentation
+      </label>
       {isEmpty ? (
         <p className="treevites-empty">No invite chains recorded yet. Share your QR code to start the tree.</p>
       ) : (
         <ul className="treevites-tree">
           {roots.map(root => (
-            <TreeNodeRow key={root.id} node={root} selfId={selfId} depth={0} />
+            <TreeNodeRow key={root.id} node={root} selfId={selfId} depth={0} showIndent={showIndent} />
           ))}
         </ul>
       )}

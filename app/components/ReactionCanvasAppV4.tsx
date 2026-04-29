@@ -200,7 +200,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones', treevites: 'Treevites' };
+  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones', treevites: 'Leaderboard' };
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
