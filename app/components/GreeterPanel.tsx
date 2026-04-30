@@ -163,8 +163,18 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
         setHasMorePast(past.hasMore);
         setPastEndCursor(past.endCursor);
         setGroupSlug(slug);
-        // Default to first upcoming; fall back to most recent past
-        const idx = upcoming.events.length > 0 ? past.events.length : past.events.length - 1;
+        // Default: first upcoming, or most recent past if none
+        let idx = upcoming.events.length > 0 ? past.events.length : past.events.length - 1;
+        // Override: if any event starts today, prefer the last such event (stays "current" until midnight)
+        const today = new Date().toLocaleDateString('en-CA');
+        for (let i = deduped.length - 1; i >= 0; i--) {
+          try {
+            if (deduped[i].startAt && new Date(deduped[i].startAt).toLocaleDateString('en-CA') === today) {
+              idx = i;
+              break;
+            }
+          } catch { /* skip */ }
+        }
         setCurrentIndex(Math.max(0, idx));
         setListStatus('idle');
       }).catch(() => { if (!cancelled) setListStatus('error'); });
