@@ -33,7 +33,7 @@ export default function SocialConfigModal({ onSubmit, onClose, current }: Social
               value={defaultText}
               onChange={e => setDefaultText(e.target.value)}
               placeholder="some text and #hashtag"
-              autoFocus
+
             />
           </label>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

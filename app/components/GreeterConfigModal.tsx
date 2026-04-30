@@ -29,7 +29,7 @@ export default function GreeterConfigModal({ onSubmit, onClose, current }: Greet
               value={eventUrl}
               onChange={e => setEventUrl(e.target.value)}
               placeholder="https://guild.host/events/… or https://guild.host/your-group"
-              autoFocus
+
             />
           </label>
         </div>
