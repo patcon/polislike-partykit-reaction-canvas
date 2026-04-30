@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import ImageConfigModal from "../ImageConfigModal";
 import SocialConfigModal from "../SocialConfigModal";
+import GreeterConfigModal from "../GreeterConfigModal";
 import { useAnchors } from "./hooks/useAnchors";
 import { useLabels } from "./hooks/useLabels";
 import { useRoomConfig } from "./hooks/useRoomConfig";
@@ -289,6 +290,7 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
             resetSoccerScore={roomConfig.resetSoccerScore}
             setImageConfigOpen={roomConfig.setImageConfigOpen}
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
+            setGreeterConfigOpen={roomConfig.setGreeterConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
             selfId={selfUserId}
@@ -454,6 +456,13 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
           current={roomConfig.roomSocialConfig}
           onSubmit={roomConfig.sendSocialConfig}
           onClose={() => roomConfig.setSocialConfigOpen(false)}
+        />
+      )}
+      {roomConfig.greeterConfigOpen && (
+        <GreeterConfigModal
+          current={roomConfig.greeterConfig}
+          onSubmit={roomConfig.sendGreeterConfig}
+          onClose={() => roomConfig.setGreeterConfigOpen(false)}
         />
       )}
     </div>

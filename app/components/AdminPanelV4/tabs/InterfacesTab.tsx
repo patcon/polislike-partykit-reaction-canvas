@@ -11,6 +11,7 @@ interface InterfacesTabProps {
   resetSoccerScore: () => void;
   setImageConfigOpen: (v: boolean) => void;
   setSocialConfigOpen: (v: boolean) => void;
+  setGreeterConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
   onClearRoleAssignments: () => void;
   selfId?: string;
@@ -43,12 +44,13 @@ const ROWS: { id: string; label: string; desc: string; patchable: boolean; activ
   { id: 'social',       label: 'Social Sharing',  desc: 'Bluesky · Twitter / X · Mastodon',              patchable: true,  activityMode: true  },
   { id: 'mood-tones',   label: 'Mood Tones',      desc: 'Generative audio keyed to audience reactions',  patchable: true,  activityMode: true  },
   { id: 'treevites',    label: 'Leaderboard',      desc: 'Invite stats — who invited whom',                patchable: true, activityMode: true  },
+  { id: 'greeter',     label: 'Greeter',          desc: 'Guild event attendee welcome list',              patchable: true,  activityMode: true  },
 ];
 
 export default function InterfacesTab({
   activity, soccerScore,
   sendActivity, resetSoccerScore,
-  setImageConfigOpen, setSocialConfigOpen, setCanvasSettingsOpen,
+  setImageConfigOpen, setSocialConfigOpen, setGreeterConfigOpen, setCanvasSettingsOpen,
   onClearRoleAssignments, selfId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
@@ -86,6 +88,9 @@ export default function InterfacesTab({
                     )}
                     {id === 'social' && (
                       <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>
+                    )}
+                    {id === 'greeter' && (
+                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setGreeterConfigOpen(true); }}><IoMdSettings /></button>
                     )}
                   </label>
                 </td>

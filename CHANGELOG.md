@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Added
+- V4: new **Greeter** interface — emcee configures a Guild event or group URL in the Interfaces tab; the panel fetches and displays attendees (photo + name) from the Guild GraphQL API with in-person/online/all filter, first/last name sort, and ← → event navigation. Defaults to the current day's event until midnight. Patchable via QR and pushable to participants from the People tab. ([#73](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/73))
 - Server: **Brigade Bat-Signal** — when a room's participant count crosses 3, a Telegram message is sent to a configured group with a direct link to the room. Fires on every upward crossing (intentionally noisy). Requires `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` PartyKit secrets; silent no-op if absent. Closes [#23](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/23). ([#72](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/72))
 
 ### Added
