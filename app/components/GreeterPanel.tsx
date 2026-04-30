@@ -231,8 +231,9 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0f0f0e', color: '#ccc', fontFamily: 'monospace', overflow: 'hidden' }}>
 
-      <div style={{ padding: '12px 20px 8px', borderBottom: '1px solid #222', flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ padding: '12px 20px 0', borderBottom: '1px solid #222', flexShrink: 0 }}>
+        {/* Row 1: event navigator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, paddingBottom: 8 }}>
           {isGroupMode && (
             <button
               onClick={handlePrev}
@@ -261,24 +262,27 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
               →
             </button>
           )}
-          {attendees.length > 0 && attendeeStatus === 'idle' && (<>
-            <button
-              onClick={() => setFilterMode(m => FILTER_CYCLE[(FILTER_CYCLE.indexOf(m) + 1) % FILTER_CYCLE.length])}
-              style={{ background: 'none', border: 'none', color: filterMode === 'all' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '2px 4px', flexShrink: 0 }}
-              title="Toggle attendance filter"
-            >
-              {FILTER_LABELS[filterMode]}
-            </button>
+        </div>
+        {/* Row 2: sort · filter · count */}
+        {attendees.length > 0 && attendeeStatus === 'idle' && (
+          <div style={{ display: 'flex', alignItems: 'center', paddingBottom: 8, borderTop: '1px solid #1a1a1a' }}>
             <button
               onClick={() => setSortMode(m => SORT_CYCLE[(SORT_CYCLE.indexOf(m) + 1) % SORT_CYCLE.length])}
-              style={{ background: 'none', border: 'none', color: sortMode === 'none' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '2px 4px', flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', color: sortMode === 'none' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '6px 8px', flexShrink: 0 }}
               title="Toggle sort order"
             >
               {SORT_LABELS[sortMode]} ↑
             </button>
-            <span style={{ fontSize: 12, color: '#555', flexShrink: 0 }}>{filteredAttendees.length}</span>
-          </>)}
-        </div>
+            <button
+              onClick={() => setFilterMode(m => FILTER_CYCLE[(FILTER_CYCLE.indexOf(m) + 1) % FILTER_CYCLE.length])}
+              style={{ background: 'none', border: 'none', color: filterMode === 'all' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '6px 8px', flexShrink: 0 }}
+              title="Toggle attendance filter"
+            >
+              {FILTER_LABELS[filterMode]}
+            </button>
+            <span style={{ marginLeft: 'auto', fontSize: 12, color: '#555', padding: '6px 0' }}>{filteredAttendees.length}</span>
+          </div>
+        )}
       </div>
 
       <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
