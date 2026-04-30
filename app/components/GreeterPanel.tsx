@@ -6,6 +6,7 @@ interface Attendee {
   firstName: string;
   lastName: string;
   photoUrl: string;
+  attendance: 'in-person' | 'online';
 }
 
 interface EventInfo {
@@ -19,7 +20,8 @@ interface GreeterPanelProps {
 }
 
 const GRAPHQL_SLUG_URL = 'https://guild.host/graphql/ab910738acdb79ffade614553f55523137c6968924e004a2e789faef52c0c081';
-const GRAPHQL_ATTENDEES_URL = 'https://guild.host/graphql/f0f0595e0c3bc689857cd75b6e3d1e32de52fa6aeeb3671a69aa1b9e0986c5e0';
+const GRAPHQL_IN_PERSON_URL = 'https://guild.host/graphql/f0f0595e0c3bc689857cd75b6e3d1e32de52fa6aeeb3671a69aa1b9e0986c5e0';
+const GRAPHQL_ONLINE_URL = 'https://guild.host/graphql/1214f0d979f864bf430feb6f62c155cd533b3c8084ade0e530f31c1d76cf4ac4';
 
 type ParsedUrl =
   | { type: 'event'; slug: string }
@@ -68,8 +70,9 @@ async function fetchEventsList(groupSlug: string, endpoint: 'upcoming' | 'past',
   };
 }
 
-async function fetchAttendees(nodeId: string): Promise<Attendee[]> {
-  const res = await fetch(GRAPHQL_ATTENDEES_URL, {
+async function fetchAttendeesByType(nodeId: string, attendance: Attendee['attendance']): Promise<Attendee[]> {
+  const url = attendance === 'in-person' ? GRAPHQL_IN_PERSON_URL : GRAPHQL_ONLINE_URL;
+  const res = await fetch(url, {
     headers: {
       'content-type': 'application/json',
       'x-gqlvars': JSON.stringify({ id: nodeId, count: 200 }),
@@ -77,14 +80,24 @@ async function fetchAttendees(nodeId: string): Promise<Attendee[]> {
   });
   if (!res.ok) throw new Error(`Guild API returned ${res.status}`);
   const json = await res.json();
+  const key = attendance === 'in-person' ? 'inPersonAttendees' : 'onlineAttendees';
   const edges: { node: { user: { slugId: string; firstName: string; lastName: string; primaryPhoto: { transformUrl: string } | null; defaultAvatarUrl: string } } }[] =
-    json?.data?.node?.inPersonAttendees?.edges ?? [];
+    json?.data?.node?.[key]?.edges ?? [];
   return edges.map(({ node: { user } }) => ({
     slugId: user.slugId,
     firstName: user.firstName,
     lastName: user.lastName,
     photoUrl: user.primaryPhoto?.transformUrl ?? user.defaultAvatarUrl,
+    attendance,
   }));
+}
+
+async function fetchAllAttendees(nodeId: string): Promise<Attendee[]> {
+  const [inPerson, online] = await Promise.all([
+    fetchAttendeesByType(nodeId, 'in-person'),
+    fetchAttendeesByType(nodeId, 'online'),
+  ]);
+  return [...inPerson, ...online];
 }
 
 function formatDate(iso: string): string {
@@ -160,13 +173,18 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
     return () => { cancelled = true; };
   }, [eventUrl]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  type FilterMode = 'in-person' | 'online' | 'all';
+  const [filterMode, setFilterMode] = useState<FilterMode>('in-person');
+  const FILTER_LABELS: Record<FilterMode, string> = { 'in-person': 'In-person', 'online': 'Online', 'all': 'All' };
+  const FILTER_CYCLE: FilterMode[] = ['in-person', 'online', 'all'];
+
   // Fetch attendees when current event changes
   const currentEventId = events[currentIndex]?.id ?? null;
   useEffect(() => {
     if (!currentEventId) { setAttendees([]); return; }
     let cancelled = false;
     setAttendeeStatus('loading');
-    fetchAttendees(currentEventId)
+    fetchAllAttendees(currentEventId)
       .then(list => { if (!cancelled) { setAttendees(list); setAttendeeStatus('idle'); } })
       .catch(() => { if (!cancelled) setAttendeeStatus('error'); });
     return () => { cancelled = true; };
@@ -204,7 +222,8 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
   const SORT_LABELS: Record<SortMode, string> = { none: 'Sort', first: 'First', last: 'Last' };
   const SORT_CYCLE: SortMode[] = ['none', 'first', 'last'];
 
-  const sortedAttendees = sortMode === 'none' ? attendees : [...attendees].sort((a, b) => {
+  const filteredAttendees = filterMode === 'all' ? attendees : attendees.filter(a => a.attendance === filterMode);
+  const sortedAttendees = sortMode === 'none' ? filteredAttendees : [...filteredAttendees].sort((a, b) => {
     const key = sortMode === 'first' ? 'firstName' : 'lastName';
     return a[key].localeCompare(b[key]);
   });
@@ -244,13 +263,20 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
           )}
           {attendees.length > 0 && attendeeStatus === 'idle' && (<>
             <button
+              onClick={() => setFilterMode(m => FILTER_CYCLE[(FILTER_CYCLE.indexOf(m) + 1) % FILTER_CYCLE.length])}
+              style={{ background: 'none', border: 'none', color: filterMode === 'all' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '2px 4px', flexShrink: 0 }}
+              title="Toggle attendance filter"
+            >
+              {FILTER_LABELS[filterMode]}
+            </button>
+            <button
               onClick={() => setSortMode(m => SORT_CYCLE[(SORT_CYCLE.indexOf(m) + 1) % SORT_CYCLE.length])}
               style={{ background: 'none', border: 'none', color: sortMode === 'none' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '2px 4px', flexShrink: 0 }}
               title="Toggle sort order"
             >
               {SORT_LABELS[sortMode]} ↑
             </button>
-            <span style={{ fontSize: 12, color: '#555', flexShrink: 0 }}>{attendees.length}</span>
+            <span style={{ fontSize: 12, color: '#555', flexShrink: 0 }}>{filteredAttendees.length}</span>
           </>)}
         </div>
       </div>
