@@ -199,6 +199,16 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
   const currentEvent = events[currentIndex] ?? null;
   const isGroupMode = groupSlug !== null;
 
+  type SortMode = 'none' | 'first' | 'last';
+  const [sortMode, setSortMode] = useState<SortMode>('none');
+  const SORT_LABELS: Record<SortMode, string> = { none: 'Sort', first: 'First', last: 'Last' };
+  const SORT_CYCLE: SortMode[] = ['none', 'first', 'last'];
+
+  const sortedAttendees = sortMode === 'none' ? attendees : [...attendees].sort((a, b) => {
+    const key = sortMode === 'first' ? 'firstName' : 'lastName';
+    return a[key].localeCompare(b[key]);
+  });
+
   return (
     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0f0f0e', color: '#ccc', fontFamily: 'monospace', overflow: 'hidden' }}>
 
@@ -232,9 +242,16 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
               →
             </button>
           )}
-          {attendees.length > 0 && attendeeStatus === 'idle' && (
+          {attendees.length > 0 && attendeeStatus === 'idle' && (<>
+            <button
+              onClick={() => setSortMode(m => SORT_CYCLE[(SORT_CYCLE.indexOf(m) + 1) % SORT_CYCLE.length])}
+              style={{ background: 'none', border: 'none', color: sortMode === 'none' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '2px 4px', flexShrink: 0 }}
+              title="Toggle sort order"
+            >
+              {SORT_LABELS[sortMode]} ↑
+            </button>
             <span style={{ fontSize: 12, color: '#555', flexShrink: 0 }}>{attendees.length}</span>
-          )}
+          </>)}
         </div>
       </div>
 
@@ -254,7 +271,7 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
         ) : attendees.length === 0 ? (
           <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No in-person attendees found.</p>
         ) : (
-          attendees.map(a => (
+          sortedAttendees.map(a => (
             <div key={a.slugId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 20px' }}>
               <img
                 src={a.photoUrl}
