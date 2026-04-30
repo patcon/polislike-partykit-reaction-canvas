@@ -268,19 +268,19 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
           <div style={{ display: 'flex', alignItems: 'center', paddingBottom: 8, borderTop: '1px solid #1a1a1a' }}>
             <button
               onClick={() => setSortMode(m => SORT_CYCLE[(SORT_CYCLE.indexOf(m) + 1) % SORT_CYCLE.length])}
-              style={{ background: 'none', border: 'none', color: sortMode === 'none' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '6px 8px', flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', color: sortMode === 'none' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '6px 8px', flexShrink: 0, minWidth: 64, textAlign: 'center', marginLeft: 'auto' }}
               title="Toggle sort order"
             >
               {SORT_LABELS[sortMode]} ↑
             </button>
             <button
               onClick={() => setFilterMode(m => FILTER_CYCLE[(FILTER_CYCLE.indexOf(m) + 1) % FILTER_CYCLE.length])}
-              style={{ background: 'none', border: 'none', color: filterMode === 'all' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '6px 8px', flexShrink: 0 }}
+              style={{ background: 'none', border: 'none', color: filterMode === 'all' ? '#555' : '#aaa', cursor: 'pointer', fontSize: 11, padding: '6px 8px', flexShrink: 0, minWidth: 80, textAlign: 'center' }}
               title="Toggle attendance filter"
             >
               {FILTER_LABELS[filterMode]}
             </button>
-            <span style={{ marginLeft: 'auto', fontSize: 12, color: '#555', padding: '6px 0' }}>{filteredAttendees.length}</span>
+            <span style={{ fontSize: 12, color: '#555', padding: '6px 8px', minWidth: 36, textAlign: 'right', display: 'inline-block' }}>{filteredAttendees.length}</span>
           </div>
         )}
       </div>
