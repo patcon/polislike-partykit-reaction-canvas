@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 23 (2026-04-27)
 
+### Fixed
+- V4: admin-triggered popups (interface offer, GitHub username, feedback stars, haptic modal) now appear for participants even when they are viewing a non-canvas interface (Social, Greeter, etc.) — modals were previously hidden because they rendered inside a `display: none` canvas container.
+
 ### Added
 - Greeter Quiz: **Reversed mode** — a "Reversed" checkbox flips which side is the prompt vs. the answer (name → photo for Image/Name; first name → last name for Last/First). Progress is tracked separately for each direction, so memorizing forward does not count as memorizing reversed.
 - Greeter Quiz: **Hide default avatars on by default** — the "Hide default avatars" filter now starts enabled so initials-only photos are excluded from the image deck without manual toggling.

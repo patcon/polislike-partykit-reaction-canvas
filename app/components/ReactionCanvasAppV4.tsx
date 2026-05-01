@@ -374,63 +374,63 @@ export default function ReactionCanvasAppV4() {
               imageUrl={activity === 'image-canvas' ? (serverImageUrl || undefined) : undefined}
             />
           )}
-          {showGithubModal && (
-            <GithubUsernameModal
-              onSubmit={(username, displayName, avatarUrl) => {
-                socketSendRef.current?.(JSON.stringify({
-                  type: 'submitGithubUsername',
-                  username,
-                  displayName,
-                  avatarUrl,
-                  timestamp: Date.now(),
-                }));
-              }}
-              onDismiss={() => setShowGithubModal(false)}
-            />
-          )}
-          {showFeedbackStarsModal && (
-            <FeedbackStarsModal
-              onSubmit={(stars) => {
-                socketSendRef.current?.(JSON.stringify({
-                  type: 'submitFeedbackStars',
-                  userId,
-                  stars,
-                  timestamp: Date.now(),
-                }));
-                setShowFeedbackStarsModal(false);
-              }}
-              onDismiss={() => setShowFeedbackStarsModal(false)}
-            />
-          )}
-          {pushedInterface && (
-            <InterfacePushModal
-              interfaceName={pushedInterface}
-              onAccept={() => {
-                socketSendRef.current?.(JSON.stringify({ type: 'acceptInterface', interfaceName: pushedInterface }));
-                setUnlockedInterfaces(prev => {
-                  if (prev.includes(pushedInterface)) return prev;
-                  try {
-                    const stored: string[] = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
-                    if (!stored.includes(pushedInterface)) {
-                      localStorage.setItem(PUSHED_INTERFACES_KEY, JSON.stringify([...stored, pushedInterface]));
-                    }
-                  } catch { /* ignore */ }
-                  return [...prev, pushedInterface];
-                });
-                setActiveInterface(pushedInterface);
-                setPushedInterface(null);
-              }}
-              onDecline={() => setPushedInterface(null)}
-            />
-          )}
-          {hapticPending && (
-            <HapticPushModal
-              onDismiss={() => setHapticPending(false)}
-              suppressed={suppressHapticModal}
-              onSuppressChange={v => { setSuppressHapticModal(v); localStorage.setItem('v4-suppress-haptic-modal', String(v)); }}
-            />
-          )}
         </div>
+      {showGithubModal && (
+        <GithubUsernameModal
+          onSubmit={(username, displayName, avatarUrl) => {
+            socketSendRef.current?.(JSON.stringify({
+              type: 'submitGithubUsername',
+              username,
+              displayName,
+              avatarUrl,
+              timestamp: Date.now(),
+            }));
+          }}
+          onDismiss={() => setShowGithubModal(false)}
+        />
+      )}
+      {showFeedbackStarsModal && (
+        <FeedbackStarsModal
+          onSubmit={(stars) => {
+            socketSendRef.current?.(JSON.stringify({
+              type: 'submitFeedbackStars',
+              userId,
+              stars,
+              timestamp: Date.now(),
+            }));
+            setShowFeedbackStarsModal(false);
+          }}
+          onDismiss={() => setShowFeedbackStarsModal(false)}
+        />
+      )}
+      {pushedInterface && (
+        <InterfacePushModal
+          interfaceName={pushedInterface}
+          onAccept={() => {
+            socketSendRef.current?.(JSON.stringify({ type: 'acceptInterface', interfaceName: pushedInterface }));
+            setUnlockedInterfaces(prev => {
+              if (prev.includes(pushedInterface)) return prev;
+              try {
+                const stored: string[] = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
+                if (!stored.includes(pushedInterface)) {
+                  localStorage.setItem(PUSHED_INTERFACES_KEY, JSON.stringify([...stored, pushedInterface]));
+                }
+              } catch { /* ignore */ }
+              return [...prev, pushedInterface];
+            });
+            setActiveInterface(pushedInterface);
+            setPushedInterface(null);
+          }}
+          onDecline={() => setPushedInterface(null)}
+        />
+      )}
+      {hapticPending && (
+        <HapticPushModal
+          onDismiss={() => setHapticPending(false)}
+          suppressed={suppressHapticModal}
+          onSuppressChange={v => { setSuppressHapticModal(v); localStorage.setItem('v4-suppress-haptic-modal', String(v)); }}
+        />
+      )}
     </div>
   );
 }
