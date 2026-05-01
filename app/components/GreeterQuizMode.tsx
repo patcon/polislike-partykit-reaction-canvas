@@ -152,13 +152,13 @@ export default function GreeterQuizMode({
             onClick={() => handleModeChange('image-name')}
             style={{ padding: '4px 10px', fontSize: 11, fontFamily: 'monospace', border: 'none', background: quizMode === 'image-name' ? 'rgba(255,255,255,0.14)' : 'transparent', color: quizMode === 'image-name' ? '#eee' : '#555', cursor: 'pointer' }}
           >
-            Image → Name
+            {reversed ? 'Name → Image' : 'Image → Name'}
           </button>
           <button
             onClick={() => handleModeChange('first-last')}
             style={{ padding: '4px 10px', fontSize: 11, fontFamily: 'monospace', border: 'none', background: quizMode === 'first-last' ? 'rgba(255,255,255,0.14)' : 'transparent', color: quizMode === 'first-last' ? '#eee' : '#555', cursor: 'pointer' }}
           >
-            First → Last
+            {reversed ? 'Last → First' : 'First → Last'}
           </button>
         </div>
 
