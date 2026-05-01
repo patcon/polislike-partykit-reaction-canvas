@@ -236,18 +236,25 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
   const SORT_CYCLE: SortMode[] = ['none', 'first', 'last'];
 
   // Session-level quiz state (persists across event navigation within the same tab)
-  const [memorizedIds, setMemorizedIds] = useState<Set<string>>(new Set());
+  const [memorizedByKey, setMemorizedByKey] = useState<Record<string, Set<string>>>({});
   const [quizMode, setQuizMode] = useState<QuizMode>('image-name');
-  const [hideDefaultAvatars, setHideDefaultAvatars] = useState(false);
+  const [quizReversed, setQuizReversed] = useState(false);
+  const [hideDefaultAvatars, setHideDefaultAvatars] = useState(true);
   const [quizActive, setQuizActive] = useState(false);
 
-  // Close quiz when switching events (but preserve memorizedIds)
+  // Close quiz when switching events (but preserve memorizedByKey)
   useEffect(() => {
     setQuizActive(false);
   }, [currentEventId]);
 
+  const quizKey = `${quizMode}:${quizReversed ? 'reverse' : 'forward'}`;
+  const memorizedIds = memorizedByKey[quizKey] ?? new Set<string>();
+
   const handleMemorize = (slugId: string) => {
-    setMemorizedIds(prev => new Set([...prev, slugId]));
+    setMemorizedByKey(prev => {
+      const existing = prev[quizKey] ?? new Set<string>();
+      return { ...prev, [quizKey]: new Set([...existing, slugId]) };
+    });
   };
 
   const filteredAttendees = filterMode === 'all' ? attendees : attendees.filter(a => a.attendance === filterMode);
@@ -321,6 +328,8 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
           onExit={() => setQuizActive(false)}
           quizMode={quizMode}
           onQuizModeChange={setQuizMode}
+          reversed={quizReversed}
+          onReverseChange={setQuizReversed}
           hideDefaultAvatars={hideDefaultAvatars}
           onHideDefaultAvatarsChange={setHideDefaultAvatars}
         />

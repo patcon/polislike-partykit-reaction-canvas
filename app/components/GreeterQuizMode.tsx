@@ -27,6 +27,8 @@ interface GreeterQuizModeProps {
   onExit: () => void;
   quizMode: QuizMode;
   onQuizModeChange: (mode: QuizMode) => void;
+  reversed: boolean;
+  onReverseChange: (val: boolean) => void;
   hideDefaultAvatars: boolean;
   onHideDefaultAvatarsChange: (val: boolean) => void;
 }
@@ -40,6 +42,8 @@ export default function GreeterQuizMode({
   onExit,
   quizMode,
   onQuizModeChange,
+  reversed,
+  onReverseChange,
   hideDefaultAvatars,
   onHideDefaultAvatarsChange,
 }: GreeterQuizModeProps) {
@@ -112,6 +116,11 @@ export default function GreeterQuizMode({
     onHideDefaultAvatarsChange(val);
   };
 
+  const handleReverseChange = (val: boolean) => {
+    resetDeck(buildDeck(quizMode, hideDefaultAvatars));
+    onReverseChange(val);
+  };
+
   // Keep memorized cards out of queue if they somehow remain (defensive)
   useEffect(() => {
     setQueue(q => q.filter(a => !memorizedIds.has(a.slugId)));
@@ -152,6 +161,16 @@ export default function GreeterQuizMode({
             Last / First
           </button>
         </div>
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#666', cursor: 'pointer', flexShrink: 0 }}>
+          <input
+            type="checkbox"
+            checked={reversed}
+            onChange={e => handleReverseChange(e.target.checked)}
+            style={{ cursor: 'pointer' }}
+          />
+          Reversed
+        </label>
 
         {quizMode === 'image-name' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#666', cursor: 'pointer', flexShrink: 0 }}>
@@ -220,21 +239,28 @@ export default function GreeterQuizMode({
                   border: '1px solid #333',
                   borderRadius: 12,
                 }}>
-                  {quizMode === 'image-name' ? (
+                  {quizMode === 'image-name' && !reversed && (
                     <>
-                      <img
-                        src={currentCard.photoUrl}
-                        alt=""
-                        width={120}
-                        height={120}
-                        style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }}
-                      />
+                      <img src={currentCard.photoUrl} alt="" width={120} height={120} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} />
                       <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal</span>
                     </>
-                  ) : (
+                  )}
+                  {quizMode === 'image-name' && reversed && (
+                    <>
+                      <span style={{ fontSize: 22, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{currentCard.firstName} {currentCard.lastName}</span>
+                      <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal photo</span>
+                    </>
+                  )}
+                  {quizMode === 'first-last' && !reversed && (
                     <>
                       <span style={{ fontSize: 28, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{currentCard.lastName}</span>
                       <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal first name</span>
+                    </>
+                  )}
+                  {quizMode === 'first-last' && reversed && (
+                    <>
+                      <span style={{ fontSize: 28, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{currentCard.firstName}</span>
+                      <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal last name</span>
                     </>
                   )}
                 </div>
@@ -255,26 +281,39 @@ export default function GreeterQuizMode({
                   border: '1px solid #555',
                   borderRadius: 12,
                 }}>
-                  {quizMode === 'image-name' ? (
+                  {quizMode === 'image-name' && !reversed && (
                     <>
-                      <img
-                        src={currentCard.photoUrl}
-                        alt=""
-                        width={64}
-                        height={64}
-                        style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }}
-                      />
+                      <img src={currentCard.photoUrl} alt="" width={64} height={64} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} />
                       <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
                         {currentCard.firstName} {currentCard.lastName}
                       </span>
                     </>
-                  ) : (
+                  )}
+                  {quizMode === 'image-name' && reversed && (
+                    <>
+                      <img src={currentCard.photoUrl} alt="" width={120} height={120} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} />
+                      <span style={{ fontSize: 14, color: '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
+                        {currentCard.firstName} {currentCard.lastName}
+                      </span>
+                    </>
+                  )}
+                  {quizMode === 'first-last' && !reversed && (
                     <>
                       <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
                         {currentCard.firstName}
                       </span>
                       <span style={{ fontSize: 14, color: '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
                         {currentCard.lastName}
+                      </span>
+                    </>
+                  )}
+                  {quizMode === 'first-last' && reversed && (
+                    <>
+                      <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
+                        {currentCard.lastName}
+                      </span>
+                      <span style={{ fontSize: 14, color: '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
+                        {currentCard.firstName}
                       </span>
                     </>
                   )}
