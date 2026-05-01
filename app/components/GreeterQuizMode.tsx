@@ -296,6 +296,7 @@ export default function GreeterQuizMode({
                   )}
                   {quizMode === 'first-last' && (
                     <>
+                      <img src={currentCard.photoUrl} alt="" width={64} height={64} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} />
                       <span style={{ fontSize: reversed ? 20 : 14, fontWeight: reversed ? 700 : 400, color: reversed ? '#eee' : '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
                         {currentCard.firstName}
                       </span>
