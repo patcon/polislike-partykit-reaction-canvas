@@ -152,25 +152,22 @@ export default function GreeterQuizMode({
             onClick={() => handleModeChange('image-name')}
             style={{ padding: '4px 10px', fontSize: 11, fontFamily: 'monospace', border: 'none', background: quizMode === 'image-name' ? 'rgba(255,255,255,0.14)' : 'transparent', color: quizMode === 'image-name' ? '#eee' : '#555', cursor: 'pointer' }}
           >
-            Image / Name
+            Image → Name
           </button>
           <button
             onClick={() => handleModeChange('first-last')}
             style={{ padding: '4px 10px', fontSize: 11, fontFamily: 'monospace', border: 'none', background: quizMode === 'first-last' ? 'rgba(255,255,255,0.14)' : 'transparent', color: quizMode === 'first-last' ? '#eee' : '#555', cursor: 'pointer' }}
           >
-            Last / First
+            First → Last
           </button>
         </div>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#666', cursor: 'pointer', flexShrink: 0 }}>
-          <input
-            type="checkbox"
-            checked={reversed}
-            onChange={e => handleReverseChange(e.target.checked)}
-            style={{ cursor: 'pointer' }}
-          />
-          Reversed
-        </label>
+        <button
+          onClick={() => handleReverseChange(!reversed)}
+          style={{ padding: '4px 10px', fontSize: 11, fontFamily: 'monospace', border: '1px solid', borderRadius: 20, background: reversed ? 'rgba(255,255,255,0.14)' : 'transparent', color: reversed ? '#eee' : '#555', borderColor: reversed ? '#555' : '#333', cursor: 'pointer', flexShrink: 0 }}
+        >
+          ⇄ Reverse
+        </button>
 
         {quizMode === 'image-name' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#666', cursor: 'pointer', flexShrink: 0 }}>
@@ -253,14 +250,14 @@ export default function GreeterQuizMode({
                   )}
                   {quizMode === 'first-last' && !reversed && (
                     <>
-                      <span style={{ fontSize: 28, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{currentCard.lastName}</span>
-                      <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal first name</span>
+                      <span style={{ fontSize: 28, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{currentCard.firstName}</span>
+                      <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal last name</span>
                     </>
                   )}
                   {quizMode === 'first-last' && reversed && (
                     <>
-                      <span style={{ fontSize: 28, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{currentCard.firstName}</span>
-                      <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal last name</span>
+                      <span style={{ fontSize: 28, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{currentCard.lastName}</span>
+                      <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal first name</span>
                     </>
                   )}
                 </div>
@@ -297,23 +294,13 @@ export default function GreeterQuizMode({
                       </span>
                     </>
                   )}
-                  {quizMode === 'first-last' && !reversed && (
+                  {quizMode === 'first-last' && (
                     <>
-                      <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
+                      <span style={{ fontSize: reversed ? 20 : 14, fontWeight: reversed ? 700 : 400, color: reversed ? '#eee' : '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
                         {currentCard.firstName}
                       </span>
-                      <span style={{ fontSize: 14, color: '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
+                      <span style={{ fontSize: reversed ? 14 : 20, fontWeight: reversed ? 400 : 700, color: reversed ? '#888' : '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
                         {currentCard.lastName}
-                      </span>
-                    </>
-                  )}
-                  {quizMode === 'first-last' && reversed && (
-                    <>
-                      <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
-                        {currentCard.lastName}
-                      </span>
-                      <span style={{ fontSize: 14, color: '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
-                        {currentCard.firstName}
                       </span>
                     </>
                   )}
