@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import type { GreeterConfig } from "../types";
+import GreeterQuizMode, { type QuizMode } from "./GreeterQuizMode";
 
 interface Attendee {
   slugId: string;
   firstName: string;
   lastName: string;
   photoUrl: string;
+  hasRealPhoto: boolean;
   attendance: 'in-person' | 'online';
 }
 
@@ -88,6 +90,7 @@ async function fetchAttendeesByType(nodeId: string, attendance: Attendee['attend
     firstName: user.firstName,
     lastName: user.lastName,
     photoUrl: user.primaryPhoto?.transformUrl ?? user.defaultAvatarUrl,
+    hasRealPhoto: user.primaryPhoto !== null,
     attendance,
   }));
 }
@@ -232,6 +235,21 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
   const SORT_LABELS: Record<SortMode, string> = { none: 'Sort', first: 'First', last: 'Last' };
   const SORT_CYCLE: SortMode[] = ['none', 'first', 'last'];
 
+  // Session-level quiz state (persists across event navigation within the same tab)
+  const [memorizedIds, setMemorizedIds] = useState<Set<string>>(new Set());
+  const [quizMode, setQuizMode] = useState<QuizMode>('image-name');
+  const [hideDefaultAvatars, setHideDefaultAvatars] = useState(false);
+  const [quizActive, setQuizActive] = useState(false);
+
+  // Close quiz when switching events (but preserve memorizedIds)
+  useEffect(() => {
+    setQuizActive(false);
+  }, [currentEventId]);
+
+  const handleMemorize = (slugId: string) => {
+    setMemorizedIds(prev => new Set([...prev, slugId]));
+  };
+
   const filteredAttendees = filterMode === 'all' ? attendees : attendees.filter(a => a.attendance === filterMode);
   const sortedAttendees = sortMode === 'none' ? filteredAttendees : [...filteredAttendees].sort((a, b) => {
     const key = sortMode === 'first' ? 'firstName' : 'lastName';
@@ -295,36 +313,61 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
         )}
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
-        {!greeterConfig || !eventUrl ? (
-          <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No URL configured yet.</p>
-        ) : listStatus === 'loading' ? (
-          <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>Loading…</p>
-        ) : listStatus === 'no-event' ? (
-          <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No events found.</p>
-        ) : listStatus === 'error' ? (
-          <p style={{ color: '#a44', fontSize: 13, padding: '16px 20px' }}>Failed to load events.</p>
-        ) : attendeeStatus === 'loading' ? (
-          <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>Loading attendees…</p>
-        ) : attendeeStatus === 'error' ? (
-          <p style={{ color: '#a44', fontSize: 13, padding: '16px 20px' }}>Failed to load attendees.</p>
-        ) : attendees.length === 0 ? (
-          <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No in-person attendees found.</p>
-        ) : (
-          sortedAttendees.map(a => (
-            <div key={a.slugId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 20px' }}>
-              <img
-                src={a.photoUrl}
-                alt={`${a.firstName} ${a.lastName}`}
-                width={36}
-                height={36}
-                style={{ borderRadius: '50%', flexShrink: 0, background: '#222' }}
-              />
-              <span style={{ fontSize: 14, color: '#ddd' }}>{a.firstName} {a.lastName}</span>
-            </div>
-          ))
-        )}
-      </div>
+      {quizActive ? (
+        <GreeterQuizMode
+          attendees={filteredAttendees}
+          memorizedIds={memorizedIds}
+          onMemorize={handleMemorize}
+          onExit={() => setQuizActive(false)}
+          quizMode={quizMode}
+          onQuizModeChange={setQuizMode}
+          hideDefaultAvatars={hideDefaultAvatars}
+          onHideDefaultAvatarsChange={setHideDefaultAvatars}
+        />
+      ) : (
+        <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
+          {!greeterConfig || !eventUrl ? (
+            <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No URL configured yet.</p>
+          ) : listStatus === 'loading' ? (
+            <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>Loading…</p>
+          ) : listStatus === 'no-event' ? (
+            <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No events found.</p>
+          ) : listStatus === 'error' ? (
+            <p style={{ color: '#a44', fontSize: 13, padding: '16px 20px' }}>Failed to load events.</p>
+          ) : attendeeStatus === 'loading' ? (
+            <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>Loading attendees…</p>
+          ) : attendeeStatus === 'error' ? (
+            <p style={{ color: '#a44', fontSize: 13, padding: '16px 20px' }}>Failed to load attendees.</p>
+          ) : attendees.length === 0 ? (
+            <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No in-person attendees found.</p>
+          ) : (
+            <>
+              {sortedAttendees.map(a => (
+                <div key={a.slugId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 20px' }}>
+                  <img
+                    src={a.photoUrl}
+                    alt={`${a.firstName} ${a.lastName}`}
+                    width={36}
+                    height={36}
+                    style={{ borderRadius: '50%', flexShrink: 0, background: '#222' }}
+                  />
+                  <span style={{ fontSize: 14, color: '#ddd' }}>{a.firstName} {a.lastName}</span>
+                </div>
+              ))}
+              {attendeeStatus === 'idle' && (
+                <div style={{ padding: '12px 20px' }}>
+                  <button
+                    onClick={() => setQuizActive(true)}
+                    style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: 6, color: '#aaa', cursor: 'pointer', fontFamily: 'monospace', fontSize: 13, padding: '8px 16px' }}
+                  >
+                    Quiz Yourself
+                  </button>
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }
