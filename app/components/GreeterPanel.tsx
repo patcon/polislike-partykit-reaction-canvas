@@ -341,31 +341,31 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
           ) : attendees.length === 0 ? (
             <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No in-person attendees found.</p>
           ) : (
-            <>
-              {sortedAttendees.map(a => (
-                <div key={a.slugId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 20px' }}>
-                  <img
-                    src={a.photoUrl}
-                    alt={`${a.firstName} ${a.lastName}`}
-                    width={36}
-                    height={36}
-                    style={{ borderRadius: '50%', flexShrink: 0, background: '#222' }}
-                  />
-                  <span style={{ fontSize: 14, color: '#ddd' }}>{a.firstName} {a.lastName}</span>
-                </div>
-              ))}
-              {attendeeStatus === 'idle' && (
-                <div style={{ padding: '12px 20px' }}>
-                  <button
-                    onClick={() => setQuizActive(true)}
-                    style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: 6, color: '#aaa', cursor: 'pointer', fontFamily: 'monospace', fontSize: 13, padding: '8px 16px' }}
-                  >
-                    Quiz Yourself
-                  </button>
-                </div>
-              )}
-            </>
+            sortedAttendees.map(a => (
+              <div key={a.slugId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 20px' }}>
+                <img
+                  src={a.photoUrl}
+                  alt={`${a.firstName} ${a.lastName}`}
+                  width={36}
+                  height={36}
+                  style={{ borderRadius: '50%', flexShrink: 0, background: '#222' }}
+                />
+                <span style={{ fontSize: 14, color: '#ddd' }}>{a.firstName} {a.lastName}</span>
+              </div>
+            ))
           )}
+        </div>
+      )}
+
+      {/* Quiz button: sticky footer, only in list mode with attendees loaded */}
+      {!quizActive && attendeeStatus === 'idle' && attendees.length > 0 && (
+        <div style={{ flexShrink: 0, padding: '10px 20px', borderTop: '1px solid #1a1a1a' }}>
+          <button
+            onClick={() => setQuizActive(true)}
+            style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: 6, color: '#aaa', cursor: 'pointer', fontFamily: 'monospace', fontSize: 13, padding: '8px 16px' }}
+          >
+            Quiz Yourself
+          </button>
         </div>
       )}
     </div>

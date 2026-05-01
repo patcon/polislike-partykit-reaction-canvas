@@ -22,6 +22,8 @@ interface GreeterQuizModeProps {
   onHideDefaultAvatarsChange: (val: boolean) => void;
 }
 
+const FLIP_MS = 400;
+
 export default function GreeterQuizMode({
   attendees,
   memorizedIds,
@@ -32,53 +34,69 @@ export default function GreeterQuizMode({
   hideDefaultAvatars,
   onHideDefaultAvatarsChange,
 }: GreeterQuizModeProps) {
-  const [queue, setQueue] = useState<Attendee[]>(() => {
-    return attendees
+  const buildDeck = (mode: QuizMode, hideDefault: boolean) =>
+    attendees
       .filter(a => !memorizedIds.has(a.slugId))
-      .filter(a => quizMode !== 'image-name' || !hideDefaultAvatars || a.hasRealPhoto);
-  });
+      .filter(a => mode !== 'image-name' || !hideDefault || a.hasRealPhoto);
+
+  const [queue, setQueue] = useState<Attendee[]>(() => buildDeck(quizMode, hideDefaultAvatars));
+  // displayedCard lags behind queue[0] so the flip-back shows the old card's answer face
+  const [displayedCard, setDisplayedCard] = useState<Attendee | null>(() => buildDeck(quizMode, hideDefaultAvatars)[0] ?? null);
   const [isFlipped, setIsFlipped] = useState(false);
   const initialDeckSize = useRef(queue.length);
+  const flipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const currentCard = queue[0] ?? null;
-  const isDone = queue.length === 0;
+  useEffect(() => () => { if (flipTimer.current) clearTimeout(flipTimer.current); }, []);
+
+  const scheduleCardSwap = (nextCard: Attendee | null) => {
+    if (flipTimer.current) clearTimeout(flipTimer.current);
+    flipTimer.current = setTimeout(() => setDisplayedCard(nextCard), FLIP_MS + 20);
+  };
+
+  const isDone = queue.length === 0 && displayedCard === null;
 
   const handleAgain = () => {
-    setQueue(([head, ...rest]) => {
-      const insertAt = Math.min(3, rest.length);
-      return [...rest.slice(0, insertAt), head, ...rest.slice(insertAt)];
-    });
+    const [head, ...rest] = queue;
+    const insertAt = Math.min(3, rest.length);
+    const next = [...rest.slice(0, insertAt), head, ...rest.slice(insertAt)];
+    setQueue(next);
+    scheduleCardSwap(next[0] ?? null);
     setIsFlipped(false);
   };
 
   const handleHard = () => {
-    setQueue(([head, ...rest]) => [...rest, head]);
+    const [head, ...rest] = queue;
+    const next = [...rest, head];
+    setQueue(next);
+    scheduleCardSwap(next[0] ?? null);
     setIsFlipped(false);
   };
 
   const handleGood = () => {
-    if (!currentCard) return;
-    onMemorize(currentCard.slugId);
-    setQueue(([, ...rest]) => rest);
+    if (!displayedCard) return;
+    onMemorize(displayedCard.slugId);
+    const [, ...rest] = queue;
+    setQueue(rest);
+    scheduleCardSwap(rest[0] ?? null);
     setIsFlipped(false);
   };
 
   const handleModeChange = (mode: QuizMode) => {
-    const newQueue = attendees
-      .filter(a => !memorizedIds.has(a.slugId))
-      .filter(a => mode !== 'image-name' || !hideDefaultAvatars || a.hasRealPhoto);
+    const newQueue = buildDeck(mode, hideDefaultAvatars);
     initialDeckSize.current = newQueue.length;
     setQueue(newQueue);
+    setDisplayedCard(newQueue[0] ?? null);
+    if (flipTimer.current) clearTimeout(flipTimer.current);
     setIsFlipped(false);
     onQuizModeChange(mode);
   };
 
   const handleHideDefaultAvatarsChange = (val: boolean) => {
-    const newQueue = attendees
-      .filter(a => !memorizedIds.has(a.slugId))
-      .filter(a => quizMode !== 'image-name' || !val || a.hasRealPhoto);
+    const newQueue = buildDeck(quizMode, val);
     initialDeckSize.current = newQueue.length;
     setQueue(newQueue);
+    setDisplayedCard(newQueue[0] ?? null);
+    if (flipTimer.current) clearTimeout(flipTimer.current);
     setIsFlipped(false);
     onHideDefaultAvatarsChange(val);
   };
@@ -86,7 +104,7 @@ export default function GreeterQuizMode({
   // Keep memorized cards out of queue if they somehow remain (defensive)
   useEffect(() => {
     setQueue(q => q.filter(a => !memorizedIds.has(a.slugId)));
-  }, [memorizedIds]);
+  }, [memorizedIds]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const btnBase: React.CSSProperties = {
     border: 'none',
@@ -158,19 +176,19 @@ export default function GreeterQuizMode({
               Back to list
             </button>
           </div>
-        ) : currentCard ? (
+        ) : displayedCard ? (
           <>
             {/* Flip card */}
             <div
-              onClick={() => setIsFlipped(f => !f)}
-              style={{ width: 240, height: 280, perspective: '600px', cursor: 'pointer', flexShrink: 0 }}
+              onClick={() => !isFlipped && setIsFlipped(true)}
+              style={{ width: 240, height: 280, perspective: '600px', cursor: isFlipped ? 'default' : 'pointer', flexShrink: 0 }}
             >
               <div style={{
                 width: '100%',
                 height: '100%',
                 position: 'relative',
                 transformStyle: 'preserve-3d',
-                transition: 'transform 0.4s ease',
+                transition: `transform ${FLIP_MS}ms ease`,
                 transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
               }}>
                 {/* Front */}
@@ -191,7 +209,7 @@ export default function GreeterQuizMode({
                   {quizMode === 'image-name' ? (
                     <>
                       <img
-                        src={currentCard.photoUrl}
+                        src={displayedCard.photoUrl}
                         alt=""
                         width={120}
                         height={120}
@@ -201,7 +219,7 @@ export default function GreeterQuizMode({
                     </>
                   ) : (
                     <>
-                      <span style={{ fontSize: 28, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{currentCard.lastName}</span>
+                      <span style={{ fontSize: 28, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{displayedCard.lastName}</span>
                       <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal first name</span>
                     </>
                   )}
@@ -226,23 +244,23 @@ export default function GreeterQuizMode({
                   {quizMode === 'image-name' ? (
                     <>
                       <img
-                        src={currentCard.photoUrl}
+                        src={displayedCard.photoUrl}
                         alt=""
                         width={64}
                         height={64}
                         style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }}
                       />
                       <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
-                        {currentCard.firstName} {currentCard.lastName}
+                        {displayedCard.firstName} {displayedCard.lastName}
                       </span>
                     </>
                   ) : (
                     <>
                       <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
-                        {currentCard.firstName}
+                        {displayedCard.firstName}
                       </span>
                       <span style={{ fontSize: 14, color: '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
-                        {currentCard.lastName}
+                        {displayedCard.lastName}
                       </span>
                     </>
                   )}
