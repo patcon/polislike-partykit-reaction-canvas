@@ -239,7 +239,7 @@ export default function GreeterQuizMode({
                   {quizMode === 'image-name' && !reversed && (
                     <>
                       <img src={currentCard.photoUrl} alt="" width={120} height={120} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} />
-                      <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal</span>
+                      <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal first name</span>
                     </>
                   )}
                   {quizMode === 'image-name' && reversed && (
@@ -282,7 +282,7 @@ export default function GreeterQuizMode({
                     <>
                       <img src={currentCard.photoUrl} alt="" width={64} height={64} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} />
                       <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
-                        {currentCard.firstName} {currentCard.lastName}
+                        {currentCard.firstName}
                       </span>
                     </>
                   )}
