@@ -51,64 +51,64 @@ export default function GreeterQuizMode({
     );
 
   const [queue, setQueue] = useState<Attendee[]>(() => buildDeck(quizMode, hideDefaultAvatars));
-  // displayedCard lags behind queue[0] so the flip-back shows the old card's answer face
-  const [displayedCard, setDisplayedCard] = useState<Attendee | null>(() => buildDeck(quizMode, hideDefaultAvatars)[0] ?? null);
   const [isFlipped, setIsFlipped] = useState(false);
   const initialDeckSize = useRef(queue.length);
-  const flipTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flipperRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => () => { if (flipTimer.current) clearTimeout(flipTimer.current); }, []);
-
-  const scheduleCardSwap = (nextCard: Attendee | null) => {
-    if (flipTimer.current) clearTimeout(flipTimer.current);
-    flipTimer.current = setTimeout(() => setDisplayedCard(nextCard), FLIP_MS + 20);
+  const snapToFront = () => {
+    // Instantly reset the card to front-facing without any animation,
+    // so the old answer is never visible during a reverse "flip"
+    const el = flipperRef.current;
+    if (el) {
+      el.style.transition = 'none';
+      el.style.transform = 'rotateY(0deg)';
+    }
+    setIsFlipped(false);
+    // Re-enable the transition after the browser has painted the snapped position
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (flipperRef.current) {
+        flipperRef.current.style.transition = `transform ${FLIP_MS}ms ease`;
+        flipperRef.current.style.transform = '';
+      }
+    }));
   };
 
-  const isDone = queue.length === 0 && displayedCard === null;
+  const handleAnswer = (nextQueue: Attendee[]) => {
+    snapToFront();
+    setQueue(nextQueue);
+  };
 
   const handleAgain = () => {
     const [head, ...rest] = queue;
     const insertAt = Math.min(3, rest.length);
-    const next = [...rest.slice(0, insertAt), head, ...rest.slice(insertAt)];
-    setQueue(next);
-    scheduleCardSwap(next[0] ?? null);
-    setIsFlipped(false);
+    handleAnswer([...rest.slice(0, insertAt), head, ...rest.slice(insertAt)]);
   };
 
   const handleHard = () => {
     const [head, ...rest] = queue;
-    const next = [...rest, head];
-    setQueue(next);
-    scheduleCardSwap(next[0] ?? null);
-    setIsFlipped(false);
+    handleAnswer([...rest, head]);
   };
 
   const handleGood = () => {
-    if (!displayedCard) return;
-    onMemorize(displayedCard.slugId);
-    const [, ...rest] = queue;
-    setQueue(rest);
-    scheduleCardSwap(rest[0] ?? null);
-    setIsFlipped(false);
+    const card = queue[0];
+    if (!card) return;
+    onMemorize(card.slugId);
+    handleAnswer(queue.slice(1));
+  };
+
+  const resetDeck = (newQueue: Attendee[]) => {
+    initialDeckSize.current = newQueue.length;
+    snapToFront();
+    setQueue(newQueue);
   };
 
   const handleModeChange = (mode: QuizMode) => {
-    const newQueue = buildDeck(mode, hideDefaultAvatars);
-    initialDeckSize.current = newQueue.length;
-    setQueue(newQueue);
-    setDisplayedCard(newQueue[0] ?? null);
-    if (flipTimer.current) clearTimeout(flipTimer.current);
-    setIsFlipped(false);
+    resetDeck(buildDeck(mode, hideDefaultAvatars));
     onQuizModeChange(mode);
   };
 
   const handleHideDefaultAvatarsChange = (val: boolean) => {
-    const newQueue = buildDeck(quizMode, val);
-    initialDeckSize.current = newQueue.length;
-    setQueue(newQueue);
-    setDisplayedCard(newQueue[0] ?? null);
-    if (flipTimer.current) clearTimeout(flipTimer.current);
-    setIsFlipped(false);
+    resetDeck(buildDeck(quizMode, val));
     onHideDefaultAvatarsChange(val);
   };
 
@@ -116,6 +116,9 @@ export default function GreeterQuizMode({
   useEffect(() => {
     setQueue(q => q.filter(a => !memorizedIds.has(a.slugId)));
   }, [memorizedIds]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const currentCard = queue[0] ?? null;
+  const isDone = queue.length === 0;
 
   const btnBase: React.CSSProperties = {
     border: 'none',
@@ -135,7 +138,6 @@ export default function GreeterQuizMode({
 
       {/* Toolbar */}
       <div style={{ padding: '10px 16px', borderBottom: '1px solid #1a1a1a', flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-        {/* Mode toggle */}
         <div style={{ display: 'flex', border: '1px solid #333', borderRadius: 20, overflow: 'hidden', flexShrink: 0 }}>
           <button
             onClick={() => handleModeChange('image-name')}
@@ -151,7 +153,6 @@ export default function GreeterQuizMode({
           </button>
         </div>
 
-        {/* Hide default avatars */}
         {quizMode === 'image-name' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 11, color: '#666', cursor: 'pointer', flexShrink: 0 }}>
             <input
@@ -164,7 +165,6 @@ export default function GreeterQuizMode({
           </label>
         )}
 
-        {/* Exit */}
         <button
           onClick={onExit}
           style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 12, fontFamily: 'monospace', marginLeft: 'auto', padding: '4px 8px', flexShrink: 0 }}
@@ -187,21 +187,24 @@ export default function GreeterQuizMode({
               Back to list
             </button>
           </div>
-        ) : displayedCard ? (
+        ) : currentCard ? (
           <>
-            {/* Flip card */}
+            {/* Flip card — only animates forward (tap to reveal); answer snaps instantly back */}
             <div
               onClick={() => !isFlipped && setIsFlipped(true)}
               style={{ width: 240, height: 280, perspective: '600px', cursor: isFlipped ? 'default' : 'pointer', flexShrink: 0 }}
             >
-              <div style={{
-                width: '100%',
-                height: '100%',
-                position: 'relative',
-                transformStyle: 'preserve-3d',
-                transition: `transform ${FLIP_MS}ms ease`,
-                transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
-              }}>
+              <div
+                ref={flipperRef}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  position: 'relative',
+                  transformStyle: 'preserve-3d',
+                  transition: `transform ${FLIP_MS}ms ease`,
+                  transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+                }}
+              >
                 {/* Front */}
                 <div style={{
                   position: 'absolute',
@@ -220,7 +223,7 @@ export default function GreeterQuizMode({
                   {quizMode === 'image-name' ? (
                     <>
                       <img
-                        src={displayedCard.photoUrl}
+                        src={currentCard.photoUrl}
                         alt=""
                         width={120}
                         height={120}
@@ -230,7 +233,7 @@ export default function GreeterQuizMode({
                     </>
                   ) : (
                     <>
-                      <span style={{ fontSize: 28, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{displayedCard.lastName}</span>
+                      <span style={{ fontSize: 28, fontWeight: 700, color: '#ddd', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>{currentCard.lastName}</span>
                       <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal first name</span>
                     </>
                   )}
@@ -255,23 +258,23 @@ export default function GreeterQuizMode({
                   {quizMode === 'image-name' ? (
                     <>
                       <img
-                        src={displayedCard.photoUrl}
+                        src={currentCard.photoUrl}
                         alt=""
                         width={64}
                         height={64}
                         style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }}
                       />
                       <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
-                        {displayedCard.firstName} {displayedCard.lastName}
+                        {currentCard.firstName} {currentCard.lastName}
                       </span>
                     </>
                   ) : (
                     <>
                       <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
-                        {displayedCard.firstName}
+                        {currentCard.firstName}
                       </span>
                       <span style={{ fontSize: 14, color: '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
-                        {displayedCard.lastName}
+                        {currentCard.lastName}
                       </span>
                     </>
                   )}
@@ -281,24 +284,9 @@ export default function GreeterQuizMode({
 
             {/* Answer buttons */}
             <div style={{ display: 'flex', gap: 10, flexShrink: 0 }}>
-              <button
-                onClick={handleAgain}
-                style={{ ...btnBase, background: '#3a1010', color: '#e88' }}
-              >
-                Again
-              </button>
-              <button
-                onClick={handleHard}
-                style={{ ...btnBase, background: '#2a1e00', color: '#c96' }}
-              >
-                Hard
-              </button>
-              <button
-                onClick={handleGood}
-                style={{ ...btnBase, background: '#0e2a18', color: '#5c8' }}
-              >
-                Good
-              </button>
+              <button onClick={handleAgain} style={{ ...btnBase, background: '#3a1010', color: '#e88' }}>Again</button>
+              <button onClick={handleHard}  style={{ ...btnBase, background: '#2a1e00', color: '#c96' }}>Hard</button>
+              <button onClick={handleGood}  style={{ ...btnBase, background: '#0e2a18', color: '#5c8' }}>Good</button>
             </div>
           </>
         ) : null}
