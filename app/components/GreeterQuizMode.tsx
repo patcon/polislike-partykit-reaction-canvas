@@ -1,5 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 
+function shuffle<T>(arr: T[]): T[] {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
 interface Attendee {
   slugId: string;
   firstName: string;
@@ -35,9 +44,11 @@ export default function GreeterQuizMode({
   onHideDefaultAvatarsChange,
 }: GreeterQuizModeProps) {
   const buildDeck = (mode: QuizMode, hideDefault: boolean) =>
-    attendees
-      .filter(a => !memorizedIds.has(a.slugId))
-      .filter(a => mode !== 'image-name' || !hideDefault || a.hasRealPhoto);
+    shuffle(
+      attendees
+        .filter(a => !memorizedIds.has(a.slugId))
+        .filter(a => mode !== 'image-name' || !hideDefault || a.hasRealPhoto)
+    );
 
   const [queue, setQueue] = useState<Attendee[]>(() => buildDeck(quizMode, hideDefaultAvatars));
   // displayedCard lags behind queue[0] so the flip-back shows the old card's answer face
