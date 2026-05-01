@@ -359,7 +359,7 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
 
       {/* Quiz button: sticky footer, only in list mode with attendees loaded */}
       {!quizActive && attendeeStatus === 'idle' && attendees.length > 0 && (
-        <div style={{ flexShrink: 0, padding: '10px 20px', borderTop: '1px solid #1a1a1a' }}>
+        <div style={{ flexShrink: 0, padding: '10px 20px 24px', borderTop: '1px solid #1a1a1a' }}>
           <button
             onClick={() => setQuizActive(true)}
             style={{ width: '100%', background: '#1a1a1a', border: '1px solid #333', borderRadius: 6, color: '#aaa', cursor: 'pointer', fontFamily: 'monospace', fontSize: 13, padding: '8px 16px' }}
