@@ -206,6 +206,19 @@ interface RecordInvitationsEvent {
   edges: Array<[string, string]>; // [inviterId, inviteeId]
 }
 
+interface PersistedState {
+  roomLabels: { positive: string; negative: string; neutral: string } | null;
+  roomAnchors: ReactionAnchors | null;
+  roomAvatarStyle: string | null;
+  currentActivity: ActivityMode;
+  roomImageUrl: string;
+  nowLabel: string;
+  roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
+  greeterConfig: { eventUrl: string } | null;
+  userCap: number | null;
+  inviteEdges: [string, string][];
+}
+
 type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
@@ -300,6 +313,42 @@ export default class Server implements Party.Server {
   // ===== END GHOST CURSOR DEMO CODE =====
 
   constructor(readonly room: Party.Room) {}
+
+  private get persistenceEnabled(): boolean {
+    return this.room.env.DISABLE_STORAGE_PERSISTENCE !== 'true';
+  }
+
+  async onStart() {
+    if (!this.persistenceEnabled) return;
+    const saved = await this.room.storage.get<PersistedState>("state");
+    if (!saved) return;
+    if (saved.roomLabels        !== undefined) this.roomLabels        = saved.roomLabels;
+    if (saved.roomAnchors       !== undefined) this.roomAnchors       = saved.roomAnchors;
+    if (saved.roomAvatarStyle   !== undefined) this.roomAvatarStyle   = saved.roomAvatarStyle;
+    if (saved.currentActivity   !== undefined) this.currentActivity   = saved.currentActivity;
+    if (saved.roomImageUrl      !== undefined) this.roomImageUrl      = saved.roomImageUrl;
+    if (saved.nowLabel          !== undefined) this.nowLabel          = saved.nowLabel;
+    if (saved.roomSocialConfig  !== undefined) this.roomSocialConfig  = saved.roomSocialConfig;
+    if (saved.greeterConfig     !== undefined) this.greeterConfig     = saved.greeterConfig;
+    if (saved.userCap           !== undefined) this.userCap           = saved.userCap;
+    if (saved.inviteEdges       !== undefined) this.inviteEdges       = new Map(saved.inviteEdges);
+  }
+
+  private async persistState(): Promise<void> {
+    if (!this.persistenceEnabled) return;
+    await this.room.storage.put<PersistedState>("state", {
+      roomLabels:        this.roomLabels,
+      roomAnchors:       this.roomAnchors,
+      roomAvatarStyle:   this.roomAvatarStyle,
+      currentActivity:   this.currentActivity,
+      roomImageUrl:      this.roomImageUrl,
+      nowLabel:          this.nowLabel,
+      roomSocialConfig:  this.roomSocialConfig,
+      greeterConfig:     this.greeterConfig,
+      userCap:           this.userCap,
+      inviteEdges:       Array.from(this.inviteEdges.entries()),
+    });
+  }
 
   private participantCount(): number {
     return new Set(
@@ -519,14 +568,18 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setRoomLabels') {
         this.roomLabels = event.labels;
         this.room.broadcast(JSON.stringify({ type: 'roomLabelsChanged', labels: this.roomLabels }));
+        void this.persistState();
       } else if (event.type === 'setRoomAnchors') {
         this.roomAnchors = event.anchors;
         this.room.broadcast(JSON.stringify({ type: 'roomAnchorsChanged', anchors: this.roomAnchors }));
+        void this.persistState();
       } else if (event.type === 'setRoomAvatarStyle') {
         this.roomAvatarStyle = event.avatarStyle;
         this.room.broadcast(JSON.stringify({ type: 'roomAvatarStyleChanged', avatarStyle: this.roomAvatarStyle }));
+        void this.persistState();
       } else if (event.type === 'setActivity') {
         this.currentActivity = event.activity;
+        void this.persistState();
         if (event.activity === 'soccer') {
           this.startSoccerPhysics();
         } else {
@@ -541,9 +594,11 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setNowLabel') {
         this.nowLabel = event.label;
         this.room.broadcast(JSON.stringify({ type: 'nowLabelChanged', label: this.nowLabel }));
+        void this.persistState();
       } else if (event.type === 'setImageUrl') {
         this.roomImageUrl = event.url;
         this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
+        void this.persistState();
       } else if (event.type === 'resetSoccerScore') {
         this.soccerScore = { left: 0, right: 0 };
         this.room.broadcast(JSON.stringify({ type: 'goalScored', score: this.soccerScore }));
@@ -551,6 +606,7 @@ export default class Server implements Party.Server {
         if (!this.adminConnectionIds.has(sender.id)) return;
         this.userCap = event.cap;
         this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
+        void this.persistState();
       } else if (event.type === 'triggerActivity') {
         const msg = JSON.stringify({ type: 'activityTriggered', activityName: event.activityName });
         const hasTarget = event.targetUserId !== undefined || event.targetRegion !== undefined || event.targetUserIds !== undefined;
@@ -575,9 +631,11 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setSocialConfig') {
         this.roomSocialConfig = event.config;
         this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
+        void this.persistState();
       } else if (event.type === 'setGreeterConfig') {
         this.greeterConfig = event.config;
         this.room.broadcast(JSON.stringify({ type: 'greeterConfigChanged', config: this.greeterConfig }));
+        void this.persistState();
       } else if (event.type === 'requestJoin') {
         if (!this.viewerConnectionIds.has(sender.id)) return;
         if (this.userCap !== null && this.participantCount() >= this.userCap) {
@@ -620,6 +678,7 @@ export default class Server implements Party.Server {
         }
         if (newEdges.length > 0) {
           this.room.broadcast(JSON.stringify({ type: 'inviteEdges', edges: newEdges }));
+          void this.persistState();
         }
       }
     } catch (e) {
