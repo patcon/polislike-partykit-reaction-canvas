@@ -135,32 +135,36 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
             {activeTab === 'share' && (
               <QRWithCopy url={url} />
             )}
-            {activeTab === 'scan' && cameraState === 'active' && !foreignDomain && (
+            {activeTab === 'scan' && (
               <div className="share-qr-scanner-wrap">
-                <Scanner
-                  onScan={handleScanResult}
-                  onError={() => setCameraState('error')}
-                  sound={false}
-                  styles={{ container: { width: '100%', borderRadius: 12 } }}
-                />
+                {cameraState === 'active' && !foreignDomain && (
+                  <Scanner
+                    onScan={handleScanResult}
+                    onError={() => setCameraState('error')}
+                    sound={false}
+                    styles={{ container: { width: '100%', borderRadius: 12 } }}
+                  />
+                )}
+                {foreignDomain && (
+                  <div className="share-qr-foreign-warn">
+                    <p className="share-qr-foreign-warn-text">
+                      This QR code points to a different site:
+                    </p>
+                    <p className="share-qr-foreign-warn-domain">{foreignDomain}</p>
+                    <button
+                      className="share-qr-modal-close"
+                      onClick={() => setForeignDomain(null)}
+                    >
+                      Scan again
+                    </button>
+                  </div>
+                )}
+                {cameraState === 'error' && (
+                  <div className="share-qr-foreign-warn">
+                    <p className="share-qr-scan-error">Camera unavailable. Check permissions.</p>
+                  </div>
+                )}
               </div>
-            )}
-            {activeTab === 'scan' && foreignDomain && (
-              <div className="share-qr-foreign-warn">
-                <p className="share-qr-foreign-warn-text">
-                  This QR code points to a different site:
-                </p>
-                <p className="share-qr-foreign-warn-domain">{foreignDomain}</p>
-                <button
-                  className="share-qr-modal-close"
-                  onClick={() => setForeignDomain(null)}
-                >
-                  Scan again
-                </button>
-              </div>
-            )}
-            {activeTab === 'scan' && cameraState === 'error' && (
-              <p className="share-qr-scan-error">Camera unavailable. Check permissions.</p>
             )}
             <button className="share-qr-modal-close" onClick={handleClose}>Close</button>
           </div>

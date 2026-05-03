@@ -1709,6 +1709,8 @@ body {
   border-radius: 12px;
   overflow: hidden;
   background: #000;
+  display: flex;
+  align-items: stretch;
 }
 
 .share-qr-scan-error {
@@ -1723,9 +1725,11 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 16px 0;
+  justify-content: center;
+  gap: 12px;
   width: 100%;
+  padding: 16px;
+  box-sizing: border-box;
 }
 
 .share-qr-foreign-warn-text {
