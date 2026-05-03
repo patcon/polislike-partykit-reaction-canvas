@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import AdminPanelV5 from "./AdminPanelV5";
@@ -12,6 +11,7 @@ import { insertEvent, fetchEvents, isSupabaseConfigured, testConnection } from "
 import type { ReactionEvent } from "../lib/supabase";
 import { getPersistentUserId } from "../utils/userId";
 import ShareQRButton from "./ShareQRButton";
+import QRWithCopy from "./QRWithCopy";
 
 declare global {
   interface Window {
@@ -74,10 +74,7 @@ function MobileOnlyGate() {
       <div className="v2-mobile-gate-content">
         <p className="v2-mobile-gate-message">This experience is designed for mobile touch devices.</p>
         <p className="v2-mobile-gate-sub">Scan the QR code on your phone to open this page:</p>
-        <div className="v2-mobile-gate-qr">
-          <QRCodeSVG value={url} size={220} />
-        </div>
-        <p className="v2-mobile-gate-url">{url}</p>
+        <QRWithCopy url={url} urlClassName="v2-mobile-gate-url" />
       </div>
       <a href={bypassHref} className="v2-mobile-gate-bypass">bypass</a>
     </div>

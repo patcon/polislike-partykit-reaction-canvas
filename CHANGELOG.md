@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Added
+- All QR displays: **copy-to-clipboard button** beside the URL text — one tap copies the URL with a 2-second checkmark confirmation; falls back to `execCommand` for iOS Safari / HTTP contexts.
+- V4 canvas QR popup: **Share / Scan tab switcher** — Share tab shows the existing QR code and copy button; Scan tab opens the device camera to scan a QR code and navigate to the scanned URL in-place. Camera permission is requested lazily when the Scan tab is opened and released on close.
 - Server: **persistent social config** — `roomSocialConfig` is now saved to PartyKit durable storage and restored on worker restart. Opt out per deployment with `DISABLE_STORAGE_PERSISTENCE=true`.
 - Greeter config modal now pre-fills with `https://guild.host/civic-tech-toronto` when no config is set.
 

@@ -1635,6 +1635,90 @@ body {
   color: #fff;
 }
 
+.qr-url-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  justify-content: center;
+}
+
+.qr-copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #555;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.qr-copy-btn:hover {
+  color: #aaa;
+}
+
+.qr-copy-btn--copied {
+  color: #4caf50;
+}
+
+.index-qr .qr-copy-btn {
+  color: #bbb;
+}
+
+.index-qr .qr-copy-btn:hover {
+  color: #666;
+}
+
+.share-qr-tab-bar {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #333;
+  width: 100%;
+}
+
+.share-qr-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 0;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  font-family: monospace;
+}
+
+.share-qr-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ccc;
+}
+
+.share-qr-tab-btn--active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.share-qr-scanner-wrap {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+.share-qr-scan-error {
+  color: #e57373;
+  font-size: 13px;
+  text-align: center;
+  padding: 16px 0;
+  font-family: monospace;
+}
+
 .github-modal-login {
   color: #888;
   font-size: 13px;

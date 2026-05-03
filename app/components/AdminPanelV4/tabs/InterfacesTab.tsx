@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import { IoMdSettings } from "react-icons/io";
+import QRWithCopy from '../../QRWithCopy';
 import type { ActivityMode } from "../../../types";
 import { appendSelfToChain } from "../../../utils/inviteChain";
 
@@ -160,10 +160,7 @@ export default function InterfacesTab({
         <div className="share-qr-modal" onClick={() => setPatchInterface(null)}>
           <div className="share-qr-modal-card" onClick={e => e.stopPropagation()}>
             <p className="share-qr-modal-title">{ROWS.find(r => r.id === patchInterface)?.label} — add without push</p>
-            <div className="v2-mobile-gate-qr">
-              <QRCodeSVG value={patchUrl} size={220} />
-            </div>
-            <p className="share-qr-modal-url">{patchUrl}</p>
+            <QRWithCopy url={patchUrl} />
             <button className="share-qr-modal-close" onClick={() => setPatchInterface(null)}>Close</button>
           </div>
         </div>
