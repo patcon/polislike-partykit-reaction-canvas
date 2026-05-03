@@ -1719,6 +1719,36 @@ body {
   font-family: monospace;
 }
 
+.share-qr-foreign-warn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px 0;
+  width: 100%;
+}
+
+.share-qr-foreign-warn-text {
+  color: #e57373;
+  font-size: 13px;
+  text-align: center;
+  margin: 0;
+  font-family: monospace;
+}
+
+.share-qr-foreign-warn-domain {
+  color: #888;
+  font-size: 12px;
+  font-family: monospace;
+  word-break: break-all;
+  text-align: center;
+  margin: 0;
+  padding: 6px 12px;
+  background: rgba(229, 115, 115, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(229, 115, 115, 0.25);
+}
+
 .github-modal-login {
   color: #888;
   font-size: 13px;
