@@ -206,6 +206,10 @@ interface RecordInvitationsEvent {
   edges: Array<[string, string]>; // [inviterId, inviteeId]
 }
 
+interface PersistedState {
+  roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
+}
+
 type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
@@ -300,6 +304,31 @@ export default class Server implements Party.Server {
   // ===== END GHOST CURSOR DEMO CODE =====
 
   constructor(readonly room: Party.Room) {}
+
+  private get persistenceEnabled(): boolean {
+    return this.room.env.DISABLE_STORAGE_PERSISTENCE !== 'true';
+  }
+
+  async onStart() {
+    if (!this.persistenceEnabled) return;
+    const saved = await this.room.storage.get<PersistedState>("state");
+    if (saved) this.applyPersistedState(saved);
+  }
+
+  private getPersistedState(): PersistedState {
+    return {
+      roomSocialConfig: this.roomSocialConfig,
+    };
+  }
+
+  private applyPersistedState(saved: Partial<PersistedState>): void {
+    if (saved.roomSocialConfig !== undefined) this.roomSocialConfig = saved.roomSocialConfig;
+  }
+
+  private async persistState(): Promise<void> {
+    if (!this.persistenceEnabled) return;
+    await this.room.storage.put<PersistedState>("state", this.getPersistedState());
+  }
 
   private participantCount(): number {
     return new Set(
@@ -575,6 +604,7 @@ export default class Server implements Party.Server {
       } else if (event.type === 'setSocialConfig') {
         this.roomSocialConfig = event.config;
         this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
+        void this.persistState();
       } else if (event.type === 'setGreeterConfig') {
         this.greeterConfig = event.config;
         this.room.broadcast(JSON.stringify({ type: 'greeterConfigChanged', config: this.greeterConfig }));
