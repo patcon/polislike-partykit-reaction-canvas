@@ -1638,6 +1638,7 @@ body {
   align-items: center;
   gap: 6px;
   width: 100%;
+  min-height: 26px;
 }
 
 .qr-url-row p {
@@ -1714,9 +1715,20 @@ body {
   color: #fff;
 }
 
+/* Same as .v2-mobile-gate-qr but without the margin-bottom that fights the modal flex gap */
+.share-qr-code-wrap {
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  line-height: 0;
+}
+
+
 .share-qr-scanner-wrap {
-  width: 100%;
-  aspect-ratio: 1;
+  width: 252px;
+  height: 252px;
+  max-width: 100%;
+  flex-shrink: 0;
   border-radius: 12px;
   overflow: hidden;
   background: #000;
