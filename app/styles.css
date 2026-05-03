@@ -763,7 +763,6 @@ body {
 .v2-mobile-gate-url {
   font-size: 12px;
   color: #666;
-  word-break: break-all;
   font-family: monospace;
 }
 
@@ -1614,7 +1613,6 @@ body {
 .share-qr-modal-url {
   font-size: 11px;
   color: #666;
-  word-break: break-all;
   font-family: monospace;
   margin: 0;
 }
@@ -1640,7 +1638,20 @@ body {
   align-items: center;
   gap: 6px;
   width: 100%;
-  justify-content: center;
+}
+
+.qr-url-row p {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  margin: 0;
+}
+
+.qr-url-row p::-webkit-scrollbar {
+  display: none;
 }
 
 .qr-copy-btn {
