@@ -321,33 +321,40 @@ export default class Server implements Party.Server {
   async onStart() {
     if (!this.persistenceEnabled) return;
     const saved = await this.room.storage.get<PersistedState>("state");
-    if (!saved) return;
-    if (saved.roomLabels        !== undefined) this.roomLabels        = saved.roomLabels;
-    if (saved.roomAnchors       !== undefined) this.roomAnchors       = saved.roomAnchors;
-    if (saved.roomAvatarStyle   !== undefined) this.roomAvatarStyle   = saved.roomAvatarStyle;
-    if (saved.currentActivity   !== undefined) this.currentActivity   = saved.currentActivity;
-    if (saved.roomImageUrl      !== undefined) this.roomImageUrl      = saved.roomImageUrl;
-    if (saved.nowLabel          !== undefined) this.nowLabel          = saved.nowLabel;
-    if (saved.roomSocialConfig  !== undefined) this.roomSocialConfig  = saved.roomSocialConfig;
-    if (saved.greeterConfig     !== undefined) this.greeterConfig     = saved.greeterConfig;
-    if (saved.userCap           !== undefined) this.userCap           = saved.userCap;
-    if (saved.inviteEdges       !== undefined) this.inviteEdges       = new Map(saved.inviteEdges);
+    if (saved) this.applyPersistedState(saved);
+  }
+
+  private getPersistedState(): PersistedState {
+    return {
+      roomLabels:       this.roomLabels,
+      roomAnchors:      this.roomAnchors,
+      roomAvatarStyle:  this.roomAvatarStyle,
+      currentActivity:  this.currentActivity,
+      roomImageUrl:     this.roomImageUrl,
+      nowLabel:         this.nowLabel,
+      roomSocialConfig: this.roomSocialConfig,
+      greeterConfig:    this.greeterConfig,
+      userCap:          this.userCap,
+      inviteEdges:      Array.from(this.inviteEdges.entries()),
+    };
+  }
+
+  private applyPersistedState(saved: Partial<PersistedState>): void {
+    if (saved.roomLabels       !== undefined) this.roomLabels       = saved.roomLabels;
+    if (saved.roomAnchors      !== undefined) this.roomAnchors      = saved.roomAnchors;
+    if (saved.roomAvatarStyle  !== undefined) this.roomAvatarStyle  = saved.roomAvatarStyle;
+    if (saved.currentActivity  !== undefined) this.currentActivity  = saved.currentActivity;
+    if (saved.roomImageUrl     !== undefined) this.roomImageUrl     = saved.roomImageUrl;
+    if (saved.nowLabel         !== undefined) this.nowLabel         = saved.nowLabel;
+    if (saved.roomSocialConfig !== undefined) this.roomSocialConfig = saved.roomSocialConfig;
+    if (saved.greeterConfig    !== undefined) this.greeterConfig    = saved.greeterConfig;
+    if (saved.userCap          !== undefined) this.userCap          = saved.userCap;
+    if (saved.inviteEdges      !== undefined) this.inviteEdges      = new Map(saved.inviteEdges);
   }
 
   private async persistState(): Promise<void> {
     if (!this.persistenceEnabled) return;
-    await this.room.storage.put<PersistedState>("state", {
-      roomLabels:        this.roomLabels,
-      roomAnchors:       this.roomAnchors,
-      roomAvatarStyle:   this.roomAvatarStyle,
-      currentActivity:   this.currentActivity,
-      roomImageUrl:      this.roomImageUrl,
-      nowLabel:          this.nowLabel,
-      roomSocialConfig:  this.roomSocialConfig,
-      greeterConfig:     this.greeterConfig,
-      userCap:           this.userCap,
-      inviteEdges:       Array.from(this.inviteEdges.entries()),
-    });
+    await this.room.storage.put<PersistedState>("state", this.getPersistedState());
   }
 
   private participantCount(): number {
