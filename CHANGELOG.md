@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Added
-- Server: **persistent room config** — V4 room settings (labels, anchors, avatar style, activity, image URL, now label, social config, greeter config, user cap, invite edges) are now saved to PartyKit durable storage and restored on worker restart. Opt out per deployment with `DISABLE_STORAGE_PERSISTENCE=true`.
+- Server: **persistent social config** — `roomSocialConfig` is now saved to PartyKit durable storage and restored on worker restart. Opt out per deployment with `DISABLE_STORAGE_PERSISTENCE=true`.
+- Greeter config modal now pre-fills with `https://guild.host/civic-tech-toronto` when no config is set.
 
 ### Fixed
 - V4: admin-triggered popups (interface offer, GitHub username, feedback stars, haptic modal) now appear for participants even when they are viewing a non-canvas interface (Social, Greeter, etc.) — modals were previously hidden because they rendered inside a `display: none` canvas container.
