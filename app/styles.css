@@ -1638,7 +1638,7 @@ body {
   align-items: center;
   gap: 6px;
   width: 100%;
-  min-height: 26px;
+  min-height: 18px;
 }
 
 .qr-url-row p {
@@ -1726,14 +1726,10 @@ body {
 
 .share-qr-scanner-wrap {
   width: 252px;
-  height: 252px;
-  max-width: 100%;
-  flex-shrink: 0;
+  aspect-ratio: 1;
   border-radius: 12px;
   overflow: hidden;
   background: #000;
-  display: flex;
-  align-items: stretch;
 }
 
 .share-qr-scan-error {
