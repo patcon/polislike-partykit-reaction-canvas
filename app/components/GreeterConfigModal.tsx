@@ -8,7 +8,7 @@ interface GreeterConfigModalProps {
 }
 
 export default function GreeterConfigModal({ onSubmit, onClose, current }: GreeterConfigModalProps) {
-  const [eventUrl, setEventUrl] = useState(current?.eventUrl ?? '');
+  const [eventUrl, setEventUrl] = useState(current?.eventUrl ?? 'https://guild.host/civic-tech-toronto');
 
   const handleSave = () => {
     onSubmit({ eventUrl });
