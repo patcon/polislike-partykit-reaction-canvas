@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { appendSelfToChain } from "../utils/inviteChain";
 import QRWithCopy from "./QRWithCopy";
@@ -15,6 +15,34 @@ function getShareUrl(selfId?: string, selfChain?: string[]): string {
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
 }
 
+// Short filtered noise burst — same technique as web-haptics desktop audio fallback.
+// AudioContext must already be initialized (within a prior user gesture).
+function playConfirmClick(ctx: AudioContext) {
+  const duration = 0.004;
+  const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < data.length; i++) {
+    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / 25);
+  }
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 3000 + Math.random() * 500;
+  filter.Q.value = 8;
+
+  const gain = ctx.createGain();
+  gain.gain.value = 0.4;
+
+  filter.connect(gain);
+  gain.connect(ctx.destination);
+
+  const source = ctx.createBufferSource();
+  source.buffer = buffer;
+  source.connect(filter);
+  source.onended = () => source.disconnect();
+  source.start();
+}
+
 interface ShareQRButtonProps {
   selfId?: string;
   selfChain?: string[];
@@ -24,11 +52,23 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'share' | 'scan'>('share');
   const [cameraState, setCameraState] = useState<'idle' | 'active' | 'error'>('idle');
+  // Initialized within the Scan tab click gesture so it's unlocked for later playback
+  const audioCtxRef = useRef<AudioContext | null>(null);
   const url = getShareUrl(selfId, selfChain);
 
   const handleTabChange = (tab: 'share' | 'scan') => {
     setActiveTab(tab);
-    setCameraState(tab === 'scan' ? 'active' : 'idle');
+    if (tab === 'scan') {
+      setCameraState('active');
+      // Initialize AudioContext within the user gesture so it's pre-unlocked for scan feedback
+      if (!audioCtxRef.current && typeof AudioContext !== 'undefined') {
+        audioCtxRef.current = new AudioContext();
+      } else if (audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+    } else {
+      setCameraState('idle');
+    }
   };
 
   const handleClose = () => {
@@ -42,10 +82,17 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
     if (!raw) return;
     try {
       const scanned = new URL(raw);
-      if (scanned.protocol === 'http:' || scanned.protocol === 'https:') {
-        window.location.href = raw;
-      }
-    } catch { /* not a URL */ }
+      if (scanned.protocol !== 'http:' && scanned.protocol !== 'https:') return;
+    } catch { return; }
+
+    // Haptic on mobile; subtle click sound on desktop (web-haptics fallback technique)
+    if (navigator.vibrate) {
+      navigator.vibrate([50]);
+    } else if (audioCtxRef.current) {
+      playConfirmClick(audioCtxRef.current);
+    }
+
+    window.location.href = raw;
   };
 
   return (
@@ -84,6 +131,7 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
                 <Scanner
                   onScan={handleScanResult}
                   onError={() => setCameraState('error')}
+                  sound={false}
                   styles={{ container: { width: '100%', borderRadius: 12 } }}
                 />
               </div>
