@@ -99,7 +99,7 @@ async function fetchAttendeesByType(nodeId: string, attendance: Attendee['attend
       lastName: user.lastName,
       photoUrl,
       photoSource,
-      hasRealPhoto: user.primaryPhoto !== null,
+      hasRealPhoto: user.primaryPhoto !== null || gravatarUrl !== null,
       attendance,
     };
   });
