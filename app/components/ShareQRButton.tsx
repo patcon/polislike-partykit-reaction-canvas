@@ -26,7 +26,7 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
   const [activeTab, setActiveTab] = useState<'share' | 'scan'>('share');
   const [cameraState, setCameraState] = useState<'idle' | 'active' | 'error'>('idle');
   const [foreignDomain, setForeignDomain] = useState<string | null>(null);
-  const { trigger: triggerHaptic } = useWebHaptics();
+  const { trigger: triggerHaptic } = useWebHaptics({ debug: true });
   const url = getShareUrl(selfId, selfChain);
 
   const handleTabChange = (tab: 'share' | 'scan') => {
@@ -34,7 +34,6 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
     setForeignDomain(null);
     if (tab === 'scan') {
       setCameraState('active');
-      triggerHaptic(0); // pre-warm AudioContext within the user gesture
     } else {
       setCameraState('idle');
     }
