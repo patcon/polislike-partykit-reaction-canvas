@@ -11,35 +11,65 @@ const AVATAR_STYLES = [
   { id: 'thumbs', label: 'Thumbs' },
 ];
 
+// avatarStyle encoding:
+//   null          → dots, no custom overlay
+//   'bottts'      → DiceBear bottts, no custom overlay
+//   'custom'      → custom photos; dot fallback for unregistered users
+//   'custom+bottts' → custom photos; DiceBear fallback for unregistered users
+function parseAvatarStyle(avatarStyle: string | null): { isCustom: boolean; baseStyle: string | null } {
+  if (avatarStyle === 'custom') return { isCustom: true, baseStyle: null };
+  if (typeof avatarStyle === 'string' && avatarStyle.startsWith('custom+')) {
+    return { isCustom: true, baseStyle: avatarStyle.slice(7) };
+  }
+  return { isCustom: false, baseStyle: avatarStyle };
+}
+
+function buildAvatarStyle(isCustom: boolean, baseStyle: string | null): string | null {
+  if (!isCustom) return baseStyle;
+  return baseStyle ? `custom+${baseStyle}` : 'custom';
+}
+
 interface AvatarsTabProps {
   avatarStyle: string | null;
   sendAvatarStyle: (style: string | null) => void;
 }
 
 export default function AvatarsTab({ avatarStyle, sendAvatarStyle }: AvatarsTabProps) {
+  const { isCustom, baseStyle } = parseAvatarStyle(avatarStyle);
+
+  const handleCustomToggle = (checked: boolean) => {
+    sendAvatarStyle(buildAvatarStyle(checked, baseStyle));
+  };
+
+  const handleBaseChange = (style: string | null) => {
+    sendAvatarStyle(buildAvatarStyle(isCustom, style));
+  };
+
   return (
     <div>
       <p style={{ marginBottom: 4, fontWeight: 600 }}>Avatar style (shown to all participants):</p>
       <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Avatars are generated from each user's ID using <a href="https://www.dicebear.com" target="_blank" rel="noopener noreferrer" style={{ color: '#69f' }}>DiceBear</a>.</p>
+
+      <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: 20, padding: '10px 12px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 8 }}>
+        <input
+          type="checkbox"
+          checked={isCustom}
+          onChange={e => handleCustomToggle(e.target.checked)}
+          style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
+        />
+        <span style={{ fontSize: 13 }}>
+          <strong>Custom photos</strong> (e.g., Guild) — show scanned QR photos; fall back to style below
+        </span>
+      </label>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
           <input
             type="radio"
             name="avatarStyle"
-            value="custom"
-            checked={avatarStyle === 'custom'}
-            onChange={() => sendAvatarStyle('custom')}
-            style={{ marginRight: 4 }}
-          />
-          <span>Custom (e.g., Guild) — photos from scanned QR codes</span>
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
-          <input
-            type="radio"
-            name="avatarStyle"
             value=""
-            checked={avatarStyle === null}
-            onChange={() => sendAvatarStyle(null)}
+            checked={baseStyle === null}
+            onChange={() => handleBaseChange(null)}
             style={{ marginRight: 4 }}
           />
           <span style={{ color: '#aaa' }}>None (show colored dots)</span>
@@ -50,8 +80,8 @@ export default function AvatarsTab({ avatarStyle, sendAvatarStyle }: AvatarsTabP
               type="radio"
               name="avatarStyle"
               value={id}
-              checked={avatarStyle === id}
-              onChange={() => sendAvatarStyle(id)}
+              checked={baseStyle === id}
+              onChange={() => handleBaseChange(id)}
               style={{ marginRight: 4 }}
             />
             <img

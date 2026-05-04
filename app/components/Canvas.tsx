@@ -535,8 +535,12 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       .attr('class', 'cursor-group')
       .attr('opacity', (d: any) => isPlaybackCursor(d) ? 0.7 : 1.0);
 
-    if (avatarStyle === 'custom') {
+    const isCustomMode = avatarStyle === 'custom' || (typeof avatarStyle === 'string' && avatarStyle.startsWith('custom+'));
+    const customFallbackStyle = isCustomMode && avatarStyle !== 'custom' ? avatarStyle!.slice(7) : null;
+
+    if (isCustomMode) {
       const defs = svg.append('defs');
+      // Clip paths for users with custom photos
       cursorData.filter(d => customAvatars[d.cursorUserId]).forEach(d => {
         defs.append('clipPath')
           .attr('id', `avatar-clip-${d.cursorUserId}`)
@@ -545,23 +549,52 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           .attr('cy', d.y)
           .attr('r', cursorRadius);
       });
+      // Clip paths for fallback DiceBear (users without custom photos, when a base style is set)
+      if (customFallbackStyle) {
+        cursorData.filter(d => !customAvatars[d.cursorUserId]).forEach(d => {
+          defs.append('clipPath')
+            .attr('id', `avatar-clip-${d.cursorUserId}`)
+            .append('circle')
+            .attr('cx', d.x)
+            .attr('cy', d.y)
+            .attr('r', cursorRadius);
+        });
+      }
 
       const avatarSize = cursorRadius * 2;
-
-      // Dots for users without a custom photo
-      cursorGroups.filter((d: any) => !customAvatars[d.cursorUserId])
-        .append('circle')
-        .attr('cx', (d: any) => d.x)
-        .attr('cy', (d: any) => d.y)
-        .attr('r', cursorRadius)
-        .attr('fill', cursorColor)
-        .attr('stroke', (d: any) => isPlaybackCursor(d) ? 'hsl(270, 70%, 80%)' : '#000000')
-        .attr('stroke-width', 2)
-        .attr('stroke-dasharray', (d: any) => isPlaybackCursor(d) ? `${cursorRadius * 0.8} ${cursorRadius * 0.5}` : 'none');
-
-      // Custom photo for users with a registered avatar
+      const noPhotoGroups = cursorGroups.filter((d: any) => !customAvatars[d.cursorUserId]);
       const photoGroups = cursorGroups.filter((d: any) => !!customAvatars[d.cursorUserId]);
 
+      if (customFallbackStyle) {
+        // DiceBear fallback for unregistered users
+        noPhotoGroups.append('circle')
+          .attr('cx', (d: any) => d.x)
+          .attr('cy', (d: any) => d.y)
+          .attr('r', cursorRadius + 2)
+          .attr('fill', cursorColor)
+          .attr('stroke', '#000000')
+          .attr('stroke-width', 1.5);
+
+        noPhotoGroups.append('image')
+          .attr('href', (d: any) => `https://api.dicebear.com/9.x/${customFallbackStyle}/svg?seed=${encodeURIComponent(d.cursorUserId)}`)
+          .attr('x', (d: any) => d.x - cursorRadius)
+          .attr('y', (d: any) => d.y - cursorRadius)
+          .attr('width', avatarSize)
+          .attr('height', avatarSize)
+          .attr('clip-path', (d: any) => `url(#avatar-clip-${d.cursorUserId})`);
+      } else {
+        // Dot fallback for unregistered users
+        noPhotoGroups.append('circle')
+          .attr('cx', (d: any) => d.x)
+          .attr('cy', (d: any) => d.y)
+          .attr('r', cursorRadius)
+          .attr('fill', cursorColor)
+          .attr('stroke', (d: any) => isPlaybackCursor(d) ? 'hsl(270, 70%, 80%)' : '#000000')
+          .attr('stroke-width', 2)
+          .attr('stroke-dasharray', (d: any) => isPlaybackCursor(d) ? `${cursorRadius * 0.8} ${cursorRadius * 0.5}` : 'none');
+      }
+
+      // Custom photo for users with a registered avatar
       photoGroups.append('circle')
         .attr('cx', (d: any) => d.x)
         .attr('cy', (d: any) => d.y)
