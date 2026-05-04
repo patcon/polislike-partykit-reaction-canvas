@@ -300,7 +300,8 @@ export default function ReactionCanvasAppV4() {
             room={room}
             userId={userId}
             colorCursorsByVote={true}
-            disableValenceColors={activity === 'image-canvas'}
+            disableCursorValence={activity === 'image-canvas'}
+            disableBackgroundValence={activity === 'image-canvas'}
             currentReactionState={canvasBackgroundReactionState}
             heightOffset={chipBarOffset}
             onPresenceCount={setPresenceCount}
