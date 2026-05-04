@@ -8,6 +8,7 @@ interface Attendee {
   firstName: string;
   lastName: string;
   photoUrl: string;
+  photoSource: 'guild' | 'gravatar' | 'default';
   hasRealPhoto: boolean;
   attendance: 'in-person' | 'online';
 }
@@ -84,16 +85,24 @@ async function fetchAttendeesByType(nodeId: string, attendance: Attendee['attend
   if (!res.ok) throw new Error(`Guild API returned ${res.status}`);
   const json = await res.json();
   const key = attendance === 'in-person' ? 'inPersonAttendees' : 'onlineAttendees';
-  const edges: { node: { user: { slugId: string; firstName: string; lastName: string; primaryPhoto: { transformUrl: string } | null; defaultAvatarUrl: string } } }[] =
+  const edges: { node: { user: { slugId: string; firstName: string; lastName: string; primaryPhoto: { transformUrl: string } | null; defaultAvatarUrl: string; emailMd5: string | null } } }[] =
     json?.data?.node?.[key]?.edges ?? [];
-  return edges.map(({ node: { user } }) => ({
-    slugId: user.slugId,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    photoUrl: user.primaryPhoto?.transformUrl ?? user.defaultAvatarUrl,
-    hasRealPhoto: user.primaryPhoto !== null,
-    attendance,
-  }));
+  return edges.map(({ node: { user } }) => {
+    const gravatarUrl = user.emailMd5
+      ? `https://www.gravatar.com/avatar/${user.emailMd5}?s=128`
+      : null;
+    const photoUrl = user.primaryPhoto?.transformUrl ?? gravatarUrl ?? user.defaultAvatarUrl;
+    const photoSource: Attendee['photoSource'] = user.primaryPhoto ? 'guild' : gravatarUrl ? 'gravatar' : 'default';
+    return {
+      slugId: user.slugId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      photoUrl,
+      photoSource,
+      hasRealPhoto: user.primaryPhoto !== null,
+      attendance,
+    };
+  });
 }
 
 async function fetchAllAttendees(nodeId: string): Promise<Attendee[]> {
@@ -413,6 +422,11 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
               style={{ borderRadius: '50%', background: '#222' }}
             />
             <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#eee' }}>{selectedAttendee.firstName} {selectedAttendee.lastName}</p>
+            {selectedAttendee.photoSource !== 'default' && (
+              <p style={{ margin: 0, fontSize: 11, color: '#555' }}>
+                photo set via {selectedAttendee.photoSource === 'guild' ? 'Guild.host' : 'Gravatar'}
+              </p>
+            )}
             <QRWithCopy url={getAttendeeQrUrl(selectedAttendee)} size={180} />
             <button
               onClick={() => setSelectedAttendee(null)}
