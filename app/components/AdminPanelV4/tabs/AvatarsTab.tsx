@@ -26,6 +26,17 @@ export default function AvatarsTab({ avatarStyle, sendAvatarStyle }: AvatarsTabP
           <input
             type="radio"
             name="avatarStyle"
+            value="custom"
+            checked={avatarStyle === 'custom'}
+            onChange={() => sendAvatarStyle('custom')}
+            style={{ marginRight: 4 }}
+          />
+          <span>Custom (e.g., Guild) — photos from scanned QR codes</span>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
+          <input
+            type="radio"
+            name="avatarStyle"
             value=""
             checked={avatarStyle === null}
             onChange={() => sendAvatarStyle(null)}

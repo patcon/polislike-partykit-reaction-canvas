@@ -76,6 +76,10 @@ function getLabelsParamFromUrl(): string | undefined {
   return new URLSearchParams(window.location.search).get('labels') ?? undefined;
 }
 
+function getCustomPhotoFromUrl(): string | null {
+  return new URLSearchParams(window.location.search).get('customPhoto');
+}
+
 function MobileOnlyGate() {
   const url = window.location.href;
   const bypassHref = (() => { const p = new URLSearchParams(window.location.search); p.set('forceView', 'mobile'); return `?${p}${window.location.hash}`; })();
@@ -310,6 +314,10 @@ export default function ReactionCanvasAppV4() {
               const edges = chainToEdges(myChain);
               if (edges.length > 0) {
                 socketSendRef.current?.(JSON.stringify({ type: 'recordInvitations', edges }));
+              }
+              const customPhoto = getCustomPhotoFromUrl();
+              if (customPhoto) {
+                socketSendRef.current?.(JSON.stringify({ type: 'registerCustomAvatar', userId, photoUrl: customPhoto }));
               }
             }}
             onRoomLabelsChange={handleRoomLabelsChange}

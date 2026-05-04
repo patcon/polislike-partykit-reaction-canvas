@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
+## Week 24 (2026-05-04)
+
+### Added
+- Greeter: **Attendee QR popup** — clicking any attendee row shows a popup with a QR code that pre-fills `?customPhoto=` with their Guild profile photo URL. The admin shows this to the arriving attendee to scan.
+- Avatar tab: **Custom (e.g., Guild)** avatar mode — when selected, participants who have scanned a greeter QR code show their real photo on everyone's canvas; unregistered participants fall back to a colored dot.
+- Server: `registerCustomAvatar` message maps a `userId` to a `photoUrl` (session-only, not persisted). All clients receive `customAvatarsChanged` and render photos immediately.
+
 ## Week 23 (2026-04-27)
 
 ### Added

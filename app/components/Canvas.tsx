@@ -80,6 +80,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
+  const [customAvatars, setCustomAvatars] = useState<Record<string, string>>({}); // userId → photoUrl
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [imageUrl, setImageUrl] = useState('');
   const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
@@ -132,6 +133,9 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           if ('roomAvatarStyle' in data) {
             setAvatarStyle(data.roomAvatarStyle ?? null);
             onRoomAvatarStyleChange?.(data.roomAvatarStyle ?? null);
+          }
+          if ('customAvatars' in data && data.customAvatars) {
+            setCustomAvatars(Object.fromEntries(Object.entries(data.customAvatars).map(([uid, v]: [string, any]) => [uid, v.photoUrl ?? v])));
           }
           if ('currentActivity' in data) {
             const act = data.currentActivity ?? 'canvas';
@@ -203,6 +207,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         if (data.type === 'roomAvatarStyleChanged') {
           setAvatarStyle(data.avatarStyle ?? null);
           onRoomAvatarStyleChange?.(data.avatarStyle ?? null);
+          return;
+        }
+
+        if (data.type === 'customAvatarsChanged') {
+          setCustomAvatars(data.customAvatars ?? {});
           return;
         }
 
@@ -526,7 +535,49 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       .attr('class', 'cursor-group')
       .attr('opacity', (d: any) => isPlaybackCursor(d) ? 0.7 : 1.0);
 
-    if (avatarStyle) {
+    if (avatarStyle === 'custom') {
+      const defs = svg.append('defs');
+      cursorData.filter(d => customAvatars[d.cursorUserId]).forEach(d => {
+        defs.append('clipPath')
+          .attr('id', `avatar-clip-${d.cursorUserId}`)
+          .append('circle')
+          .attr('cx', d.x)
+          .attr('cy', d.y)
+          .attr('r', cursorRadius);
+      });
+
+      const avatarSize = cursorRadius * 2;
+
+      // Dots for users without a custom photo
+      cursorGroups.filter((d: any) => !customAvatars[d.cursorUserId])
+        .append('circle')
+        .attr('cx', (d: any) => d.x)
+        .attr('cy', (d: any) => d.y)
+        .attr('r', cursorRadius)
+        .attr('fill', cursorColor)
+        .attr('stroke', (d: any) => isPlaybackCursor(d) ? 'hsl(270, 70%, 80%)' : '#000000')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', (d: any) => isPlaybackCursor(d) ? `${cursorRadius * 0.8} ${cursorRadius * 0.5}` : 'none');
+
+      // Custom photo for users with a registered avatar
+      const photoGroups = cursorGroups.filter((d: any) => !!customAvatars[d.cursorUserId]);
+
+      photoGroups.append('circle')
+        .attr('cx', (d: any) => d.x)
+        .attr('cy', (d: any) => d.y)
+        .attr('r', cursorRadius + 2)
+        .attr('fill', cursorColor)
+        .attr('stroke', '#000000')
+        .attr('stroke-width', 1.5);
+
+      photoGroups.append('image')
+        .attr('href', (d: any) => customAvatars[d.cursorUserId])
+        .attr('x', (d: any) => d.x - cursorRadius)
+        .attr('y', (d: any) => d.y - cursorRadius)
+        .attr('width', avatarSize)
+        .attr('height', avatarSize)
+        .attr('clip-path', (d: any) => `url(#avatar-clip-${d.cursorUserId})`);
+    } else if (avatarStyle) {
       // Add clip paths to defs for circular avatar masking
       const defs = svg.append('defs');
       cursorData.forEach(d => {
@@ -578,7 +629,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .text((d: any) => d.cursorUserId.substring(0, 6));
     }
 
-  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
+  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, customAvatars, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
 
   // Handle window resize
   useEffect(() => {
