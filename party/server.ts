@@ -298,7 +298,7 @@ export default class Server implements Party.Server {
   private customAvatars = new Map<string, string>(); // userId -> photoUrl
   private colorCursorsByVote: boolean = true;
   private defaultCursorColor: string = '#969696';
-  private ownValenceDisplay: 'background' | 'labels' | 'none' = 'background';
+  private ownValenceDisplay: 'background' | 'labels' | 'none' = 'labels';
   private roomHost: string | null = null;
   private readonly BAT_SIGNAL_THRESHOLD = 3;
   private seenUserIds = new Set<string>();

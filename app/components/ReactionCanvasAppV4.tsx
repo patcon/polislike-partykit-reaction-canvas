@@ -139,7 +139,7 @@ export default function ReactionCanvasAppV4() {
   const [serverGreeterConfig, setServerGreeterConfig] = useState<GreeterConfig | null>(null);
   const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
-  const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('background');
+  const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);

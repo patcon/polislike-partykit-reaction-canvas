@@ -6,7 +6,7 @@ export function useRoomConfig(socket: PartySocket) {
   const [avatarStyle, setAvatarStyle]         = useState<string | null>(null);
   const [colorCursorsByVote, setColorCursorsByVote] = useState<boolean>(false);
   const [defaultCursorColor, setDefaultCursorColor] = useState<string>('#969696');
-  const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('background');
+  const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [activity, setActivity]               = useState<ActivityMode>('canvas');
   const [soccerScore, setSoccerScore]         = useState({ left: 0, right: 0 });
   const [imageConfigOpen, setImageConfigOpen] = useState(false);
