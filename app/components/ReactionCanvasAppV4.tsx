@@ -302,8 +302,9 @@ export default function ReactionCanvasAppV4() {
             onActiveCursorCountChange={setActiveCursorCount}
             onSimulatedCursorCountChange={setSimulatedCursorCount}
             onRecordingStateChange={setIsRecording}
-            onConnected={(initialInviteEdges) => {
+            onConnected={(initialInviteEdges, currentActivity) => {
               hasConnectedRef.current = true;
+              if (currentActivity) setActivity(currentActivity);
               if (initialInviteEdges) setInviteEdges(initialInviteEdges);
               const myChain = appendSelfToChain(selfChain, userId);
               const edges = chainToEdges(myChain);

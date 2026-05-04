@@ -49,7 +49,7 @@ interface CanvasProps {
   onActivityChange?: (activity: ActivityMode) => void;
   onSocialConfigChange?: (config: { default: string; twitter: string; bluesky: string; mastodon: string; instagram: string } | null) => void;
   onGreeterConfigChange?: (config: GreeterConfig | null) => void;
-  onConnected?: (initialInviteEdges?: Record<string, string>) => void;
+  onConnected?: (initialInviteEdges?: Record<string, string>, currentActivity?: ActivityMode) => void;
   onNowLabelChange?: (label: string) => void;
   onInviteEdges?: (edges: Record<string, string>) => void;
 }
@@ -136,7 +136,6 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           if ('currentActivity' in data) {
             const act = data.currentActivity ?? 'canvas';
             setActivity(act);
-            onActivityChange?.(act);
           }
           if ('roomImageUrl' in data) {
             const url = data.roomImageUrl ?? '';
@@ -154,7 +153,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           if ('greeterConfig' in data) onGreeterConfigChange?.(data.greeterConfig ?? null);
           onConnectedAsViewer?.(data.isViewer ?? false, data.userCap ?? null);
           onViewerCount?.(data.viewerCount ?? 0);
-          onConnected?.(data.inviteEdges ?? undefined);
+          onConnected?.(data.inviteEdges ?? undefined, 'currentActivity' in data ? (data.currentActivity ?? 'canvas') : undefined);
           return;
         }
 

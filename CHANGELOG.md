@@ -12,6 +12,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Fixed
 - V4: admin-triggered popups (interface offer, GitHub username, feedback stars, haptic modal) now appear for participants even when they are viewing a non-canvas interface (Social, Greeter, etc.) — modals were previously hidden because they rendered inside a `display: none` canvas container.
+- V4: stray haptic buzz no longer fires when a tab wakes from sleep or the server restarts — the `connected` re-sync no longer routes through `onActivityChange`; only genuine `activityChanged` events from the server trigger a buzz.
 
 ### Added
 - Greeter Quiz: **Reversed mode** — a "Reversed" checkbox flips which side is the prompt vs. the answer (name → photo for Image/Name; first name → last name for Last/First). Progress is tracked separately for each direction, so memorizing forward does not count as memorizing reversed.
