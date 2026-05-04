@@ -66,7 +66,9 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
 
     triggerHaptic('nudge');
 
-    window.location.href = raw;
+    const forceView = new URLSearchParams(window.location.search).get('forceView');
+    if (forceView) scanned.searchParams.set('forceView', forceView);
+    window.location.href = scanned.toString();
   };
 
   return (
