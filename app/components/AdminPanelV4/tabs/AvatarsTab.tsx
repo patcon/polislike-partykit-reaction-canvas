@@ -14,7 +14,6 @@ const AVATAR_STYLES = [
 ];
 
 const VALENCE_COLORS = ['rgba(0,255,0,0.8)', 'rgba(255,0,0,0.8)', 'rgba(255,255,0,0.8)'];
-const DOT_GREY = 'rgba(150,150,150,0.7)';
 
 // avatarStyle encoding:
 //   null            → dots, no custom overlay
@@ -39,9 +38,11 @@ interface AvatarsTabProps {
   sendAvatarStyle: (style: string | null) => void;
   colorCursorsByVote: boolean;
   sendColorCursorsByVote: (enabled: boolean) => void;
+  defaultCursorColor: string;
+  sendDefaultCursorColor: (color: string) => void;
 }
 
-export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsByVote, sendColorCursorsByVote }: AvatarsTabProps) {
+export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsByVote, sendColorCursorsByVote, defaultCursorColor, sendDefaultCursorColor }: AvatarsTabProps) {
   const { isCustom, baseStyle } = parseAvatarStyle(avatarStyle);
 
   const [valenceIdx, setValenceIdx] = useState(0);
@@ -50,7 +51,7 @@ export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsB
     const id = setInterval(() => setValenceIdx(i => (i + 1) % VALENCE_COLORS.length), 1000);
     return () => clearInterval(id);
   }, [colorCursorsByVote]);
-  const valencePreviewColor = colorCursorsByVote ? VALENCE_COLORS[valenceIdx] : DOT_GREY;
+  const valencePreviewColor = colorCursorsByVote ? VALENCE_COLORS[valenceIdx] : defaultCursorColor;
 
   const handleCustomToggle = (checked: boolean) => {
     sendAvatarStyle(buildAvatarStyle(checked, baseStyle));
@@ -88,6 +89,17 @@ export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsB
             <strong>Highlight valence</strong> when available — color cursors by reaction; grey otherwise
           </span>
         </label>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
+        <label style={{ fontSize: 13, color: '#aaa', flexShrink: 0 }}>Default color</label>
+        <input
+          type="color"
+          value={defaultCursorColor}
+          onChange={e => sendDefaultCursorColor(e.target.value)}
+          style={{ width: 36, height: 28, padding: 2, border: '1px solid #444', borderRadius: 4, background: 'none', cursor: 'pointer' }}
+        />
+        <span style={{ fontSize: 12, color: '#555', fontFamily: 'monospace' }}>{defaultCursorColor}</span>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

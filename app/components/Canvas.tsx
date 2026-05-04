@@ -82,6 +82,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
   const [customAvatars, setCustomAvatars] = useState<Record<string, string>>({}); // userId → photoUrl
   const [colorCursorsByVote, setColorCursorsByVote] = useState(colorCursorsByVoteProp);
+  const [defaultCursorColor, setDefaultCursorColor] = useState('#969696');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [imageUrl, setImageUrl] = useState('');
   const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
@@ -139,6 +140,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
             setCustomAvatars(Object.fromEntries(Object.entries(data.customAvatars).map(([uid, v]: [string, any]) => [uid, v.photoUrl ?? v])));
           }
           if ('colorCursorsByVote' in data) setColorCursorsByVote(data.colorCursorsByVote as boolean ?? colorCursorsByVoteProp);
+          if ('defaultCursorColor' in data && data.defaultCursorColor) setDefaultCursorColor(data.defaultCursorColor as string);
           if ('currentActivity' in data) {
             const act = data.currentActivity ?? 'canvas';
             setActivity(act);
@@ -219,6 +221,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
         if (data.type === 'colorCursorsByVoteChanged') {
           setColorCursorsByVote(data.colorCursorsByVote as boolean);
+          return;
+        }
+
+        if (data.type === 'defaultCursorColorChanged') {
+          setDefaultCursorColor(data.defaultCursorColor as string);
           return;
         }
 
@@ -531,7 +538,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           default: return 'rgba(128, 128, 128, 0.8)';
         }
       }
-      if (!colorCursorsByVote) return 'rgba(150, 150, 150, 0.7)';
+      if (!colorCursorsByVote) return defaultCursorColor;
       const hue = d.cursorUserId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 360;
       return `hsl(${hue}, 70%, 50%)`;
     };
@@ -670,7 +677,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .text((d: any) => d.cursorUserId.substring(0, 6));
     }
 
-  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, customAvatars, colorCursorsByVote, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
+  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, customAvatars, colorCursorsByVote, defaultCursorColor, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
 
   // Handle window resize
   useEffect(() => {

@@ -282,6 +282,8 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
             sendAvatarStyle={roomConfig.sendAvatarStyle}
             colorCursorsByVote={roomConfig.colorCursorsByVote}
             sendColorCursorsByVote={roomConfig.sendColorCursorsByVote}
+            defaultCursorColor={roomConfig.defaultCursorColor}
+            sendDefaultCursorColor={roomConfig.sendDefaultCursorColor}
           />
         )}
         {activeTab === 'interfaces' && (
