@@ -2,8 +2,8 @@ import "./styles.css";
 declare const PARTYKIT_EVENT_BUILD: boolean;
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
-import { QRCodeSVG } from "qrcode.react";
 import SimpleReactionCanvasAppV1 from "./components/SimpleReactionCanvasAppV1";
+import QRWithCopy from "./components/QRWithCopy";
 import ReactionCanvasAppV2 from "./components/ReactionCanvasAppV2";
 import ReactionCanvasAppV4 from "./components/ReactionCanvasAppV4";
 import ReactionCanvasAppV5 from "./components/ReactionCanvasAppV5";
@@ -15,8 +15,7 @@ function IndexApp() {
     <div className="index-app">
       <h1 className="index-title">Polislike Reaction Canvas Apps</h1>
       <div className="index-qr">
-        <QRCodeSVG value={pageUrl} size={120} />
-        <p className="index-qr-label">{pageUrl}</p>
+        <QRWithCopy url={pageUrl} size={120} urlClassName="index-qr-label" qrClassName="index-qr-code" />
       </div>
       <div className="app-cards">
         <a href="?room=irc6creOFGs#v5" className="app-card app-card--youtube">

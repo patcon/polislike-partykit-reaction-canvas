@@ -8,6 +8,7 @@ import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { getPersistentUserId } from "../utils/userId";
 import ShareQRButton from "./ShareQRButton";
+import QRWithCopy from "./QRWithCopy";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -41,10 +42,7 @@ function MobileOnlyGate() {
       <div className="v2-mobile-gate-content">
         <p className="v2-mobile-gate-message">This experience is designed for mobile touch devices.</p>
         <p className="v2-mobile-gate-sub">Scan the QR code on your phone to open this page:</p>
-        <div className="v2-mobile-gate-qr">
-          <QRCodeSVG value={url} size={220} />
-        </div>
-        <p className="v2-mobile-gate-url">{url}</p>
+        <QRWithCopy url={url} urlClassName="v2-mobile-gate-url" />
       </div>
       <a href={bypassHref} className="v2-mobile-gate-bypass">bypass</a>
     </div>

@@ -5,11 +5,14 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 23 (2026-04-27)
 
 ### Added
+- All QR displays: **copy-to-clipboard button** beside the URL text — one tap copies the URL with a 2-second checkmark confirmation; falls back to `execCommand` for iOS Safari / HTTP contexts.
+- V4 canvas QR popup: **Share / Scan tab switcher** — Share tab shows the existing QR code and copy button; Scan tab opens the device camera to scan a QR code and navigate to the scanned URL in-place. Camera permission is requested lazily when the Scan tab is opened and released on close.
 - Server: **persistent social config** — `roomSocialConfig` is now saved to PartyKit durable storage and restored on worker restart. Opt out per deployment with `DISABLE_STORAGE_PERSISTENCE=true`.
 - Greeter config modal now pre-fills with `https://guild.host/civic-tech-toronto` when no config is set.
 
 ### Fixed
 - V4: admin-triggered popups (interface offer, GitHub username, feedback stars, haptic modal) now appear for participants even when they are viewing a non-canvas interface (Social, Greeter, etc.) — modals were previously hidden because they rendered inside a `display: none` canvas container.
+- V4: stray haptic buzz no longer fires when a tab wakes from sleep or the server restarts — the `connected` re-sync no longer routes through `onActivityChange`; only genuine `activityChanged` events from the server trigger a buzz.
 
 ### Added
 - Greeter Quiz: **Reversed mode** — a "Reversed" checkbox flips which side is the prompt vs. the answer (name → photo for Image/Name; first name → last name for Last/First). Progress is tracked separately for each direction, so memorizing forward does not count as memorizing reversed.

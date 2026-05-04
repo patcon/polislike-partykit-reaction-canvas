@@ -1,6 +1,9 @@
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { Scanner } from "@yudiel/react-qr-scanner";
+import { WebHaptics } from "web-haptics";
+import { useWebHaptics } from "web-haptics/react";
 import { appendSelfToChain } from "../utils/inviteChain";
+import QRWithCopy from "./QRWithCopy";
 
 function getShareUrl(selfId?: string, selfChain?: string[]): string {
   const p = new URLSearchParams(window.location.search);
@@ -21,7 +24,52 @@ interface ShareQRButtonProps {
 
 export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<'share' | 'scan'>('share');
+  const [cameraState, setCameraState] = useState<'idle' | 'active' | 'error'>('idle');
+  const [foreignDomain, setForeignDomain] = useState<string | null>(null);
+  // Enable audio fallback on desktop (no touch) and Apple devices (no navigator.vibrate API)
+  const { trigger: triggerHaptic } = useWebHaptics({ debug: navigator.maxTouchPoints === 0 || !WebHaptics.isSupported });
   const url = getShareUrl(selfId, selfChain);
+
+  const handleTabChange = (tab: 'share' | 'scan') => {
+    setActiveTab(tab);
+    setForeignDomain(null);
+    if (tab === 'scan') {
+      setCameraState('active');
+    } else {
+      setCameraState('idle');
+    }
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    setActiveTab('share');
+    setCameraState('idle');
+    setForeignDomain(null);
+  };
+
+  const handleScanResult = (codes: { rawValue: string }[]) => {
+    if (foreignDomain) return;
+    const raw = codes[0]?.rawValue;
+    if (!raw) return;
+    let scanned: URL;
+    try {
+      scanned = new URL(raw);
+      if (scanned.protocol !== 'http:' && scanned.protocol !== 'https:') return;
+    } catch { return; }
+
+    if (scanned.hostname !== window.location.hostname) {
+      setForeignDomain(scanned.hostname);
+      triggerHaptic('error');
+      return;
+    }
+
+    triggerHaptic('nudge');
+
+    const forceView = new URLSearchParams(window.location.search).get('forceView');
+    if (forceView) scanned.searchParams.set('forceView', forceView);
+    window.location.href = scanned.toString();
+  };
 
   return (
     <>
@@ -32,14 +80,57 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
         </svg>
       </button>
       {isOpen && (
-        <div className="share-qr-modal" onClick={() => setIsOpen(false)}>
+        <div className="share-qr-modal" onClick={handleClose}>
           <div className="share-qr-modal-card" onClick={e => e.stopPropagation()}>
-            <p className="share-qr-modal-title">Share this page</p>
-            <div className="v2-mobile-gate-qr">
-              <QRCodeSVG value={url} size={220} />
+            <p className="share-qr-modal-title">
+              {activeTab === 'share' ? 'Share this page' : 'Scan QR Code'}
+            </p>
+            <div className="share-qr-tab-bar">
+              <button
+                className={`share-qr-tab-btn${activeTab === 'share' ? ' share-qr-tab-btn--active' : ''}`}
+                onClick={() => handleTabChange('share')}
+              >
+                Share
+              </button>
+              <button
+                className={`share-qr-tab-btn${activeTab === 'scan' ? ' share-qr-tab-btn--active' : ''}`}
+                onClick={() => handleTabChange('scan')}
+              >
+                Scan
+              </button>
             </div>
-            <p className="share-qr-modal-url">{url}</p>
-            <button className="share-qr-modal-close" onClick={() => setIsOpen(false)}>Close</button>
+            {activeTab === 'share' && (
+              <QRWithCopy url={url} qrClassName="share-qr-code-wrap" />
+            )}
+            {activeTab === 'scan' && (
+              <>
+                <div className="share-qr-scanner-wrap">
+                  {cameraState === 'active' && (
+                    <Scanner
+                      onScan={handleScanResult}
+                      onError={() => setCameraState('error')}
+                      sound={false}
+                      components={{ torch: false }}
+                      styles={{ container: { width: '100%', borderRadius: 12 } }}
+                    />
+                  )}
+                  {cameraState === 'error' && (
+                    <div className="share-qr-foreign-warn">
+                      <p className="share-qr-scan-error">Camera unavailable. Check permissions.</p>
+                    </div>
+                  )}
+                </div>
+                {foreignDomain ? (
+                  <div className="qr-url-row">
+                    <p className="share-qr-foreign-warn-text">scanned domain mismatch</p>
+                    <button className="qr-copy-btn" onClick={() => setForeignDomain(null)} aria-label="Dismiss">✕</button>
+                  </div>
+                ) : (
+                  <div className="qr-url-row" aria-hidden="true" />
+                )}
+              </>
+            )}
+            <button className="share-qr-modal-close" onClick={handleClose}>Close</button>
           </div>
         </div>
       )}

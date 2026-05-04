@@ -763,7 +763,6 @@ body {
 .v2-mobile-gate-url {
   font-size: 12px;
   color: #666;
-  word-break: break-all;
   font-family: monospace;
 }
 
@@ -1614,7 +1613,6 @@ body {
 .share-qr-modal-url {
   font-size: 11px;
   color: #666;
-  word-break: break-all;
   font-family: monospace;
   margin: 0;
 }
@@ -1633,6 +1631,145 @@ body {
 .share-qr-modal-close:hover {
   background: rgba(255, 255, 255, 0.18);
   color: #fff;
+}
+
+.qr-url-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-height: 18px;
+}
+
+.qr-url-row p {
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  margin: 0;
+}
+
+.qr-url-row p::-webkit-scrollbar {
+  display: none;
+}
+
+.qr-copy-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #555;
+  padding: 2px 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color 0.15s ease;
+}
+
+.qr-copy-btn:hover {
+  color: #aaa;
+}
+
+.qr-copy-btn--copied {
+  color: #4caf50;
+}
+
+.index-qr .qr-copy-btn {
+  color: #bbb;
+}
+
+.index-qr .qr-copy-btn:hover {
+  color: #666;
+}
+
+.share-qr-tab-bar {
+  display: flex;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #333;
+  width: 100%;
+}
+
+.share-qr-tab-btn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 0;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+  font-family: monospace;
+}
+
+.share-qr-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #ccc;
+}
+
+.share-qr-tab-btn--active {
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+/* Same as .v2-mobile-gate-qr but without the margin-bottom that fights the modal flex gap */
+.share-qr-code-wrap {
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  line-height: 0;
+}
+
+
+.share-qr-scanner-wrap {
+  width: 252px;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+.share-qr-scan-error {
+  color: #e57373;
+  font-size: 13px;
+  text-align: center;
+  padding: 16px 0;
+  font-family: monospace;
+}
+
+.share-qr-foreign-warn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.share-qr-foreign-warn-text {
+  color: #e57373;
+  font-size: 13px;
+  text-align: center;
+  margin: 0;
+  font-family: monospace;
+}
+
+.share-qr-foreign-warn-domain {
+  color: #888;
+  font-size: 12px;
+  font-family: monospace;
+  word-break: break-all;
+  text-align: center;
+  margin: 0;
+  padding: 6px 12px;
+  background: rgba(229, 115, 115, 0.1);
+  border-radius: 6px;
+  border: 1px solid rgba(229, 115, 115, 0.25);
 }
 
 .github-modal-login {
