@@ -222,11 +222,16 @@ interface SetDefaultCursorColorEvent {
   color: string;
 }
 
+interface SetOwnValenceDisplayEvent {
+  type: 'setOwnValenceDisplay';
+  mode: 'background' | 'labels' | 'none';
+}
+
 interface PersistedState {
   roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -293,6 +298,7 @@ export default class Server implements Party.Server {
   private customAvatars = new Map<string, string>(); // userId -> photoUrl
   private colorCursorsByVote: boolean = true;
   private defaultCursorColor: string = '#969696';
+  private ownValenceDisplay: 'background' | 'labels' | 'none' = 'background';
   private roomHost: string | null = null;
   private readonly BAT_SIGNAL_THRESHOLD = 3;
   private seenUserIds = new Set<string>();
@@ -483,6 +489,7 @@ export default class Server implements Party.Server {
       customAvatars: Object.fromEntries(this.customAvatars),
       colorCursorsByVote: this.colorCursorsByVote,
       defaultCursorColor: this.defaultCursorColor,
+      ownValenceDisplay: this.ownValenceDisplay,
     }));
   }
 
@@ -662,6 +669,10 @@ export default class Server implements Party.Server {
         for (const conn of this.room.getConnections()) {
           if (this.adminConnectionIds.has(conn.id)) conn.send(msg);
         }
+      } else if (event.type === 'setOwnValenceDisplay') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        this.ownValenceDisplay = event.mode;
+        this.room.broadcast(JSON.stringify({ type: 'ownValenceDisplayChanged', ownValenceDisplay: this.ownValenceDisplay }));
       } else if (event.type === 'setDefaultCursorColor') {
         if (!this.adminConnectionIds.has(sender.id)) return;
         this.defaultCursorColor = event.color;

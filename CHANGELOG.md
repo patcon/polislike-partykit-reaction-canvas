@@ -7,7 +7,11 @@ All notable changes to this project will be documented in this file. Releases cu
 ### Added
 - Greeter: **Attendee QR popup** — clicking any attendee row shows a popup with a QR code that pre-fills `?customPhoto=` with their Guild profile photo URL. The admin shows this to the arriving attendee to scan.
 - Avatar tab: **Custom (e.g., Guild)** avatar mode — when selected, participants who have scanned a greeter QR code show their real photo on everyone's canvas; unregistered participants fall back to a colored dot.
-- Server: `registerCustomAvatar` message maps a `userId` to a `photoUrl` (session-only, not persisted). All clients receive `customAvatarsChanged` and render photos immediately.
+- Avatar tab: **Highlight valence** checkbox — when enabled, cursor dots and avatar borders cycle through reaction colors; when off, they use a configurable default color.
+- Avatar tab: **Default color picker** — choose the default cursor/avatar border color shown when valence highlight is off.
+- Canvas: `disableCursorValence` and `disableBackgroundValence` props — image-canvas mode now suppresses both cursor valence coloring and background color changes.
+- Canvas settings modal: **Display own valence via** — radio group (Background / Labels / None) controls how a participant's own reaction region is shown: canvas background color shift, a subtle highlight on the matching label, or no visual feedback.
+- Server: `registerCustomAvatar`, `setColorCursorsByVote`, `setDefaultCursorColor`, `setOwnValenceDisplay` messages; all settings are broadcast and included in the `connected` payload.
 
 ## Week 23 (2026-04-27)
 

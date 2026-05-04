@@ -452,6 +452,8 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
             roomConfig.setShowNowLabelOnCanvas(v);
             localStorage.setItem('v4-showNowLabelOnCanvas', String(v));
           }}
+          ownValenceDisplay={roomConfig.ownValenceDisplay}
+          onChangeOwnValenceDisplay={roomConfig.sendOwnValenceDisplay}
           onClose={() => roomConfig.setCanvasSettingsOpen(false)}
         />
       )}

@@ -6,6 +6,7 @@ export function useRoomConfig(socket: PartySocket) {
   const [avatarStyle, setAvatarStyle]         = useState<string | null>(null);
   const [colorCursorsByVote, setColorCursorsByVote] = useState<boolean>(false);
   const [defaultCursorColor, setDefaultCursorColor] = useState<string>('#969696');
+  const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('background');
   const [activity, setActivity]               = useState<ActivityMode>('canvas');
   const [soccerScore, setSoccerScore]         = useState({ left: 0, right: 0 });
   const [imageConfigOpen, setImageConfigOpen] = useState(false);
@@ -34,6 +35,11 @@ export function useRoomConfig(socket: PartySocket) {
   const sendDefaultCursorColor = (color: string) => {
     setDefaultCursorColor(color);
     socket.send(JSON.stringify({ type: 'setDefaultCursorColor', color }));
+  };
+
+  const sendOwnValenceDisplay = (mode: 'background' | 'labels' | 'none') => {
+    setOwnValenceDisplay(mode);
+    socket.send(JSON.stringify({ type: 'setOwnValenceDisplay', mode }));
   };
 
   const sendActivity = (act: ActivityMode) => {
@@ -70,6 +76,7 @@ export function useRoomConfig(socket: PartySocket) {
     if ('roomAvatarStyle' in data) setAvatarStyle((data.roomAvatarStyle as string | null) ?? null);
     if ('colorCursorsByVote' in data) setColorCursorsByVote((data.colorCursorsByVote as boolean) ?? true);
     if ('defaultCursorColor' in data && data.defaultCursorColor) setDefaultCursorColor(data.defaultCursorColor as string);
+    if ('ownValenceDisplay' in data && data.ownValenceDisplay) setOwnValenceDisplay(data.ownValenceDisplay as 'background' | 'labels' | 'none');
     if ('currentActivity' in data) setActivity((data.currentActivity as ActivityMode) ?? 'canvas');
     if ('roomImageUrl' in data) setRoomImageUrl((data.roomImageUrl as string) ?? '');
     if ('roomSocialConfig' in data) setRoomSocialConfig((data.roomSocialConfig as SocialConfig | null) ?? null);
@@ -101,6 +108,8 @@ export function useRoomConfig(socket: PartySocket) {
     } else if (data.type === 'userCapChanged') {
       setUserCap(data.cap as number | null);
       setCapInput(data.cap !== null ? String(data.cap) : '');
+    } else if (data.type === 'ownValenceDisplayChanged') {
+      setOwnValenceDisplay(data.ownValenceDisplay as 'background' | 'labels' | 'none');
     }
   };
 
@@ -131,5 +140,7 @@ export function useRoomConfig(socket: PartySocket) {
     handleSocketEvent,
     canvasSettingsOpen, setCanvasSettingsOpen,
     showNowLabelOnCanvas, setShowNowLabelOnCanvas,
+    ownValenceDisplay, setOwnValenceDisplay,
+    sendOwnValenceDisplay,
   };
 }

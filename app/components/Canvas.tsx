@@ -54,6 +54,7 @@ interface CanvasProps {
   onConnected?: (initialInviteEdges?: Record<string, string>, currentActivity?: ActivityMode) => void;
   onNowLabelChange?: (label: string) => void;
   onInviteEdges?: (edges: Record<string, string>) => void;
+  onOwnValenceDisplayChange?: (mode: 'background' | 'labels' | 'none') => void;
 }
 
 // Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
@@ -77,7 +78,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -85,6 +86,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   const [customAvatars, setCustomAvatars] = useState<Record<string, string>>({}); // userId → photoUrl
   const [colorCursorsByVote, setColorCursorsByVote] = useState(colorCursorsByVoteProp);
   const [defaultCursorColor, setDefaultCursorColor] = useState('#969696');
+  const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('background');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [imageUrl, setImageUrl] = useState('');
   const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
@@ -143,6 +145,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           }
           if ('colorCursorsByVote' in data) setColorCursorsByVote(data.colorCursorsByVote as boolean ?? colorCursorsByVoteProp);
           if ('defaultCursorColor' in data && data.defaultCursorColor) setDefaultCursorColor(data.defaultCursorColor as string);
+          if ('ownValenceDisplay' in data && data.ownValenceDisplay) {
+            const mode = data.ownValenceDisplay as 'background' | 'labels' | 'none';
+            setOwnValenceDisplay(mode);
+            onOwnValenceDisplayChange?.(mode);
+          }
           if ('currentActivity' in data) {
             const act = data.currentActivity ?? 'canvas';
             setActivity(act);
@@ -228,6 +235,13 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
         if (data.type === 'defaultCursorColorChanged') {
           setDefaultCursorColor(data.defaultCursorColor as string);
+          return;
+        }
+
+        if (data.type === 'ownValenceDisplayChanged') {
+          const mode = data.ownValenceDisplay as 'background' | 'labels' | 'none';
+          setOwnValenceDisplay(mode);
+          onOwnValenceDisplayChange?.(mode);
           return;
         }
 
@@ -363,8 +377,9 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
   // Update background color when currentReactionState changes
   useEffect(() => {
-    updateBackgroundColor(disableBackgroundValence ? null : (currentReactionState || null));
-  }, [currentReactionState, disableBackgroundValence]);
+    const suppressed = disableBackgroundValence || ownValenceDisplay !== 'background';
+    updateBackgroundColor(suppressed ? null : (currentReactionState || null));
+  }, [currentReactionState, disableBackgroundValence, ownValenceDisplay]);
 
   // Render with D3 SVG
   useEffect(() => {
@@ -381,7 +396,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       .attr('fill', imageUrl ? 'transparent' : 'rgba(255, 255, 255, 0.1)');
 
     // Apply current reaction state color if any (skip in image-canvas mode or when disabled)
-    if (currentReactionState && !imageUrl && !disableBackgroundValence) {
+    if (currentReactionState && !imageUrl && !disableBackgroundValence && ownValenceDisplay === 'background') {
       updateBackgroundColor(currentReactionState);
     }
 
@@ -679,7 +694,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .text((d: any) => d.cursorUserId.substring(0, 6));
     }
 
-  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, customAvatars, colorCursorsByVote, defaultCursorColor, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
+  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, customAvatars, colorCursorsByVote, defaultCursorColor, ownValenceDisplay, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
 
   // Handle window resize
   useEffect(() => {
