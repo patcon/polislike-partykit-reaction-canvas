@@ -280,6 +280,8 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
           <AvatarsTab
             avatarStyle={roomConfig.avatarStyle}
             sendAvatarStyle={roomConfig.sendAvatarStyle}
+            colorCursorsByVote={roomConfig.colorCursorsByVote}
+            sendColorCursorsByVote={roomConfig.sendColorCursorsByVote}
           />
         )}
         {activeTab === 'interfaces' && (

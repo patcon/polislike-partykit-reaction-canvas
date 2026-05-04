@@ -75,12 +75,13 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
   const [customAvatars, setCustomAvatars] = useState<Record<string, string>>({}); // userId → photoUrl
+  const [colorCursorsByVote, setColorCursorsByVote] = useState(colorCursorsByVoteProp);
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [imageUrl, setImageUrl] = useState('');
   const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
@@ -137,6 +138,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           if ('customAvatars' in data && data.customAvatars) {
             setCustomAvatars(Object.fromEntries(Object.entries(data.customAvatars).map(([uid, v]: [string, any]) => [uid, v.photoUrl ?? v])));
           }
+          if ('colorCursorsByVote' in data) setColorCursorsByVote(data.colorCursorsByVote as boolean ?? colorCursorsByVoteProp);
           if ('currentActivity' in data) {
             const act = data.currentActivity ?? 'canvas';
             setActivity(act);
@@ -212,6 +214,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
         if (data.type === 'customAvatarsChanged') {
           setCustomAvatars(data.customAvatars ?? {});
+          return;
+        }
+
+        if (data.type === 'colorCursorsByVoteChanged') {
+          setColorCursorsByVote(data.colorCursorsByVote as boolean);
           return;
         }
 
@@ -524,6 +531,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           default: return 'rgba(128, 128, 128, 0.8)';
         }
       }
+      if (!colorCursorsByVote) return 'rgba(150, 150, 150, 0.7)';
       const hue = d.cursorUserId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 360;
       return `hsl(${hue}, 70%, 50%)`;
     };
@@ -662,7 +670,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .text((d: any) => d.cursorUserId.substring(0, 6));
     }
 
-  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, customAvatars, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
+  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, customAvatars, colorCursorsByVote, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
 
   // Handle window resize
   useEffect(() => {

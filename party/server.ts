@@ -212,11 +212,16 @@ interface RegisterCustomAvatarEvent {
   photoUrl: string;
 }
 
+interface SetColorCursorsByVoteEvent {
+  type: 'setColorCursorsByVote';
+  enabled: boolean;
+}
+
 interface PersistedState {
   roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent;
+type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -281,6 +286,7 @@ export default class Server implements Party.Server {
   private cursorPositions = new Map<string, { x: number; y: number }>();
   private inviteEdges = new Map<string, string>(); // inviteeId -> inviterId
   private customAvatars = new Map<string, string>(); // userId -> photoUrl
+  private colorCursorsByVote: boolean = true;
   private roomHost: string | null = null;
   private readonly BAT_SIGNAL_THRESHOLD = 3;
   private seenUserIds = new Set<string>();
@@ -469,6 +475,7 @@ export default class Server implements Party.Server {
       connectedUserIds,
       inviteEdges: Object.fromEntries(this.inviteEdges),
       customAvatars: Object.fromEntries(this.customAvatars),
+      colorCursorsByVote: this.colorCursorsByVote,
     }));
   }
 
@@ -648,6 +655,10 @@ export default class Server implements Party.Server {
         for (const conn of this.room.getConnections()) {
           if (this.adminConnectionIds.has(conn.id)) conn.send(msg);
         }
+      } else if (event.type === 'setColorCursorsByVote') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        this.colorCursorsByVote = event.enabled;
+        this.room.broadcast(JSON.stringify({ type: 'colorCursorsByVoteChanged', colorCursorsByVote: this.colorCursorsByVote }));
       } else if (event.type === 'registerCustomAvatar') {
         this.customAvatars.set(event.userId, event.photoUrl);
         this.room.broadcast(JSON.stringify({ type: 'customAvatarsChanged', customAvatars: Object.fromEntries(this.customAvatars) }));

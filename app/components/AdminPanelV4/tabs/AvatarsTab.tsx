@@ -32,9 +32,11 @@ function buildAvatarStyle(isCustom: boolean, baseStyle: string | null): string |
 interface AvatarsTabProps {
   avatarStyle: string | null;
   sendAvatarStyle: (style: string | null) => void;
+  colorCursorsByVote: boolean;
+  sendColorCursorsByVote: (enabled: boolean) => void;
 }
 
-export default function AvatarsTab({ avatarStyle, sendAvatarStyle }: AvatarsTabProps) {
+export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsByVote, sendColorCursorsByVote }: AvatarsTabProps) {
   const { isCustom, baseStyle } = parseAvatarStyle(avatarStyle);
 
   const handleCustomToggle = (checked: boolean) => {
@@ -50,17 +52,30 @@ export default function AvatarsTab({ avatarStyle, sendAvatarStyle }: AvatarsTabP
       <p style={{ marginBottom: 4, fontWeight: 600 }}>Avatar style (shown to all participants):</p>
       <p style={{ marginBottom: 16, color: '#888', fontSize: 13 }}>Avatars are generated from each user's ID using <a href="https://www.dicebear.com" target="_blank" rel="noopener noreferrer" style={{ color: '#69f' }}>DiceBear</a>.</p>
 
-      <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: 20, padding: '10px 12px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 8 }}>
-        <input
-          type="checkbox"
-          checked={isCustom}
-          onChange={e => handleCustomToggle(e.target.checked)}
-          style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
-        />
-        <span style={{ fontSize: 13 }}>
-          <strong>Custom photos</strong> (e.g., Guild) — show scanned QR photos; fall back to style below
-        </span>
-      </label>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 8 }}>
+          <input
+            type="checkbox"
+            checked={isCustom}
+            onChange={e => handleCustomToggle(e.target.checked)}
+            style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
+          />
+          <span style={{ fontSize: 13 }}>
+            <strong>Custom photos</strong> (e.g., Guild) — show scanned QR photos; fall back to style below
+          </span>
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', padding: '10px 12px', background: '#1a1a1a', border: '1px solid #333', borderRadius: 8 }}>
+          <input
+            type="checkbox"
+            checked={colorCursorsByVote}
+            onChange={e => sendColorCursorsByVote(e.target.checked)}
+            style={{ width: 16, height: 16, cursor: 'pointer', flexShrink: 0 }}
+          />
+          <span style={{ fontSize: 13 }}>
+            <strong>Highlight valence</strong> when available — color cursors by reaction; grey otherwise
+          </span>
+        </label>
+      </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <label style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
