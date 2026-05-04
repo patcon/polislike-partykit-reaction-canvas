@@ -101,7 +101,7 @@ export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsB
             style={{ marginRight: 4 }}
           />
           <div
-            style={{ width: 36, height: 36, borderRadius: '50%', background: valencePreviewColor, border: '2px solid #555', flexShrink: 0, transition: 'background 0.3s' }}
+            style={{ width: 36, height: 36, borderRadius: '50%', background: valencePreviewColor, border: '2px solid #555', flexShrink: 0, transition: 'none' }}
           />
           <span style={{ color: '#aaa' }}>None (colored dots)</span>
         </label>
@@ -115,7 +115,7 @@ export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsB
               onChange={() => handleBaseChange(id)}
               style={{ marginRight: 4 }}
             />
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: valencePreviewColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.3s' }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: valencePreviewColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'none' }}>
               <img
                 src={`https://api.dicebear.com/9.x/${id}/svg?seed=preview`}
                 alt={label}

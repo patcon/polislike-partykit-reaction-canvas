@@ -4,7 +4,7 @@ import type PartySocket from "partysocket";
 
 export function useRoomConfig(socket: PartySocket) {
   const [avatarStyle, setAvatarStyle]         = useState<string | null>(null);
-  const [colorCursorsByVote, setColorCursorsByVote] = useState<boolean>(true);
+  const [colorCursorsByVote, setColorCursorsByVote] = useState<boolean>(false);
   const [activity, setActivity]               = useState<ActivityMode>('canvas');
   const [soccerScore, setSoccerScore]         = useState({ left: 0, right: 0 });
   const [imageConfigOpen, setImageConfigOpen] = useState(false);
