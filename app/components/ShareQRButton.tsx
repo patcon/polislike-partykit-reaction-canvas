@@ -1,5 +1,6 @@
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
+import { useWebHaptics } from "web-haptics/react";
 import { appendSelfToChain } from "../utils/inviteChain";
 import QRWithCopy from "./QRWithCopy";
 
@@ -15,34 +16,6 @@ function getShareUrl(selfId?: string, selfChain?: string[]): string {
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
 }
 
-// Short filtered noise burst — same technique as web-haptics desktop audio fallback.
-// AudioContext must already be initialized (within a prior user gesture).
-function playConfirmClick(ctx: AudioContext) {
-  const duration = 0.004;
-  const buffer = ctx.createBuffer(1, Math.ceil(ctx.sampleRate * duration), ctx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < data.length; i++) {
-    data[i] = (Math.random() * 2 - 1) * Math.exp(-i / 25);
-  }
-
-  const filter = ctx.createBiquadFilter();
-  filter.type = 'bandpass';
-  filter.frequency.value = 3000 + Math.random() * 500;
-  filter.Q.value = 8;
-
-  const gain = ctx.createGain();
-  gain.gain.value = 0.4;
-
-  filter.connect(gain);
-  gain.connect(ctx.destination);
-
-  const source = ctx.createBufferSource();
-  source.buffer = buffer;
-  source.connect(filter);
-  source.onended = () => source.disconnect();
-  source.start();
-}
-
 interface ShareQRButtonProps {
   selfId?: string;
   selfChain?: string[];
@@ -53,8 +26,7 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
   const [activeTab, setActiveTab] = useState<'share' | 'scan'>('share');
   const [cameraState, setCameraState] = useState<'idle' | 'active' | 'error'>('idle');
   const [foreignDomain, setForeignDomain] = useState<string | null>(null);
-  // Initialized within the Scan tab click gesture so it's unlocked for later playback
-  const audioCtxRef = useRef<AudioContext | null>(null);
+  const { trigger: triggerHaptic } = useWebHaptics();
   const url = getShareUrl(selfId, selfChain);
 
   const handleTabChange = (tab: 'share' | 'scan') => {
@@ -62,12 +34,6 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
     setForeignDomain(null);
     if (tab === 'scan') {
       setCameraState('active');
-      // Initialize AudioContext within the user gesture so it's pre-unlocked for scan feedback
-      if (!audioCtxRef.current && typeof AudioContext !== 'undefined') {
-        audioCtxRef.current = new AudioContext();
-      } else if (audioCtxRef.current?.state === 'suspended') {
-        audioCtxRef.current.resume();
-      }
     } else {
       setCameraState('idle');
     }
@@ -91,15 +57,11 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
 
     if (scanned.hostname !== window.location.hostname) {
       setForeignDomain(scanned.hostname);
+      triggerHaptic('error');
       return;
     }
 
-    // Haptic on mobile; subtle click sound on desktop (web-haptics fallback technique)
-    if (navigator.vibrate) {
-      navigator.vibrate([50]);
-    } else if (audioCtxRef.current) {
-      playConfirmClick(audioCtxRef.current);
-    }
+    triggerHaptic('nudge');
 
     window.location.href = raw;
   };
@@ -138,27 +100,14 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
             {activeTab === 'scan' && (
               <>
                 <div className="share-qr-scanner-wrap">
-                  {cameraState === 'active' && !foreignDomain && (
+                  {cameraState === 'active' && (
                     <Scanner
                       onScan={handleScanResult}
                       onError={() => setCameraState('error')}
                       sound={false}
+                      components={{ torch: false }}
                       styles={{ container: { width: '100%', borderRadius: 12 } }}
                     />
-                  )}
-                  {foreignDomain && (
-                    <div className="share-qr-foreign-warn">
-                      <p className="share-qr-foreign-warn-text">
-                        This QR code points to a different site:
-                      </p>
-                      <p className="share-qr-foreign-warn-domain">{foreignDomain}</p>
-                      <button
-                        className="share-qr-modal-close"
-                        onClick={() => setForeignDomain(null)}
-                      >
-                        Scan again
-                      </button>
-                    </div>
                   )}
                   {cameraState === 'error' && (
                     <div className="share-qr-foreign-warn">
@@ -166,7 +115,14 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
                     </div>
                   )}
                 </div>
-                <div className="qr-url-row" aria-hidden="true" />
+                {foreignDomain ? (
+                  <div className="qr-url-row">
+                    <p className="share-qr-foreign-warn-text">scanned domain mismatch</p>
+                    <button className="qr-copy-btn" onClick={() => setForeignDomain(null)} aria-label="Dismiss">✕</button>
+                  </div>
+                ) : (
+                  <div className="qr-url-row" aria-hidden="true" />
+                )}
               </>
             )}
             <button className="share-qr-modal-close" onClick={handleClose}>Close</button>
