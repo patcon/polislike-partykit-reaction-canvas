@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
+import { WebHaptics } from "web-haptics";
 import { useWebHaptics } from "web-haptics/react";
 import { appendSelfToChain } from "../utils/inviteChain";
 import QRWithCopy from "./QRWithCopy";
@@ -26,7 +27,7 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
   const [activeTab, setActiveTab] = useState<'share' | 'scan'>('share');
   const [cameraState, setCameraState] = useState<'idle' | 'active' | 'error'>('idle');
   const [foreignDomain, setForeignDomain] = useState<string | null>(null);
-  const { trigger: triggerHaptic } = useWebHaptics({ debug: true });
+  const { trigger: triggerHaptic } = useWebHaptics({ debug: !WebHaptics.isSupported });
   const url = getShareUrl(selfId, selfChain);
 
   const handleTabChange = (tab: 'share' | 'scan') => {
@@ -47,6 +48,7 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
   };
 
   const handleScanResult = (codes: { rawValue: string }[]) => {
+    if (foreignDomain) return;
     const raw = codes[0]?.rawValue;
     if (!raw) return;
     let scanned: URL;
