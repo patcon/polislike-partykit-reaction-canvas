@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
+import { WebHaptics } from "web-haptics";
 import { useWebHaptics } from "web-haptics/react";
 import { appendSelfToChain } from "../utils/inviteChain";
 import QRWithCopy from "./QRWithCopy";
@@ -26,7 +27,8 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
   const [activeTab, setActiveTab] = useState<'share' | 'scan'>('share');
   const [cameraState, setCameraState] = useState<'idle' | 'active' | 'error'>('idle');
   const [foreignDomain, setForeignDomain] = useState<string | null>(null);
-  const { trigger: triggerHaptic } = useWebHaptics({ debug: navigator.maxTouchPoints === 0 });
+  // Enable audio fallback on desktop (no touch) and Apple devices (no navigator.vibrate API)
+  const { trigger: triggerHaptic } = useWebHaptics({ debug: navigator.maxTouchPoints === 0 || !WebHaptics.isSupported });
   const url = getShareUrl(selfId, selfChain);
 
   const handleTabChange = (tab: 'share' | 'scan') => {
