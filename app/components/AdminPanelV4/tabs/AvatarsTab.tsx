@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 const AVATAR_STYLES = [
   { id: 'adventurer', label: 'Adventurer' },
   { id: 'avataaars', label: 'Avataaars' },
@@ -11,10 +13,13 @@ const AVATAR_STYLES = [
   { id: 'thumbs', label: 'Thumbs' },
 ];
 
+const VALENCE_COLORS = ['rgba(0,255,0,0.8)', 'rgba(255,0,0,0.8)', 'rgba(255,255,0,0.8)'];
+const DOT_GREY = 'rgba(150,150,150,0.7)';
+
 // avatarStyle encoding:
-//   null          → dots, no custom overlay
-//   'bottts'      → DiceBear bottts, no custom overlay
-//   'custom'      → custom photos; dot fallback for unregistered users
+//   null            → dots, no custom overlay
+//   'bottts'        → DiceBear bottts, no custom overlay
+//   'custom'        → custom photos; dot fallback for unregistered users
 //   'custom+bottts' → custom photos; DiceBear fallback for unregistered users
 function parseAvatarStyle(avatarStyle: string | null): { isCustom: boolean; baseStyle: string | null } {
   if (avatarStyle === 'custom') return { isCustom: true, baseStyle: null };
@@ -38,6 +43,14 @@ interface AvatarsTabProps {
 
 export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsByVote, sendColorCursorsByVote }: AvatarsTabProps) {
   const { isCustom, baseStyle } = parseAvatarStyle(avatarStyle);
+
+  const [valenceIdx, setValenceIdx] = useState(0);
+  useEffect(() => {
+    if (!colorCursorsByVote) return;
+    const id = setInterval(() => setValenceIdx(i => (i + 1) % VALENCE_COLORS.length), 1000);
+    return () => clearInterval(id);
+  }, [colorCursorsByVote]);
+  const valencePreviewColor = colorCursorsByVote ? VALENCE_COLORS[valenceIdx] : DOT_GREY;
 
   const handleCustomToggle = (checked: boolean) => {
     sendAvatarStyle(buildAvatarStyle(checked, baseStyle));
@@ -87,7 +100,10 @@ export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsB
             onChange={() => handleBaseChange(null)}
             style={{ marginRight: 4 }}
           />
-          <span style={{ color: '#aaa' }}>None (show colored dots)</span>
+          <div
+            style={{ width: 36, height: 36, borderRadius: '50%', background: valencePreviewColor, border: '2px solid #555', flexShrink: 0, transition: 'background 0.3s' }}
+          />
+          <span style={{ color: '#aaa' }}>None (colored dots)</span>
         </label>
         {AVATAR_STYLES.map(({ id, label }) => (
           <label key={id} style={{ display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer' }}>
