@@ -115,13 +115,15 @@ export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsB
               onChange={() => handleBaseChange(id)}
               style={{ marginRight: 4 }}
             />
-            <img
-              src={`https://api.dicebear.com/9.x/${id}/svg?seed=preview`}
-              alt={label}
-              width={36}
-              height={36}
-              style={{ borderRadius: '50%', border: `3px solid ${valencePreviewColor}`, background: '#222', transition: 'border-color 0.3s' }}
-            />
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: valencePreviewColor, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'background 0.3s' }}>
+              <img
+                src={`https://api.dicebear.com/9.x/${id}/svg?seed=preview`}
+                alt={label}
+                width={36}
+                height={36}
+                style={{ borderRadius: '50%', display: 'block' }}
+              />
+            </div>
             <span>{label}</span>
           </label>
         ))}
