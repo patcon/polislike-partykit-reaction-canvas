@@ -5,7 +5,7 @@ import type PartySocket from "partysocket";
 export function useRoomConfig(socket: PartySocket) {
   const [avatarStyle, setAvatarStyle]         = useState<string | null>(null);
   const [colorCursorsByVote, setColorCursorsByVote] = useState<boolean>(false);
-  const [defaultCursorColor, setDefaultCursorColor] = useState<string>('#969696');
+  const [defaultCursorColor, setDefaultCursorColor] = useState<string>('#d4d4d4');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [activity, setActivity]               = useState<ActivityMode>('canvas');
   const [soccerScore, setSoccerScore]         = useState({ left: 0, right: 0 });

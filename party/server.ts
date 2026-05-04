@@ -296,8 +296,8 @@ export default class Server implements Party.Server {
   private cursorPositions = new Map<string, { x: number; y: number }>();
   private inviteEdges = new Map<string, string>(); // inviteeId -> inviterId
   private customAvatars = new Map<string, string>(); // userId -> photoUrl
-  private colorCursorsByVote: boolean = true;
-  private defaultCursorColor: string = '#969696';
+  private colorCursorsByVote: boolean = false;
+  private defaultCursorColor: string = '#d4d4d4';
   private ownValenceDisplay: 'background' | 'labels' | 'none' = 'labels';
   private roomHost: string | null = null;
   private readonly BAT_SIGNAL_THRESHOLD = 3;
