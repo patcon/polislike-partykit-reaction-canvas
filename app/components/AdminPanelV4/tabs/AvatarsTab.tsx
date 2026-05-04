@@ -120,7 +120,7 @@ export default function AvatarsTab({ avatarStyle, sendAvatarStyle, colorCursorsB
               alt={label}
               width={36}
               height={36}
-              style={{ borderRadius: '50%', border: '2px solid #555', background: '#222' }}
+              style={{ borderRadius: '50%', border: `3px solid ${valencePreviewColor}`, background: '#222', transition: 'border-color 0.3s' }}
             />
             <span>{label}</span>
           </label>
