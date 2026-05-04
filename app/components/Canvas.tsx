@@ -40,6 +40,7 @@ interface CanvasProps {
   onJoinApproved?: () => void;
   onSocketReady?: (send: (msg: string) => void) => void;
   debug?: boolean;
+  disableValenceColors?: boolean;
   onRoomAvatarStyleChange?: (style: string | null) => void;
   onActivityTriggered?: (activityName: string) => void;
   onInterfacePushed?: (interfaceName: string) => void;
@@ -75,7 +76,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableValenceColors = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -530,7 +531,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
     const cursorColor = (d: any): string => {
       if (isPlaybackCursor(d)) return 'hsl(270, 70%, 65%)';
-      if (colorCursorsByVote && d.reactionState) {
+      if (colorCursorsByVote && !disableValenceColors && d.reactionState) {
         switch (d.reactionState) {
           case 'positive': return 'rgba(0, 255, 0, 0.8)';
           case 'negative': return 'rgba(255, 0, 0, 0.8)';
@@ -538,7 +539,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           default: return 'rgba(128, 128, 128, 0.8)';
         }
       }
-      if (!colorCursorsByVote) return defaultCursorColor;
+      if (!colorCursorsByVote || disableValenceColors) return defaultCursorColor;
       const hue = d.cursorUserId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 360;
       return `hsl(${hue}, 70%, 50%)`;
     };
