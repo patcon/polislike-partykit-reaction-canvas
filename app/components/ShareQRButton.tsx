@@ -34,6 +34,7 @@ export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps 
     setForeignDomain(null);
     if (tab === 'scan') {
       setCameraState('active');
+      triggerHaptic(0); // pre-warm AudioContext within the user gesture
     } else {
       setCameraState('idle');
     }
