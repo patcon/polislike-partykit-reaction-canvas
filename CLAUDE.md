@@ -32,6 +32,12 @@ pnpm vitest           # Run Storybook-based tests via Playwright/Chromium (headl
 
 `pnpm run dev` runs both the frontend and `party/server.ts` locally on port 1999. The app is accessible at `localhost:1999` or any local network IP on port 1999 (e.g. `10.x.x.x:1999`). The WebSocket host is detected by port — if you're on port 1999, sockets connect to the local server; otherwise they connect to the deployed server.
 
+### UUID generation
+
+**Never use `crypto.randomUUID()` directly.** It only works in secure contexts (HTTPS + `localhost`). HTTP LAN addresses like `192.168.x.x` are not secure contexts — calling it throws silently and breaks any feature that generates IDs at runtime.
+
+Always use `generateUUID()` from `app/utils/userId.ts` instead. It calls `crypto.randomUUID?.()` with a Math.random-based fallback.
+
 ### PartyKit CLI notes
 
 Use `--force` (not `--yes`) to skip confirmation prompts — e.g. `npx partykit delete --preview stg --force`. `--yes` is not a valid partykit option and will error.

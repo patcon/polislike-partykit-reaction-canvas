@@ -1,4 +1,5 @@
 import { useRef, useState, useCallback } from "react";
+import { generateUUID } from "../utils/userId";
 
 interface Stroke {
   strokeId: string;
@@ -48,7 +49,7 @@ export default function SignatureLayer({ userId, onSendMessage }: SignatureLayer
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     const pt = normalize(e.clientX, e.clientY);
     if (!pt) return;
-    const strokeId = crypto.randomUUID();
+    const strokeId = generateUUID();
     currentStrokeIdRef.current = strokeId;
     isDrawingRef.current = true;
     accumulatedRef.current = [pt];
