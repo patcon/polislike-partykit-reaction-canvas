@@ -55,6 +55,11 @@ interface CanvasProps {
   onNowLabelChange?: (label: string) => void;
   onInviteEdges?: (edges: Record<string, string>) => void;
   onOwnValenceDisplayChange?: (mode: 'background' | 'labels' | 'none') => void;
+  onStrokeSegment?: (userId: string, strokeId: string, points: Array<{ x: number; y: number }>, isFinal: boolean) => void;
+  onSignatureCleared?: (userId: string) => void;
+  onConnectedUsers?: (ids: string[]) => void;
+  onUserJoined?: (userId: string) => void;
+  onUserLeft?: (userId: string) => void;
 }
 
 // Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
@@ -78,7 +83,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -168,6 +173,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore);
           if ('roomSocialConfig' in data) onSocialConfigChange?.(data.roomSocialConfig ?? null);
           if ('greeterConfig' in data) onGreeterConfigChange?.(data.greeterConfig ?? null);
+          if ('connectedUserIds' in data) onConnectedUsers?.(data.connectedUserIds ?? []);
           onConnectedAsViewer?.(data.isViewer ?? false, data.userCap ?? null);
           onViewerCount?.(data.viewerCount ?? 0);
           onConnected?.(data.inviteEdges ?? undefined, 'currentActivity' in data ? (data.currentActivity ?? 'canvas') : undefined);
@@ -311,6 +317,26 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
         if (data.type === 'ballHidden') {
           setBallPos(null);
+          return;
+        }
+
+        if (data.type === 'strokeSegment') {
+          onStrokeSegment?.(data.userId, data.strokeId, data.points, data.isFinal);
+          return;
+        }
+
+        if (data.type === 'signatureCleared') {
+          onSignatureCleared?.(data.userId);
+          return;
+        }
+
+        if (data.type === 'userJoined') {
+          onUserJoined?.(data.userId);
+          return;
+        }
+
+        if (data.type === 'userLeft') {
+          onUserLeft?.(data.userId);
           return;
         }
 
