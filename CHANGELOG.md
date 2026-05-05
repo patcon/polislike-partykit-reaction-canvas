@@ -17,6 +17,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Fixed
 - Greeter quiz: Gravatar users now appear in the deck when "Hide default avatars" is on, but only after their Gravatar is eagerly verified on attendee load (users with no real Gravatar are excluded).
+- Signature layer: darkened Clear and Rotate button backgrounds for accessible contrast against the grey overlay.
 
 ## Week 23 (2026-04-27)
 
