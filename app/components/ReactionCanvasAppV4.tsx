@@ -146,7 +146,7 @@ export default function ReactionCanvasAppV4() {
   const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
-  const [isPresenter] = useState(() => isPresenterView());
+  const [isPresenter, setIsPresenter] = useState(() => isPresenterView());
   const [signatureStrokes, setSignatureStrokes] = useState<Record<string, Array<{ strokeId: string; points: Array<{ x: number; y: number }> }>>>({});
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
@@ -423,6 +423,29 @@ export default function ReactionCanvasAppV4() {
               heightOffset={chipBarOffset}
               connectedUserIds={connectedUserIds}
             />
+          )}
+          {activity === 'signature' && !isViewer && (
+            <button
+              onClick={() => setIsPresenter(p => !p)}
+              style={{
+                position: 'absolute',
+                top: 12,
+                right: 12,
+                zIndex: 30,
+                height: 30,
+                padding: '0 14px',
+                borderRadius: 999,
+                border: '1px solid rgba(255,255,255,0.7)',
+                background: 'rgba(60,60,60,0.72)',
+                color: 'rgba(255,255,255,0.95)',
+                fontSize: 13,
+                cursor: 'pointer',
+                letterSpacing: '0.04em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              {isPresenter ? 'Sign' : 'Present'}
+            </button>
           )}
         </div>
       {showGithubModal && (
