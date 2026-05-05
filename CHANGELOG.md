@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - Signature activity: **mode toggle button** in the top-right — flips between signing mode and presenter view without needing the `?presenter=true` URL param.
 - Signature layer: add top/bottom padding so the signing box and buttons never overflow onto the chip bar on wide/short desktop viewports.
 - Signature presenter grid: only show a tile for users who have drawn at least one stroke.
+- Removed `?presenter=true` URL param — presenter mode is now toggled via the in-UI mode button.
 
 ## Week 23 (2026-04-27)
 

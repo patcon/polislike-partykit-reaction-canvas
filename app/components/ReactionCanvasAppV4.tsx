@@ -82,9 +82,6 @@ function getCustomPhotoFromUrl(): string | null {
   return new URLSearchParams(window.location.search).get('customPhoto');
 }
 
-function isPresenterView(): boolean {
-  return new URLSearchParams(window.location.search).get('presenter') === 'true';
-}
 
 function MobileOnlyGate() {
   const url = window.location.href;
@@ -146,7 +143,7 @@ export default function ReactionCanvasAppV4() {
   const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
-  const [isPresenter, setIsPresenter] = useState(() => isPresenterView());
+  const [isPresenter, setIsPresenter] = useState(false);
   const [signatureStrokes, setSignatureStrokes] = useState<Record<string, Array<{ strokeId: string; points: Array<{ x: number; y: number }> }>>>({});
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
