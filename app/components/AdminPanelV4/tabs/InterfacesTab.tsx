@@ -38,14 +38,14 @@ function getPatchUrl(interfaceName: string, selfId?: string, selfChain?: string[
 }
 
 const ROWS: { id: string; label: string; desc: string; patchable: boolean; activityMode: boolean }[] = [
-  { id: 'canvas',       label: 'Reaction Canvas', desc: 'Standard reaction canvas',                       patchable: false, activityMode: true  },
+  { id: 'canvas',       label: 'Reaction Canvas',  desc: 'Standard reaction canvas',                       patchable: false, activityMode: true  },
   { id: 'image-canvas', label: 'Image Canvas',    desc: 'React over a shared background image',           patchable: false, activityMode: true  },
+  { id: 'signature',    label: 'Signature Canvas', desc: 'Collect participant signatures live',            patchable: false, activityMode: true  },
   { id: 'soccer',       label: 'Soccer',          desc: 'Top-down physics ball — kick with your cursor',  patchable: false, activityMode: true  },
   { id: 'social',       label: 'Social Sharing',  desc: 'Bluesky · Twitter / X · Mastodon',              patchable: true,  activityMode: true  },
   { id: 'mood-tones',   label: 'Mood Tones',      desc: 'Generative audio keyed to audience reactions',  patchable: true,  activityMode: true  },
-  { id: 'treevites',    label: 'Leaderboard',      desc: 'Invite stats — who invited whom',                patchable: true, activityMode: true  },
-  { id: 'greeter',     label: 'Greeter',          desc: 'Guild event attendee welcome list',              patchable: true,  activityMode: true  },
-  { id: 'signature',  label: 'Signature',        desc: 'Collect participant signatures live',              patchable: false, activityMode: true  },
+  { id: 'treevites',    label: 'Leaderboard',     desc: 'Invite stats — who invited whom',                patchable: true,  activityMode: true  },
+  { id: 'greeter',      label: 'Greeter',         desc: 'Guild event attendee welcome list',              patchable: true,  activityMode: true  },
 ];
 
 export default function InterfacesTab({

@@ -23,6 +23,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - Signature presenter grid: only show a tile for users who have drawn at least one stroke.
 - Removed `?presenter=true` URL param — presenter mode is now toggled via the in-UI mode button.
 - Signature mode button: shifted right to clear the rotate button in pseudo-landscape signing mode.
+- Interfaces tab: renamed "Signature" to "Signature Canvas" and moved to 3rd position.
 
 ## Week 23 (2026-04-27)
 
