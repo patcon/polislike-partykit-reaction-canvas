@@ -12,12 +12,13 @@ interface SignatureCanvasProps {
   connectedUserIds: string[];
 }
 
-// Must match the aspect ratio used in SignatureLayer.
+// Must match SignatureLayer.
 const SIG_ASPECT = 16 / 9;
 
-function buildPath(points: Array<{ x: number; y: number }>, w: number, h: number): string {
+// Raw 0–100 viewBox coordinates — same as SignatureLayer uses.
+function buildPath(points: Array<{ x: number; y: number }>): string {
   if (points.length === 0) return '';
-  const px = (p: { x: number; y: number }) => `${(p.x / 100) * w},${(p.y / 100) * h}`;
+  const px = (p: { x: number; y: number }) => `${p.x},${p.y}`;
   if (points.length === 1) return `M ${px(points[0])} L ${px(points[0])}`;
   let d = `M ${px(points[0])}`;
   for (let i = 1; i < points.length - 1; i++) {
@@ -35,17 +36,12 @@ function fitSig(tileW: number, tileH: number) {
     sigH = tileH;
     sigW = tileH * SIG_ASPECT;
   }
-  return {
-    sigW,
-    sigH,
-    offsetX: (tileW - sigW) / 2,
-    offsetY: (tileH - sigH) / 2,
-  };
+  return { sigW, sigH, offsetX: (tileW - sigW) / 2, offsetY: (tileH - sigH) / 2 };
 }
 
-export default function SignatureCanvas({ strokes, heightOffset = 0, connectedUserIds }: SignatureCanvasProps) {
+export default function SignatureCanvas({ strokes, connectedUserIds }: SignatureCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dims, setDims] = useState({ width: window.innerWidth, height: window.innerHeight - heightOffset });
+  const [dims, setDims] = useState({ width: window.innerWidth, height: window.innerHeight });
 
   useEffect(() => {
     const el = containerRef.current;
@@ -68,39 +64,34 @@ export default function SignatureCanvas({ strokes, heightOffset = 0, connectedUs
   return (
     <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: '#222' }}>
       <svg width={dims.width} height={dims.height} style={{ display: 'block' }}>
-        <defs>
-          {allUserIds.map(uid => (
-            <clipPath key={`clip-${uid}`} id={`sig-clip-${uid}`}>
-              <rect x={offsetX} y={offsetY} width={sigW} height={sigH} />
-            </clipPath>
-          ))}
-        </defs>
         {allUserIds.map((uid, i) => {
-          const col = i % cols;
-          const row = Math.floor(i / cols);
+          const tileX = (i % cols) * tileW;
+          const tileY = Math.floor(i / cols) * tileH;
+          const sigX = tileX + offsetX;
+          const sigY = tileY + offsetY;
           const userStrokes = strokes[uid] ?? [];
           return (
-            <g key={uid} transform={`translate(${col * tileW},${row * tileH})`}>
-              {/* Tile background */}
-              <rect width={tileW} height={tileH} fill="#2a2a2a" />
-              {/* Signature box — correct aspect ratio, centered in tile */}
-              <rect x={offsetX} y={offsetY} width={sigW} height={sigH} fill="white" stroke="rgba(80,80,80,0.55)" strokeWidth={1} />
-              {/* Strokes clipped to signature box */}
-              <g clipPath={`url(#sig-clip-${uid})`} transform={`translate(${offsetX},${offsetY})`}>
+            <g key={uid}>
+              <rect x={tileX} y={tileY} width={tileW} height={tileH} fill="#2a2a2a" />
+              {/* White sig box */}
+              <rect x={sigX} y={sigY} width={sigW} height={sigH} fill="white" stroke="rgba(80,80,80,0.55)" strokeWidth={1} />
+              {/* Nested SVG — same viewBox as SignatureLayer, clips naturally at its viewport */}
+              <svg x={sigX} y={sigY} width={sigW} height={sigH} viewBox="0 0 100 100" preserveAspectRatio="none" overflow="hidden">
                 {userStrokes.map(stroke => (
                   <path
                     key={stroke.strokeId}
-                    d={buildPath(stroke.points, sigW, sigH)}
+                    d={buildPath(stroke.points)}
                     stroke="#1a1a1a"
                     strokeWidth={1.5}
                     fill="none"
                     strokeLinecap="round"
                     strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
                   />
                 ))}
-              </g>
+              </svg>
               {/* User label */}
-              <text x={offsetX + 5} y={offsetY + sigH - 5} fontSize={10} fill="#999" fontFamily="monospace">
+              <text x={sigX + 4} y={sigY + sigH - 4} fontSize={10} fill="#999" fontFamily="monospace">
                 {uid.slice(0, 8)}
               </text>
             </g>
