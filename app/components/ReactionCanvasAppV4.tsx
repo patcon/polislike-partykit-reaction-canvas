@@ -425,8 +425,8 @@ export default function ReactionCanvasAppV4() {
               onClick={() => setIsPresenter(p => !p)}
               style={{
                 position: 'absolute',
-                top: 12,
-                right: 12,
+                top: 7,
+                right: 'calc(6% + 46px)',
                 zIndex: 30,
                 height: 30,
                 padding: '0 14px',
