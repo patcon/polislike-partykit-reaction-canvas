@@ -86,16 +86,17 @@ export default function SignatureLayer({ userId, onSendMessage }: SignatureLayer
   boxRef.current = currentBox;
 
   // ── Rotate-button position ──────────────────────────────────────────────────
-  // Placed outside the wrapper so it never rotates itself, but its position
-  // tracks the "top-left outside" corner in both orientations:
-  //   • not rotated: above the top-left corner of the landscape box
-  //   • rotated:     to the left of the visual box's top-left corner
-  //                  (visual box: center = container center, visual size = bHr × bWr)
+  // Placed outside the wrapper so it never rotates itself.
+  // Portrait frame of reference for both states:
+  //   • not rotated: top-left above the landscape box
+  //   • rotated:     top-right above the visual box
+  //                  (after CW 90°: visual width = bHr, visual height = bWr,
+  //                   both centred on the container centre)
   const rotateBtnLeft = rotated
-    ? cW / 2 - bHr / 2 - BTN_SIZE - BTN_GAP
+    ? cW / 2 + bHr / 2 - BTN_SIZE
     : normalBox.x;
   const rotateBtnTop = rotated
-    ? cH / 2 - bWr / 2
+    ? cH / 2 - bWr / 2 - BTN_SIZE - BTN_GAP
     : normalBox.y - BTN_SIZE - BTN_GAP;
 
   // ── Normalize ───────────────────────────────────────────────────────────────
@@ -112,15 +113,14 @@ export default function SignatureLayer({ userId, onSendMessage }: SignatureLayer
       };
     }
 
-    // Box is CSS-rotated 90° CW. Undo that rotation so strokes always land in
-    // the same 0–100 coordinate space regardless of rotation state.
+    // Box is CSS-rotated 90° CW. Map screen coords back to box (CSS) coords.
+    // After CW 90°: CSS +x axis points down screen (+relY), CSS +y axis points left (-relX).
     const cxScreen = rect.left + bX + bW / 2;
     const cyScreen = rect.top  + bY + bH / 2;
     const relX = clientX - cxScreen;
     const relY = clientY - cyScreen;
-    // Undo CW 90° → apply CCW 90°: (x, y) → (−y, x)
-    const unrotX = -relY;
-    const unrotY =  relX;
+    const unrotX =  relY;   // CSS x = screen down
+    const unrotY = -relX;   // CSS y = screen left
     return {
       x: ((unrotX + bW / 2) / bW) * 100,
       y: ((unrotY + bH / 2) / bH) * 100,
@@ -239,30 +239,31 @@ export default function SignatureLayer({ userId, onSendMessage }: SignatureLayer
               </div>
             </div>
 
-            {/* Clear button — rotates with the box */}
-            <button
-              onClick={handleClear}
-              style={{
-                position: 'absolute',
-                bottom: -(BTN_SIZE + BTN_GAP),
-                left: '50%',
-                transform: 'translateX(-50%)',
-                pointerEvents: 'auto',
-                height: BTN_SIZE,
-                padding: '0 18px',
-                borderRadius: 999,
-                border: '1px solid rgba(255,255,255,0.4)',
-                background: 'rgba(255,255,255,0.18)',
-                color: 'rgba(255,255,255,0.9)',
-                fontSize: 13,
-                cursor: 'pointer',
-                letterSpacing: '0.04em',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              Clear
-            </button>
           </div>
+
+          {/* Clear button — always at portrait bottom-centre, never rotates */}
+          <button
+            onClick={handleClear}
+            style={{
+              position: 'absolute',
+              bottom: BTN_GAP * 2,
+              left: '50%',
+              transform: 'translateX(-50%)',
+              zIndex: 3,
+              height: BTN_SIZE,
+              padding: '0 18px',
+              borderRadius: 999,
+              border: '1px solid rgba(255,255,255,0.4)',
+              background: 'rgba(255,255,255,0.18)',
+              color: 'rgba(255,255,255,0.9)',
+              fontSize: 13,
+              cursor: 'pointer',
+              letterSpacing: '0.04em',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            Clear
+          </button>
 
           {/* Rotate button — fixed outside the wrapper, repositions on rotation */}
           <button
