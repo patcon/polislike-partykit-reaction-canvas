@@ -285,7 +285,6 @@ export default function SignatureLayer({ userId, onSendMessage }: SignatureLayer
               justifyContent: 'center',
               cursor: 'pointer',
               padding: 0,
-              transition: 'left 0.25s, top 0.25s',
             }}
           >
             <RotateIcon />
