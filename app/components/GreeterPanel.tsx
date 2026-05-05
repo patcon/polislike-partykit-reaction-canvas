@@ -8,6 +8,7 @@ interface Attendee {
   firstName: string;
   lastName: string;
   photoUrl: string;
+  defaultAvatarUrl: string;
   photoSource: 'guild' | 'gravatar' | 'default';
   hasRealPhoto: boolean;
   attendance: 'in-person' | 'online';
@@ -89,7 +90,7 @@ async function fetchAttendeesByType(nodeId: string, attendance: Attendee['attend
     json?.data?.node?.[key]?.edges ?? [];
   return edges.map(({ node: { user } }) => {
     const gravatarUrl = user.emailMd5
-      ? `https://www.gravatar.com/avatar/${user.emailMd5}?s=128`
+      ? `https://www.gravatar.com/avatar/${user.emailMd5}?s=128&d=404`
       : null;
     const photoUrl = user.primaryPhoto?.transformUrl ?? gravatarUrl ?? user.defaultAvatarUrl;
     const photoSource: Attendee['photoSource'] = user.primaryPhoto ? 'guild' : gravatarUrl ? 'gravatar' : 'default';
@@ -98,8 +99,9 @@ async function fetchAttendeesByType(nodeId: string, attendance: Attendee['attend
       firstName: user.firstName,
       lastName: user.lastName,
       photoUrl,
+      defaultAvatarUrl: user.defaultAvatarUrl,
       photoSource,
-      hasRealPhoto: user.primaryPhoto !== null || gravatarUrl !== null,
+      hasRealPhoto: user.primaryPhoto !== null,
       attendance,
     };
   });
@@ -256,6 +258,19 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
   const SORT_CYCLE: SortMode[] = ['none', 'first', 'last'];
 
   const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null);
+  const [popupPhotoSource, setPopupPhotoSource] = useState<'guild' | 'gravatar' | 'default' | null>(null);
+  const [gravatarVerified, setGravatarVerified] = useState<Set<string>>(new Set());
+
+  // Eagerly pre-verify all gravatar URLs when attendees load, so quiz deck has accurate hasRealPhoto
+  useEffect(() => {
+    setGravatarVerified(new Set());
+    for (const a of attendees) {
+      if (a.photoSource !== 'gravatar') continue;
+      const img = new Image();
+      img.onload = () => setGravatarVerified(prev => new Set([...prev, a.slugId]));
+      img.src = a.photoUrl; // ?d=404 — only fires onload if a real gravatar exists
+    }
+  }, [attendees]);
 
   // Session-level quiz state (persists across event navigation within the same tab)
   const [memorizedByKey, setMemorizedByKey] = useState<Record<string, Set<string>>>({});
@@ -344,7 +359,7 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
 
       {quizActive ? (
         <GreeterQuizMode
-          attendees={filteredAttendees}
+          attendees={filteredAttendees.map(a => ({ ...a, hasRealPhoto: a.hasRealPhoto || gravatarVerified.has(a.slugId) }))}
           memorizedIds={memorizedIds}
           onMemorize={handleMemorize}
           onExit={() => setQuizActive(false)}
@@ -384,6 +399,7 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
                   width={36}
                   height={36}
                   style={{ borderRadius: '50%', flexShrink: 0, background: '#222' }}
+                  onError={e => { (e.target as HTMLImageElement).src = a.defaultAvatarUrl; }}
                 />
                 <span style={{ fontSize: 14, color: '#ddd' }}>{a.firstName} {a.lastName}</span>
               </div>
@@ -407,7 +423,7 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
       {/* Attendee QR popup */}
       {selectedAttendee && (
         <div
-          onClick={() => setSelectedAttendee(null)}
+          onClick={() => { setSelectedAttendee(null); setPopupPhotoSource(null); }}
           style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
         >
           <div
@@ -420,16 +436,21 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
               width={52}
               height={52}
               style={{ borderRadius: '50%', background: '#222' }}
+              onLoad={() => setPopupPhotoSource(selectedAttendee.photoSource)}
+              onError={e => {
+                (e.target as HTMLImageElement).src = selectedAttendee.defaultAvatarUrl;
+                setPopupPhotoSource('default');
+              }}
             />
             <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#eee' }}>{selectedAttendee.firstName} {selectedAttendee.lastName}</p>
-            {selectedAttendee.photoSource !== 'default' && (
+            {popupPhotoSource && popupPhotoSource !== 'default' && (
               <p style={{ margin: 0, fontSize: 11, color: '#555' }}>
-                photo set via {selectedAttendee.photoSource === 'guild' ? 'Guild.host' : 'Gravatar'}
+                photo set via {popupPhotoSource === 'guild' ? 'Guild.host' : 'Gravatar'}
               </p>
             )}
             <QRWithCopy url={getAttendeeQrUrl(selectedAttendee)} size={180} />
             <button
-              onClick={() => setSelectedAttendee(null)}
+              onClick={() => { setSelectedAttendee(null); setPopupPhotoSource(null); }}
               style={{ marginTop: 4, background: 'none', border: '1px solid #444', borderRadius: 6, color: '#888', cursor: 'pointer', fontFamily: 'monospace', fontSize: 13, padding: '6px 20px' }}
             >
               Close

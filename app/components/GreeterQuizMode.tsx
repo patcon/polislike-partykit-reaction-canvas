@@ -14,6 +14,7 @@ interface Attendee {
   firstName: string;
   lastName: string;
   photoUrl: string;
+  defaultAvatarUrl: string;
   hasRealPhoto: boolean;
   attendance: 'in-person' | 'online';
 }
@@ -238,7 +239,7 @@ export default function GreeterQuizMode({
                 }}>
                   {quizMode === 'image-name' && !reversed && (
                     <>
-                      <img src={currentCard.photoUrl} alt="" width={120} height={120} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} />
+                      <img src={currentCard.photoUrl} alt="" width={120} height={120} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).src = currentCard.defaultAvatarUrl; }} />
                       <span style={{ fontSize: 12, color: '#444', fontFamily: 'monospace' }}>tap to reveal first name</span>
                     </>
                   )}
@@ -280,7 +281,7 @@ export default function GreeterQuizMode({
                 }}>
                   {quizMode === 'image-name' && !reversed && (
                     <>
-                      <img src={currentCard.photoUrl} alt="" width={64} height={64} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} />
+                      <img src={currentCard.photoUrl} alt="" width={64} height={64} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).src = currentCard.defaultAvatarUrl; }} />
                       <span style={{ fontSize: 20, fontWeight: 700, color: '#eee', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
                         {currentCard.firstName}
                       </span>
@@ -288,7 +289,7 @@ export default function GreeterQuizMode({
                   )}
                   {quizMode === 'image-name' && reversed && (
                     <>
-                      <img src={currentCard.photoUrl} alt="" width={120} height={120} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} />
+                      <img src={currentCard.photoUrl} alt="" width={120} height={120} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).src = currentCard.defaultAvatarUrl; }} />
                       <span style={{ fontSize: 14, color: '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
                         {currentCard.firstName} {currentCard.lastName}
                       </span>
@@ -296,7 +297,7 @@ export default function GreeterQuizMode({
                   )}
                   {quizMode === 'first-last' && (
                     <>
-                      <img src={currentCard.photoUrl} alt="" width={64} height={64} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} />
+                      <img src={currentCard.photoUrl} alt="" width={64} height={64} style={{ borderRadius: '50%', objectFit: 'cover', background: '#222', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).src = currentCard.defaultAvatarUrl; }} />
                       <span style={{ fontSize: reversed ? 20 : 14, fontWeight: reversed ? 700 : 400, color: reversed ? '#eee' : '#888', fontFamily: 'monospace', textAlign: 'center', padding: '0 16px' }}>
                         {currentCard.firstName}
                       </span>
