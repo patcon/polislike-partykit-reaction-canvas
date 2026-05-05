@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
+import SignatureLayer from "./SignatureLayer";
+import SignatureCanvas from "./SignatureCanvas";
 import AdminPanelV4 from "./AdminPanelV4";
 import InterfaceChipBar from "./InterfaceChipBar";
 import SocialPanel from "./SocialPanel";
@@ -80,6 +82,10 @@ function getCustomPhotoFromUrl(): string | null {
   return new URLSearchParams(window.location.search).get('customPhoto');
 }
 
+function isPresenterView(): boolean {
+  return new URLSearchParams(window.location.search).get('presenter') === 'true';
+}
+
 function MobileOnlyGate() {
   const url = window.location.href;
   const bypassHref = (() => { const p = new URLSearchParams(window.location.search); p.set('forceView', 'mobile'); return `?${p}${window.location.hash}`; })();
@@ -140,6 +146,9 @@ export default function ReactionCanvasAppV4() {
   const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
+  const [isPresenter] = useState(() => isPresenterView());
+  const [signatureStrokes, setSignatureStrokes] = useState<Record<string, Array<{ strokeId: string; points: Array<{ x: number; y: number }> }>>>({});
+  const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
@@ -202,7 +211,7 @@ export default function ReactionCanvasAppV4() {
     socketSendRef.current?.(JSON.stringify({ type: 'requestJoin' }));
   };
 
-  if (!isEmcee && !isTouchDevice() && !isMobileForced()) {
+  if (!isEmcee && !isPresenter && !isTouchDevice() && !isMobileForced()) {
     return <MobileOnlyGate />;
   }
 
@@ -284,13 +293,15 @@ export default function ReactionCanvasAppV4() {
           <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
           <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
           <ShareQRButton selfId={userId} selfChain={selfChain} />
-          <HapticIndicatorButton
-            enabled={hapticEnabled}
-            flashing={hapticFlashing}
-            canVibrate={WebHaptics.isSupported}
-            onToggle={() => { if (WebHaptics.isSupported) setHapticEnabled(prev => !prev); }}
-            onShowInfo={() => setHapticPending(true)}
-          />
+          {activity !== 'signature' && (
+            <HapticIndicatorButton
+              enabled={hapticEnabled}
+              flashing={hapticFlashing}
+              canVibrate={WebHaptics.isSupported}
+              onToggle={() => { if (WebHaptics.isSupported) setHapticEnabled(prev => !prev); }}
+              onShowInfo={() => setHapticPending(true)}
+            />
+          )}
           {touchPos && (
             <div
               className="v2-touch-indicator"
@@ -360,6 +371,20 @@ export default function ReactionCanvasAppV4() {
             onGreeterConfigChange={setServerGreeterConfig}
             onNowLabelChange={setNowLabel}
             onInviteEdges={(edges) => setInviteEdges(prev => ({ ...prev, ...edges }))}
+            onStrokeSegment={(uid, strokeId, points) => {
+              setSignatureStrokes(prev => {
+                const user = [...(prev[uid] ?? [])];
+                const idx = user.findIndex(s => s.strokeId === strokeId);
+                if (idx === -1) return { ...prev, [uid]: [...user, { strokeId, points }] };
+                const updated = [...user];
+                updated[idx] = { strokeId, points: [...updated[idx].points, ...points] };
+                return { ...prev, [uid]: updated };
+              });
+            }}
+            onSignatureCleared={(uid) => setSignatureStrokes(prev => { const n = { ...prev }; delete n[uid]; return n; })}
+            onConnectedUsers={(ids) => setConnectedUserIds(ids)}
+            onUserJoined={(uid) => setConnectedUserIds(prev => prev.includes(uid) ? prev : [...prev, uid])}
+            onUserLeft={(uid) => setConnectedUserIds(prev => prev.filter(id => id !== uid))}
             debug={debug}
           />
           {nowLabel && (
@@ -370,7 +395,7 @@ export default function ReactionCanvasAppV4() {
               {nowLabel}
             </div>
           )}
-          {!isViewer && activity !== 'social' && activity !== 'greeter' && (
+          {!isViewer && activity !== 'social' && activity !== 'greeter' && activity !== 'signature' && (
             <TouchLayer
               room={room}
               userId={userId}
@@ -382,6 +407,21 @@ export default function ReactionCanvasAppV4() {
               heightOffset={chipBarOffset}
               anchors={anchors}
               imageUrl={activity === 'image-canvas' ? (serverImageUrl || undefined) : undefined}
+            />
+          )}
+          {activity === 'signature' && !isPresenter && !isViewer && (
+            <SignatureLayer
+              userId={userId}
+              onSendMessage={(msg) => socketSendRef.current?.(msg)}
+              heightOffset={chipBarOffset}
+            />
+          )}
+          {activity === 'signature' && isPresenter && (
+            <SignatureCanvas
+              userId={userId}
+              strokes={signatureStrokes}
+              heightOffset={chipBarOffset}
+              connectedUserIds={connectedUserIds}
             />
           )}
         </div>

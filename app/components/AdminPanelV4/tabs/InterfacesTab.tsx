@@ -45,6 +45,7 @@ const ROWS: { id: string; label: string; desc: string; patchable: boolean; activ
   { id: 'mood-tones',   label: 'Mood Tones',      desc: 'Generative audio keyed to audience reactions',  patchable: true,  activityMode: true  },
   { id: 'treevites',    label: 'Leaderboard',      desc: 'Invite stats — who invited whom',                patchable: true, activityMode: true  },
   { id: 'greeter',     label: 'Greeter',          desc: 'Guild event attendee welcome list',              patchable: true,  activityMode: true  },
+  { id: 'signature',  label: 'Signature',        desc: 'Collect participant signatures live',              patchable: false, activityMode: true  },
 ];
 
 export default function InterfacesTab({

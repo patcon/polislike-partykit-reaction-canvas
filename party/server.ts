@@ -227,11 +227,24 @@ interface SetOwnValenceDisplayEvent {
   mode: 'background' | 'labels' | 'none';
 }
 
+interface StrokeSegmentEvent {
+  type: 'strokeSegment';
+  userId: string;
+  strokeId: string;
+  points: Array<{ x: number; y: number }>;
+  isFinal: boolean;
+}
+
+interface ClearSignatureEvent {
+  type: 'clearSignature';
+  userId: string;
+}
+
 interface PersistedState {
   roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
 }
 
-type ClientEvent = CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent;
+type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | StrokeSegmentEvent | ClearSignatureEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -695,6 +708,10 @@ export default class Server implements Party.Server {
         if (newEdges.length > 0) {
           this.room.broadcast(JSON.stringify({ type: 'inviteEdges', edges: newEdges }));
         }
+      } else if (event.type === 'strokeSegment') {
+        this.room.broadcast(message);
+      } else if (event.type === 'clearSignature') {
+        this.room.broadcast(JSON.stringify({ type: 'signatureCleared', userId: event.userId }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
