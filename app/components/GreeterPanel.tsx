@@ -18,6 +18,7 @@ interface EventInfo {
   id: string;
   name: string;
   startAt: string;
+  url: string | null;
 }
 
 interface GreeterPanelProps {
@@ -48,7 +49,7 @@ function parseGuildUrl(url: string): ParsedUrl | null {
   }
 }
 
-async function fetchEventBySlug(slug: string): Promise<EventInfo | null> {
+async function fetchEventBySlug(slug: string, sourceUrl: string): Promise<EventInfo | null> {
   const res = await fetch(GRAPHQL_SLUG_URL, {
     headers: { 'x-gqlvars': JSON.stringify({ slug }) },
   });
@@ -56,7 +57,7 @@ async function fetchEventBySlug(slug: string): Promise<EventInfo | null> {
   const json = await res.json();
   const e = json?.data?.event;
   if (!e?.id) return null;
-  return { id: e.id, name: e.name ?? '', startAt: e.startAt ?? '' };
+  return { id: e.id, name: e.name ?? '', startAt: e.startAt ?? '', url: sourceUrl };
 }
 
 type EventsPage = { events: EventInfo[]; hasMore: boolean; endCursor: string | null };
@@ -67,9 +68,14 @@ async function fetchEventsList(groupSlug: string, endpoint: 'upcoming' | 'past',
   const res = await fetch(url.toString());
   if (!res.ok) return { events: [], hasMore: false, endCursor: null };
   const json = await res.json();
-  const edges: { node: { id: string; name: string; startAt: string } }[] = json?.events?.edges ?? [];
+  const edges: { node: { id: string; name: string; startAt: string; slug?: string } }[] = json?.events?.edges ?? [];
   return {
-    events: edges.map(e => ({ id: e.node.id, name: e.node.name, startAt: e.node.startAt })),
+    events: edges.map(e => ({
+      id: e.node.id,
+      name: e.node.name,
+      startAt: e.node.startAt,
+      url: e.node.slug ? `https://guild.host/events/${e.node.slug}` : null,
+    })),
     hasMore: json?.events?.pageInfo?.hasNextPage ?? false,
     endCursor: json?.events?.pageInfo?.endCursor ?? null,
   };
@@ -164,7 +170,7 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
     setGroupSlug(null);
 
     if (parsed.type === 'event') {
-      fetchEventBySlug(parsed.slug).then(event => {
+      fetchEventBySlug(parsed.slug, eventUrl).then(event => {
         if (cancelled) return;
         if (!event) { setListStatus('no-event'); return; }
         setEvents([event]);
@@ -317,9 +323,11 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
             </button>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#eee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {currentEvent?.name || 'In-Person Attendees'}
-            </div>
+            {(() => {
+              const href = currentEvent?.url ?? (groupSlug ? `https://guild.host/${groupSlug}` : null);
+              const nameEl = <span style={{ fontSize: 13, fontWeight: 600, color: '#eee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{currentEvent?.name || 'In-Person Attendees'}</span>;
+              return href ? <a href={href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>{nameEl}</a> : nameEl;
+            })()}
             {currentEvent?.startAt && (
               <div style={{ fontSize: 11, color: '#666', marginTop: 1 }}>{formatDate(currentEvent.startAt)}</div>
             )}
