@@ -6,12 +6,17 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Added
 - Greeter: **Attendee QR popup** — clicking any attendee row shows a popup with a QR code that pre-fills `?customPhoto=` with their Guild profile photo URL. The admin shows this to the arriving attendee to scan.
+- Greeter: **Gravatar fallback** — attendee photos now use Guild primary photo → Gravatar (via `emailMd5`) → Guild default avatar, in that priority order. Popup shows "photo set via Guild.host" or "photo set via Gravatar" when applicable.
+- Greeter: **Event title links to Guild.host** — the event name in the header is a link to the event page (or group page in group mode).
 - Avatar tab: **Custom (e.g., Guild)** avatar mode — when selected, participants who have scanned a greeter QR code show their real photo on everyone's canvas; unregistered participants fall back to a colored dot.
-- Avatar tab: **Highlight valence** checkbox — when enabled, cursor dots and avatar borders cycle through reaction colors; when off, they use a configurable default color.
+- Avatar tab: **Highlight valence** checkbox — when enabled, cursor dots and avatar borders cycle through reaction colors; when off, they use a configurable default color (default: off, `#d4d4d4`).
 - Avatar tab: **Default color picker** — choose the default cursor/avatar border color shown when valence highlight is off.
 - Canvas: `disableCursorValence` and `disableBackgroundValence` props — image-canvas mode now suppresses both cursor valence coloring and background color changes.
-- Canvas settings modal: **Display own valence via** — radio group (Background / Labels / None) controls how a participant's own reaction region is shown: canvas background color shift, a subtle highlight on the matching label, or no visual feedback.
+- Canvas settings modal: **Display own valence via** — radio group (Background / Labels / None) controls how a participant's own reaction region is shown: canvas background color shift, a subtle highlight on the matching label, or no visual feedback. Default: Labels.
 - Server: `registerCustomAvatar`, `setColorCursorsByVote`, `setDefaultCursorColor`, `setOwnValenceDisplay` messages; all settings are broadcast and included in the `connected` payload.
+
+### Fixed
+- Greeter quiz: Gravatar users now appear in the deck when "Hide default avatars" is on, but only after their Gravatar is eagerly verified on attendee load (users with no real Gravatar are excluded).
 
 ## Week 23 (2026-04-27)
 
