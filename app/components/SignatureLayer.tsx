@@ -12,11 +12,11 @@ interface SignatureLayerProps {
   heightOffset?: number;
 }
 
-// Box proportions: landscape mobile (~16:9), centered, 88% of container width.
 const BOX_WIDTH_RATIO = 0.88;
 const ASPECT_RATIO = 16 / 9;
-// Signature baseline sits at 70% down inside the box.
-const BASELINE_Y = 70; // in viewBox units (0-100)
+const BASELINE_Y = 70;
+const BTN_SIZE = 30;
+const BTN_GAP = 8;
 
 function buildPath(points: Array<{ x: number; y: number }>): string {
   if (points.length === 0) return '';
@@ -30,47 +30,104 @@ function buildPath(points: Array<{ x: number; y: number }>): string {
   return d + ` L ${px(points[points.length - 1])}`;
 }
 
+function RotateIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width={16} height={16} fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+      <path d="M3 3v5h5" />
+    </svg>
+  );
+}
+
 export default function SignatureLayer({ userId, onSendMessage }: SignatureLayerProps) {
   const outerRef = useRef<HTMLDivElement>(null);
   const captureRef = useRef<HTMLDivElement>(null);
   const [containerDims, setContainerDims] = useState({ w: 0, h: 0 });
   const [localStrokes, setLocalStrokes] = useState<Stroke[]>([]);
+  const [rotated, setRotated] = useState(false);
+  const rotatedRef = useRef(false);
   const isDrawingRef = useRef(false);
   const currentStrokeIdRef = useRef<string | null>(null);
   const accumulatedRef = useRef<Array<{ x: number; y: number }>>([]);
   const flushIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Box pixel geometry — kept in a ref so event handlers always read current values.
+  // Current box geometry in CSS space — kept in ref so event handlers always read current value.
   const boxRef = useRef({ x: 0, y: 0, w: 0, h: 0 });
 
   useEffect(() => {
     const el = outerRef.current;
     if (!el) return;
-    const update = () => {
-      const cW = el.clientWidth;
-      const cH = el.clientHeight;
-      const bW = cW * BOX_WIDTH_RATIO;
-      const bH = bW / ASPECT_RATIO;
-      boxRef.current = { x: (cW - bW) / 2, y: (cH - bH) / 2, w: bW, h: bH };
-      setContainerDims({ w: cW, h: cH });
-    };
+    const update = () => setContainerDims({ w: el.clientWidth, h: el.clientHeight });
     update();
     const ro = new ResizeObserver(update);
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
 
-  // Normalize a pointer to 0–100 coordinates relative to the box.
+  // ── Box geometry ────────────────────────────────────────────────────────────
+  const { w: cW, h: cH } = containerDims;
+  const ready = cW > 0;
+
+  // Normal (not rotated): landscape 16:9 box centred in container.
+  const bWn = cW * BOX_WIDTH_RATIO;
+  const bHn = bWn / ASPECT_RATIO;
+  const normalBox = { x: (cW - bWn) / 2, y: (cH - bHn) / 2, w: bWn, h: bHn };
+
+  // Rotated: sized so that after CSS rotate(90deg) the visual box fills the
+  // portrait screen. Visual width = CSS height, visual height = CSS width.
+  //   visual width  ≈ container width  → CSS height = cW * BOX_WIDTH_RATIO
+  //   CSS width     = CSS height * 16/9 (keeps 16:9 coordinate space)
+  const bHr = cW * BOX_WIDTH_RATIO;
+  const bWr = bHr * ASPECT_RATIO;
+  const rotatedBox = { x: (cW - bWr) / 2, y: (cH - bHr) / 2, w: bWr, h: bHr };
+
+  const currentBox = rotated ? rotatedBox : normalBox;
+
+  // Keep boxRef in sync so event handlers always see the current box.
+  boxRef.current = currentBox;
+
+  // ── Rotate-button position ──────────────────────────────────────────────────
+  // Placed outside the wrapper so it never rotates itself, but its position
+  // tracks the "top-left outside" corner in both orientations:
+  //   • not rotated: above the top-left corner of the landscape box
+  //   • rotated:     to the left of the visual box's top-left corner
+  //                  (visual box: center = container center, visual size = bHr × bWr)
+  const rotateBtnLeft = rotated
+    ? cW / 2 - bHr / 2 - BTN_SIZE - BTN_GAP
+    : normalBox.x;
+  const rotateBtnTop = rotated
+    ? cH / 2 - bWr / 2
+    : normalBox.y - BTN_SIZE - BTN_GAP;
+
+  // ── Normalize ───────────────────────────────────────────────────────────────
   const normalize = useCallback((clientX: number, clientY: number) => {
     const rect = captureRef.current?.getBoundingClientRect();
     if (!rect) return null;
     const { x: bX, y: bY, w: bW, h: bH } = boxRef.current;
     if (bW === 0 || bH === 0) return null;
+
+    if (!rotatedRef.current) {
+      return {
+        x: ((clientX - rect.left - bX) / bW) * 100,
+        y: ((clientY - rect.top  - bY) / bH) * 100,
+      };
+    }
+
+    // Box is CSS-rotated 90° CW. Undo that rotation so strokes always land in
+    // the same 0–100 coordinate space regardless of rotation state.
+    const cxScreen = rect.left + bX + bW / 2;
+    const cyScreen = rect.top  + bY + bH / 2;
+    const relX = clientX - cxScreen;
+    const relY = clientY - cyScreen;
+    // Undo CW 90° → apply CCW 90°: (x, y) → (−y, x)
+    const unrotX = -relY;
+    const unrotY =  relX;
     return {
-      x: ((clientX - rect.left - bX) / bW) * 100,
-      y: ((clientY - rect.top  - bY) / bH) * 100,
+      x: ((unrotX + bW / 2) / bW) * 100,
+      y: ((unrotY + bH / 2) / bH) * 100,
     };
   }, []);
 
+  // ── Flush ───────────────────────────────────────────────────────────────────
   const flush = useCallback((isFinal: boolean) => {
     const pts = accumulatedRef.current.splice(0);
     if (pts.length === 0 && !isFinal) return;
@@ -116,65 +173,126 @@ export default function SignatureLayer({ userId, onSendMessage }: SignatureLayer
     onSendMessage(JSON.stringify({ type: 'clearSignature', userId }));
   }, [userId, onSendMessage]);
 
-  const { x: bX, y: bY, w: bW, h: bH } = boxRef.current;
-  const ready = containerDims.w > 0;
+  const handleRotate = useCallback(() => {
+    rotatedRef.current = !rotatedRef.current;
+    setRotated(rotatedRef.current);
+  }, []);
+
+  const { x: bX, y: bY, w: bW, h: bH } = currentBox;
 
   return (
     <div ref={outerRef} style={{ position: 'absolute', inset: 0, zIndex: 20, background: 'rgba(160,160,160,0.72)' }}>
 
-      {/* Signature box: overflow:hidden is the hard clip */}
       {ready && (
-        <div style={{
-          position: 'absolute',
-          left: bX, top: bY, width: bW, height: bH,
-          background: 'white',
-          border: '1.5px solid rgba(80,80,80,0.55)',
-          overflow: 'hidden',
-          pointerEvents: 'none',
-          boxSizing: 'border-box',
-        }}>
-          <svg
-            viewBox="0 0 100 100"
-            preserveAspectRatio="none"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
-          >
-            {/* Faint guide line (baseline) */}
-            <line
-              x1={5} y1={BASELINE_Y} x2={95} y2={BASELINE_Y}
-              stroke="rgba(180,180,180,0.7)" strokeWidth={0.3}
-              vectorEffect="non-scaling-stroke"
-            />
-            {/* Strokes */}
-            {localStrokes.map(stroke => (
-              <path
-                key={stroke.strokeId}
-                d={buildPath(stroke.points)}
-                stroke="#1a1a1a"
-                strokeWidth={1}
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                vectorEffect="non-scaling-stroke"
-              />
-            ))}
-          </svg>
-          {/* "Sign here" label pinned just below the baseline */}
+        <>
+          {/* Rotatable wrapper — box + clear button only */}
           <div style={{
             position: 'absolute',
-            left: '5%',
-            top: `${BASELINE_Y + 1}%`,
-            fontSize: 10,
-            color: 'rgba(160,160,160,0.8)',
+            left: bX, top: bY, width: bW, height: bH,
+            transformOrigin: 'center center',
+            transform: rotated ? 'rotate(90deg)' : 'none',
             pointerEvents: 'none',
-            userSelect: 'none',
-            fontFamily: 'sans-serif',
           }}>
-            Sign here
+            {/* Signature box */}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'white',
+              border: '1.5px solid rgba(80,80,80,0.55)',
+              overflow: 'hidden',
+              boxSizing: 'border-box',
+            }}>
+              <svg
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%' }}
+              >
+                <line
+                  x1={5} y1={BASELINE_Y} x2={95} y2={BASELINE_Y}
+                  stroke="rgba(180,180,180,0.7)" strokeWidth={0.3}
+                  vectorEffect="non-scaling-stroke"
+                />
+                {localStrokes.map(stroke => (
+                  <path
+                    key={stroke.strokeId}
+                    d={buildPath(stroke.points)}
+                    stroke="#1a1a1a"
+                    strokeWidth={1}
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    vectorEffect="non-scaling-stroke"
+                  />
+                ))}
+              </svg>
+              <div style={{
+                position: 'absolute',
+                left: '5%',
+                top: `${BASELINE_Y + 1}%`,
+                fontSize: 10,
+                color: 'rgba(160,160,160,0.8)',
+                pointerEvents: 'none',
+                userSelect: 'none',
+                fontFamily: 'sans-serif',
+              }}>
+                Sign here
+              </div>
+            </div>
+
+            {/* Clear button — rotates with the box */}
+            <button
+              onClick={handleClear}
+              style={{
+                position: 'absolute',
+                bottom: -(BTN_SIZE + BTN_GAP),
+                left: '50%',
+                transform: 'translateX(-50%)',
+                pointerEvents: 'auto',
+                height: BTN_SIZE,
+                padding: '0 18px',
+                borderRadius: 999,
+                border: '1px solid rgba(255,255,255,0.4)',
+                background: 'rgba(255,255,255,0.18)',
+                color: 'rgba(255,255,255,0.9)',
+                fontSize: 13,
+                cursor: 'pointer',
+                letterSpacing: '0.04em',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Clear
+            </button>
           </div>
-        </div>
+
+          {/* Rotate button — fixed outside the wrapper, repositions on rotation */}
+          <button
+            onClick={handleRotate}
+            title="Rotate signing box"
+            style={{
+              position: 'absolute',
+              left: rotateBtnLeft,
+              top: rotateBtnTop,
+              zIndex: 2,
+              width: BTN_SIZE,
+              height: BTN_SIZE,
+              borderRadius: 999,
+              border: '1px solid rgba(255,255,255,0.35)',
+              background: rotated ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.12)',
+              color: 'rgba(255,255,255,0.85)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              padding: 0,
+              transition: 'left 0.25s, top 0.25s',
+            }}
+          >
+            <RotateIcon />
+          </button>
+        </>
       )}
 
-      {/* Full-surface pointer capture (sits on top of the box div) */}
+      {/* Full-surface pointer capture */}
       <div
         ref={captureRef}
         style={{ position: 'absolute', inset: 0, touchAction: 'none', cursor: 'crosshair' }}
@@ -183,27 +301,6 @@ export default function SignatureLayer({ userId, onSendMessage }: SignatureLayer
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
       />
-
-      <button
-        onClick={handleClear}
-        style={{
-          position: 'absolute',
-          bottom: 16,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 21,
-          padding: '7px 22px',
-          borderRadius: 999,
-          border: '1px solid rgba(255,255,255,0.4)',
-          background: 'rgba(255,255,255,0.18)',
-          color: 'rgba(255,255,255,0.9)',
-          fontSize: 13,
-          cursor: 'pointer',
-          letterSpacing: '0.04em',
-        }}
-      >
-        Clear
-      </button>
     </div>
   );
 }
