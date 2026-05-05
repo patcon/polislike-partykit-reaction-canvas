@@ -39,7 +39,7 @@ function RotateIcon() {
   );
 }
 
-export default function SignatureLayer({ userId, onSendMessage }: SignatureLayerProps) {
+export default function SignatureLayer({ userId, onSendMessage, heightOffset = 0 }: SignatureLayerProps) {
   const outerRef = useRef<HTMLDivElement>(null);
   const captureRef = useRef<HTMLDivElement>(null);
   const [containerDims, setContainerDims] = useState({ w: 0, h: 0 });
@@ -65,12 +65,21 @@ export default function SignatureLayer({ userId, onSendMessage }: SignatureLayer
 
   // ── Box geometry ────────────────────────────────────────────────────────────
   const { w: cW, h: cH } = containerDims;
+  const effectiveH = cH - heightOffset;
   const ready = cW > 0;
 
-  // Normal (not rotated): landscape 16:9 box centred in container.
-  const bWn = cW * BOX_WIDTH_RATIO;
-  const bHn = bWn / ASPECT_RATIO;
-  const normalBox = { x: (cW - bWn) / 2, y: (cH - bHn) / 2, w: bWn, h: bHn };
+  // Vertical padding: reserve space for buttons above/below the box.
+  const TOP_PAD = BTN_SIZE + BTN_GAP + 16;
+  const BOTTOM_PAD = BTN_SIZE + BTN_GAP * 2 + 16;
+  const availH = effectiveH - TOP_PAD - BOTTOM_PAD;
+
+  // Normal (not rotated): landscape 16:9 box centred in padded area.
+  // Constrain height so the box never overflows vertically on wide/short viewports.
+  const bWn_ideal = cW * BOX_WIDTH_RATIO;
+  const bHn_ideal = bWn_ideal / ASPECT_RATIO;
+  const bHn = Math.min(bHn_ideal, availH);
+  const bWn = bHn < bHn_ideal ? bHn * ASPECT_RATIO : bWn_ideal;
+  const normalBox = { x: (cW - bWn) / 2, y: TOP_PAD + (availH - bHn) / 2, w: bWn, h: bHn };
 
   // Rotated: sized so that after CSS rotate(90deg) the visual box fills the
   // portrait screen. Visual width = CSS height, visual height = CSS width.
@@ -78,7 +87,7 @@ export default function SignatureLayer({ userId, onSendMessage }: SignatureLayer
   //   CSS width     = CSS height * 16/9 (keeps 16:9 coordinate space)
   const bHr = cW * BOX_WIDTH_RATIO;
   const bWr = bHr * ASPECT_RATIO;
-  const rotatedBox = { x: (cW - bWr) / 2, y: (cH - bHr) / 2, w: bWr, h: bHr };
+  const rotatedBox = { x: (cW - bWr) / 2, y: (effectiveH - bHr) / 2, w: bWr, h: bHr };
 
   const currentBox = rotated ? rotatedBox : normalBox;
 
@@ -96,7 +105,7 @@ export default function SignatureLayer({ userId, onSendMessage }: SignatureLayer
     ? cW / 2 + bHr / 2 - BTN_SIZE
     : normalBox.x;
   const rotateBtnTop = rotated
-    ? cH / 2 - bWr / 2 - BTN_SIZE - BTN_GAP
+    ? effectiveH / 2 - bWr / 2 - BTN_SIZE - BTN_GAP
     : normalBox.y - BTN_SIZE - BTN_GAP;
 
   // ── Normalize ───────────────────────────────────────────────────────────────
