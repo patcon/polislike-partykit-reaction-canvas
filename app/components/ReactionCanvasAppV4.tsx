@@ -440,7 +440,7 @@ export default function ReactionCanvasAppV4() {
                 whiteSpace: 'nowrap',
               }}
             >
-              {isPresenter ? 'Sign' : 'Present'}
+              {isPresenter ? 'Sign' : 'Show: Grid'}
             </button>
           )}
         </div>
