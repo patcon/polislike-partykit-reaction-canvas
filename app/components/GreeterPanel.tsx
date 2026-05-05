@@ -1,12 +1,15 @@
 import { useState, useEffect } from "react";
 import type { GreeterConfig } from "../types";
 import GreeterQuizMode, { type QuizMode } from "./GreeterQuizMode";
+import QRWithCopy from "./QRWithCopy";
 
 interface Attendee {
   slugId: string;
   firstName: string;
   lastName: string;
   photoUrl: string;
+  defaultAvatarUrl: string;
+  photoSource: 'guild' | 'gravatar' | 'default';
   hasRealPhoto: boolean;
   attendance: 'in-person' | 'online';
 }
@@ -15,6 +18,7 @@ interface EventInfo {
   id: string;
   name: string;
   startAt: string;
+  url: string | null;
 }
 
 interface GreeterPanelProps {
@@ -45,7 +49,7 @@ function parseGuildUrl(url: string): ParsedUrl | null {
   }
 }
 
-async function fetchEventBySlug(slug: string): Promise<EventInfo | null> {
+async function fetchEventBySlug(slug: string, sourceUrl: string): Promise<EventInfo | null> {
   const res = await fetch(GRAPHQL_SLUG_URL, {
     headers: { 'x-gqlvars': JSON.stringify({ slug }) },
   });
@@ -53,7 +57,7 @@ async function fetchEventBySlug(slug: string): Promise<EventInfo | null> {
   const json = await res.json();
   const e = json?.data?.event;
   if (!e?.id) return null;
-  return { id: e.id, name: e.name ?? '', startAt: e.startAt ?? '' };
+  return { id: e.id, name: e.name ?? '', startAt: e.startAt ?? '', url: sourceUrl };
 }
 
 type EventsPage = { events: EventInfo[]; hasMore: boolean; endCursor: string | null };
@@ -64,9 +68,14 @@ async function fetchEventsList(groupSlug: string, endpoint: 'upcoming' | 'past',
   const res = await fetch(url.toString());
   if (!res.ok) return { events: [], hasMore: false, endCursor: null };
   const json = await res.json();
-  const edges: { node: { id: string; name: string; startAt: string } }[] = json?.events?.edges ?? [];
+  const edges: { node: { id: string; name: string; startAt: string; slug?: string } }[] = json?.events?.edges ?? [];
   return {
-    events: edges.map(e => ({ id: e.node.id, name: e.node.name, startAt: e.node.startAt })),
+    events: edges.map(e => ({
+      id: e.node.id,
+      name: e.node.name,
+      startAt: e.node.startAt,
+      url: e.node.slug ? `https://guild.host/events/${e.node.slug}` : null,
+    })),
     hasMore: json?.events?.pageInfo?.hasNextPage ?? false,
     endCursor: json?.events?.pageInfo?.endCursor ?? null,
   };
@@ -83,16 +92,25 @@ async function fetchAttendeesByType(nodeId: string, attendance: Attendee['attend
   if (!res.ok) throw new Error(`Guild API returned ${res.status}`);
   const json = await res.json();
   const key = attendance === 'in-person' ? 'inPersonAttendees' : 'onlineAttendees';
-  const edges: { node: { user: { slugId: string; firstName: string; lastName: string; primaryPhoto: { transformUrl: string } | null; defaultAvatarUrl: string } } }[] =
+  const edges: { node: { user: { slugId: string; firstName: string; lastName: string; primaryPhoto: { transformUrl: string } | null; defaultAvatarUrl: string; emailMd5: string | null } } }[] =
     json?.data?.node?.[key]?.edges ?? [];
-  return edges.map(({ node: { user } }) => ({
-    slugId: user.slugId,
-    firstName: user.firstName,
-    lastName: user.lastName,
-    photoUrl: user.primaryPhoto?.transformUrl ?? user.defaultAvatarUrl,
-    hasRealPhoto: user.primaryPhoto !== null,
-    attendance,
-  }));
+  return edges.map(({ node: { user } }) => {
+    const gravatarUrl = user.emailMd5
+      ? `https://www.gravatar.com/avatar/${user.emailMd5}?s=128&d=404`
+      : null;
+    const photoUrl = user.primaryPhoto?.transformUrl ?? gravatarUrl ?? user.defaultAvatarUrl;
+    const photoSource: Attendee['photoSource'] = user.primaryPhoto ? 'guild' : gravatarUrl ? 'gravatar' : 'default';
+    return {
+      slugId: user.slugId,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      photoUrl,
+      defaultAvatarUrl: user.defaultAvatarUrl,
+      photoSource,
+      hasRealPhoto: user.primaryPhoto !== null,
+      attendance,
+    };
+  });
 }
 
 async function fetchAllAttendees(nodeId: string): Promise<Attendee[]> {
@@ -101,6 +119,16 @@ async function fetchAllAttendees(nodeId: string): Promise<Attendee[]> {
     fetchAttendeesByType(nodeId, 'online'),
   ]);
   return [...inPerson, ...online];
+}
+
+function getAttendeeQrUrl(attendee: Attendee): string {
+  const p = new URLSearchParams(window.location.search);
+  p.delete('forceView');
+  p.delete('interface');
+  p.delete('admin');
+  p.set('customPhoto', attendee.photoUrl);
+  const qs = p.toString();
+  return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
 }
 
 function formatDate(iso: string): string {
@@ -142,7 +170,7 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
     setGroupSlug(null);
 
     if (parsed.type === 'event') {
-      fetchEventBySlug(parsed.slug).then(event => {
+      fetchEventBySlug(parsed.slug, eventUrl).then(event => {
         if (cancelled) return;
         if (!event) { setListStatus('no-event'); return; }
         setEvents([event]);
@@ -235,6 +263,21 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
   const SORT_LABELS: Record<SortMode, string> = { none: 'Sort', first: 'First', last: 'Last' };
   const SORT_CYCLE: SortMode[] = ['none', 'first', 'last'];
 
+  const [selectedAttendee, setSelectedAttendee] = useState<Attendee | null>(null);
+  const [popupPhotoSource, setPopupPhotoSource] = useState<'guild' | 'gravatar' | 'default' | null>(null);
+  const [gravatarVerified, setGravatarVerified] = useState<Set<string>>(new Set());
+
+  // Eagerly pre-verify all gravatar URLs when attendees load, so quiz deck has accurate hasRealPhoto
+  useEffect(() => {
+    setGravatarVerified(new Set());
+    for (const a of attendees) {
+      if (a.photoSource !== 'gravatar') continue;
+      const img = new Image();
+      img.onload = () => setGravatarVerified(prev => new Set([...prev, a.slugId]));
+      img.src = a.photoUrl; // ?d=404 — only fires onload if a real gravatar exists
+    }
+  }, [attendees]);
+
   // Session-level quiz state (persists across event navigation within the same tab)
   const [memorizedByKey, setMemorizedByKey] = useState<Record<string, Set<string>>>({});
   const [quizMode, setQuizMode] = useState<QuizMode>('image-name');
@@ -264,7 +307,7 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
   });
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0f0f0e', color: '#ccc', fontFamily: 'monospace', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0f0f0e', color: '#ccc', fontFamily: 'monospace', overflow: 'hidden', position: 'relative' }}>
 
       <div style={{ padding: '12px 20px 0', borderBottom: '1px solid #222', flexShrink: 0 }}>
         {/* Row 1: event navigator */}
@@ -280,9 +323,11 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
             </button>
           )}
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: '#eee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {currentEvent?.name || 'In-Person Attendees'}
-            </div>
+            {(() => {
+              const href = currentEvent?.url ?? (groupSlug ? `https://guild.host/${groupSlug}` : null);
+              const nameEl = <span style={{ fontSize: 13, fontWeight: 600, color: '#eee', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{currentEvent?.name || 'In-Person Attendees'}</span>;
+              return href ? <a href={href} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>{nameEl}</a> : nameEl;
+            })()}
             {currentEvent?.startAt && (
               <div style={{ fontSize: 11, color: '#666', marginTop: 1 }}>{formatDate(currentEvent.startAt)}</div>
             )}
@@ -322,7 +367,7 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
 
       {quizActive ? (
         <GreeterQuizMode
-          attendees={filteredAttendees}
+          attendees={filteredAttendees.map(a => ({ ...a, hasRealPhoto: a.hasRealPhoto || gravatarVerified.has(a.slugId) }))}
           memorizedIds={memorizedIds}
           onMemorize={handleMemorize}
           onExit={() => setQuizActive(false)}
@@ -351,13 +396,18 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
             <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No in-person attendees found.</p>
           ) : (
             sortedAttendees.map(a => (
-              <div key={a.slugId} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 20px' }}>
+              <div
+                key={a.slugId}
+                onClick={() => setSelectedAttendee(a)}
+                style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '8px 20px', cursor: 'pointer' }}
+              >
                 <img
                   src={a.photoUrl}
                   alt={`${a.firstName} ${a.lastName}`}
                   width={36}
                   height={36}
                   style={{ borderRadius: '50%', flexShrink: 0, background: '#222' }}
+                  onError={e => { (e.target as HTMLImageElement).src = a.defaultAvatarUrl; }}
                 />
                 <span style={{ fontSize: 14, color: '#ddd' }}>{a.firstName} {a.lastName}</span>
               </div>
@@ -375,6 +425,45 @@ export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
           >
             Quiz Yourself
           </button>
+        </div>
+      )}
+
+      {/* Attendee QR popup */}
+      {selectedAttendee && (
+        <div
+          onClick={() => { setSelectedAttendee(null); setPopupPhotoSource(null); }}
+          style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: '#141414', border: '1px solid #333', borderRadius: 10, padding: '20px 24px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12, maxWidth: 280, width: '100%' }}
+          >
+            <img
+              src={selectedAttendee.photoUrl}
+              alt={`${selectedAttendee.firstName} ${selectedAttendee.lastName}`}
+              width={52}
+              height={52}
+              style={{ borderRadius: '50%', background: '#222' }}
+              onLoad={() => setPopupPhotoSource(selectedAttendee.photoSource)}
+              onError={e => {
+                (e.target as HTMLImageElement).src = selectedAttendee.defaultAvatarUrl;
+                setPopupPhotoSource('default');
+              }}
+            />
+            <p style={{ margin: 0, fontSize: 15, fontWeight: 600, color: '#eee' }}>{selectedAttendee.firstName} {selectedAttendee.lastName}</p>
+            {popupPhotoSource && popupPhotoSource !== 'default' && (
+              <p style={{ margin: 0, fontSize: 11, color: '#555' }}>
+                photo set via {popupPhotoSource === 'guild' ? 'Guild.host' : 'Gravatar'}
+              </p>
+            )}
+            <QRWithCopy url={getAttendeeQrUrl(selectedAttendee)} size={180} />
+            <button
+              onClick={() => { setSelectedAttendee(null); setPopupPhotoSource(null); }}
+              style={{ marginTop: 4, background: 'none', border: '1px solid #444', borderRadius: 6, color: '#888', cursor: 'pointer', fontFamily: 'monospace', fontSize: 13, padding: '6px 20px' }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -280,6 +280,10 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
           <AvatarsTab
             avatarStyle={roomConfig.avatarStyle}
             sendAvatarStyle={roomConfig.sendAvatarStyle}
+            colorCursorsByVote={roomConfig.colorCursorsByVote}
+            sendColorCursorsByVote={roomConfig.sendColorCursorsByVote}
+            defaultCursorColor={roomConfig.defaultCursorColor}
+            sendDefaultCursorColor={roomConfig.sendDefaultCursorColor}
           />
         )}
         {activeTab === 'interfaces' && (
@@ -448,6 +452,8 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
             roomConfig.setShowNowLabelOnCanvas(v);
             localStorage.setItem('v4-showNowLabelOnCanvas', String(v));
           }}
+          ownValenceDisplay={roomConfig.ownValenceDisplay}
+          onChangeOwnValenceDisplay={roomConfig.sendOwnValenceDisplay}
           onClose={() => roomConfig.setCanvasSettingsOpen(false)}
         />
       )}

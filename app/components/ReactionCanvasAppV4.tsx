@@ -76,6 +76,10 @@ function getLabelsParamFromUrl(): string | undefined {
   return new URLSearchParams(window.location.search).get('labels') ?? undefined;
 }
 
+function getCustomPhotoFromUrl(): string | null {
+  return new URLSearchParams(window.location.search).get('customPhoto');
+}
+
 function MobileOnlyGate() {
   const url = window.location.href;
   const bypassHref = (() => { const p = new URLSearchParams(window.location.search); p.set('forceView', 'mobile'); return `?${p}${window.location.hash}`; })();
@@ -135,6 +139,7 @@ export default function ReactionCanvasAppV4() {
   const [serverGreeterConfig, setServerGreeterConfig] = useState<GreeterConfig | null>(null);
   const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
+  const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
@@ -259,9 +264,9 @@ export default function ReactionCanvasAppV4() {
               alt=""
             />
           )}
-          {labels && activity === 'canvas' && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
-          {labels && activity === 'canvas' && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
-          {labels && activity === 'canvas' && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
+          {labels && activity === 'canvas' && <div className="reaction-label reaction-label-positive" style={{ ...reactionLabelStyle(anchors.positive), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'positive' ? { background: 'rgba(0, 255, 0, 0.2)' } : {}) }}>{labels.positive}</div>}
+          {labels && activity === 'canvas' && <div className="reaction-label reaction-label-negative" style={{ ...reactionLabelStyle(anchors.negative), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'negative' ? { background: 'rgba(255, 0, 0, 0.2)' } : {}) }}>{labels.negative}</div>}
+          {labels && activity === 'canvas' && <div className="reaction-label reaction-label-neutral" style={{ ...reactionLabelStyle(anchors.neutral), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'neutral' ? { background: 'rgba(255, 255, 0, 0.2)' } : {}) }}>{labels.neutral}</div>}
           {isViewer && (
             <div className="viewer-mode-banner">
               This room is full — you are watching in view-only mode.
@@ -296,6 +301,9 @@ export default function ReactionCanvasAppV4() {
             room={room}
             userId={userId}
             colorCursorsByVote={true}
+            disableCursorValence={activity === 'image-canvas'}
+            disableBackgroundValence={activity === 'image-canvas'}
+            onOwnValenceDisplayChange={setOwnValenceDisplay}
             currentReactionState={canvasBackgroundReactionState}
             heightOffset={chipBarOffset}
             onPresenceCount={setPresenceCount}
@@ -310,6 +318,10 @@ export default function ReactionCanvasAppV4() {
               const edges = chainToEdges(myChain);
               if (edges.length > 0) {
                 socketSendRef.current?.(JSON.stringify({ type: 'recordInvitations', edges }));
+              }
+              const customPhoto = getCustomPhotoFromUrl();
+              if (customPhoto) {
+                socketSendRef.current?.(JSON.stringify({ type: 'registerCustomAvatar', userId, photoUrl: customPhoto }));
               }
             }}
             onRoomLabelsChange={handleRoomLabelsChange}

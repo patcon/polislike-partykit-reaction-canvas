@@ -40,6 +40,8 @@ interface CanvasProps {
   onJoinApproved?: () => void;
   onSocketReady?: (send: (msg: string) => void) => void;
   debug?: boolean;
+  disableCursorValence?: boolean;
+  disableBackgroundValence?: boolean;
   onRoomAvatarStyleChange?: (style: string | null) => void;
   onActivityTriggered?: (activityName: string) => void;
   onInterfacePushed?: (interfaceName: string) => void;
@@ -52,6 +54,7 @@ interface CanvasProps {
   onConnected?: (initialInviteEdges?: Record<string, string>, currentActivity?: ActivityMode) => void;
   onNowLabelChange?: (label: string) => void;
   onInviteEdges?: (edges: Record<string, string>) => void;
+  onOwnValenceDisplayChange?: (mode: 'background' | 'labels' | 'none') => void;
 }
 
 // Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
@@ -75,11 +78,15 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
+  const [customAvatars, setCustomAvatars] = useState<Record<string, string>>({}); // userId → photoUrl
+  const [colorCursorsByVote, setColorCursorsByVote] = useState(colorCursorsByVoteProp);
+  const [defaultCursorColor, setDefaultCursorColor] = useState('#d4d4d4');
+  const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [imageUrl, setImageUrl] = useState('');
   const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
@@ -132,6 +139,16 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           if ('roomAvatarStyle' in data) {
             setAvatarStyle(data.roomAvatarStyle ?? null);
             onRoomAvatarStyleChange?.(data.roomAvatarStyle ?? null);
+          }
+          if ('customAvatars' in data && data.customAvatars) {
+            setCustomAvatars(Object.fromEntries(Object.entries(data.customAvatars).map(([uid, v]: [string, any]) => [uid, v.photoUrl ?? v])));
+          }
+          if ('colorCursorsByVote' in data) setColorCursorsByVote(data.colorCursorsByVote as boolean ?? colorCursorsByVoteProp);
+          if ('defaultCursorColor' in data && data.defaultCursorColor) setDefaultCursorColor(data.defaultCursorColor as string);
+          if ('ownValenceDisplay' in data && data.ownValenceDisplay) {
+            const mode = data.ownValenceDisplay as 'background' | 'labels' | 'none';
+            setOwnValenceDisplay(mode);
+            onOwnValenceDisplayChange?.(mode);
           }
           if ('currentActivity' in data) {
             const act = data.currentActivity ?? 'canvas';
@@ -203,6 +220,28 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         if (data.type === 'roomAvatarStyleChanged') {
           setAvatarStyle(data.avatarStyle ?? null);
           onRoomAvatarStyleChange?.(data.avatarStyle ?? null);
+          return;
+        }
+
+        if (data.type === 'customAvatarsChanged') {
+          setCustomAvatars(data.customAvatars ?? {});
+          return;
+        }
+
+        if (data.type === 'colorCursorsByVoteChanged') {
+          setColorCursorsByVote(data.colorCursorsByVote as boolean);
+          return;
+        }
+
+        if (data.type === 'defaultCursorColorChanged') {
+          setDefaultCursorColor(data.defaultCursorColor as string);
+          return;
+        }
+
+        if (data.type === 'ownValenceDisplayChanged') {
+          const mode = data.ownValenceDisplay as 'background' | 'labels' | 'none';
+          setOwnValenceDisplay(mode);
+          onOwnValenceDisplayChange?.(mode);
           return;
         }
 
@@ -338,8 +377,9 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
   // Update background color when currentReactionState changes
   useEffect(() => {
-    updateBackgroundColor(currentReactionState || null);
-  }, [currentReactionState]);
+    const suppressed = disableBackgroundValence || ownValenceDisplay !== 'background';
+    updateBackgroundColor(suppressed ? null : (currentReactionState || null));
+  }, [currentReactionState, disableBackgroundValence, ownValenceDisplay]);
 
   // Render with D3 SVG
   useEffect(() => {
@@ -355,8 +395,8 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       .attr('height', dimensions.height)
       .attr('fill', imageUrl ? 'transparent' : 'rgba(255, 255, 255, 0.1)');
 
-    // Apply current reaction state color if any (skip in image-canvas mode)
-    if (currentReactionState && !imageUrl) {
+    // Apply current reaction state color if any (skip in image-canvas mode or when disabled)
+    if (currentReactionState && !imageUrl && !disableBackgroundValence && ownValenceDisplay === 'background') {
       updateBackgroundColor(currentReactionState);
     }
 
@@ -507,7 +547,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
     const cursorColor = (d: any): string => {
       if (isPlaybackCursor(d)) return 'hsl(270, 70%, 65%)';
-      if (colorCursorsByVote && d.reactionState) {
+      if (colorCursorsByVote && !disableCursorValence && d.reactionState) {
         switch (d.reactionState) {
           case 'positive': return 'rgba(0, 255, 0, 0.8)';
           case 'negative': return 'rgba(255, 0, 0, 0.8)';
@@ -515,6 +555,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           default: return 'rgba(128, 128, 128, 0.8)';
         }
       }
+      if (!colorCursorsByVote || disableCursorValence) return defaultCursorColor;
       const hue = d.cursorUserId.split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) % 360;
       return `hsl(${hue}, 70%, 50%)`;
     };
@@ -526,7 +567,82 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       .attr('class', 'cursor-group')
       .attr('opacity', (d: any) => isPlaybackCursor(d) ? 0.7 : 1.0);
 
-    if (avatarStyle) {
+    const isCustomMode = avatarStyle === 'custom' || (typeof avatarStyle === 'string' && avatarStyle.startsWith('custom+'));
+    const customFallbackStyle = isCustomMode && avatarStyle !== 'custom' ? avatarStyle!.slice(7) : null;
+
+    if (isCustomMode) {
+      const defs = svg.append('defs');
+      // Clip paths for users with custom photos
+      cursorData.filter(d => customAvatars[d.cursorUserId]).forEach(d => {
+        defs.append('clipPath')
+          .attr('id', `avatar-clip-${d.cursorUserId}`)
+          .append('circle')
+          .attr('cx', d.x)
+          .attr('cy', d.y)
+          .attr('r', cursorRadius);
+      });
+      // Clip paths for fallback DiceBear (users without custom photos, when a base style is set)
+      if (customFallbackStyle) {
+        cursorData.filter(d => !customAvatars[d.cursorUserId]).forEach(d => {
+          defs.append('clipPath')
+            .attr('id', `avatar-clip-${d.cursorUserId}`)
+            .append('circle')
+            .attr('cx', d.x)
+            .attr('cy', d.y)
+            .attr('r', cursorRadius);
+        });
+      }
+
+      const avatarSize = cursorRadius * 2;
+      const noPhotoGroups = cursorGroups.filter((d: any) => !customAvatars[d.cursorUserId]);
+      const photoGroups = cursorGroups.filter((d: any) => !!customAvatars[d.cursorUserId]);
+
+      if (customFallbackStyle) {
+        // DiceBear fallback for unregistered users
+        noPhotoGroups.append('circle')
+          .attr('cx', (d: any) => d.x)
+          .attr('cy', (d: any) => d.y)
+          .attr('r', cursorRadius + 2)
+          .attr('fill', cursorColor)
+          .attr('stroke', '#000000')
+          .attr('stroke-width', 1.5);
+
+        noPhotoGroups.append('image')
+          .attr('href', (d: any) => `https://api.dicebear.com/9.x/${customFallbackStyle}/svg?seed=${encodeURIComponent(d.cursorUserId)}`)
+          .attr('x', (d: any) => d.x - cursorRadius)
+          .attr('y', (d: any) => d.y - cursorRadius)
+          .attr('width', avatarSize)
+          .attr('height', avatarSize)
+          .attr('clip-path', (d: any) => `url(#avatar-clip-${d.cursorUserId})`);
+      } else {
+        // Dot fallback for unregistered users
+        noPhotoGroups.append('circle')
+          .attr('cx', (d: any) => d.x)
+          .attr('cy', (d: any) => d.y)
+          .attr('r', cursorRadius)
+          .attr('fill', cursorColor)
+          .attr('stroke', (d: any) => isPlaybackCursor(d) ? 'hsl(270, 70%, 80%)' : '#000000')
+          .attr('stroke-width', 2)
+          .attr('stroke-dasharray', (d: any) => isPlaybackCursor(d) ? `${cursorRadius * 0.8} ${cursorRadius * 0.5}` : 'none');
+      }
+
+      // Custom photo for users with a registered avatar
+      photoGroups.append('circle')
+        .attr('cx', (d: any) => d.x)
+        .attr('cy', (d: any) => d.y)
+        .attr('r', cursorRadius + 2)
+        .attr('fill', cursorColor)
+        .attr('stroke', '#000000')
+        .attr('stroke-width', 1.5);
+
+      photoGroups.append('image')
+        .attr('href', (d: any) => customAvatars[d.cursorUserId])
+        .attr('x', (d: any) => d.x - cursorRadius)
+        .attr('y', (d: any) => d.y - cursorRadius)
+        .attr('width', avatarSize)
+        .attr('height', avatarSize)
+        .attr('clip-path', (d: any) => `url(#avatar-clip-${d.cursorUserId})`);
+    } else if (avatarStyle) {
       // Add clip paths to defs for circular avatar masking
       const defs = svg.append('defs');
       cursorData.forEach(d => {
@@ -578,7 +694,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .text((d: any) => d.cursorUserId.substring(0, 6));
     }
 
-  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
+  }, [cursors, dimensions, anchors, debug, hideCursors, avatarStyle, customAvatars, colorCursorsByVote, defaultCursorColor, ownValenceDisplay, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
 
   // Handle window resize
   useEffect(() => {
