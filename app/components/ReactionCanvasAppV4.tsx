@@ -421,7 +421,6 @@ export default function ReactionCanvasAppV4() {
               userId={userId}
               strokes={signatureStrokes}
               heightOffset={chipBarOffset}
-              connectedUserIds={connectedUserIds}
             />
           )}
           {activity === 'signature' && !isViewer && (

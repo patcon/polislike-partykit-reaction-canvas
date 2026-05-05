@@ -9,7 +9,6 @@ interface SignatureCanvasProps {
   userId: string;
   strokes: Record<string, Stroke[]>;
   heightOffset?: number;
-  connectedUserIds: string[];
 }
 
 // Must match SignatureLayer.
@@ -39,7 +38,7 @@ function fitSig(tileW: number, tileH: number) {
   return { sigW, sigH, offsetX: (tileW - sigW) / 2, offsetY: (tileH - sigH) / 2 };
 }
 
-export default function SignatureCanvas({ strokes, connectedUserIds }: SignatureCanvasProps) {
+export default function SignatureCanvas({ strokes }: SignatureCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ width: window.innerWidth, height: window.innerHeight });
 
@@ -53,8 +52,8 @@ export default function SignatureCanvas({ strokes, connectedUserIds }: Signature
     return () => ro.disconnect();
   }, []);
 
-  const allUserIds = [...new Set([...connectedUserIds, ...Object.keys(strokes)])];
-  const count = Math.max(1, allUserIds.length);
+  const signerIds = Object.keys(strokes).filter(uid => strokes[uid].some(s => s.points.length > 0));
+  const count = Math.max(1, signerIds.length);
   const cols = Math.ceil(Math.sqrt(count));
   const rows = Math.ceil(count / cols);
   const tileW = dims.width / cols;
@@ -64,7 +63,7 @@ export default function SignatureCanvas({ strokes, connectedUserIds }: Signature
   return (
     <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: '#222' }}>
       <svg width={dims.width} height={dims.height} style={{ display: 'block' }}>
-        {allUserIds.map((uid, i) => {
+        {signerIds.map((uid, i) => {
           const tileX = (i % cols) * tileW;
           const tileY = Math.floor(i / cols) * tileH;
           const sigX = tileX + offsetX;
