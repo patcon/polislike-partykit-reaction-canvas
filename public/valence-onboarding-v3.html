@@ -343,6 +343,7 @@
       <span class="label" style="color:var(--text-dim);letter-spacing:.12em">force matrix</span>
       <button onclick="randomizeParticleMat()">randomize</button>
       <button onclick="resetParticleMat()">reset</button>
+      <button id="btn-oscillate" onclick="toggleOscillate()">oscillate</button>
     </div>
     <div id="particle-matrix-section" style="margin-top:4px;overflow-x:auto"></div>
 
@@ -808,6 +809,7 @@ let paused=false, geoMode='diametric', animMode='sequential';
 let P_R_MAX=65, P_R_MIN=12, P_DT=0.5, P_G=2.0, P_DAMPING=0.85;
 let P_S_RMAX=155, P_S_RMIN=35, P_S_G=1.8, P_S_BWIDTH=40, P_S_BG=4.0;
 let particleMat=[], speakerReactions=[];
+let oscillateMode=false, oscillateParams=[];
 let traceMode='correlated', orderMode='random', exitAnim='origin', entryMode='persistent';
 let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false, inParallelRadialTransition=false;
 
@@ -1039,6 +1041,35 @@ function randomizeParticleMat(){
   renderParticleMatrix();
 }
 function resetParticleMat(){initParticleMatrix();renderParticleMatrix();initParticlePositions();}
+function toggleOscillate(){
+  oscillateMode=!oscillateMode;
+  document.getElementById('btn-oscillate').classList.toggle('active',oscillateMode);
+  if(oscillateMode){
+    const nG=getNumGroups();
+    oscillateParams=Array.from({length:nG},(_,i)=>Array.from({length:nG},(_,j)=>({
+      center:particleMat[i][j],
+      phase:Math.random()*Math.PI*2,
+      freq:0.08+Math.random()*0.22,
+      amp:0.3+Math.random()*0.5,
+    })));
+  }
+}
+function stepOscillate(){
+  const t=performance.now()/1000;
+  const nG=getNumGroups();
+  for(let i=0;i<nG;i++){
+    for(let j=0;j<nG;j++){
+      if(!oscillateParams[i]||oscillateParams[i][j]==null)continue;
+      const{center,phase,freq,amp}=oscillateParams[i][j];
+      const v=Math.max(-1,Math.min(1,center+amp*Math.sin(2*Math.PI*freq*t+phase)));
+      particleMat[i][j]=v;
+      const sl=document.getElementById(`pmat-s-${i}-${j}`);
+      const vl=document.getElementById(`pmat-v-${i}-${j}`);
+      if(sl){sl.value=v;sl.style.accentColor=v>0?'#22c55e':'#D85A30';}
+      if(vl)vl.textContent=(v>=0?'+':'')+v.toFixed(2);
+    }
+  }
+}
 function renderParticleMatrix(){
   const nG=getNumGroups();
   const el=document.getElementById('particle-matrix-section');
@@ -1056,8 +1087,8 @@ function renderParticleMatrix(){
       const v=particleMat[i][j];
       const ac=v>0?'#22c55e':'#D85A30';
       h+=`<div style="width:54px;display:flex;flex-direction:column;gap:1px;align-items:center;">
-        <input type="range" min="-1" max="1" step="0.05" value="${v}" style="width:50px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:pointer;accent-color:${ac};" oninput="particleMat[${i}][${j}]=+this.value;this.style.accentColor=+this.value>0?'#22c55e':'#D85A30';this.nextElementSibling.textContent=(+this.value>=0?'+':'')+Number(+this.value).toFixed(2)">
-        <div style="font-size:8px;color:var(--text-dim);font-variant-numeric:tabular-nums;">${v>=0?'+':''}${v.toFixed(2)}</div>
+        <input id="pmat-s-${i}-${j}" type="range" min="-1" max="1" step="0.05" value="${v}" style="width:50px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:pointer;accent-color:${ac};" oninput="particleMat[${i}][${j}]=+this.value;this.style.accentColor=+this.value>0?'#22c55e':'#D85A30';this.nextElementSibling.textContent=(+this.value>=0?'+':'')+Number(+this.value).toFixed(2)">
+        <div id="pmat-v-${i}-${j}" style="font-size:8px;color:var(--text-dim);font-variant-numeric:tabular-nums;">${v>=0?'+':''}${v.toFixed(2)}</div>
       </div>`;
     }
     const sv=speakerReactions[i]??0;
@@ -1244,7 +1275,7 @@ function animate(){
   requestAnimationFrame(animate);
 
   // Particle mode: physics step
-  if(geoMode==='particle'){if(!paused)stepParticles();updateParticleGeometry();}
+  if(geoMode==='particle'){if(!paused){stepParticles();if(oscillateMode)stepOscillate();}updateParticleGeometry();}
 
   // Events + drift (paused freezes valence values; auto-timer skipped in particle mode)
   if(!paused){
