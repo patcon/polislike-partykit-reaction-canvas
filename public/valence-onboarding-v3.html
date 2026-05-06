@@ -1181,7 +1181,7 @@ function updateParticleGeometry(){
     const hlen=showTrace?c.pHistory.length:1;
     for(let j=0;j<hlen&&vi<MAX_PARTICLE_PTS;j++){
       const h=c.pHistory[j];
-      const alpha=j===0?1.0:0.7*(1-j/hlen);
+      const alpha=j===0?opacities.cursor:opacities.trace*0.7*(1-j/hlen);
       const[r,g,b]=j===0?[cr,cg,cb]:traceValFn(h);
       pos[vi*3]=h.px; pos[vi*3+1]=h.py; pos[vi*3+2]=-j*P_TRACE_Z;
       col[vi*4]=r/255; col[vi*4+1]=g/255; col[vi*4+2]=b/255; col[vi*4+3]=alpha;
