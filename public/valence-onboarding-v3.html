@@ -1,0 +1,1556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>valence wave — cross-section v3</title>
+<style>
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  html{overflow-x:hidden}
+  :root{--bg:#0f0f0e;--border:rgba(200,198,190,0.1);--text:rgba(200,198,190,0.75);--text-dim:rgba(200,198,190,0.35);--accent:rgba(200,198,190,0.55)}
+  body{background:var(--bg);color:var(--text);font-family:'DM Mono','Courier New',monospace;font-size:11px;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px 16px;letter-spacing:.03em;max-width:100vw;overflow-x:hidden}
+  h1{font-size:10px;font-weight:400;letter-spacing:.22em;text-transform:lowercase;color:var(--text-dim)}
+  #vp{cursor:default;touch-action:none}
+  #vp.orbiting{cursor:grab}
+  #vp.orbiting:active{cursor:grabbing}
+  .panel{display:flex;flex-direction:column;gap:8px;width:100%;max-width:560px}
+  .row{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;white-space:nowrap}
+  .label{color:var(--text-dim);flex-shrink:0;width:86px;letter-spacing:.08em}
+  .sep{flex-shrink:0;width:10px}
+  .btns{display:flex;gap:3px;flex-shrink:0}
+  button{font-family:inherit;font-size:10px;letter-spacing:.08em;padding:4px 10px;border-radius:3px;border:.5px solid rgba(200,198,190,.18);background:transparent;color:var(--text-dim);cursor:pointer;white-space:nowrap;flex-shrink:0;transition:background .12s,color .12s,border-color .12s}
+  button:hover{background:rgba(200,198,190,.06);color:var(--text)}
+  button.active{background:rgba(200,198,190,.1);color:var(--accent);border-color:rgba(200,198,190,.3)}
+  button:disabled{opacity:.22;cursor:default}
+  .check-item{display:flex;align-items:center;gap:5px;cursor:pointer;color:var(--text-dim);flex-shrink:0;white-space:nowrap}
+  .check-item:hover{color:var(--text)}
+  input[type=checkbox]{appearance:none;width:11px;height:11px;border:.5px solid rgba(200,198,190,.3);border-radius:2px;background:transparent;cursor:pointer;position:relative;flex-shrink:0}
+  input[type=checkbox]:checked{background:rgba(200,198,190,.12);border-color:rgba(200,198,190,.5)}
+  input[type=checkbox]:checked::after{content:'';position:absolute;left:2px;top:2px;width:5px;height:5px;background:var(--accent);border-radius:1px}
+  input[type=range]{flex:1;min-width:40px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{appearance:none;width:10px;height:10px;border-radius:50%;background:var(--accent);cursor:pointer}
+  input[type=range]:disabled{opacity:.2;cursor:default;pointer-events:none}
+  input[type=range]:disabled::-webkit-slider-thumb{cursor:default}
+  .val{min-width:34px;text-align:right;color:var(--accent);font-variant-numeric:tabular-nums;flex-shrink:0}
+  .swatch-group{display:flex;align-items:center;gap:4px;flex-shrink:0}
+  .swatch-label{color:var(--text-dim);font-size:10px;letter-spacing:.06em;flex-shrink:0}
+  .swatch{width:18px;height:18px;border-radius:3px;border:.5px solid rgba(200,198,190,.25);cursor:pointer;flex-shrink:0;position:relative;overflow:hidden;background-image:linear-gradient(45deg,#444 25%,transparent 25%),linear-gradient(-45deg,#444 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#444 75%),linear-gradient(-45deg,transparent 75%,#444 75%);background-size:6px 6px;background-position:0 0,0 3px,3px -3px,-3px 0}
+  .swatch-color-layer{position:absolute;inset:0;pointer-events:none}
+  .swatch input[type=color]{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:none;padding:0}
+  .alpha-wrap{display:flex;align-items:center;gap:3px;flex-shrink:0}
+  .alpha-label{color:var(--text-dim);font-size:9px;letter-spacing:.05em}
+  .alpha-slider{width:42px!important;flex:none!important;min-width:unset!important}
+  .style-grid{display:grid;grid-template-columns:86px repeat(4,1fr);gap:4px 6px;align-items:center}
+  .sg-head{font-size:9px;color:var(--text-dim);letter-spacing:.1em;text-align:center}
+  .sg-head.future{opacity:.3}
+  .sg-row-label{font-size:10px;color:var(--text-dim);letter-spacing:.08em}
+  .all-link{font-size:8px;opacity:0.5;color:inherit;text-decoration:underline;cursor:pointer;margin-left:4px}
+  .sg-btn{font-family:inherit;font-size:9px;padding:3px 0;border-radius:3px;border:.5px solid rgba(200,198,190,.15);background:transparent;color:var(--text-dim);cursor:pointer;text-align:center;width:100%;transition:background .12s,color .12s}
+  .sg-btn:hover{background:rgba(200,198,190,.06);color:var(--text)}
+  .sg-btn.active{background:rgba(200,198,190,.1);color:var(--accent);border-color:rgba(200,198,190,.3)}
+  .sg-btn.future{opacity:.22;cursor:default;pointer-events:none}
+  .sg-op-cell{display:flex;flex-direction:column;align-items:stretch;gap:2px}
+  .sg-op-cell input[type=range]{min-width:unset;flex:none}
+  .sg-op-v{font-size:8px;color:var(--text-dim);text-align:center;font-variant-numeric:tabular-nums}
+  .sg-op-cell.future{opacity:.22;pointer-events:none}
+  .fib-dots{display:flex;gap:3px;align-items:center;flex-shrink:0}
+  .fib-dot{height:6px;border-radius:1px;flex-shrink:0;transition:width .2s,background .2s}
+  .divider{border:none;border-top:.5px solid var(--border);margin:2px 0}
+  .ctrl-disabled{opacity:.35!important;pointer-events:none!important;cursor:default!important}
+  .hint{font-size:9px;color:var(--text-dim);letter-spacing:.1em;opacity:0;transition:opacity .4s}
+  .hint.show{opacity:1}
+  .event-flash{position:fixed;top:14px;right:16px;font-size:9px;letter-spacing:.2em;color:var(--text-dim);opacity:0;transition:opacity .15s;pointer-events:none}
+  .event-flash.show{opacity:1}
+  #qr-modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;z-index:100}
+  #qr-backdrop{position:absolute;inset:0;background:rgba(0,0,0,.65)}
+  #qr-box{position:relative;background:#1a1a18;border:.5px solid rgba(200,198,190,.18);border-radius:6px;padding:20px;display:flex;flex-direction:column;align-items:center;gap:14px}
+  #qr-url{font-size:9px;color:var(--text-dim);letter-spacing:.06em;word-break:break-all;max-width:220px;text-align:center}
+  #qr-canvas{border-radius:4px;overflow:hidden}
+  #qr-close{margin-top:2px}
+  #conn-status.ok{color:rgba(60,180,100,0.9)}
+  #conn-status.warn{color:rgba(200,140,40,0.9)}
+  #conn-status.connecting{color:rgba(100,100,200,0.7)}
+  #room-input:focus{border-color:rgba(200,198,190,.35)!important}
+  @media(max-width:540px){
+    body{height:100dvh;overflow:hidden;justify-content:flex-start;padding:0;gap:0}
+    #vp{width:100%;flex-shrink:0;max-height:45vh}
+    #vp canvas{width:100%!important;height:auto!important;max-height:45vh}
+    .panel{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 16px 24px}
+    .row{flex-wrap:wrap}
+    .sep{flex-basis:100%;height:0;width:0}
+    #orbit-hint{display:none}
+    .alpha-wrap{display:none}
+    .style-grid{grid-template-columns:max-content repeat(4,1fr);row-gap:10px}
+    .sg-row-label{white-space:nowrap;padding-right:8px}
+.sg-btn{font-size:0;padding:2px 0}
+    .sg-btn[id$="-group"]::before{content:'grp';font-size:9px}
+    .sg-btn[id$="-valence"]::before{content:'val';font-size:9px}
+    .sg-op-cell input[type=range]{min-width:0;width:100%}
+  }
+</style>
+</head>
+<body>
+
+<a href="https://github.com/patcon/polislike-partykit-reaction-canvas" class="github-corner" aria-label="View source on GitHub" target="_blank" rel="noopener noreferrer" style="position:fixed;top:0;right:0;z-index:9999"><svg width="50" height="50" viewBox="0 0 250 250" aria-hidden="true" style="fill:#151513;color:#fff"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"/><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin:130px 106px" class="octo-arm"/><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"/></svg></a>
+<style>.github-corner:hover .octo-arm{animation:octocat-wave 560ms ease-in-out}@keyframes octocat-wave{0%,100%{transform:rotate(0)}20%,60%{transform:rotate(-25deg)}40%,80%{transform:rotate(10deg)}}@media(max-width:500px){.github-corner:hover .octo-arm{animation:none}.github-corner .octo-arm{animation:octocat-wave 560ms ease-in-out}}</style>
+
+<div id="vp"></div>
+
+<div class="panel">
+
+  <h1>valence wave / cross-section</h1>
+
+  <div class="row" id="conn-row">
+    <span class="label">room</span>
+    <input type="text" id="room-input" value="default" placeholder="default" autocomplete="off" spellcheck="false" style="font-family:inherit;font-size:10px;background:transparent;border:.5px solid rgba(200,198,190,.18);border-radius:3px;color:var(--text);padding:3px 7px;outline:none;width:80px;flex-shrink:0;">
+    <button id="btn-connect" onclick="handleConnectClick()">connect</button>
+    <span id="conn-status" style="font-size:10px;letter-spacing:.08em;color:var(--text-dim)"></span>
+    <button id="btn-qr" onclick="openQrModal()" style="display:none">QR</button>
+  </div>
+
+  <div id="qr-modal">
+    <div id="qr-backdrop" onclick="closeQrModal()"></div>
+    <div id="qr-box">
+      <div id="qr-url"></div>
+      <div id="qr-canvas"></div>
+      <button id="qr-close" onclick="closeQrModal()">close</button>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <button id="pbtn" onclick="togglePause()">pause</button>
+    <button id="btn-manual-event" onclick="manualFireEvent()">trigger valence shift</button>
+  </div>
+
+  <div class="row">
+    <span class="label">event every</span>
+    <input type="range" id="evtrate" min="3" max="30" step="1" value="8">
+    <span class="val" id="evtrate-v">8s</span>
+  </div>
+  <div class="row">
+    <span class="label">drift speed</span>
+    <input type="range" id="driftspd" min="0.005" max="0.06" step="0.005" value="0.02">
+    <span class="val" id="driftspd-v">0.020</span>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <span class="label">view</span>
+    <div class="btns">
+      <button class="active" id="btn-2d" onclick="setViewMode('2d')">2d time slice</button>
+      <button id="btn-2d-ts" onclick="setViewMode('2d-ts')">2d time series</button>
+      <button id="btn-3d" onclick="setViewMode('3d')">3d</button>
+    </div>
+    <span class="hint" id="orbit-hint" style="margin-left:8px">drag to orbit · scroll to zoom</span>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <span class="label">geometry</span>
+    <div class="btns">
+      <button id="btn-parallel" onclick="setGeometry('parallel')">parallel</button>
+      <button id="btn-linear" onclick="setGeometry('linear')">linear</button>
+      <button class="active" id="btn-diametric" onclick="setGeometry('diametric')">diametric</button>
+      <button id="btn-radial" onclick="setGeometry('radial')">radial</button>
+      <button id="btn-particle" onclick="setGeometry('particle')">particle</button>
+    </div>
+    <span class="sep"></span>
+    <span class="label">animation</span>
+    <div class="btns">
+      <button id="btn-sim" onclick="setAnim('simultaneous')">simultaneous</button>
+      <button class="active" id="btn-seq" onclick="setAnim('sequential')">sequential</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <span class="label">traces</span>
+    <div class="btns">
+      <button class="active" id="btn-correlated" onclick="setTraceMode('correlated')">correlated</button>
+      <button id="btn-random-trace" onclick="setTraceMode('random')">random</button>
+    </div>
+    <span class="sep"></span>
+    <span class="label" id="order-label">order</span>
+    <div class="btns" id="order-ctrl">
+      <button id="btn-order-grouped" onclick="setOrder('grouped')">grouped</button>
+      <button class="active" id="btn-order-random" onclick="setOrder('random')">random</button>
+    </div>
+  </div>
+
+  <div class="row" id="group-row">
+    <span class="label">groups</span>
+    <input type="range" id="groupcount" min="1" max="7" step="1" value="3">
+    <span class="val" id="groupcount-v">3</span>
+    <div class="fib-dots" id="fib-dots"></div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <label class="check-item"><input type="checkbox" id="guides"><span>show guides</span></label>
+    <span class="sep"></span>
+    <label class="check-item" style="opacity:0.3"><input type="checkbox" id="dynamic" disabled><span>dynamic styling</span></label>
+  </div>
+
+  <hr class="divider">
+
+  <div class="style-grid">
+    <div class="sg-head"></div>
+    <div class="sg-head">cursor</div>
+    <div class="sg-head">radial</div>
+    <div class="sg-head future" id="sg-head-trace">trace</div>
+    <div class="sg-head future" id="sg-head-fill">fill</div>
+    <div class="sg-row-label">group <a href="#" class="all-link" onclick="setAllStyle('group');return false">all</a></div>
+    <button class="sg-btn" id="st-cursor-group" onclick="setStyle('cursor','group')">group</button>
+    <button class="sg-btn" id="st-radial-group" onclick="setStyle('radial','group')">group</button>
+    <button class="sg-btn future" id="st-trace-group" onclick="setStyle('trace','group')">group</button>
+    <button class="sg-btn future" id="st-fill-group" onclick="setStyle('fill','group')">group</button>
+    <div class="sg-row-label">valence <a href="#" class="all-link" onclick="setAllStyle('valence');return false">all</a></div>
+    <button class="sg-btn active" id="st-cursor-valence" onclick="setStyle('cursor','valence')">valence</button>
+    <button class="sg-btn active" id="st-radial-valence" onclick="setStyle('radial','valence')">valence</button>
+    <button class="sg-btn active future" id="st-trace-valence" onclick="setStyle('trace','valence')">valence</button>
+    <button class="sg-btn active future" id="st-fill-valence" onclick="setStyle('fill','valence')">valence</button>
+    <div class="sg-row-label">opacity</div>
+    <div class="sg-op-cell">
+      <input type="range" id="op-cursor" min="0" max="1" step="0.02" value="1" oninput="setOp('cursor',this.value)">
+      <span class="sg-op-v" id="op-cursor-v">1.00</span>
+    </div>
+    <div class="sg-op-cell" id="op-cell-radial">
+      <input type="range" id="op-radial" min="0" max="1" step="0.02" value="1" oninput="setOp('radial',this.value)">
+      <span class="sg-op-v" id="op-radial-v">1.00</span>
+    </div>
+    <div class="sg-op-cell future" id="op-cell-trace">
+      <input type="range" id="op-trace" min="0" max="1" step="0.02" value="0.80" oninput="setOp('trace',this.value)">
+      <span class="sg-op-v" id="op-trace-v">0.80</span>
+    </div>
+    <div class="sg-op-cell future" id="op-cell-fill">
+      <input type="range" id="op-fill" min="0" max="1" step="0.02" value="0.45" oninput="setOp('fill',this.value)">
+      <span class="sg-op-v" id="op-fill-v">0.45</span>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:4px">
+    <label class="check-item"><input type="checkbox" id="style-past-like-cursor" onchange="setStylePastLikeCursor(this.checked)"><span>style past like cursor</span></label>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <span class="label">colors</span>
+    <div class="swatch-group">
+      <span class="swatch-label">pos</span>
+      <div class="swatch" id="swatch-pos"><div class="swatch-color-layer" id="swatch-pos-layer"></div><input type="color" value="#50ff8c" oninput="updateColorRGB('pos',this.value)"></div>
+      <div class="alpha-wrap" style="opacity:0.3"><span class="alpha-label">A</span><input type="range" class="alpha-slider" min="0" max="1" step="0.05" value="1" oninput="updateColorA('pos',this.value)" disabled></div>
+    </div>
+    <div class="swatch-group">
+      <span class="swatch-label">neg</span>
+      <div class="swatch" id="swatch-neg"><div class="swatch-color-layer" id="swatch-neg-layer"></div><input type="color" value="#ff503c" oninput="updateColorRGB('neg',this.value)"></div>
+      <div class="alpha-wrap" style="opacity:0.3"><span class="alpha-label">A</span><input type="range" class="alpha-slider" min="0" max="1" step="0.05" value="1" oninput="updateColorA('neg',this.value)" disabled></div>
+    </div>
+    <div class="swatch-group">
+      <span class="swatch-label">neutral</span>
+      <div class="swatch" id="swatch-neutral"><div class="swatch-color-layer" id="swatch-neutral-layer"></div><input type="color" value="#0f0f0e" oninput="updateColorRGB('neutral',this.value)"></div>
+      <div class="alpha-wrap" style="opacity:0.3"><span class="alpha-label">A</span><input type="range" class="alpha-slider" min="0" max="1" step="0.05" value="1" oninput="updateColorA('neutral',this.value)" disabled></div>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <div class="row">
+    <span class="label">chords</span>
+    <input type="range" id="nchords" min="0" max="100" step="1" value="50">
+    <span class="val" id="nchords-v">50</span>
+  </div>
+  <div class="row">
+    <span class="label" style="white-space:normal;line-height:1.3">entry/exit animation</span>
+    <div class="btns">
+      <button id="btn-exit-none" onclick="setExitAnim('none')">none</button>
+      <button class="active" id="btn-exit-origin" onclick="setExitAnim('origin')">origin</button>
+    </div>
+  </div>
+  <div class="row" id="entrymode-row">
+    <span class="label" style="white-space:normal;line-height:1.3">chord persistence</span>
+    <div class="btns">
+      <button id="btn-entry-redistributed" onclick="setEntryMode('redistributed')">no</button>
+      <button class="active" id="btn-entry-persistent" onclick="setEntryMode('persistent')">yes</button>
+    </div>
+  </div>
+  <div class="row">
+    <span class="label">radial width</span>
+    <input type="range" id="linewidth" min="0" max="4" step="0.1" value="2.0">
+    <span class="val" id="linewidth-v">2.0</span>
+    <label class="check-item" style="margin-left:8px"><input type="checkbox" id="use-geo" checked onchange="toggleUseGeo(this.checked)"><span>use geometry</span></label>
+  </div>
+  <div class="row">
+    <span class="label">trace width</span>
+    <input type="range" id="tracewidth" min="0" max="4" step="0.1" value="0.5" disabled style="opacity:0.3">
+    <span class="val" id="tracewidth-v" style="opacity:0.3">0.5</span>
+    <label class="check-item" style="margin-left:8px;opacity:0.3"><input type="checkbox" id="use-geo-trace" disabled><span>use geometry</span></label>
+  </div>
+  <div class="row">
+    <span class="label">cursor size</span>
+    <input type="range" id="dotsize" min="0" max="60" step="0.5" value="20">
+    <span class="val" id="dotsize-v">20.0</span>
+    <label class="check-item" style="margin-left:8px;opacity:0.3"><input type="checkbox" id="use-geo-cursor" disabled><span>use geometry</span></label>
+  </div>
+
+  <hr class="divider" id="particle-divider" style="display:none">
+  <div id="particle-controls" style="display:none">
+    <div class="row" style="margin-bottom:4px">
+      <span class="label" style="color:var(--text-dim);letter-spacing:.12em">particle physics</span>
+    </div>
+    <div class="row">
+      <span class="label">r-max</span>
+      <input type="range" id="p-rmax" min="10" max="150" step="1" value="65" oninput="P_R_MAX=+this.value;document.getElementById('p-rmax-v').textContent=this.value">
+      <span class="val" id="p-rmax-v">65</span>
+    </div>
+    <div class="row">
+      <span class="label">r-min</span>
+      <input type="range" id="p-rmin" min="2" max="40" step="1" value="12" oninput="P_R_MIN=+this.value;document.getElementById('p-rmin-v').textContent=this.value">
+      <span class="val" id="p-rmin-v">12</span>
+    </div>
+    <div class="row">
+      <span class="label">force</span>
+      <input type="range" id="p-force" min="0.1" max="6" step="0.1" value="2.0" oninput="P_G=+this.value;document.getElementById('p-force-v').textContent=(+this.value).toFixed(1)">
+      <span class="val" id="p-force-v">2.0</span>
+    </div>
+    <div class="row">
+      <span class="label">damping</span>
+      <input type="range" id="p-damp" min="0.5" max="0.99" step="0.01" value="0.85" oninput="P_DAMPING=+this.value;document.getElementById('p-damp-v').textContent=(+this.value).toFixed(2)">
+      <span class="val" id="p-damp-v">0.85</span>
+    </div>
+    <div class="row">
+      <span class="label">s-rmax</span>
+      <input type="range" id="p-srmax" min="20" max="250" step="5" value="155" oninput="P_S_RMAX=+this.value;document.getElementById('p-srmax-v').textContent=this.value">
+      <span class="val" id="p-srmax-v">155</span>
+    </div>
+    <div class="row">
+      <span class="label">s-force</span>
+      <input type="range" id="p-sg" min="0.1" max="5" step="0.1" value="1.8" oninput="P_S_G=+this.value;document.getElementById('p-sg-v').textContent=(+this.value).toFixed(1)">
+      <span class="val" id="p-sg-v">1.8</span>
+    </div>
+    <div class="row" style="margin-top:6px">
+      <span class="label" style="color:var(--text-dim);letter-spacing:.12em">force matrix</span>
+      <button onclick="randomizeParticleMat()">randomize</button>
+      <button onclick="resetParticleMat()">reset</button>
+    </div>
+    <div id="particle-matrix-section" style="margin-top:4px;overflow-x:auto"></div>
+  </div>
+
+</div>
+
+<div class="event-flash" id="flash">valence shift</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/lines/LineSegmentsGeometry.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/lines/LineMaterial.js"></script>
+<script src="https://unpkg.com/three@0.128.0/examples/js/lines/LineSegments2.js"></script>
+<script>
+// ── Constants ──────────────────────────────────────────────
+const W = 480, H = 480;
+const R = 180, R_MID = 90;
+const MAX_N = 100;
+const MAX_LIVE = 10;
+const P_TRACE_LEN = 150;
+const P_TRACE_Z = 6;
+const MAX_PARTICLE_PTS = MAX_N * P_TRACE_LEN;
+const DEFAULT_PARTICLE_MAT = [
+  [ 0.20,-0.97,-0.69, 0.35],
+  [ 0.74, 0.20,-0.24, 0.79],
+  [-0.98,-0.88, 0.20,-0.70],
+  [-0.99,-0.49,-0.57, 0.20]
+];
+const DEFAULT_SPEAKER_REACTIONS = [0.57,-0.53,-0.64,-0.69];
+const LIVE_BLUE = [66, 133, 244]; // #4285F4 — Google Maps "you are here" blue
+let liveChords = []; // {userId, value, arrivalT, departT?, hasTouched}
+const TRACE_LEN = 300;  // ~5 seconds of history at 60fps
+const TRACE_SEGS = TRACE_LEN - 1;
+const TRACE_Z_STEP = 6; // world units per frame; 60 frames × 6 = 360, matches ghost ring depth
+const FIBS = [1,2,3,5,8,13,21];
+const GROUP_RGB = [
+  [255,160,40],[255,80,160],[200,80,255],
+  [50,240,180],[255,230,50],[120,255,60],[80,160,255]
+];
+
+// ── Three.js setup ─────────────────────────────────────────
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(53.13, W/H, 0.1, 10000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x0f0f0e, 1);
+renderer.setSize(W, H);
+document.getElementById('vp').appendChild(renderer.domElement);
+
+// ── Scene objects ──────────────────────────────────────────
+
+function makeRingLine(radius, z, color, opacity) {
+  const N = 128;
+  const arr = new Float32Array((N+1)*3);
+  for (let i=0;i<=N;i++) {
+    const a=(i/N)*Math.PI*2;
+    arr[i*3]=Math.cos(a)*radius; arr[i*3+1]=Math.sin(a)*radius; arr[i*3+2]=z;
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+  const mat = new THREE.LineBasicMaterial({color, transparent:true, opacity});
+  return new THREE.Line(geo, mat);
+}
+
+const outerRing = makeRingLine(R, 0, 0x383835, 0.8);
+scene.add(outerRing);
+const midRing = makeRingLine(R_MID, 0, 0x2a2a28, 0);
+scene.add(midRing);
+
+// Ghost rings along -Z (depth cues for 3D)
+const ghostRings = [-120,-240,-360].map((z,i) => {
+  const r = makeRingLine(R, z, 0x1e1e1c, 0);
+  scene.add(r);
+  return r;
+});
+
+// Z axis line (time/depth arrow)
+{
+  const arr = new Float32Array([0,0,0, 0,0,-420]);
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(arr,3));
+  scene.zAxisMat = new THREE.LineBasicMaterial({color:0x404040, transparent:true, opacity:0});
+  scene.zAxis = new THREE.Line(geo, scene.zAxisMat);
+  scene.add(scene.zAxis);
+}
+
+// Rim dots on outer ring
+{
+  const N=48, arr=new Float32Array(N*3);
+  for(let i=0;i<N;i++){const a=(i/N)*Math.PI*2;arr[i*3]=Math.cos(a)*R;arr[i*3+1]=Math.sin(a)*R;}
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(arr,3));
+  scene.add(new THREE.Points(geo,new THREE.PointsMaterial({color:0x3a3935,size:3,sizeAttenuation:true})));
+}
+
+// Chord lines — two renderers, toggled by "use geometry" checkbox
+const chordPosArr = new Float32Array(MAX_N*2*3);
+const chordColArr = new Float32Array(MAX_N*2*3);
+// Geometry-based (LineSegments2): supports real variable line width
+const chordGeo = new THREE.LineSegmentsGeometry();
+chordGeo.setPositions(chordPosArr);
+chordGeo.setColors(chordColArr);
+const chordMat = new THREE.LineMaterial({vertexColors:true, transparent:true, depthWrite:false, linewidth:2.0, resolution:new THREE.Vector2(W,H)});
+const chordLines = new THREE.LineSegments2(chordGeo, chordMat);
+chordLines.renderOrder = 7;  // radial: above trace (5) and fill (4), below cursor (10)
+scene.add(chordLines);
+// Basic fallback (LineBasicMaterial): linewidth always 1px in WebGL
+const chordGeoBasic = new THREE.BufferGeometry();
+chordGeoBasic.setAttribute('position', new THREE.BufferAttribute(chordPosArr,3));
+chordGeoBasic.setAttribute('color',    new THREE.BufferAttribute(chordColArr,3));
+const chordMatBasic = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false});
+const chordLinesBasic = new THREE.LineSegments(chordGeoBasic, chordMatBasic);
+chordLinesBasic.renderOrder = 7;
+chordLinesBasic.visible=false;
+scene.add(chordLinesBasic);
+
+// Cursor dots (Points)
+const dotPosArr = new Float32Array(MAX_N*3);
+const dotColArr = new Float32Array(MAX_N*3);
+const dotGeo = new THREE.BufferGeometry();
+dotGeo.setAttribute('position', new THREE.BufferAttribute(dotPosArr,3));
+dotGeo.setAttribute('color',    new THREE.BufferAttribute(dotColArr,3));
+const dotMat = new THREE.PointsMaterial({vertexColors:true, size:6, sizeAttenuation:true, transparent:true, depthWrite:false});
+const dotPoints = new THREE.Points(dotGeo, dotMat);
+dotPoints.renderOrder = 10;  // cursor: top layer
+scene.add(dotPoints);
+
+// Trace lines: fading trails behind cursor dots
+const tracePosArr = new Float32Array(MAX_N * TRACE_SEGS * 2 * 3);
+const traceColArr = new Float32Array(MAX_N * TRACE_SEGS * 2 * 3);
+const traceGeo = new THREE.BufferGeometry();
+traceGeo.setAttribute('position', new THREE.BufferAttribute(tracePosArr, 3));
+traceGeo.setAttribute('color',    new THREE.BufferAttribute(traceColArr, 3));
+const traceMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false});
+const traceLines = new THREE.LineSegments(traceGeo, traceMat);
+traceLines.renderOrder = 5;  // trace: below radial (7), above fill (4)
+scene.add(traceLines);
+
+// Fill surfaces: wedge planes connecting each trace path back to origin through time
+const FILL_VERTS_PER_SEG = 6; // 2 triangles × 3 vertices
+const fillPosArr = new Float32Array(MAX_N * TRACE_SEGS * FILL_VERTS_PER_SEG * 3);
+const fillColArr = new Float32Array(MAX_N * TRACE_SEGS * FILL_VERTS_PER_SEG * 3);
+const fillGeo = new THREE.BufferGeometry();
+fillGeo.setAttribute('position', new THREE.BufferAttribute(fillPosArr, 3));
+fillGeo.setAttribute('color',    new THREE.BufferAttribute(fillColArr, 3));
+const fillMat = new THREE.MeshBasicMaterial({vertexColors:true, transparent:true, depthWrite:false, side:THREE.DoubleSide});
+const fillMesh = new THREE.Mesh(fillGeo, fillMat);
+fillMesh.renderOrder = 4;  // fill: bottom layer (below trace 5, radial 7, cursor 10)
+scene.add(fillMesh);
+
+// Guide lines
+const guidePosArr = new Float32Array(MAX_N*2*3);
+const guideColArr = new Float32Array(MAX_N*2*3);
+const guideGeo = new THREE.BufferGeometry();
+guideGeo.setAttribute('position', new THREE.BufferAttribute(guidePosArr,3));
+guideGeo.setAttribute('color',    new THREE.BufferAttribute(guideColArr,3));
+const guideMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false, depthTest:false});
+const guideLines = new THREE.LineSegments(guideGeo, guideMat);
+guideLines.renderOrder = -1;
+scene.add(guideLines);
+
+// Live user chord lines (separate geometry — don't touch simulated slot logic)
+const liveCPosArr = new Float32Array(MAX_LIVE * 2 * 3);
+const liveCColArr = new Float32Array(MAX_LIVE * 2 * 3);
+const liveCGeo = new THREE.LineSegmentsGeometry();
+liveCGeo.setPositions(liveCPosArr); liveCGeo.setColors(liveCColArr);
+const liveCMat = new THREE.LineMaterial({vertexColors:true, transparent:true, depthWrite:false, linewidth:2.0, resolution:new THREE.Vector2(W,H)});
+const liveCLines = new THREE.LineSegments2(liveCGeo, liveCMat);
+liveCLines.renderOrder = 7;
+scene.add(liveCLines);
+
+// Live user cursor dots (blue)
+const liveDPosArr = new Float32Array(MAX_LIVE * 3);
+const liveDColArr = new Float32Array(MAX_LIVE * 3);
+const liveDGeo = new THREE.BufferGeometry();
+liveDGeo.setAttribute('position', new THREE.BufferAttribute(liveDPosArr, 3));
+liveDGeo.setAttribute('color',    new THREE.BufferAttribute(liveDColArr, 3));
+const liveDMat = new THREE.PointsMaterial({vertexColors:true, size:6, sizeAttenuation:true, transparent:true, depthWrite:false});
+const liveDPoints = new THREE.Points(liveDGeo, liveDMat);
+liveDPoints.renderOrder = 10;
+scene.add(liveDPoints);
+
+// Live trace lines
+const liveTrPosArr = new Float32Array(MAX_LIVE * TRACE_SEGS * 2 * 3);
+const liveTrColArr = new Float32Array(MAX_LIVE * TRACE_SEGS * 2 * 3);
+const liveTrGeo = new THREE.BufferGeometry();
+liveTrGeo.setAttribute('position', new THREE.BufferAttribute(liveTrPosArr, 3));
+liveTrGeo.setAttribute('color',    new THREE.BufferAttribute(liveTrColArr, 3));
+const liveTrMat = new THREE.LineBasicMaterial({vertexColors:true, transparent:true, depthWrite:false});
+const liveTrLines = new THREE.LineSegments(liveTrGeo, liveTrMat);
+liveTrLines.renderOrder = 5;
+scene.add(liveTrLines);
+
+// Live fill surfaces
+const liveFiPosArr = new Float32Array(MAX_LIVE * TRACE_SEGS * FILL_VERTS_PER_SEG * 3);
+const liveFiColArr = new Float32Array(MAX_LIVE * TRACE_SEGS * FILL_VERTS_PER_SEG * 3);
+const liveFiGeo = new THREE.BufferGeometry();
+liveFiGeo.setAttribute('position', new THREE.BufferAttribute(liveFiPosArr, 3));
+liveFiGeo.setAttribute('color',    new THREE.BufferAttribute(liveFiColArr, 3));
+const liveFiMat = new THREE.MeshBasicMaterial({vertexColors:true, transparent:true, depthWrite:false, side:THREE.DoubleSide});
+const liveFiMesh = new THREE.Mesh(liveFiGeo, liveFiMat);
+liveFiMesh.renderOrder = 4;
+scene.add(liveFiMesh);
+
+// Particle trail points: positions + per-point RGBA colours
+const pTrailPosArr = new Float32Array(MAX_PARTICLE_PTS * 3);
+const pTrailColArr = new Float32Array(MAX_PARTICLE_PTS * 4);
+const pTrailGeo = new THREE.BufferGeometry();
+pTrailGeo.setAttribute('position', new THREE.BufferAttribute(pTrailPosArr, 3));
+pTrailGeo.setAttribute('color',    new THREE.BufferAttribute(pTrailColArr, 4));
+const pTrailMat = new THREE.PointsMaterial({size:5, vertexColors:true, sizeAttenuation:false, transparent:true, depthWrite:false});
+const pTrailMesh = new THREE.Points(pTrailGeo, pTrailMat);
+pTrailMesh.renderOrder = 10;
+pTrailMesh.visible = false;
+scene.add(pTrailMesh);
+
+// Speaker "S" dot at origin (gold)
+const speakerGeo = new THREE.CircleGeometry(6, 16);
+const speakerMat = new THREE.MeshBasicMaterial({color:0xFFD700, transparent:true, opacity:0.9});
+const speakerMesh = new THREE.Mesh(speakerGeo, speakerMat);
+speakerMesh.renderOrder = 15;
+speakerMesh.visible = false;
+scene.add(speakerMesh);
+{
+  const hArr = new Float32Array(17 * 3);
+  for(let i=0;i<=16;i++){const a=(i/16)*Math.PI*2;hArr[i*3]=Math.cos(a)*10;hArr[i*3+1]=Math.sin(a)*10;}
+  const hGeo = new THREE.BufferGeometry();
+  hGeo.setAttribute('position', new THREE.BufferAttribute(hArr,3));
+  const hMat = new THREE.LineBasicMaterial({color:0xFFD700,transparent:true,opacity:0.25});
+  const speakerHalo = new THREE.Line(hGeo,hMat);
+  speakerHalo.renderOrder=15;
+  speakerHalo.visible=false;
+  scene.add(speakerHalo);
+  speakerMesh.halo = speakerHalo;
+}
+
+// ── Camera / view state ───────────────────────────────────
+// Spherical coords: radius, theta (azimuth), phi (elevation)
+let camRadius=480, camTheta=0, camPhi=0;
+// Orbit delta on top of lerped base
+let orbitDTheta=0, orbitDPhi=0;
+
+const CAM_2D    = {radius:480, theta:0,           phi:0};
+const CAM_2D_TS = {radius:480, theta:Math.PI/2,   phi:0};
+const CAM_3D    = {radius:560, theta:Math.PI/5,   phi:Math.PI/9};
+
+let viewMode='2d', transT=0, transTts=0;
+const TRANS_SPEED=0.04;
+
+function ease(t){return t<0.5?2*t*t:-1+(4-2*t)*t;}
+function clamp01(t){return Math.min(1,Math.max(0,t));}
+
+function applyCam() {
+  const theta = camTheta + orbitDTheta;
+  const phi   = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, camPhi + orbitDPhi));
+  const effR  = camRadius + orbitDRadius;
+  camera.position.set(
+    effR*Math.sin(theta)*Math.cos(phi),
+    effR*Math.sin(phi),
+    effR*Math.cos(theta)*Math.cos(phi)
+  );
+  camera.lookAt(0,0,0);
+  camera.up.set(0,1,0);
+}
+
+function lerpCam(et) {
+  camRadius = CAM_2D.radius + (CAM_3D.radius - CAM_2D.radius)*et;
+  camTheta  = CAM_2D.theta  + (CAM_3D.theta  - CAM_2D.theta)*et;
+  camPhi    = CAM_2D.phi    + (CAM_3D.phi    - CAM_2D.phi)*et;
+}
+
+function setViewMode(m) {
+  viewMode=m;
+  document.getElementById('btn-2d').classList.toggle('active', m==='2d');
+  document.getElementById('btn-2d-ts').classList.toggle('active', m==='2d-ts');
+  document.getElementById('btn-3d').classList.toggle('active', m==='3d');
+  document.getElementById('orbit-hint').classList.toggle('show', m==='3d');
+  document.getElementById('vp').classList.toggle('orbiting', m==='3d');
+  if (m==='2d'||m==='2d-ts') { orbitDTheta=0; orbitDPhi=0; }
+  const traceActive = m==='2d-ts' || m==='3d';
+  ['sg-head-trace','st-trace-group','st-trace-valence','sg-head-fill','st-fill-group','st-fill-valence','op-cell-trace','op-cell-fill'].forEach(id => {
+    document.getElementById(id).classList.toggle('future', !traceActive);
+  });
+}
+
+// ── Orbit mouse / touch controls ──────────────────────────
+let isDragging=false, dragLast={x:0,y:0}, dtBase=0, dpBase=0, orbitDRadius=0;
+
+renderer.domElement.addEventListener('mousedown', e => {
+  if (viewMode!=='3d'||transT<0.7) return;
+  isDragging=true; dragLast={x:e.clientX,y:e.clientY};
+  dtBase=orbitDTheta; dpBase=orbitDPhi;
+  e.preventDefault();
+});
+window.addEventListener('mousemove', e => {
+  if (!isDragging) return;
+  orbitDTheta = dtBase - (e.clientX-dragLast.x)*0.009;
+  orbitDPhi   = dpBase + (e.clientY-dragLast.y)*0.009;
+  applyCam();
+});
+window.addEventListener('mouseup', ()=>{ isDragging=false; });
+renderer.domElement.addEventListener('wheel', e => {
+  if (viewMode !== '3d') return;
+  orbitDRadius=Math.max(250-camRadius,Math.min(1400-camRadius,orbitDRadius+e.deltaY*0.6));
+  applyCam(); e.preventDefault();
+},{passive:false});
+
+// Touch
+let lastTouchDist=0, touchBase={dt:0,dp:0}, touchStart={x:0,y:0};
+renderer.domElement.addEventListener('touchstart', e=>{
+  if (e.touches.length===1) {
+    isDragging=viewMode==='3d'; touchStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+    touchBase={dt:orbitDTheta,dp:orbitDPhi};
+  } else if (e.touches.length===2) {
+    isDragging=false;
+    lastTouchDist=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+  }
+  e.preventDefault();
+},{passive:false});
+renderer.domElement.addEventListener('touchmove', e=>{
+  if (e.touches.length===1&&isDragging) {
+    orbitDTheta=touchBase.dt-(e.touches[0].clientX-touchStart.x)*0.009;
+    orbitDPhi=touchBase.dp+(e.touches[0].clientY-touchStart.y)*0.009;
+    applyCam();
+  } else if (e.touches.length===2) {
+    const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
+    const scale=lastTouchDist/d;
+    const newEff=Math.max(250,Math.min(1400,(camRadius+orbitDRadius)*scale));
+    orbitDRadius=newEff-camRadius;
+    lastTouchDist=d; applyCam();
+  }
+  e.preventDefault();
+},{passive:false});
+renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
+
+// ── WebSocket / live-user state ───────────────────────────
+const DEFAULT_HOST='polislike-partykit-reaction-canvas.patcon.partykit.dev';
+let ws=null, wsReconnectTimer=null, wsConnectedFlag=false;
+
+function setConnStatus(text,cls){const el=document.getElementById('conn-status');el.textContent=text;el.className=cls||'';}
+
+// Cursor x,y arrive as 0-100 (normalized %). Map to valence -1..+1 using
+// the same barycentric approach as ValenceViz (anchors match TouchLayer defaults).
+const CURSOR_ANCHORS={positive:{x:95,y:5},negative:{x:5,y:95},neutral:{x:95,y:95}};
+function cursorToValue(nx,ny){
+  const x=nx/100, y=ny/100;
+  const pos={x:CURSOR_ANCHORS.positive.x/100,y:CURSOR_ANCHORS.positive.y/100};
+  const neg={x:CURSOR_ANCHORS.negative.x/100,y:CURSOR_ANCHORS.negative.y/100};
+  const neu={x:CURSOR_ANCHORS.neutral.x/100,y:CURSOR_ANCHORS.neutral.y/100};
+  const denom=(neg.y-neu.y)*(pos.x-neu.x)+(neu.x-neg.x)*(pos.y-neu.y);
+  let wPos,wNeg;
+  if(Math.abs(denom)<1e-10){
+    const dp=Math.hypot(x-pos.x,y-pos.y),dn=Math.hypot(x-neg.x,y-neg.y),dz=Math.hypot(x-neu.x,y-neu.y);
+    const s=(1/(dp||1e-9))+(1/(dn||1e-9))+(1/(dz||1e-9));
+    wPos=(1/(dp||1e-9))/s;wNeg=(1/(dn||1e-9))/s;
+  }else{
+    wPos=((neg.y-neu.y)*(x-neu.x)+(neu.x-neg.x)*(y-neu.y))/denom;
+    wNeg=((neu.y-pos.y)*(x-neu.x)+(pos.x-neu.x)*(y-neu.y))/denom;
+  }
+  const mood=Math.max(0,Math.min(100,wPos*100+wNeg*0+(1-wPos-wNeg)*50));
+  return (mood-50)/50;
+}
+
+function addLiveChord(userId){
+  if(liveChords.length>=MAX_LIVE)return;
+  if(liveChords.find(lc=>lc.userId===userId))return;
+  liveChords.push({userId,value:0,arrivalT:0,hasTouched:false,lifted:false,history:[]});
+}
+function removeLiveChord(userId){
+  const lc=liveChords.find(lc=>lc.userId===userId);
+  if(lc&&lc.departT==null)lc.departT=0;
+}
+
+function connectWs(room){
+  if(ws){ws.onclose=null;ws.close();}
+  if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
+  setConnStatus('connecting…','connecting');
+  const host=window.location.port==='1999'?`${window.location.hostname}:1999`:DEFAULT_HOST;
+  const proto=window.location.port==='1999'?'ws':'wss';
+  const userId=crypto.randomUUID?.()??'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
+  ws=new WebSocket(`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`);
+  ws.onopen=()=>{
+    wsConnectedFlag=true;
+    document.getElementById('btn-connect').textContent='disconnect';
+    document.getElementById('btn-qr').style.display='';
+    setConnStatus(`connected · ${room}`,'ok');
+  };
+  ws.onmessage=(evt)=>{
+    let data;try{data=JSON.parse(evt.data);}catch{return;}
+    if(data.type==='presenceCount'){
+      const n=data.count??data.n??0;
+      setConnStatus(`connected · ${room} · ${n} participant${n!==1?'s':''}`,'ok');
+    }else if(data.type==='userJoined'){
+      addLiveChord(data.userId);
+    }else if(data.type==='userLeft'){
+      removeLiveChord(data.userId||(data.position&&data.position.userId));
+    }else if(data.type==='move'||data.type==='touch'){
+      const pos=data.position;
+      if(pos){
+        // Auto-add chord if user was already connected when we joined (missed userJoined)
+        if(!liveChords.find(lc=>lc.userId===pos.userId)) addLiveChord(pos.userId);
+        const lc=liveChords.find(lc=>lc.userId===pos.userId);
+        if(lc){lc.value=cursorToValue(pos.x,pos.y);lc.hasTouched=true;lc.lifted=false;}
+      }
+    }else if(data.type==='remove'){
+      const uid=data.userId||(data.position&&data.position.userId);
+      const lc=liveChords.find(lc=>lc.userId===uid);
+      if(lc){lc.lifted=true;lc.value=0;}
+    }
+  };
+  ws.onerror=()=>setConnStatus('connection error','warn');
+  ws.onclose=()=>{
+    wsConnectedFlag=false;liveChords=[];
+    document.getElementById('btn-connect').textContent='connect';
+    setConnStatus('reconnecting…','warn');
+    wsReconnectTimer=setTimeout(()=>connectWs(room),3000);
+  };
+}
+function disconnectWs(){
+  if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
+  if(ws){ws.onclose=null;ws.close();ws=null;}
+  wsConnectedFlag=false;liveChords=[];
+  document.getElementById('btn-connect').textContent='connect';
+  document.getElementById('btn-qr').style.display='none';
+  closeQrModal();
+  setConnStatus('disconnected','');
+}
+function handleConnectClick(){
+  if(wsConnectedFlag||ws!==null){disconnectWs();}
+  else{connectWs(document.getElementById('room-input').value.trim()||'default');}
+}
+
+function v4Url(room){
+  return`${window.location.protocol}//${window.location.host}/?room=${encodeURIComponent(room)}#v4`;
+}
+function openQrModal(){
+  const room=document.getElementById('room-input').value.trim()||'default';
+  const url=v4Url(room);
+  document.getElementById('qr-url').textContent=url;
+  const el=document.getElementById('qr-canvas');
+  el.innerHTML='';
+  new QRCode(el,{text:url,width:200,height:200,colorDark:'#e8e6de',colorLight:'#0f0f0e'});
+  document.getElementById('qr-modal').style.display='flex';
+}
+function closeQrModal(){document.getElementById('qr-modal').style.display='none';}
+
+// ── Valence state ─────────────────────────────────────────
+let colors={pos:{r:80,g:255,b:140,a:1},neg:{r:255,g:80,b:60,a:1},neutral:{r:15,g:15,b:14,a:1}};
+let styles={radial:'valence',cursor:'valence',trace:'valence',fill:'valence'};
+let stylePastLikeCursor=false;
+function setStylePastLikeCursor(v){stylePastLikeCursor=v;}
+let paused=false, geoMode='diametric', animMode='sequential';
+let P_R_MAX=65, P_R_MIN=12, P_DT=0.5, P_G=2.0, P_DAMPING=0.85;
+let P_S_RMAX=155, P_S_RMIN=35, P_S_G=1.8, P_S_BWIDTH=40, P_S_BG=4.0;
+let particleMat=[], speakerReactions=[];
+let traceMode='correlated', orderMode='random', exitAnim='origin', entryMode='persistent';
+let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false, inParallelRadialTransition=false;
+
+const nEl=document.getElementById('nchords');
+const evtEl=document.getElementById('evtrate');
+const driftEl=document.getElementById('driftspd');
+const dotEl=document.getElementById('dotsize');
+const lwEl=document.getElementById('linewidth');
+const gcEl=document.getElementById('groupcount');
+const guidesEl=document.getElementById('guides');
+const dynamicEl=document.getElementById('dynamic');
+const flash=document.getElementById('flash');
+const groupRow=document.getElementById('group-row');
+const fibDots=document.getElementById('fib-dots');
+
+nEl.oninput=()=>{document.getElementById('nchords-v').textContent=nEl.value;updateChordCount();};
+evtEl.oninput=()=>document.getElementById('evtrate-v').textContent=evtEl.value+'s';
+driftEl.oninput=()=>document.getElementById('driftspd-v').textContent=parseFloat(driftEl.value).toFixed(3);
+dotEl.oninput=()=>document.getElementById('dotsize-v').textContent=parseFloat(dotEl.value).toFixed(1);
+lwEl.oninput=()=>document.getElementById('linewidth-v').textContent=parseFloat(lwEl.value).toFixed(1);
+gcEl.oninput=()=>{updateGroupCountUI();initChords();if(geoMode==='particle'){initParticleMatrix();renderParticleMatrix();}};
+
+function hexToRgb(h){return{r:parseInt(h.slice(1,3),16),g:parseInt(h.slice(3,5),16),b:parseInt(h.slice(5,7),16)};}
+function updateSwatchLayer(k){
+  const c=colors[k];
+  document.getElementById('swatch-'+k+'-layer').style.background=`rgba(${c.r},${c.g},${c.b},${c.a})`;
+}
+function updateColorRGB(k,h){Object.assign(colors[k],hexToRgb(h));updateSwatchLayer(k);}
+function updateColorA(k,v){colors[k].a=parseFloat(v);updateSwatchLayer(k);}
+['pos','neg','neutral'].forEach(k=>updateSwatchLayer(k));
+
+function setStyle(el,m){
+  styles[el]=m;
+  ['group','valence'].forEach(s=>document.getElementById(`st-${el}-${s}`).classList.toggle('active',s===m));
+}
+function setAllStyle(m){
+  ['radial','cursor','trace','fill'].forEach(el=>setStyle(el,m));
+}
+let opacities={radial:1,trace:0.8,cursor:1,fill:0.45};
+function setOp(el,v){
+  opacities[el]=parseFloat(v);
+  document.getElementById(`op-${el}-v`).textContent=parseFloat(v).toFixed(2);
+}
+function getNumGroups(){return parseInt(gcEl.value);}
+function updateGroupCountUI(){
+  const n=getNumGroups();
+  document.getElementById('groupcount-v').textContent=n;
+  const w=FIBS.slice(0,n), tot=w.reduce((a,b)=>a+b,0);
+  fibDots.innerHTML='';
+  w.forEach((wt,i)=>{
+    const d=document.createElement('div'); d.className='fib-dot';
+    d.style.width=Math.max(4,Math.round((wt/tot)*80))+'px';
+    const [r,g,b]=GROUP_RGB[i%GROUP_RGB.length];
+    d.style.background=`rgba(${r},${g},${b},0.6)`;
+    d.title=Math.round(wt/tot*100)+'%'; fibDots.appendChild(d);
+  });
+}
+updateGroupCountUI();
+
+let flashT=null;
+function showFlash(){flash.classList.add('show');clearTimeout(flashT);flashT=setTimeout(()=>flash.classList.remove('show'),700);}
+function togglePause(){paused=!paused;document.getElementById('pbtn').textContent=paused?'resume':'pause';}
+let savedLineWidth=parseFloat(document.getElementById('linewidth').value);
+function toggleUseGeo(checked){
+  const sl=document.getElementById('linewidth'),vl=document.getElementById('linewidth-v');
+  if(checked){sl.value=savedLineWidth;vl.textContent=savedLineWidth.toFixed(1);}
+  else{savedLineWidth=parseFloat(sl.value);sl.value=0.5;vl.textContent='0.5';}
+  sl.disabled=!checked;vl.style.opacity=checked?'':'.2';
+}
+function setGeometry(m){
+  geoMode=m;
+  ['radial','diametric','parallel','linear','particle'].forEach(g=>
+    document.getElementById('btn-'+g).classList.toggle('active',m===g)
+  );
+  const isParticle=m==='particle';
+  pTrailMesh.visible=isParticle;
+  speakerMesh.visible=isParticle;
+  speakerMesh.halo.visible=isParticle;
+  const useGeo=document.getElementById('use-geo').checked;
+  chordLines.visible=!isParticle&&useGeo;
+  chordLinesBasic.visible=!isParticle&&!useGeo;
+  dotPoints.visible=!isParticle;
+  document.getElementById('particle-controls').style.display=isParticle?'':'none';
+  document.getElementById('particle-divider').style.display=isParticle?'':'none';
+  ['btn-correlated','btn-random-trace','btn-order-grouped','btn-order-random',
+   'pbtn','btn-manual-event','btn-sim','btn-seq',
+   'st-radial-group','st-radial-valence','op-cell-radial',
+   'evtrate','driftspd'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.classList.toggle('ctrl-disabled',isParticle);
+  });
+  if(isParticle){initParticleMatrix();renderParticleMatrix();initParticlePositions();}
+}
+function setAnim(m){animMode=m;document.getElementById('btn-seq').classList.toggle('active',m==='sequential');document.getElementById('btn-sim').classList.toggle('active',m==='simultaneous');}
+function setTraceMode(m){
+  traceMode=m;
+  document.getElementById('btn-random-trace').classList.toggle('active',m==='random');
+  document.getElementById('btn-correlated').classList.toggle('active',m==='correlated');
+  const corr=m==='correlated';
+  ['order-ctrl','order-label'].forEach(id=>{const el=document.getElementById(id);el.style.opacity=corr?'1':'0.28';el.style.pointerEvents=corr?'auto':'none';});
+  groupRow.style.opacity=corr?'1':'0.28'; groupRow.style.pointerEvents=corr?'auto':'none';
+  const emRow=document.getElementById('entrymode-row');
+  emRow.style.opacity=corr?'1':'0.28'; emRow.style.pointerEvents=corr?'auto':'none';
+  initChords();
+}
+function setOrder(m){orderMode=m;document.getElementById('btn-order-random').classList.toggle('active',m==='random');document.getElementById('btn-order-grouped').classList.toggle('active',m==='grouped');initChords();}
+function setExitAnim(m){exitAnim=m;document.getElementById('btn-exit-none').classList.toggle('active',m==='none');document.getElementById('btn-exit-origin').classList.toggle('active',m==='origin');}
+function setEntryMode(m){entryMode=m;document.getElementById('btn-entry-redistributed').classList.toggle('active',m==='redistributed');document.getElementById('btn-entry-persistent').classList.toggle('active',m==='persistent');}
+
+function randomVal(){return Math.random()*2-1;}
+function fireGroupEvent(){const ng=getNumGroups();groupTargets=Array.from({length:ng},()=>randomVal());showFlash();}
+function fireEvent(){if(traceMode==='correlated')fireGroupEvent();else{chords.forEach(c=>{c.target=randomVal();});showFlash();}}
+function manualFireEvent(){eventTimer=0;fireEvent();}
+
+function assignBase(pos,ng){
+  const w=FIBS.slice(0,ng),tot=w.reduce((a,b)=>a+b,0);
+  let cum=0;
+  for(let g=0;g<ng;g++){cum+=w[g]/tot;if(pos<cum)return g;}
+  return ng-1;
+}
+
+let chords=[], departingChords=[];
+function makeChord(i,n,ng){
+  if(traceMode==='random')return{mode:'random',value:randomVal()*0.4,target:randomVal(),history:[],arrivalT:0};
+  return{mode:'correlated',baseIdx:assignBase((i+0.5)/n,ng),value:(Math.random()-0.5)*0.3,noiseOffset:(Math.random()-0.5)*0.12,history:[],arrivalT:0};
+}
+function initChords(){
+  const n=parseInt(nEl.value),ng=getNumGroups(); chords=[];
+  if(traceMode==='random'){for(let i=0;i<n;i++)chords.push(makeChord(i,n,ng));return;}
+  let asgn=Array.from({length:n},(_,i)=>assignBase((i+0.5)/n,ng));
+  if(orderMode==='random'){for(let i=asgn.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[asgn[i],asgn[j]]=[asgn[j],asgn[i]];}}
+  for(let i=0;i<n;i++)chords.push({mode:'correlated',baseIdx:asgn[i],value:(Math.random()-0.5)*0.3,noiseOffset:(Math.random()-0.5)*0.12,history:[]});
+  while(groupTargets.length<ng)groupTargets.push(randomVal());
+  groupTargets.length=ng; fireGroupEvent();
+  if(geoMode==='particle')initParticlePositions();
+}
+function idealGroupCounts(n,ng){
+  const counts=new Array(ng).fill(0);
+  for(let i=0;i<n;i++)counts[assignBase((i+0.5)/n,ng)]++;
+  return counts;
+}
+function currentGroupCounts(ng){
+  const counts=new Array(ng).fill(0);
+  chords.forEach(c=>{if(c.baseIdx!=null)counts[c.baseIdx]++;});
+  return counts;
+}
+function updateChordCount(){
+  const n=parseInt(nEl.value),ng=getNumGroups();
+  if(traceMode==='correlated'&&(orderMode==='random'||entryMode==='persistent')){
+    // Persistent: add/remove while preserving existing chord group assignments
+    while(chords.length<n){
+      const ideal=idealGroupCounts(n,ng),cur=currentGroupCounts(ng);
+      let maxDef=-Infinity,tg=0;
+      for(let g=0;g<ng;g++){const d=ideal[g]-cur[g];if(d>maxDef){maxDef=d;tg=g;}}
+      const c=makeChord(chords.length,n,ng); c.baseIdx=tg;
+      if(exitAnim==='none'||exitAnim==='origin') c.value=Math.max(-1,Math.min(1,(groupTargets[tg]||0)+c.noiseOffset));
+      // In grouped order mode, insert after last sibling; otherwise append
+      if(orderMode==='grouped'){
+        let insertAt=chords.length;
+        for(let k=chords.length-1;k>=0;k--){if(chords[k].baseIdx===tg){insertAt=k+1;break;}}
+        chords.splice(insertAt,0,c);
+      }else{
+        chords.push(c);
+      }
+    }
+    while(chords.length>n){
+      const ideal=idealGroupCounts(n,ng),cur=currentGroupCounts(ng);
+      let maxSur=-Infinity,tg=0;
+      for(let g=0;g<ng;g++){const s=cur[g]-ideal[g];if(s>maxSur){maxSur=s;tg=g;}}
+      let idx=chords.length-1;
+      for(let i=chords.length-1;i>=0;i--){if(chords[i].baseIdx===tg){idx=i;break;}}
+      if(exitAnim==='origin'){
+        // Compute group-slot position before splicing so departing chord exits from its rendered position
+        let departEffI=idx, departEffN=chords.length;
+        if(entryMode==='persistent'&&orderMode==='grouped'){
+          const g=chords[idx].baseIdx;
+          let localCount=0, localIdx=0;
+          for(let k=0;k<chords.length;k++){if(chords[k].baseIdx===g){if(k===idx)localIdx=localCount;localCount++;}}
+          if(localCount>0){
+            const ng2=getNumGroups(),fw=FIBS.slice(0,ng2),ftot=fw.reduce((a,b)=>a+b,0);
+            let cumW=0; for(let gg=0;gg<g;gg++)cumW+=fw[gg];
+            departEffI=cumW*localCount+localIdx*fw[g]; departEffN=ftot*localCount;
+          }
+        }
+        const[dc]=chords.splice(idx,1);
+        dc.departI=idx; dc.departN=chords.length+1; dc.departEffI=departEffI; dc.departEffN=departEffN;
+        departingChords.push(dc);
+      }else{chords.splice(idx,1);}
+    }
+  }else{
+    const prevLen=chords.length;
+    if(n>chords.length){
+      for(let i=chords.length;i<n;i++)chords.push(makeChord(i,n,ng));
+    }else if(n<chords.length){
+      while(chords.length>n){if(exitAnim==='origin'){const[dc]=chords.splice(chords.length-1,1);dc.departI=chords.length;dc.departN=chords.length+1;departingChords.push(dc);}else{chords.splice(chords.length-1,1);}}
+    }
+    if(traceMode==='correlated'){
+      for(let i=0;i<chords.length;i++)chords[i].baseIdx=assignBase((i+0.5)/n,ng);
+      if(exitAnim==='none'||exitAnim==='origin'){
+        for(let i=prevLen;i<chords.length;i++) chords[i].value=Math.max(-1,Math.min(1,(groupTargets[chords[i].baseIdx]||0)+chords[i].noiseOffset));
+      }
+    }
+  }
+}
+initChords();
+
+// ── Particle physics ──────────────────────────────────────
+function initParticleMatrix(){
+  const nG=getNumGroups();
+  particleMat=Array.from({length:nG},(_,i)=>
+    Array.from({length:nG},(_,j)=>
+      i<4&&j<4?DEFAULT_PARTICLE_MAT[i][j]:i===j?0.2:+(Math.random()*2-1).toFixed(2)
+    )
+  );
+  speakerReactions=Array.from({length:nG},(_,i)=>
+    i<DEFAULT_SPEAKER_REACTIONS.length?DEFAULT_SPEAKER_REACTIONS[i]:+(Math.random()*2-1).toFixed(2)
+  );
+}
+function randomizeParticleMat(){
+  const nG=getNumGroups();
+  particleMat=Array.from({length:nG},()=>Array.from({length:nG},()=>+(Math.random()*2-1).toFixed(2)));
+  speakerReactions=Array.from({length:nG},()=>+(Math.random()*2-1).toFixed(2));
+  renderParticleMatrix();
+}
+function resetParticleMat(){initParticleMatrix();renderParticleMatrix();}
+function renderParticleMatrix(){
+  const nG=getNumGroups();
+  const el=document.getElementById('particle-matrix-section');
+  if(!el)return;
+  let h='<div style="display:flex;flex-direction:column;gap:3px;">';
+  h+='<div style="display:flex;gap:3px;margin-left:64px;">';
+  for(let j=0;j<nG;j++){const[r,g,b]=GROUP_RGB[j%GROUP_RGB.length];h+=`<div style="width:54px;text-align:center;font-size:9px;color:rgba(${r},${g},${b},0.7);">G${j+1}</div>`;}
+  h+='<div style="width:54px;text-align:center;font-size:9px;color:rgba(255,215,0,0.6);">S</div>';
+  h+='</div>';
+  for(let i=0;i<nG;i++){
+    const[ri,gi,bi]=GROUP_RGB[i%GROUP_RGB.length];
+    h+=`<div style="display:flex;align-items:center;gap:3px;">`;
+    h+=`<div style="width:60px;font-size:9px;color:rgba(${ri},${gi},${bi},0.7);text-align:right;padding-right:4px;">G${i+1}</div>`;
+    for(let j=0;j<nG;j++){
+      const v=particleMat[i][j];
+      const ac=v>0?'#22c55e':'#D85A30';
+      h+=`<div style="width:54px;display:flex;flex-direction:column;gap:1px;align-items:center;">
+        <input type="range" min="-1" max="1" step="0.05" value="${v}" style="width:50px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:pointer;accent-color:${ac};" oninput="particleMat[${i}][${j}]=+this.value;this.style.accentColor=+this.value>0?'#22c55e':'#D85A30';this.nextElementSibling.textContent=(+this.value>=0?'+':'')+Number(+this.value).toFixed(2)">
+        <div style="font-size:8px;color:var(--text-dim);font-variant-numeric:tabular-nums;">${v>=0?'+':''}${v.toFixed(2)}</div>
+      </div>`;
+    }
+    const sv=speakerReactions[i]??0;
+    const sac=sv>0?'#22c55e':'#D85A30';
+    h+=`<div style="width:54px;display:flex;flex-direction:column;gap:1px;align-items:center;">
+      <input type="range" min="-1" max="1" step="0.05" value="${sv}" style="width:50px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:pointer;accent-color:${sac};" oninput="speakerReactions[${i}]=+this.value;this.style.accentColor=+this.value>0?'#22c55e':'#D85A30';this.nextElementSibling.textContent=(+this.value>=0?'+':'')+Number(+this.value).toFixed(2)">
+      <div style="font-size:8px;color:rgba(255,215,0,0.5);font-variant-numeric:tabular-nums;">${sv>=0?'+':''}${sv.toFixed(2)}</div>
+    </div>`;
+    h+='</div>';
+  }
+  h+='</div>';
+  el.innerHTML=h;
+}
+function initParticlePositions(){
+  for(const c of chords){
+    const angle=Math.random()*Math.PI*2;
+    const r=Math.random()*(P_S_RMAX*0.55);
+    c.px=Math.cos(angle)*r; c.py=Math.sin(angle)*r;
+    c.pvx=0; c.pvy=0;
+    c.pHistory=[];
+  }
+}
+function stepParticles(){
+  const nc=chords.length;
+  const ax=new Float32Array(nc), ay=new Float32Array(nc);
+  const RR=P_R_MAX*P_R_MAX;
+  const S_RR=P_S_RMAX*P_S_RMAX;
+  const S_BRR=(P_S_RMAX+P_S_BWIDTH)*(P_S_RMAX+P_S_BWIDTH);
+  // Pass 1: particle-particle pairs
+  for(let i=0;i<nc;i++){
+    const ci=chords[i];
+    for(let j=0;j<nc;j++){
+      if(i===j)continue;
+      const cj=chords[j];
+      const dx=cj.px-ci.px, dy=cj.py-ci.py;
+      const r2=dx*dx+dy*dy;
+      if(r2<0.01||r2>RR)continue;
+      const r=Math.sqrt(r2);
+      const gi=Math.min(ci.baseIdx??0,particleMat.length-1);
+      const gj=Math.min(cj.baseIdx??0,particleMat.length-1);
+      const f=r<P_R_MIN?(r/P_R_MIN-1):particleMat[gi][gj]*(1-r/P_R_MAX);
+      const inv=f*P_G/r;
+      ax[i]+=dx*inv; ay[i]+=dy*inv;
+    }
+  }
+  // Pass 2: speaker force (speaker fixed at origin)
+  for(let i=0;i<nc;i++){
+    const ci=chords[i];
+    const dx=-ci.px, dy=-ci.py;
+    const r2=dx*dx+dy*dy;
+    if(r2<0.01||r2>S_RR)continue;
+    const r=Math.sqrt(r2);
+    const gi=Math.min(ci.baseIdx??0,speakerReactions.length-1);
+    const f=r<P_S_RMIN?(r/P_S_RMIN-1):(speakerReactions[gi]??0)*(1-r/P_S_RMAX);
+    const inv=f*P_S_G/r;
+    ax[i]+=dx*inv; ay[i]+=dy*inv;
+  }
+  // Pass 3: boundary repulsion
+  for(let i=0;i<nc;i++){
+    const ci=chords[i];
+    const dx=-ci.px, dy=-ci.py;
+    const r2=dx*dx+dy*dy;
+    if(r2<=S_RR||r2>S_BRR)continue;
+    const r=Math.sqrt(r2);
+    const f=(r-P_S_RMAX)/P_S_BWIDTH*P_S_BG;
+    const inv=f/r;
+    ax[i]+=dx*inv; ay[i]+=dy*inv;
+  }
+  // Integrate
+  for(let i=0;i<nc;i++){
+    const c=chords[i];
+    c.pvx=(c.pvx+ax[i]*P_DT)*P_DAMPING;
+    c.pvy=(c.pvy+ay[i]*P_DT)*P_DAMPING;
+    c.px+=c.pvx*P_DT;
+    c.py+=c.pvy*P_DT;
+  }
+}
+function updateParticleGeometry(){
+  const pos=pTrailGeo.attributes.position.array;
+  const col=pTrailGeo.attributes.color.array;
+  let vi=0;
+  const showTrace=viewMode==='2d-ts'||viewMode==='3d';
+  for(const c of chords){
+    const[cr,cg,cb]=GROUP_RGB[(c.baseIdx??0)%GROUP_RGB.length];
+    if(!c.pHistory)c.pHistory=[];
+    c.pHistory.unshift({px:c.px,py:c.py});
+    if(c.pHistory.length>P_TRACE_LEN)c.pHistory.pop();
+    const hlen=showTrace?c.pHistory.length:1;
+    for(let j=0;j<hlen&&vi<MAX_PARTICLE_PTS;j++){
+      const h=c.pHistory[j];
+      const alpha=j===0?1.0:0.7*(1-j/hlen);
+      pos[vi*3]=h.px; pos[vi*3+1]=h.py; pos[vi*3+2]=-j*P_TRACE_Z;
+      col[vi*4]=cr/255; col[vi*4+1]=cg/255; col[vi*4+2]=cb/255; col[vi*4+3]=alpha;
+      vi++;
+    }
+  }
+  for(;vi<MAX_PARTICLE_PTS;vi++){pos[vi*3+2]=-99999;col[vi*4+3]=0;}
+  pTrailGeo.setDrawRange(0,vi);
+  pTrailGeo.attributes.position.needsUpdate=true;
+  pTrailGeo.attributes.color.needsUpdate=true;
+}
+
+// ── Color helpers ─────────────────────────────────────────
+function valenceRGB(v){
+  const t=Math.pow(Math.abs(v),.55);
+  const {r:nr,g:ng,b:nb}=colors.neutral;
+  const src=v>=0?colors.pos:colors.neg;
+  return[Math.round(nr+(src.r-nr)*t),Math.round(ng+(src.g-ng)*t),Math.round(nb+(src.b-nb)*t)];
+}
+function elementRGBA(chord,v,mode,op){
+  if(mode==='group'&&chord.mode==='correlated'){
+    const[r,g,b]=GROUP_RGB[chord.baseIdx%GROUP_RGB.length];return[r,g,b,op];
+  }
+  const[r,g,b]=valenceRGB(v);
+  const t=Math.pow(Math.abs(v),.55);
+  const srcA=v>=0?colors.pos.a:colors.neg.a;
+  const a=(colors.neutral.a+(srcA-colors.neutral.a)*t)*op;
+  return[r,g,b,Math.min(1,Math.max(0,a))];
+}
+function neutralRGBA(op){const{r,g,b,a}=colors.neutral;return[r,g,b,a*op];}
+function liveElementRGBA(v,mode,op){
+  if(mode==='group')return[LIVE_BLUE[0],LIVE_BLUE[1],LIVE_BLUE[2],op];
+  const[r,g,b]=valenceRGB(v);
+  const t=Math.pow(Math.abs(v),.55);
+  const srcA=v>=0?colors.pos.a:colors.neg.a;
+  const a=(colors.neutral.a+(srcA-colors.neutral.a)*t)*op;
+  return[r,g,b,Math.min(1,Math.max(0,a))];
+}
+
+// ── Geometry helpers ───────────────────────────────────────
+function getPhases(mt,toRadial){
+  if(animMode==='simultaneous'){const e=ease(mt);return{p1:e,p2:e};}
+  if(toRadial)return{p1:ease(clamp01(mt*2)),p2:ease(clamp01((mt-.5)*2))};
+  const rev=1-mt;return{p2:1-ease(clamp01(rev*2)),p1:1-ease(clamp01((rev-.5)*2))};
+}
+function getChordPoints(i,n,v,p1,p2,pp1,pp2,lp1,lp2){
+  const tilt=(Math.PI/n)*.5,absV=Math.abs(v);
+  const dAx=(i/n)*Math.PI+tilt;
+  const dTA=v>=0?dAx+Math.PI:dAx;
+  const dTX=240+Math.cos(dTA)*R*absV, dTY=240+Math.sin(dTA)*R*absV;
+  const rSA=(i/n)*2*Math.PI+tilt-Math.PI/2;
+  let sd=rSA-dAx; while(sd>Math.PI)sd-=2*Math.PI; while(sd<-Math.PI)sd+=2*Math.PI;
+  const sa=dAx+sd*p2,sc=Math.cos(sa),ss=Math.sin(sa);
+  const rRX=240+sc*R_MID,rRY=240+ss*R_MID,rTR=R_MID*(1-v);
+  let rootX=240+(rRX-240)*p1, rootY=240+(rRY-240)*p1;
+  let tipX=dTX+(240+sc*rTR-dTX)*p1, tipY=dTY+(240+ss*rTR-dTY)*p1;
+  if(pp1>0||pp2>0){
+    const pX=n>1?240+(i-(n-1)/2)/(n-1)*2*R:240;
+    rootX+=(pX-rootX)*pp1; rootY+=(240-rootY)*pp1;
+    tipX+=(pX-tipX)*pp2;   tipY+=(240-R*v-tipY)*pp2;
+  }
+  if(lp1>0||lp2>0){
+    rootX+=(240-rootX)*lp1; rootY+=(240-rootY)*lp1;
+    tipX+=(240-tipX)*lp2;   tipY+=(240-R*v-tipY)*lp2;
+  }
+  return{rootX,rootY,tipX,tipY};
+}
+function getGuidePoints(i,n,p1,p2,pp1,pp2,lp1,lp2){
+  const tilt=(Math.PI/n)*.5,da=(i/n)*Math.PI+tilt;
+  const dNx=240+Math.cos(da)*R,dNy=240+Math.sin(da)*R;
+  const dPx=240+Math.cos(da+Math.PI)*R,dPy=240+Math.sin(da+Math.PI)*R;
+  const rsa=(i/n)*2*Math.PI+tilt-Math.PI/2;
+  let sd=rsa-da; while(sd>Math.PI)sd-=2*Math.PI; while(sd<-Math.PI)sd+=2*Math.PI;
+  const sa=da+sd*p2,sc=Math.cos(sa),ss=Math.sin(sa);
+  let posX=dPx+(240-dPx)*p1, posY=dPy+(240-dPy)*p1;
+  let negX=dNx+(240+sc*R-dNx)*p1, negY=dNy+(240+ss*R-dNy)*p1;
+  if(pp2>0){
+    const pX=n>1?240+(i-(n-1)/2)/(n-1)*2*R:240;
+    posX+=(pX-posX)*pp2; posY+=(240-R-posY)*pp2;
+    negX+=(pX-negX)*pp2; negY+=(240+R-negY)*pp2;
+  }
+  if(lp2>0){posX+=(240-posX)*lp2;posY+=(240-R-posY)*lp2;negX+=(240-negX)*lp2;negY+=(240+R-negY)*lp2;}
+  return{posX,posY,negX,negY};
+}
+
+// Convert canvas coords (0-480, Y-down) to Three.js world (centered, Y-up)
+function cv(x,y){return[x-240, 240-y, 0];}
+
+// ── Main animate loop ─────────────────────────────────────
+function animate(){
+  requestAnimationFrame(animate);
+
+  // Particle mode: physics step
+  if(geoMode==='particle'){if(!paused)stepParticles();updateParticleGeometry();}
+
+  // Events + drift (paused freezes valence values only; skipped in particle mode)
+  if(geoMode!=='particle'&&!paused){
+    eventTimer+=1/60;
+    if(eventTimer>=parseFloat(evtEl.value)){eventTimer=0;fireEvent();}
+    const ds=parseFloat(driftEl.value),ng=getNumGroups(),n=parseInt(nEl.value);
+    for(let i=0;i<n;i++){
+      const c=chords[i];
+      const tgt=c.mode==='correlated'
+        ?Math.max(-1,Math.min(1,(groupTargets[Math.min(c.baseIdx,ng-1)]||0)+c.noiseOffset))
+        :c.target;
+      c.value=Math.max(-1,Math.min(1,c.value+(tgt-c.value)*ds));
+    }
+    for(let i=0;i<departingChords.length;i++){departingChords[i].departT=Math.min(1,(departingChords[i].departT||0)+1/30);}
+    for(let i=0;i<chords.length;i++){if(chords[i].arrivalT<1)chords[i].arrivalT=Math.min(1,chords[i].arrivalT+1/30);}
+  }
+  // Live chord arrival/departure always animate (even when paused); removal happens after render pass
+  for(let i=0;i<liveChords.length;i++){
+    const lc=liveChords[i];
+    if(lc.departT!=null){lc.departT=Math.min(1,lc.departT+1/30);}
+    else{lc.arrivalT=Math.min(1,(lc.arrivalT||0)+1/30);}
+  }
+  // Camera transition and geometry morph always run
+  const tTarget=viewMode==='3d'?1:0;
+  transT=clamp01(transT+(tTarget-transT)*TRANS_SPEED*3);
+  if(viewMode!=='3d') orbitDRadius+=(0-orbitDRadius)*TRANS_SPEED*3;
+  const ttsTarget=viewMode==='2d-ts'?1:0;
+  transTts=clamp01(transTts+(ttsTarget-transTts)*TRANS_SPEED*3);
+  const gTarget=geoMode==='radial'?1:geoMode==='linear'?-1:geoMode==='parallel'?-2:0;
+  morphT=Math.max(-2,Math.min(1,morphT+(gTarget-morphT)*0.05));
+  if(geoMode==='parallel'&&morphT>-1)inParallelTransition=true;
+  if(geoMode==='linear')inParallelTransition=false;
+  if(geoMode!=='parallel'&&morphT>-0.05)inParallelTransition=false;
+  if(geoMode==='radial'&&morphT<0)inParallelRadialTransition=true;
+  if(geoMode==='parallel'&&morphT>0)inParallelRadialTransition=true;
+  if(geoMode==='diametric'||geoMode==='linear')inParallelRadialTransition=false;
+  if(geoMode==='radial'&&morphT>0.95)inParallelRadialTransition=false;
+  if(geoMode==='parallel'&&morphT<-1.95)inParallelRadialTransition=false;
+
+  // Apply camera: blend 2d→3d, then additionally blend toward 2d-ts side view
+  lerpCam(ease(transT));
+  if(transTts>0){
+    const et=ease(transTts);
+    camRadius+=( CAM_2D_TS.radius-camRadius)*et;
+    camTheta +=(CAM_2D_TS.theta -camTheta )*et;
+    camPhi   +=(CAM_2D_TS.phi   -camPhi   )*et;
+  }
+  applyCam();
+
+  // Depth cue opacities
+  const depthA=ease(transT);
+  const depthTs=ease(transTts);
+  scene.zAxisMat.opacity=Math.max(depthA,depthTs)*0.45;
+  ghostRings.forEach((r,i)=>{r.material.opacity=depthA*(0.12-i*0.03);r.visible=depthA>0.02;});
+
+  // Geometry
+  const n=parseInt(nEl.value);
+  const dynamic=dynamicEl.checked;
+  const lineW=parseFloat(lwEl.value);
+  const dotBase=parseFloat(dotEl.value);
+  const showGuides=guidesEl.checked;
+  const useGeo=document.getElementById('use-geo').checked;
+  let p1,p2,pp1,pp2,lp1,lp2;
+  if(animMode==='simultaneous'&&inParallelRadialTransition){const te=ease(clamp01((morphT+2)/3));p1=te;p2=te;pp1=1-te;pp2=1-te;lp1=0;lp2=0;}
+  else if(morphT>=0){({p1,p2}=getPhases(morphT,geoMode==='radial'));pp1=0;pp2=0;lp1=0;lp2=0;}
+  else if(animMode==='simultaneous'&&inParallelTransition){p1=0;p2=0;lp1=0;lp2=0;const pb=ease(-morphT/2);pp1=pb;pp2=pb;}
+  else if(morphT>=-1){p1=0;p2=0;pp1=0;pp2=0;const le=ease(-morphT);lp1=le;lp2=le;}
+  else{p1=0;p2=0;pp1=1;pp2=1;const le=ease(2+morphT);lp1=le;lp2=le;}
+
+  midRing.material.opacity=geoMode==='particle'?0:p1*0.35;
+
+  // Update chord geometry (active chords at slots 0..n-1, departing at slots n..n+departingChords.length-1)
+  if(geoMode!=='particle'){
+  for(let i=0;i<MAX_N;i++){
+    const di=i-n;
+    const c=i<n?chords[i]:(di>=0&&di<departingChords.length?departingChords[di]:null);
+    const ci=c&&c.departI!=null?c.departI:i;
+    const cn=c&&c.departN!=null?c.departN:n;
+    // Group-slot positioning: remap to per-group arc slice in persistent mode
+    let effI=ci, effN=cn;
+    if(entryMode==='persistent'&&c&&c.baseIdx!=null&&orderMode==='grouped'){
+      if(c.departI==null){
+        // Active chord: compute group-local position live
+        const ng=getNumGroups();
+        const g=c.baseIdx;
+        let localCount=0, localIdx=0;
+        for(let k=0;k<chords.length;k++){if(chords[k].baseIdx===g){if(k===i)localIdx=localCount;localCount++;}}
+        if(localCount>0){
+          // Fibonacci-proportional slice: each group gets FIBS[g]/totalWeight of the arc
+          const fw=FIBS.slice(0,ng),ftot=fw.reduce((a,b)=>a+b,0);
+          let cumW=0; for(let gg=0;gg<g;gg++)cumW+=fw[gg];
+          effI=cumW*localCount+localIdx*fw[g]; effN=ftot*localCount;
+        }
+      } else if(c.departEffI!=null){
+        // Departing chord: use position frozen at departure time
+        effI=c.departEffI; effN=c.departEffN;
+      }
+    }
+    if(c){
+      // Easing scale: ease-out burst on arrival (arrivalT), ease-in collapse on departure (departT)
+      const doAnim=exitAnim==='origin';
+      const aT=c.arrivalT!=null?c.arrivalT:1;
+      const dT=c.departT!=null?c.departT:0;
+      const vScale=doAnim?(c.departT!=null?1-dT*dT:aT*aT):1;
+      const v=c.value*vScale,absV=Math.abs(v);
+      const{rootX,rootY,tipX,tipY}=getChordPoints(effI,effN,v,p1,p2,pp1,pp2,lp1,lp2);
+      const[rx,ry,rz]=cv(rootX,rootY);
+      const[tx,ty,tz]=cv(tipX,tipY);
+      chordPosArr.set([rx,ry,rz,tx,ty,tz],i*6);
+      const rc=neutralRGBA(opacities.radial),tc=elementRGBA(c,v,styles.radial,opacities.radial);
+      chordColArr.set([rc[0]/255,rc[1]/255,rc[2]/255,tc[0]/255,tc[1]/255,tc[2]/255],i*6);
+      dotPosArr.set([tx,ty,tz],i*3);
+      const dc=elementRGBA(c,v,styles.cursor,opacities.cursor);
+      dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
+      if(!paused){c.history.push([tx,ty,rx,ry,c.value]);if(c.history.length>TRACE_LEN)c.history.shift();}
+      if(showGuides&&i<n){
+        const{posX,posY,negX,negY}=getGuidePoints(effI,effN,p1,p2,pp1,pp2,lp1,lp2);
+        const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
+        guidePosArr.set([px,py,pz,qx,qy,qz],i*6);
+        const ga=0.18*opacities.radial;
+        guideColArr.set([ga,ga,ga,ga,ga,ga],i*6);
+      }else{
+        guidePosArr.fill(0,i*6,(i+1)*6);guideColArr.fill(0,i*6,(i+1)*6);
+      }
+    } else {
+      chordPosArr.fill(0,i*6,(i+1)*6);chordColArr.fill(0,i*6,(i+1)*6);
+      dotPosArr.fill(0,i*3,(i+1)*3);dotColArr.fill(0,i*3,(i+1)*3);
+      guidePosArr.fill(0,i*6,(i+1)*6);guideColArr.fill(0,i*6,(i+1)*6);
+    }
+  }
+  // Remove departing chords that have fully retracted
+  for(let i=departingChords.length-1;i>=0;i--){if((departingChords[i].departT||0)>=1)departingChords.splice(i,1);}
+  if(useGeo){
+    chordGeo.attributes.instanceStart.data.needsUpdate=true;
+    chordGeo.attributes.instanceColorStart.data.needsUpdate=true;
+  } else {
+    chordGeoBasic.attributes.position.needsUpdate=true;
+    chordGeoBasic.attributes.color.needsUpdate=true;
+  }
+  dotGeo.attributes.position.needsUpdate=true;
+  dotGeo.attributes.color.needsUpdate=true;
+  guideGeo.attributes.position.needsUpdate=true;
+  guideGeo.attributes.color.needsUpdate=true;
+  } // end if(geoMode!=='particle')
+
+  // Live chord geometry pass (separate from simulated slots)
+  {
+    const nLive=liveChords.length;
+    for(let i=0;i<MAX_LIVE;i++){
+      const lc=i<nLive?liveChords[i]:null;
+      if(lc){
+        const aT=lc.arrivalT||0;
+        const dT=lc.departT!=null?lc.departT:0;
+        const vScale=exitAnim==='origin'?(lc.departT!=null?1-dT*dT:aT*aT):1;
+        const v=lc.value*vScale;
+        const{rootX,rootY,tipX,tipY}=getChordPoints(i,Math.max(nLive,1),v,p1,p2,pp1,pp2,lp1,lp2);
+        const[rx,ry,rz]=cv(rootX,rootY);
+        const[tx,ty,tz]=cv(tipX,tipY);
+        liveCPosArr.set([rx,ry,rz,tx,ty,tz],i*6);
+        const nc=neutralRGBA(opacities.radial);
+        const tc=liveElementRGBA(v,styles.radial,opacities.radial);
+        liveCColArr.set([nc[0]/255,nc[1]/255,nc[2]/255,tc[0]/255,tc[1]/255,tc[2]/255],i*6);
+        if(lc.hasTouched&&!lc.lifted){
+          liveDPosArr.set([tx,ty,tz],i*3);
+          const dc=liveElementRGBA(v,styles.cursor,opacities.cursor);
+          liveDColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
+        }else{
+          liveDPosArr.fill(0,i*3,(i+1)*3);liveDColArr.fill(0,i*3,(i+1)*3);
+        }
+        if(lc.hasTouched&&!paused&&lc.departT==null){lc.history.push([tx,ty,rx,ry,lc.value]);if(lc.history.length>TRACE_LEN)lc.history.shift();}
+      }else{
+        liveCPosArr.fill(0,i*6,(i+1)*6);liveCColArr.fill(0,i*6,(i+1)*6);
+        liveDPosArr.fill(0,i*3,(i+1)*3);liveDColArr.fill(0,i*3,(i+1)*3);
+      }
+    }
+    liveCGeo.attributes.instanceStart.data.needsUpdate=true;
+    liveCGeo.attributes.instanceColorStart.data.needsUpdate=true;
+    liveDGeo.attributes.position.needsUpdate=true;
+    liveDGeo.attributes.color.needsUpdate=true;
+    liveCMat.opacity=opacities.radial;liveCMat.linewidth=lineW;
+    liveCLines.visible=useGeo&&lineW>0&&nLive>0;
+    liveDMat.size=Math.max(0.01,dotBase/2);liveDMat.opacity=opacities.cursor;
+    liveDPoints.visible=dotBase>0&&nLive>0;
+  }
+  // Remove fully departed live chords (after render pass so final frame renders)
+  for(let i=liveChords.length-1;i>=0;i--){if((liveChords[i].departT||0)>=1)liveChords.splice(i,1);}
+
+  // Trace lines (chord mode only; particle mode uses pTrailMesh)
+  const showTrace=viewMode==='2d-ts'||viewMode==='3d';
+  const bgR=15,bgG=15,bgB=14;  // matches #0f0f0e background
+  if(geoMode!=='particle'){
+  for(let i=0;i<MAX_N;i++){
+    const di=i-n;
+    const c=i<n?chords[i]:(di>=0&&di<departingChords.length?departingChords[di]:null);
+    const hlen=c?c.history.length:0;
+    for(let j=0;j<TRACE_SEGS;j++){
+      const base=(i*TRACE_SEGS+j)*6;
+      if(showTrace&&c&&j+1<hlen){
+        const[ax,ay]=c.history[j];
+        const[bx,by]=c.history[j+1];
+        // Z axis = time: current frame at z=0, older frames at negative z
+        const zA=-(hlen-1-j)*TRACE_Z_STEP;
+        const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
+        const fadeA=j/(hlen-1);
+        const fadeB=(j+1)/(hlen-1);
+        const tc=elementRGBA(c,stylePastLikeCursor?c.value:(c.history[j][4]??c.value),styles.trace,1);
+        const cr=tc[0],cg=tc[1],cb=tc[2];
+        const rA=(bgR+(cr-bgR)*fadeA)/255,gA=(bgG+(cg-bgG)*fadeA)/255,bA=(bgB+(cb-bgB)*fadeA)/255;
+        const rB=(bgR+(cr-bgR)*fadeB)/255,gB=(bgG+(cg-bgG)*fadeB)/255,bB=(bgB+(cb-bgB)*fadeB)/255;
+        tracePosArr.set([ax,ay,zA,bx,by,zB],base);
+        traceColArr.set([rA,gA,bA,rB,gB,bB],base);
+      }else{
+        tracePosArr.fill(0,base,base+6);
+        traceColArr.set([bgR/255,bgG/255,bgB/255,bgR/255,bgG/255,bgB/255],base);
+      }
+    }
+  }
+  traceGeo.attributes.position.needsUpdate=true;
+  traceGeo.attributes.color.needsUpdate=true;
+  traceMat.opacity=opacities.trace;
+  traceLines.visible=showTrace;
+
+  // Fill surfaces: wedge planes from origin to each trace path through time
+  for(let i=0;i<MAX_N;i++){
+    const di=i-n;
+    const c=i<n?chords[i]:(di>=0&&di<departingChords.length?departingChords[di]:null);
+    const hlen=c?c.history.length:0;
+    for(let j=0;j<TRACE_SEGS;j++){
+      const base=(i*TRACE_SEGS+j)*FILL_VERTS_PER_SEG*3;
+      if(showTrace&&c&&j+1<hlen){
+        const[ax,ay,orx,ory]=c.history[j];
+        const[bx,by,brx,bry]=c.history[j+1];
+        const zA=-(hlen-1-j)*TRACE_Z_STEP;
+        const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
+        const fadeA=j/(hlen-1);
+        const fadeB=(j+1)/(hlen-1);
+        const fc=elementRGBA(c,stylePastLikeCursor?c.value:(c.history[j][4]??c.value),styles.fill,1);
+        const fr=fc[0],fg=fc[1],fb=fc[2];
+        // Tip vertices: fill colour faded by age (matches trace fade logic)
+        const rA=(bgR+(fr-bgR)*fadeA)/255,gA=(bgG+(fg-bgG)*fadeA)/255,bA=(bgB+(fb-bgB)*fadeA)/255;
+        const rB=(bgR+(fr-bgR)*fadeB)/255,gB=(bgG+(fg-bgG)*fadeB)/255,bB=(bgB+(fb-bgB)*fadeB)/255;
+        // Origin vertices: historically correct root position, always background colour
+        const oR=bgR/255,oG=bgG/255,oB=bgB/255;
+        // Two triangles: (O_j, T_j, O_{j+1}), (T_j, T_{j+1}, O_{j+1})
+        fillPosArr.set([orx,ory,zA, ax,ay,zA, brx,bry,zB, ax,ay,zA, bx,by,zB, brx,bry,zB],base);
+        fillColArr.set([oR,oG,oB, rA,gA,bA, oR,oG,oB, rA,gA,bA, rB,gB,bB, oR,oG,oB],base);
+      }else{
+        fillPosArr.fill(0,base,base+FILL_VERTS_PER_SEG*3);
+        fillColArr.fill(bgR/255,base,base+FILL_VERTS_PER_SEG*3);
+      }
+    }
+  }
+  fillGeo.attributes.position.needsUpdate=true;
+  fillGeo.attributes.color.needsUpdate=true;
+  fillMat.opacity=opacities.fill;
+  fillMesh.visible=showTrace;
+  } // end if(geoMode!=='particle')
+
+  // Live trace lines
+  for(let i=0;i<MAX_LIVE;i++){
+    const lc=i<liveChords.length?liveChords[i]:null;
+    const hlen=lc?lc.history.length:0;
+    for(let j=0;j<TRACE_SEGS;j++){
+      const base=(i*TRACE_SEGS+j)*6;
+      if(showTrace&&lc&&j+1<hlen){
+        const[ax,ay]=lc.history[j];
+        const[bx,by]=lc.history[j+1];
+        const zA=-(hlen-1-j)*TRACE_Z_STEP;
+        const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
+        const fadeA=j/(hlen-1);
+        const fadeB=(j+1)/(hlen-1);
+        const tc=liveElementRGBA(stylePastLikeCursor?lc.value:(lc.history[j][4]??lc.value),styles.trace,1);
+        const cr=tc[0],cg=tc[1],cb=tc[2];
+        const rA=(bgR+(cr-bgR)*fadeA)/255,gA=(bgG+(cg-bgG)*fadeA)/255,bA=(bgB+(cb-bgB)*fadeA)/255;
+        const rB=(bgR+(cr-bgR)*fadeB)/255,gG=(bgG+(cg-bgG)*fadeB)/255,bB=(bgB+(cb-bgB)*fadeB)/255;
+        liveTrPosArr.set([ax,ay,zA,bx,by,zB],base);
+        liveTrColArr.set([rA,gA,bA,rB,gG,bB],base);
+      }else{
+        liveTrPosArr.fill(0,base,base+6);
+        liveTrColArr.set([bgR/255,bgG/255,bgB/255,bgR/255,bgG/255,bgB/255],base);
+      }
+    }
+  }
+  liveTrGeo.attributes.position.needsUpdate=true;
+  liveTrGeo.attributes.color.needsUpdate=true;
+  liveTrMat.opacity=opacities.trace;
+  liveTrLines.visible=showTrace&&liveChords.length>0;
+
+  // Live fill surfaces
+  for(let i=0;i<MAX_LIVE;i++){
+    const lc=i<liveChords.length?liveChords[i]:null;
+    const hlen=lc?lc.history.length:0;
+    for(let j=0;j<TRACE_SEGS;j++){
+      const base=(i*TRACE_SEGS+j)*FILL_VERTS_PER_SEG*3;
+      if(showTrace&&lc&&j+1<hlen){
+        const[ax,ay,orx,ory]=lc.history[j];
+        const[bx,by,brx,bry]=lc.history[j+1];
+        const zA=-(hlen-1-j)*TRACE_Z_STEP;
+        const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
+        const fadeA=j/(hlen-1);
+        const fadeB=(j+1)/(hlen-1);
+        const fc=liveElementRGBA(stylePastLikeCursor?lc.value:(lc.history[j][4]??lc.value),styles.fill,1);
+        const fr=fc[0],fg=fc[1],fb=fc[2];
+        const rA=(bgR+(fr-bgR)*fadeA)/255,gA=(bgG+(fg-bgG)*fadeA)/255,bA=(bgB+(fb-bgB)*fadeA)/255;
+        const rB=(bgR+(fr-bgR)*fadeB)/255,gB=(bgG+(fg-bgG)*fadeB)/255,bB=(bgB+(fb-bgB)*fadeB)/255;
+        const oR=bgR/255,oG=bgG/255,oB=bgB/255;
+        liveFiPosArr.set([orx,ory,zA, ax,ay,zA, brx,bry,zB, ax,ay,zA, bx,by,zB, brx,bry,zB],base);
+        liveFiColArr.set([oR,oG,oB, rA,gA,bA, oR,oG,oB, rA,gA,bA, rB,gB,bB, oR,oG,oB],base);
+      }else{
+        liveFiPosArr.fill(0,base,base+FILL_VERTS_PER_SEG*3);
+        liveFiColArr.fill(bgR/255,base,base+FILL_VERTS_PER_SEG*3);
+      }
+    }
+  }
+  liveFiGeo.attributes.position.needsUpdate=true;
+  liveFiGeo.attributes.color.needsUpdate=true;
+  liveFiMat.opacity=opacities.fill;
+  liveFiMesh.visible=showTrace&&liveChords.length>0;
+
+  const isParticle=geoMode==='particle';
+  chordMat.opacity=opacities.radial; chordMat.linewidth=lineW; chordMat.visible=!isParticle&&useGeo&&lineW>0;
+  chordMatBasic.opacity=opacities.radial; chordLinesBasic.visible=!isParticle&&!useGeo&&lineW>0;
+  dotMat.size=Math.max(0.01,dotBase/2); dotMat.opacity=opacities.cursor; dotMat.visible=!isParticle&&dotBase>0;
+  guideMat.opacity=opacities.radial; guideMat.visible=!isParticle&&showGuides;
+  traceLines.visible=showTrace&&!isParticle;
+  fillMesh.visible=showTrace&&!isParticle;
+
+  renderer.render(scene,camera);
+}
+
+applyCam();
+animate();
+</script>
+</body>
+</html>

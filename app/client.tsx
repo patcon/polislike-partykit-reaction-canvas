@@ -88,6 +88,13 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
+        <a href="/valence-onboarding-v3.html" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">Onboarding: Valence V3</h2>
+            <p className="app-card-description">Valence wave with particle-life physics mode.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
         <a href="?ghostCursors=true#v1" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V1 Participation: Fake Users Demo</h2>
