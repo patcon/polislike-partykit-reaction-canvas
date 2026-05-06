@@ -876,9 +876,9 @@ function setGeometry(m){
   document.getElementById('particle-controls').style.display=isParticle?'':'none';
   document.getElementById('particle-divider').style.display=isParticle?'':'none';
   ['btn-correlated','btn-random-trace','btn-order-grouped','btn-order-random',
-   'pbtn','btn-manual-event','btn-sim','btn-seq',
+   'btn-sim','btn-seq',
    'st-radial-group','st-radial-valence','op-cell-radial',
-   'evtrate','driftspd'].forEach(id=>{
+   'driftspd'].forEach(id=>{
     const el=document.getElementById(id);
     if(el)el.classList.toggle('ctrl-disabled',isParticle);
   });
@@ -1118,7 +1118,7 @@ function updateParticleGeometry(){
   let vi=0;
   const showTrace=viewMode==='2d-ts'||viewMode==='3d';
   for(const c of chords){
-    const[cr,cg,cb]=GROUP_RGB[(c.baseIdx??0)%GROUP_RGB.length];
+    const[cr,cg,cb]=styles.cursor==='valence'?valenceRGB(c.value??0):GROUP_RGB[(c.baseIdx??0)%GROUP_RGB.length];
     if(!c.pHistory)c.pHistory=[];
     c.pHistory.unshift({px:c.px,py:c.py});
     if(c.pHistory.length>P_TRACE_LEN)c.pHistory.pop();
@@ -1220,8 +1220,8 @@ function animate(){
   // Particle mode: physics step
   if(geoMode==='particle'){if(!paused)stepParticles();updateParticleGeometry();}
 
-  // Events + drift (paused freezes valence values only; skipped in particle mode)
-  if(geoMode!=='particle'&&!paused){
+  // Events + drift (paused freezes valence values; auto-timer skipped in particle mode)
+  if(!paused){
     eventTimer+=1/60;
     if(eventTimer>=parseFloat(evtEl.value)){eventTimer=0;fireEvent();}
     const ds=parseFloat(driftEl.value),ng=getNumGroups(),n=parseInt(nEl.value);
