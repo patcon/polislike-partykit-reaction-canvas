@@ -806,7 +806,7 @@ const flash=document.getElementById('flash');
 const groupRow=document.getElementById('group-row');
 const fibDots=document.getElementById('fib-dots');
 
-nEl.oninput=()=>{document.getElementById('nchords-v').textContent=nEl.value;updateChordCount();};
+nEl.oninput=()=>{document.getElementById('nchords-v').textContent=nEl.value;updateChordCount();if(geoMode==='particle')chords.forEach(c=>{if(c.px==null){const a=Math.random()*Math.PI*2,r=Math.random()*(P_S_RMAX*0.55);c.px=Math.cos(a)*r;c.py=Math.sin(a)*r;c.pvx=0;c.pvy=0;c.pHistory=[];}});};
 evtEl.oninput=()=>document.getElementById('evtrate-v').textContent=evtEl.value+'s';
 driftEl.oninput=()=>document.getElementById('driftspd-v').textContent=parseFloat(driftEl.value).toFixed(3);
 dotEl.oninput=()=>document.getElementById('dotsize-v').textContent=parseFloat(dotEl.value).toFixed(1);
@@ -901,7 +901,7 @@ function setExitAnim(m){exitAnim=m;document.getElementById('btn-exit-none').clas
 function setEntryMode(m){entryMode=m;document.getElementById('btn-entry-redistributed').classList.toggle('active',m==='redistributed');document.getElementById('btn-entry-persistent').classList.toggle('active',m==='persistent');}
 
 function randomVal(){return Math.random()*2-1;}
-function fireGroupEvent(){const ng=getNumGroups();groupTargets=Array.from({length:ng},()=>randomVal());if(geoMode==='particle'){speakerReactions=groupTargets.map(v=>+v.toFixed(2));renderParticleMatrix();}showFlash();}
+function fireGroupEvent(){const ng=getNumGroups();groupTargets=Array.from({length:ng},()=>randomVal());if(geoMode==='particle'&&speakerReactions.length===ng){speakerReactions=groupTargets.map(v=>+v.toFixed(2));renderParticleMatrix();}showFlash();}
 function fireEvent(){if(traceMode==='correlated')fireGroupEvent();else{chords.forEach(c=>{c.target=randomVal();});showFlash();}}
 function manualFireEvent(){eventTimer=0;fireEvent();}
 
@@ -1006,13 +1006,12 @@ function initParticleMatrix(){
     )
   );
   speakerReactions=Array.from({length:nG},(_,i)=>
-    i<DEFAULT_SPEAKER_REACTIONS.length?DEFAULT_SPEAKER_REACTIONS[i]:+(Math.random()*2-1).toFixed(2)
+    i<DEFAULT_SPEAKER_REACTIONS.length?DEFAULT_SPEAKER_REACTIONS[i]:0
   );
 }
 function randomizeParticleMat(){
   const nG=getNumGroups();
   particleMat=Array.from({length:nG},()=>Array.from({length:nG},()=>+(Math.random()*2-1).toFixed(2)));
-  speakerReactions=Array.from({length:nG},()=>+(Math.random()*2-1).toFixed(2));
   renderParticleMatrix();
 }
 function resetParticleMat(){initParticleMatrix();renderParticleMatrix();initParticlePositions();}
@@ -1040,7 +1039,7 @@ function renderParticleMatrix(){
     const sv=speakerReactions[i]??0;
     const sac=sv>0?'#22c55e':'#D85A30';
     h+=`<div style="width:54px;display:flex;flex-direction:column;gap:1px;align-items:center;">
-      <input type="range" min="-1" max="1" step="0.05" value="${sv}" style="width:50px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:pointer;accent-color:${sac};" oninput="speakerReactions[${i}]=+this.value;this.style.accentColor=+this.value>0?'#22c55e':'#D85A30';this.nextElementSibling.textContent=(+this.value>=0?'+':'')+Number(+this.value).toFixed(2)">
+      <input type="range" min="-1" max="1" step="0.05" value="${sv}" disabled style="width:50px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:default;accent-color:${sac};opacity:0.9;">
       <div style="font-size:8px;color:rgba(255,215,0,0.5);font-variant-numeric:tabular-nums;">${sv>=0?'+':''}${sv.toFixed(2)}</div>
     </div>`;
     h+='</div>';
