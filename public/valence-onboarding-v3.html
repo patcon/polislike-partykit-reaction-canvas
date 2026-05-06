@@ -342,7 +342,7 @@
     <div class="row" style="margin-bottom:4px">
       <span class="label" style="color:var(--text-dim);letter-spacing:.12em">force matrix</span>
       <button onclick="randomizeParticleMat()">randomize</button>
-      <button onclick="resetParticleMat()">reset</button>
+      <button onclick="initParticlePositions()">reset positions</button>
       <button id="btn-oscillate" onclick="toggleOscillate()">oscillate</button>
     </div>
     <div id="particle-matrix-section" style="margin-top:4px;overflow-x:auto"></div>
@@ -809,7 +809,7 @@ let paused=false, geoMode='diametric', animMode='sequential';
 let P_R_MAX=65, P_R_MIN=12, P_DT=0.5, P_G=2.0, P_DAMPING=0.85;
 let P_S_RMAX=155, P_S_RMIN=35, P_S_G=1.8, P_S_BWIDTH=40, P_S_BG=4.0;
 let particleMat=[], speakerReactions=[];
-let oscillateMode=false, oscillateParams=[];
+let oscillateMode=false, oscillateParams=[], lockedCells=[];
 let traceMode='correlated', orderMode='random', exitAnim='origin', entryMode='persistent';
 let morphT=0, groupTargets=[0,0,0], eventTimer=0, inParallelTransition=false, inParallelRadialTransition=false;
 
@@ -1034,6 +1034,7 @@ function initParticleMatrix(){
   speakerReactions=Array.from({length:nG},(_,i)=>
     i<DEFAULT_SPEAKER_REACTIONS.length?DEFAULT_SPEAKER_REACTIONS[i]:0
   );
+  lockedCells=Array.from({length:nG},()=>Array(nG).fill(false));
 }
 function randomizeParticleMat(){
   const nG=getNumGroups();
@@ -1041,6 +1042,15 @@ function randomizeParticleMat(){
   renderParticleMatrix();
 }
 function resetParticleMat(){initParticleMatrix();renderParticleMatrix();initParticlePositions();}
+function toggleCellLock(i,j){
+  if(!lockedCells[i])lockedCells[i]=[];
+  lockedCells[i][j]=!lockedCells[i][j];
+  const locked=lockedCells[i][j];
+  const btn=document.getElementById(`pmat-l-${i}-${j}`);
+  const sl=document.getElementById(`pmat-s-${i}-${j}`);
+  if(btn){btn.textContent=locked?'locked':'lock';btn.classList.toggle('active',locked);}
+  if(sl)sl.style.opacity=locked?'1':'0.85';
+}
 function toggleOscillate(){
   oscillateMode=!oscillateMode;
   document.getElementById('btn-oscillate').classList.toggle('active',oscillateMode);
@@ -1060,6 +1070,7 @@ function stepOscillate(){
   for(let i=0;i<nG;i++){
     for(let j=0;j<nG;j++){
       if(!oscillateParams[i]||oscillateParams[i][j]==null)continue;
+      if(lockedCells[i]?.[j])continue;
       const{center,phase,freq,amp}=oscillateParams[i][j];
       const v=Math.max(-1,Math.min(1,center+amp*Math.sin(2*Math.PI*freq*t+phase)));
       particleMat[i][j]=v;
@@ -1086,9 +1097,11 @@ function renderParticleMatrix(){
     for(let j=0;j<nG;j++){
       const v=particleMat[i][j];
       const ac=v>0?'#22c55e':'#D85A30';
+      const locked=lockedCells[i]?.[j]||false;
       h+=`<div style="width:54px;display:flex;flex-direction:column;gap:1px;align-items:center;">
-        <input id="pmat-s-${i}-${j}" type="range" min="-1" max="1" step="0.05" value="${v}" style="width:50px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:pointer;accent-color:${ac};" oninput="particleMat[${i}][${j}]=+this.value;this.style.accentColor=+this.value>0?'#22c55e':'#D85A30';this.nextElementSibling.textContent=(+this.value>=0?'+':'')+Number(+this.value).toFixed(2)">
+        <input id="pmat-s-${i}-${j}" type="range" min="-1" max="1" step="0.05" value="${v}" style="width:50px;height:2px;appearance:none;background:rgba(200,198,190,.15);border-radius:1px;outline:none;cursor:pointer;accent-color:${ac};opacity:${locked?1:0.85};" oninput="particleMat[${i}][${j}]=+this.value;this.style.accentColor=+this.value>0?'#22c55e':'#D85A30';this.nextElementSibling.textContent=(+this.value>=0?'+':'')+Number(+this.value).toFixed(2)">
         <div id="pmat-v-${i}-${j}" style="font-size:8px;color:var(--text-dim);font-variant-numeric:tabular-nums;">${v>=0?'+':''}${v.toFixed(2)}</div>
+        <button id="pmat-l-${i}-${j}" onclick="toggleCellLock(${i},${j})" style="font-family:inherit;font-size:7px;padding:1px 3px;border-radius:2px;border:.5px solid rgba(200,198,190,.15);background:transparent;color:var(--text-dim);cursor:pointer;letter-spacing:.04em;${locked?'background:rgba(200,198,190,.1);color:var(--accent);border-color:rgba(200,198,190,.3);':''}">${locked?'locked':'lock'}</button>
       </div>`;
     }
     const sv=speakerReactions[i]??0;
