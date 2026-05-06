@@ -901,7 +901,7 @@ function setExitAnim(m){exitAnim=m;document.getElementById('btn-exit-none').clas
 function setEntryMode(m){entryMode=m;document.getElementById('btn-entry-redistributed').classList.toggle('active',m==='redistributed');document.getElementById('btn-entry-persistent').classList.toggle('active',m==='persistent');}
 
 function randomVal(){return Math.random()*2-1;}
-function fireGroupEvent(){const ng=getNumGroups();groupTargets=Array.from({length:ng},()=>randomVal());showFlash();}
+function fireGroupEvent(){const ng=getNumGroups();groupTargets=Array.from({length:ng},()=>randomVal());if(geoMode==='particle'){speakerReactions=groupTargets.map(v=>+v.toFixed(2));renderParticleMatrix();}showFlash();}
 function fireEvent(){if(traceMode==='correlated')fireGroupEvent();else{chords.forEach(c=>{c.target=randomVal();});showFlash();}}
 function manualFireEvent(){eventTimer=0;fireEvent();}
 
