@@ -1117,8 +1117,10 @@ function updateParticleGeometry(){
   const col=pTrailGeo.attributes.color.array;
   let vi=0;
   const showTrace=viewMode==='2d-ts'||viewMode==='3d';
+  const gRGB=(c)=>GROUP_RGB[(c.baseIdx??0)%GROUP_RGB.length];
   for(const c of chords){
-    const[cr,cg,cb]=styles.cursor==='valence'?valenceRGB(c.value??0):GROUP_RGB[(c.baseIdx??0)%GROUP_RGB.length];
+    const[cr,cg,cb]=styles.cursor==='valence'?valenceRGB(c.value??0):gRGB(c);
+    const[tr,tg,tb]=styles.trace==='valence'?valenceRGB(c.value??0):gRGB(c);
     if(!c.pHistory)c.pHistory=[];
     c.pHistory.unshift({px:c.px,py:c.py});
     if(c.pHistory.length>P_TRACE_LEN)c.pHistory.pop();
@@ -1126,8 +1128,9 @@ function updateParticleGeometry(){
     for(let j=0;j<hlen&&vi<MAX_PARTICLE_PTS;j++){
       const h=c.pHistory[j];
       const alpha=j===0?1.0:0.7*(1-j/hlen);
+      const[r,g,b]=j===0?[cr,cg,cb]:[tr,tg,tb];
       pos[vi*3]=h.px; pos[vi*3+1]=h.py; pos[vi*3+2]=-j*P_TRACE_Z;
-      col[vi*4]=cr/255; col[vi*4+1]=cg/255; col[vi*4+2]=cb/255; col[vi*4+3]=alpha;
+      col[vi*4]=r/255; col[vi*4+1]=g/255; col[vi*4+2]=b/255; col[vi*4+3]=alpha;
       vi++;
     }
   }
