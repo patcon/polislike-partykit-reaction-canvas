@@ -1015,7 +1015,7 @@ function randomizeParticleMat(){
   speakerReactions=Array.from({length:nG},()=>+(Math.random()*2-1).toFixed(2));
   renderParticleMatrix();
 }
-function resetParticleMat(){initParticleMatrix();renderParticleMatrix();}
+function resetParticleMat(){initParticleMatrix();renderParticleMatrix();initParticlePositions();}
 function renderParticleMatrix(){
   const nG=getNumGroups();
   const el=document.getElementById('particle-matrix-section');
