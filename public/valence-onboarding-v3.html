@@ -1048,14 +1048,15 @@ function initParticleMatrix(){
   speakerReactions=Array.from({length:nG},(_,i)=>
     i<DEFAULT_SPEAKER_REACTIONS.length?DEFAULT_SPEAKER_REACTIONS[i]:0
   );
-  lockedCells=Array.from({length:nG},()=>Array(nG).fill(false));
+  const prev=lockedCells;
+  lockedCells=Array.from({length:nG},(_,i)=>Array.from({length:nG},(_,j)=>prev[i]?.[j]||false));
 }
 function randomizeParticleMat(){
   const nG=getNumGroups();
   particleMat=Array.from({length:nG},()=>Array.from({length:nG},()=>+(Math.random()*2-1).toFixed(2)));
   renderParticleMatrix();
 }
-function resetParticleMat(){initParticleMatrix();renderParticleMatrix();initParticlePositions();}
+function resetParticleMat(){lockedCells=[];initParticleMatrix();renderParticleMatrix();initParticlePositions();}
 function toggleCellLock(i,j){
   if(!lockedCells[i])lockedCells[i]=[];
   lockedCells[i][j]=!lockedCells[i][j];
