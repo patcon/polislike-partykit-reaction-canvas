@@ -1202,29 +1202,58 @@ function stepParticles(){
 function updateParticleGeometry(){
   const pos=pTrailGeo.attributes.position.array;
   const col=pTrailGeo.attributes.color.array;
-  let vi=0;
   const showTrace=viewMode==='2d-ts'||viewMode==='3d';
+  const bgR=15,bgG=15,bgB=14;
   const gRGB=(c)=>GROUP_RGB[(c.baseIdx??0)%GROUP_RGB.length];
-  for(const c of chords){
-    const[cr,cg,cb]=styles.cursor==='valence'?valenceRGB(c.value??0):gRGB(c);
-    const traceValFn=(h)=>styles.trace==='valence'?valenceRGB(stylePastLikeCursor?c.value:(h.value??c.value)):gRGB(c);
+  let vi=0;
+  for(let i=0;i<chords.length;i++){
+    const c=chords[i];
     if(!c.pHistory)c.pHistory=[];
     c.pHistory.unshift({px:c.px,py:c.py,value:c.value});
     if(c.pHistory.length>P_TRACE_LEN)c.pHistory.pop();
-    const hlen=showTrace?c.pHistory.length:1;
-    for(let j=0;j<hlen&&vi<MAX_PARTICLE_PTS;j++){
-      const h=c.pHistory[j];
-      const alpha=j===0?opacities.cursor:opacities.trace*0.7*(1-j/hlen);
-      const[r,g,b]=j===0?[cr,cg,cb]:traceValFn(h);
-      pos[vi*3]=h.px; pos[vi*3+1]=h.py; pos[vi*3+2]=-j*P_TRACE_Z;
-      col[vi*4]=r/255; col[vi*4+1]=g/255; col[vi*4+2]=b/255; col[vi*4+3]=alpha;
+    // Cursor dot (one point per chord)
+    const[cr,cg,cb]=styles.cursor==='valence'?valenceRGB(c.value??0):gRGB(c);
+    if(vi<MAX_PARTICLE_PTS){
+      pos[vi*3]=c.px; pos[vi*3+1]=c.py; pos[vi*3+2]=0;
+      col[vi*4]=cr/255; col[vi*4+1]=cg/255; col[vi*4+2]=cb/255; col[vi*4+3]=opacities.cursor;
       vi++;
     }
+    // Trace line segments — written into shared tracePosArr/traceColArr
+    const hlen=c.pHistory.length;
+    for(let j=0;j<TRACE_SEGS;j++){
+      const base=(i*TRACE_SEGS+j)*6;
+      // pHistory[0]=newest; map j=0→oldest so pHistory[hlen-1-j] is the j-th oldest point
+      if(showTrace&&j+1<hlen){
+        const hA=c.pHistory[hlen-1-j];
+        const hB=c.pHistory[hlen-2-j];
+        const zA=-(hlen-1-j)*P_TRACE_Z;
+        const zB=-(hlen-2-j)*P_TRACE_Z;
+        const fadeA=j/(hlen-1);
+        const fadeB=(j+1)/(hlen-1);
+        const tA=elementRGBA(c,stylePastLikeCursor?c.value:(hA.value??c.value),styles.trace,1);
+        const tB=elementRGBA(c,stylePastLikeCursor?c.value:(hB.value??c.value),styles.trace,1);
+        const rA=(bgR+(tA[0]-bgR)*fadeA)/255,gA=(bgG+(tA[1]-bgG)*fadeA)/255,bA=(bgB+(tA[2]-bgB)*fadeA)/255;
+        const rB=(bgR+(tB[0]-bgR)*fadeB)/255,gB=(bgG+(tB[1]-bgG)*fadeB)/255,bB=(bgB+(tB[2]-bgB)*fadeB)/255;
+        tracePosArr.set([hA.px,hA.py,zA,hB.px,hB.py,zB],base);
+        traceColArr.set([rA,gA,bA,rB,gB,bB],base);
+      } else {
+        tracePosArr.fill(0,base,base+6);
+        traceColArr.set([bgR/255,bgG/255,bgB/255,bgR/255,bgG/255,bgB/255],base);
+      }
+    }
+  }
+  // Clear unused chord slots in trace arrays
+  for(let i=chords.length;i<MAX_N;i++){
+    tracePosArr.fill(0,i*TRACE_SEGS*6,(i+1)*TRACE_SEGS*6);
+    traceColArr.fill(bgR/255,i*TRACE_SEGS*6,(i+1)*TRACE_SEGS*6);
   }
   for(;vi<MAX_PARTICLE_PTS;vi++){pos[vi*3+2]=-99999;col[vi*4+3]=0;}
   pTrailGeo.setDrawRange(0,vi);
   pTrailGeo.attributes.position.needsUpdate=true;
   pTrailGeo.attributes.color.needsUpdate=true;
+  traceGeo.attributes.position.needsUpdate=true;
+  traceGeo.attributes.color.needsUpdate=true;
+  traceMat.opacity=opacities.trace;
 }
 
 // ── Color helpers ─────────────────────────────────────────
@@ -1639,7 +1668,7 @@ function animate(){
   chordMatBasic.opacity=opacities.radial; chordLinesBasic.visible=!isParticle&&!useGeo&&lineW>0;
   dotMat.size=Math.max(0.01,dotBase/2); dotMat.opacity=opacities.cursor; dotMat.visible=!isParticle&&dotBase>0;
   guideMat.opacity=opacities.radial; guideMat.visible=!isParticle&&showGuides;
-  traceLines.visible=showTrace&&!isParticle;
+  traceLines.visible=showTrace;
   fillMesh.visible=showTrace&&!isParticle;
 
   renderer.render(scene,camera);
