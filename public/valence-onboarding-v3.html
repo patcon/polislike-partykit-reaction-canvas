@@ -1142,7 +1142,7 @@ function initParticlePositions(fromCurrentPositions){
       c.px=Math.cos(angle)*r; c.py=Math.sin(angle)*r;
     }
     c.pvx=0; c.pvy=0;
-    c.pHistory=[];
+    if(!fromCurrentPositions) c.pHistory=[];
   }
 }
 function stepParticles(){
@@ -1212,6 +1212,9 @@ function updateParticleGeometry(){
     if(!c.pHistory)c.pHistory=[];
     c.pHistory.unshift({px:c.px,py:c.py,value:c.value});
     if(c.pHistory.length>P_TRACE_LEN)c.pHistory.pop();
+    if(!c.history)c.history=[];
+    c.history.push([c.px,c.py,c.px,c.py,c.value]);
+    if(c.history.length>TRACE_LEN)c.history.shift();
     // Cursor dot (one point per chord)
     const[cr,cg,cb]=styles.cursor==='valence'?valenceRGB(c.value??0):gRGB(c);
     if(vi<MAX_PARTICLE_PTS){
@@ -1459,7 +1462,7 @@ function animate(){
       dotPosArr.set([tx,ty,tz],i*3);
       const dc=elementRGBA(c,v,styles.cursor,opacities.cursor);
       dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
-      if(!paused){c.history.push([tx,ty,rx,ry,c.value]);if(c.history.length>TRACE_LEN)c.history.shift();}
+      if(!paused){c.history.push([tx,ty,rx,ry,c.value]);if(c.history.length>TRACE_LEN)c.history.shift();if(!c.pHistory)c.pHistory=[];c.pHistory.unshift({px:tx,py:ty,value:c.value});if(c.pHistory.length>P_TRACE_LEN)c.pHistory.pop();}
       if(showGuides&&i<n){
         const{posX,posY,negX,negY}=getGuidePoints(effI,effN,p1,p2,pp1,pp2,lp1,lp2);
         const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
