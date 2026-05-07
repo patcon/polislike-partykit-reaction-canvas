@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Added
 - Add `valence-onboarding-v3.html` with a new **Particle** geometry mode: all chords become physics-driven particles that cluster around a fixed central speaker ("S") point using a configurable per-group force matrix, with 3D time-depth trail support and disabled chord-mode controls.
+- `valence-onboarding-v3.html`: switching into particle mode now transitions cursors from their current geometry positions instead of spawning at random locations.
 
 
 - Greeter: **Attendee QR popup** — clicking any attendee row shows a popup with a QR code that pre-fills `?customPhoto=` with their Guild profile photo URL. The admin shows this to the arriving attendee to scan.
