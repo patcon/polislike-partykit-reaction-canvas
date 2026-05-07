@@ -308,33 +308,33 @@
     </div>
     <div class="row">
       <span class="label">r-max</span>
-      <input type="range" id="p-rmax" min="10" max="150" step="1" value="114" oninput="P_R_MAX=+this.value;document.getElementById('p-rmax-v').textContent=this.value">
-      <span class="val" id="p-rmax-v">114</span>
+      <input type="range" id="p-rmax" min="10" max="150" step="1" value="92" oninput="P_R_MAX=+this.value;document.getElementById('p-rmax-v').textContent=this.value">
+      <span class="val" id="p-rmax-v">92</span>
     </div>
     <div class="row">
       <span class="label">r-min</span>
-      <input type="range" id="p-rmin" min="2" max="40" step="1" value="15" oninput="P_R_MIN=+this.value;document.getElementById('p-rmin-v').textContent=this.value">
-      <span class="val" id="p-rmin-v">15</span>
+      <input type="range" id="p-rmin" min="2" max="40" step="1" value="12" oninput="P_R_MIN=+this.value;document.getElementById('p-rmin-v').textContent=this.value">
+      <span class="val" id="p-rmin-v">12</span>
     </div>
     <div class="row">
       <span class="label">force</span>
-      <input type="range" id="p-force" min="0.1" max="6" step="0.1" value="2.9" oninput="P_G=+this.value;document.getElementById('p-force-v').textContent=(+this.value).toFixed(1)">
-      <span class="val" id="p-force-v">2.9</span>
+      <input type="range" id="p-force" min="0.1" max="6" step="0.1" value="1.1" oninput="P_G=+this.value;document.getElementById('p-force-v').textContent=(+this.value).toFixed(1)">
+      <span class="val" id="p-force-v">1.1</span>
     </div>
     <div class="row">
       <span class="label">damping</span>
-      <input type="range" id="p-damp" min="0.5" max="0.99" step="0.01" value="0.78" oninput="P_DAMPING=+this.value;document.getElementById('p-damp-v').textContent=(+this.value).toFixed(2)">
-      <span class="val" id="p-damp-v">0.78</span>
+      <input type="range" id="p-damp" min="0.5" max="0.99" step="0.01" value="0.94" oninput="P_DAMPING=+this.value;document.getElementById('p-damp-v').textContent=(+this.value).toFixed(2)">
+      <span class="val" id="p-damp-v">0.94</span>
     </div>
     <div class="row">
       <span class="label">s-rmax</span>
-      <input type="range" id="p-srmax" min="20" max="250" step="5" value="115" oninput="P_S_RMAX=+this.value;document.getElementById('p-srmax-v').textContent=this.value">
-      <span class="val" id="p-srmax-v">115</span>
+      <input type="range" id="p-srmax" min="20" max="250" step="5" value="175" oninput="P_S_RMAX=+this.value;document.getElementById('p-srmax-v').textContent=this.value">
+      <span class="val" id="p-srmax-v">175</span>
     </div>
     <div class="row">
       <span class="label">s-force</span>
-      <input type="range" id="p-sg" min="0.1" max="5" step="0.1" value="5.0" oninput="P_S_G=+this.value;document.getElementById('p-sg-v').textContent=(+this.value).toFixed(1)">
-      <span class="val" id="p-sg-v">5.0</span>
+      <input type="range" id="p-sg" min="0.1" max="5" step="0.1" value="3.4" oninput="P_S_G=+this.value;document.getElementById('p-sg-v').textContent=(+this.value).toFixed(1)">
+      <span class="val" id="p-sg-v">3.4</span>
     </div>
     <div class="row">
       <span class="label">boundary width</span>
@@ -816,8 +816,8 @@ let styles={radial:'valence',cursor:'valence',trace:'valence',fill:'valence'};
 let stylePastLikeCursor=false;
 function setStylePastLikeCursor(v){stylePastLikeCursor=v;}
 let paused=false, geoMode='diametric', animMode='sequential';
-let P_R_MAX=114, P_R_MIN=15, P_DT=0.5, P_G=2.9, P_DAMPING=0.78;
-let P_S_RMAX=115, P_S_RMIN=35, P_S_G=5.0, P_S_BWIDTH=400, P_S_BG=20.0;
+let P_R_MAX=92, P_R_MIN=12, P_DT=0.5, P_G=1.1, P_DAMPING=0.94;
+let P_S_RMAX=175, P_S_RMIN=35, P_S_G=3.4, P_S_BWIDTH=400, P_S_BG=20.0;
 let particleMat=[], speakerReactions=[];
 let oscillateMode=false, oscillateParams=[], lockedCells=[];
 let traceMode='correlated', orderMode='random', exitAnim='origin', entryMode='persistent';
