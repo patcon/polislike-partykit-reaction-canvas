@@ -920,6 +920,9 @@ function setGeometry(m){
     if(el)el.classList.toggle('ctrl-disabled',isParticle);
   });
   if(isParticle){initParticleMatrix();renderParticleMatrix();initParticlePositions(prevGeo!=='particle');}
+  if(!isParticle&&prevGeo==='particle'){
+    chords.forEach(c=>{c.fromPx=c.px??0;c.fromPy=c.py??0;c.particleExitT=0;});
+  }
 }
 function setAnim(m){animMode=m;document.getElementById('btn-seq').classList.toggle('active',m==='sequential');document.getElementById('btn-sim').classList.toggle('active',m==='simultaneous');}
 function setTraceMode(m){
@@ -1413,7 +1416,13 @@ function animate(){
       const v=c.value*vScale,absV=Math.abs(v);
       const{rootX,rootY,tipX,tipY}=getChordPoints(effI,effN,v,p1,p2,pp1,pp2,lp1,lp2);
       const[rx,ry,rz]=cv(rootX,rootY);
-      const[tx,ty,tz]=cv(tipX,tipY);
+      let[tx,ty,tz]=cv(tipX,tipY);
+      if(i<n&&c.particleExitT!=null&&c.particleExitT<1){
+        c.particleExitT=Math.min(1,c.particleExitT+parseFloat(driftEl.value));
+        const et=ease(c.particleExitT);
+        tx=c.fromPx+(tx-c.fromPx)*et;
+        ty=c.fromPy+(ty-c.fromPy)*et;
+      }
       chordPosArr.set([rx,ry,rz,tx,ty,tz],i*6);
       const rc=neutralRGBA(opacities.radial),tc=elementRGBA(c,v,styles.radial,opacities.radial);
       chordColArr.set([rc[0]/255,rc[1]/255,rc[2]/255,tc[0]/255,tc[1]/255,tc[2]/255],i*6);
