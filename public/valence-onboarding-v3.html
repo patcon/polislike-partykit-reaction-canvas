@@ -741,8 +741,11 @@ function connectWs(room){
   if(ws){ws.onclose=null;ws.close();}
   if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
   setConnStatus('connecting…','connecting');
-  const host=window.location.port==='1999'?`${window.location.hostname}:1999`:DEFAULT_HOST;
-  const proto=window.location.port==='1999'?'ws':'wss';
+  const {hostname,port}=window.location;
+  const isLocal=port==='1999';
+  const isPreview=hostname.endsWith('.partykit.dev')&&hostname!==DEFAULT_HOST;
+  const host=isLocal?`${hostname}:1999`:isPreview?hostname:DEFAULT_HOST;
+  const proto=isLocal?'ws':'wss';
   const userId=crypto.randomUUID?.()??'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
   ws=new WebSocket(`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`);
   ws.onopen=()=>{
@@ -797,7 +800,11 @@ function handleConnectClick(){
 }
 
 function v4Url(room){
-  return`${window.location.protocol}//${window.location.host}/?room=${encodeURIComponent(room)}#v4`;
+  const {hostname,port}=window.location;
+  const isLocal=port==='1999';
+  const isPreview=hostname.endsWith('.partykit.dev')&&hostname!==DEFAULT_HOST;
+  const appHost=isLocal?`${hostname}:1999`:isPreview?hostname:DEFAULT_HOST;
+  return`${window.location.protocol}//${appHost}/?room=${encodeURIComponent(room)}#v4`;
 }
 function openQrModal(){
   const room=document.getElementById('room-input').value.trim()||'default';
