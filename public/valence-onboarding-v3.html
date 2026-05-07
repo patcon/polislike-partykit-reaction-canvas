@@ -1142,7 +1142,6 @@ function initParticlePositions(fromCurrentPositions){
       c.px=Math.cos(angle)*r; c.py=Math.sin(angle)*r;
     }
     c.pvx=0; c.pvy=0;
-    if(!fromCurrentPositions) c.pHistory=[];
   }
 }
 function stepParticles(){
@@ -1209,9 +1208,6 @@ function updateParticleGeometry(){
   let vi=0;
   for(let i=0;i<chords.length;i++){
     const c=chords[i];
-    if(!c.pHistory)c.pHistory=[];
-    c.pHistory.unshift({px:c.px,py:c.py,value:c.value});
-    if(c.pHistory.length>P_TRACE_LEN)c.pHistory.pop();
     if(!c.history)c.history=[];
     c.history.push([c.px,c.py,c.px,c.py,c.value]);
     if(c.history.length>TRACE_LEN)c.history.shift();
@@ -1222,23 +1218,22 @@ function updateParticleGeometry(){
       col[vi*4]=cr/255; col[vi*4+1]=cg/255; col[vi*4+2]=cb/255; col[vi*4+3]=opacities.cursor;
       vi++;
     }
-    // Trace line segments — written into shared tracePosArr/traceColArr
-    const hlen=c.pHistory.length;
+    // Trace line segments — identical pattern to non-particle mode
+    const hlen=c.history.length;
     for(let j=0;j<TRACE_SEGS;j++){
       const base=(i*TRACE_SEGS+j)*6;
-      // pHistory[0]=newest; map j=0→oldest so pHistory[hlen-1-j] is the j-th oldest point
       if(showTrace&&j+1<hlen){
-        const hA=c.pHistory[hlen-1-j];
-        const hB=c.pHistory[hlen-2-j];
-        const zA=-(hlen-1-j)*P_TRACE_Z;
-        const zB=-(hlen-2-j)*P_TRACE_Z;
+        const[ax,ay]=c.history[j];
+        const[bx,by]=c.history[j+1];
+        const zA=-(hlen-1-j)*TRACE_Z_STEP;
+        const zB=-(hlen-1-(j+1))*TRACE_Z_STEP;
         const fadeA=j/(hlen-1);
         const fadeB=(j+1)/(hlen-1);
-        const tA=elementRGBA(c,stylePastLikeCursor?c.value:(hA.value??c.value),styles.trace,1);
-        const tB=elementRGBA(c,stylePastLikeCursor?c.value:(hB.value??c.value),styles.trace,1);
-        const rA=(bgR+(tA[0]-bgR)*fadeA)/255,gA=(bgG+(tA[1]-bgG)*fadeA)/255,bA=(bgB+(tA[2]-bgB)*fadeA)/255;
-        const rB=(bgR+(tB[0]-bgR)*fadeB)/255,gB=(bgG+(tB[1]-bgG)*fadeB)/255,bB=(bgB+(tB[2]-bgB)*fadeB)/255;
-        tracePosArr.set([hA.px,hA.py,zA,hB.px,hB.py,zB],base);
+        const tc=elementRGBA(c,stylePastLikeCursor?c.value:(c.history[j][4]??c.value),styles.trace,1);
+        const[tR,tG,tB]=tc;
+        const rA=(bgR+(tR-bgR)*fadeA)/255,gA=(bgG+(tG-bgG)*fadeA)/255,bA=(bgB+(tB-bgB)*fadeA)/255;
+        const rB=(bgR+(tR-bgR)*fadeB)/255,gB=(bgG+(tG-bgG)*fadeB)/255,bB=(bgB+(tB-bgB)*fadeB)/255;
+        tracePosArr.set([ax,ay,zA,bx,by,zB],base);
         traceColArr.set([rA,gA,bA,rB,gB,bB],base);
       } else {
         tracePosArr.fill(0,base,base+6);
@@ -1462,7 +1457,7 @@ function animate(){
       dotPosArr.set([tx,ty,tz],i*3);
       const dc=elementRGBA(c,v,styles.cursor,opacities.cursor);
       dotColArr.set([dc[0]/255,dc[1]/255,dc[2]/255],i*3);
-      if(!paused){c.history.push([tx,ty,rx,ry,c.value]);if(c.history.length>TRACE_LEN)c.history.shift();if(!c.pHistory)c.pHistory=[];c.pHistory.unshift({px:tx,py:ty,value:c.value});if(c.pHistory.length>P_TRACE_LEN)c.pHistory.pop();}
+      if(!paused){c.history.push([tx,ty,rx,ry,c.value]);if(c.history.length>TRACE_LEN)c.history.shift();}
       if(showGuides&&i<n){
         const{posX,posY,negX,negY}=getGuidePoints(effI,effN,p1,p2,pp1,pp2,lp1,lp2);
         const[px,py,pz]=cv(posX,posY);const[qx,qy,qz]=cv(negX,negY);
