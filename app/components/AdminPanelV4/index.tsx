@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
-import { getPartyHost } from "../../utils/partyHost";
+import { getPartySocketConfig } from "../../utils/partyHost";
 import ImageConfigModal from "../ImageConfigModal";
 import SocialConfigModal from "../SocialConfigModal";
 import GreeterConfigModal from "../GreeterConfigModal";
@@ -93,7 +93,7 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
   const dispatchRef = useRef<(data: Record<string, unknown>) => void>(() => {});
 
   const socket = usePartySocket({
-    host: getPartyHost(),
+    ...getPartySocketConfig(),
     room,
     query: { isAdmin: 'true' },
     onMessage(evt) {

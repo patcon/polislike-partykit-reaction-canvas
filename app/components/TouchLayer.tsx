@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import usePartySocket from "partysocket/react";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
-import { getPartyHost } from "../utils/partyHost";
+import { getPartySocketConfig } from "../utils/partyHost";
 import type { ReactionAnchors } from "../utils/voteRegion";
 
 interface CursorPosition {
@@ -78,7 +78,7 @@ export default function TouchLayer({
   const lastPositionRef = useRef<CursorPosition | null>(null);
 
   const socket = usePartySocket({
-    host: getPartyHost(),
+    ...getPartySocketConfig(),
     room: room,
     query: { userId },
     onMessage(evt) {
