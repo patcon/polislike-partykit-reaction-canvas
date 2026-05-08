@@ -21,7 +21,7 @@ const VALENCE_INPUT_OPTIONS: { value: ValenceInputMode; label: string; descripti
   { value: 'touch', label: 'Touch', description: 'Move your finger across the canvas to express your reaction' },
   { value: 'orientation-horizontal', label: 'Orientation (Horizontal)', description: 'Face-up = agree, face-down = disagree — works for any flip direction or combination' },
   { value: 'orientation-vertical', label: 'Orientation (Vertical)', description: 'Phone upright = agree, phone flat = pass, phone upside-down = disagree' },
-  { value: 'orientation-rotation', label: 'Orientation (Rotation)', description: 'Steering wheel — phone upright portrait = pass, rotate clockwise = agree, counter-clockwise = disagree' },
+  { value: 'orientation-rotation', label: 'Orientation (Rotation)', description: 'Steering wheel — landscape = pass, rotate right toward portrait = agree, rotate left toward upside-down = disagree' },
 ];
 
 export default function CanvasSettingsModal({ showNowLabel, onChangeShowNowLabel, ownValenceDisplay, onChangeOwnValenceDisplay, valenceInputMode, onChangeValenceInputMode, onClose }: CanvasSettingsModalProps) {

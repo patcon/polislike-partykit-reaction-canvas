@@ -264,8 +264,9 @@ export default function ReactionCanvasAppV4() {
         // mathematically correct for any combination of forward/sideways tilt.
         rawValence = Math.cos(e.beta * Math.PI / 180) * Math.cos(e.gamma * Math.PI / 180);
       } else if (valenceInputMode === 'orientation-rotation') {
-        // Steering wheel: portrait upright = 0, clockwise 90° = +1, counter-clockwise 90° = -1
-        rawValence = Math.sin(e.gamma * Math.PI / 180);
+        // Steering wheel relative to landscape: landscape = 0 (pass), rotate CW toward upside-down portrait = +1, CCW toward portrait = -1.
+        // cos(atan2(gamma, beta)) gives the correct quadrant-aware mapping through the full rotation.
+        rawValence = Math.cos(Math.atan2(e.gamma, e.beta));
       } else {
         // Vertical: phone upright = +1, flat = 0, upside-down = -1
         rawValence = Math.sin(e.beta * Math.PI / 180);
