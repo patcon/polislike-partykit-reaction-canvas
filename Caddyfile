@@ -1,4 +1,0 @@
-:1443 {
-	tls internal
-	reverse_proxy localhost:1999
-}

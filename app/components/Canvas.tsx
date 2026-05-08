@@ -120,7 +120,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   });
 
   const socket = usePartySocket({
-    host: ['1999', '1443'].includes(window.location.port) ? `${window.location.hostname}:${window.location.port}` : window.location.hostname,
+    host: window.location.port === '1999' ? `${window.isSecureContext ? 'wss' : 'ws'}://${window.location.hostname}:1999` : window.location.hostname,
     room: room,
     query: readOnly ? { isAdmin: 'true' } : { userId },
     onMessage(evt) {
