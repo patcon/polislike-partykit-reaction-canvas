@@ -77,7 +77,7 @@ export default function TouchLayer({
   const lastPositionRef = useRef<CursorPosition | null>(null);
 
   const socket = usePartySocket({
-    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : window.location.hostname,
+    host: ['1999', '1443'].includes(window.location.port) ? `${window.location.hostname}:${window.location.port}` : window.location.hostname,
     room: room,
     query: { userId },
     onMessage(evt) {
