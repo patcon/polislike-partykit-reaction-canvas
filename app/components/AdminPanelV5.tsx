@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import usePartySocket from "partysocket/react";
+import { getPartyHost } from "../utils/partyHost";
 import { DEFAULT_ANCHORS } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { REACTION_LABEL_PRESETS } from "../voteLabels";
@@ -106,7 +107,7 @@ export default function AdminPanelV5({ room }: AdminPanelV5Props) {
   };
 
   const socket = usePartySocket({
-    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : window.location.hostname,
+    host: getPartyHost(),
     room,
     query: { isAdmin: 'true' },
     onMessage(evt) {

@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import usePartySocket from "partysocket/react";
 import * as d3 from "d3";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
+import { getPartyHost } from "../utils/partyHost";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import type { ActivityMode, GreeterConfig } from "../types";
 
@@ -120,7 +121,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   });
 
   const socket = usePartySocket({
-    host: window.location.port === '1999' ? `${window.isSecureContext ? 'wss' : 'ws'}://${window.location.hostname}:1999` : window.location.hostname,
+    host: getPartyHost(),
     room: room,
     query: readOnly ? { isAdmin: 'true' } : { userId },
     onMessage(evt) {
