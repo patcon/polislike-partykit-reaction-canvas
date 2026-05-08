@@ -14,6 +14,8 @@ All notable changes to this project will be documented in this file. Releases cu
 - Orientation modes require HTTPS; blocked by Chrome on plain HTTP LAN. iOS prompts for `DeviceOrientationEvent` permission on first tap; Android and other platforms require no permission.
 - `pnpm dev-https` script — runs `partykit dev --live --https` for local HTTPS testing of orientation APIs on LAN devices.
 
+- **Wake lock indicator** — a screen-lock toggle button appears below the vibration icon whenever an orientation valence mode is active. Tap to keep the screen awake during orientation-based sessions; the lock icon (`MdScreenLockLandscape`) shows when held, the screen icon (`MdSmartScreen`) shows when off. The lock is released and hidden automatically when switching back to touch mode.
+
 ### Fixed
 - WebSocket connections now use `wss://` when the page is served over HTTPS, preventing mixed-content errors on LAN addresses (`192.168.x.x`). Extracted shared `getPartySocketConfig()` utility (`app/utils/partyHost.ts`) used by all six socket-holding components. ([#82](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/82))
 
