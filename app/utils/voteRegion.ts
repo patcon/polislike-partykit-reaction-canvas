@@ -29,16 +29,20 @@ export function reactionLabelStyle(anchor: { x: number; y: number }): { position
 
 export function valenceToPosition(valence: number, anchors: ReactionAnchors): { x: number; y: number } {
   const clamped = Math.max(-1, Math.min(1, valence));
+  const centroid = {
+    x: (anchors.negative.x + anchors.neutral.x + anchors.positive.x) / 3,
+    y: (anchors.negative.y + anchors.neutral.y + anchors.positive.y) / 3,
+  };
   if (clamped <= 0) {
-    const t = clamped + 1;
+    const t = clamped + 1; // 0 at valence=-1, 1 at valence=0
     return {
-      x: anchors.negative.x + t * (anchors.neutral.x - anchors.negative.x),
-      y: anchors.negative.y + t * (anchors.neutral.y - anchors.negative.y),
+      x: anchors.negative.x + t * (centroid.x - anchors.negative.x),
+      y: anchors.negative.y + t * (centroid.y - anchors.negative.y),
     };
   } else {
     return {
-      x: anchors.neutral.x + clamped * (anchors.positive.x - anchors.neutral.x),
-      y: anchors.neutral.y + clamped * (anchors.positive.y - anchors.neutral.y),
+      x: centroid.x + clamped * (anchors.positive.x - centroid.x),
+      y: centroid.y + clamped * (anchors.positive.y - centroid.y),
     };
   }
 }
