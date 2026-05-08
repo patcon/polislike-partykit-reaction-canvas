@@ -22,12 +22,17 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
+  // baseTextRef: server text captured when recording started; carried forward across
+  // onend/restart cycles so each new recognition run appends to the right base.
+  // sessionFinalRef: transcript of the latest final result in the current run.
+  const baseTextRef = useRef('');
+  const sessionFinalRef = useRef('');
 
   const acquireWakeLock = useCallback(async () => {
     if (!('wakeLock' in navigator)) return;
     try {
       wakeLockRef.current = await navigator.wakeLock.request('screen');
-    } catch { /* wake lock unavailable (low battery, non-secure context, etc.) */ }
+    } catch { /* unavailable: low battery, non-secure context, etc. */ }
   }, []);
 
   const releaseWakeLock = useCallback(async () => {
@@ -78,11 +83,13 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
 
   const startRecording = useCallback(() => {
     socket.send(JSON.stringify({ type: 'stenoStartRecording', userId }));
+    baseTextRef.current = stenoText;
+    sessionFinalRef.current = '';
     setIsRecording(true);
     isRecordingRef.current = true;
     acquireWakeLock();
     try { recognitionRef.current?.start(); } catch { /* ignore if already started */ }
-  }, [socket, userId, acquireWakeLock]);
+  }, [socket, userId, acquireWakeLock, stenoText]);
 
   useEffect(() => {
     if (!SpeechRecognitionCtor) return;
@@ -94,18 +101,25 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     r.onresult = (e: any) => {
       let interim = '';
-      let finalChunk = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) {
-          finalChunk += e.results[i][0].transcript;
-        } else {
-          interim += e.results[i][0].transcript;
-        }
+      for (let i = 0; i < e.results.length; i++) {
+        if (!e.results[i].isFinal) interim += e.results[i][0].transcript;
       }
       setInterimText(interim);
-      if (finalChunk.trim()) {
-        socket.send(JSON.stringify({ type: 'stenoAppendText', userId, text: finalChunk.trim() }));
-      }
+
+      // Only process the result that just changed (e.resultIndex).
+      // On Android Chrome each event fires with a new resultIndex whose transcript
+      // is the full phrase accumulated so far — concatenating ALL results would
+      // duplicate words. On desktop a single result becomes final with the whole phrase.
+      const latest = e.results[e.resultIndex];
+      if (!latest.isFinal) return;
+
+      const transcript = latest[0].transcript.trim();
+      if (!transcript || transcript === sessionFinalRef.current) return;
+
+      sessionFinalRef.current = transcript;
+      const base = baseTextRef.current.trimEnd();
+      const fullText = base ? `${base} ${transcript}` : transcript;
+      socket.send(JSON.stringify({ type: 'stenoSetText', userId, text: fullText }));
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,8 +131,15 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
     };
 
     r.onend = () => {
-      // Chrome auto-stops after silence in continuous mode — restart if still recording
+      // Mobile browsers stop recognition after each phrase; restart if still recording.
+      // Promote sessionFinalRef into baseTextRef so the next run appends correctly.
       if (isRecordingRef.current) {
+        const session = sessionFinalRef.current.trim();
+        if (session) {
+          const base = baseTextRef.current.trimEnd();
+          baseTextRef.current = base ? `${base} ${session}` : session;
+          sessionFinalRef.current = '';
+        }
         try { r.start(); } catch { /* ignore */ }
       }
     };
@@ -156,7 +177,7 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
           disabled={isLockedByOther || !SpeechRecognitionCtor}
           title={
             !SpeechRecognitionCtor ? 'Speech recognition not supported in this browser'
-            : isLockedByOther ? `Another participant is recording`
+            : isLockedByOther ? 'Another participant is recording'
             : isRecording ? 'Stop transcribing'
             : 'Start transcribing'
           }
