@@ -263,6 +263,9 @@ export default function ReactionCanvasAppV4() {
         // cos(β)·cos(γ) is the z-component of the screen normal in world space —
         // mathematically correct for any combination of forward/sideways tilt.
         rawValence = Math.cos(e.beta * Math.PI / 180) * Math.cos(e.gamma * Math.PI / 180);
+      } else if (valenceInputMode === 'orientation-rotation') {
+        // Steering wheel: portrait upright = 0, clockwise 90° = +1, counter-clockwise 90° = -1
+        rawValence = Math.sin(e.gamma * Math.PI / 180);
       } else {
         // Vertical: phone upright = +1, flat = 0, upside-down = -1
         rawValence = Math.sin(e.beta * Math.PI / 180);

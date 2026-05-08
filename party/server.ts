@@ -229,7 +229,7 @@ interface SetOwnValenceDisplayEvent {
 
 interface SetValenceInputModeEvent {
   type: 'setValenceInputMode';
-  mode: 'touch' | 'orientation-horizontal' | 'orientation-vertical';
+  mode: 'touch' | 'orientation-horizontal' | 'orientation-vertical' | 'orientation-rotation';
 }
 
 interface StrokeSegmentEvent {
@@ -317,7 +317,7 @@ export default class Server implements Party.Server {
   private colorCursorsByVote: boolean = false;
   private defaultCursorColor: string = '#d4d4d4';
   private ownValenceDisplay: 'background' | 'labels' | 'none' = 'labels';
-  private valenceInputMode: 'touch' | 'orientation-horizontal' | 'orientation-vertical' = 'touch';
+  private valenceInputMode: 'touch' | 'orientation-horizontal' | 'orientation-vertical' | 'orientation-rotation' = 'touch';
   private roomHost: string | null = null;
   private readonly BAT_SIGNAL_THRESHOLD = 3;
   private seenUserIds = new Set<string>();

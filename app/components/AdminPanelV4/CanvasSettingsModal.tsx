@@ -21,6 +21,7 @@ const VALENCE_INPUT_OPTIONS: { value: ValenceInputMode; label: string; descripti
   { value: 'touch', label: 'Touch', description: 'Move your finger across the canvas to express your reaction' },
   { value: 'orientation-horizontal', label: 'Orientation (Horizontal)', description: 'Face-up = agree, face-down = disagree — works for any flip direction or combination' },
   { value: 'orientation-vertical', label: 'Orientation (Vertical)', description: 'Phone upright = agree, phone flat = pass, phone upside-down = disagree' },
+  { value: 'orientation-rotation', label: 'Orientation (Rotation)', description: 'Steering wheel — phone upright portrait = pass, rotate clockwise = agree, counter-clockwise = disagree' },
 ];
 
 export default function CanvasSettingsModal({ showNowLabel, onChangeShowNowLabel, ownValenceDisplay, onChangeOwnValenceDisplay, valenceInputMode, onChangeValenceInputMode, onClose }: CanvasSettingsModalProps) {
@@ -104,11 +105,9 @@ export default function CanvasSettingsModal({ showNowLabel, onChangeShowNowLabel
                 </label>
               ))}
             </div>
-            {valenceInputMode !== 'touch' && (
-              <p style={{ color: '#666', fontSize: 12, marginBottom: 20 }}>
-                In orientation mode, the cursor moves along the disagree → pass → agree path based on phone tilt. Participants will be prompted to grant orientation permission on iOS.
-              </p>
-            )}
+            <p style={{ color: '#666', fontSize: 12, marginBottom: 20, visibility: valenceInputMode === 'touch' ? 'hidden' : 'visible' }}>
+              In orientation mode, the cursor moves along the disagree → pass → agree path based on phone tilt. Participants will be prompted to grant orientation permission on iOS.
+            </p>
           </>
         )}
 

@@ -30,7 +30,7 @@ export interface Statement {
 
 export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social' | 'mood-tones' | 'treevites' | 'greeter' | 'signature';
 
-export type ValenceInputMode = 'touch' | 'orientation-horizontal' | 'orientation-vertical';
+export type ValenceInputMode = 'touch' | 'orientation-horizontal' | 'orientation-vertical' | 'orientation-rotation';
 
 export interface GreeterConfig {
   eventUrl: string;
