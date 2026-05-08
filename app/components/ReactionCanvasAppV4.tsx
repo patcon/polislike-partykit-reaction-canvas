@@ -24,6 +24,7 @@ import ShareQRButton from "./ShareQRButton";
 import QRWithCopy from "./QRWithCopy";
 import { parseInviteChain, appendSelfToChain, chainToEdges, storeChain, getStoredChain } from "../utils/inviteChain";
 import HapticIndicatorButton from "./HapticIndicatorButton";
+import { useHapticPriming } from "../hooks/useHapticPriming";
 import WakeLockIndicatorButton from "./WakeLockIndicatorButton";
 import Treevites from "./Treevites";
 
@@ -158,14 +159,9 @@ export default function ReactionCanvasAppV4() {
   const [suppressHapticModal, setSuppressHapticModal] = useState(
     () => localStorage.getItem('v4-suppress-haptic-modal') !== 'false'
   );
-  const [hapticEnabled, setHapticEnabled] = useState(WebHaptics.isSupported);
-  // False on haptic-capable devices until first touch; true elsewhere (no priming needed).
-  const [vibrationPrimed, setVibrationPrimed] = useState(!WebHaptics.isSupported);
+  const { hapticEnabled, effectivelyEnabled: hapticEffectivelyEnabled, onPointerDown: hapticOnPointerDown, onToggle: hapticOnToggle } = useHapticPriming();
   const [hapticFlashing, setHapticFlashing] = useState(false);
   const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Captures whether the button was unprimed at pointerdown, so click can skip the toggle
-  // when the first touch is the button itself (avoiding an accidental disable).
-  const hapticWasUnprimedRef = useRef(false);
   const hasConnectedRef = useRef(false);
   const { trigger: triggerHaptic } = useWebHaptics();
   const [wakeLockEnabled, setWakeLockEnabled] = useState(false);
@@ -211,18 +207,6 @@ export default function ReactionCanvasAppV4() {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Android Chrome gates navigator.vibrate() on prior user interaction. Prime it
-  // on first touch so socket-triggered buzzes work without needing a manual toggle.
-  useEffect(() => {
-    if (!WebHaptics.isSupported) return;
-    const prime = () => {
-      navigator.vibrate(0);
-      setVibrationPrimed(true);
-    };
-    document.addEventListener('touchstart', prime, { once: true });
-    return () => document.removeEventListener('touchstart', prime);
   }, []);
 
   const acquireWakeLock = useCallback(async () => {
@@ -457,20 +441,12 @@ export default function ReactionCanvasAppV4() {
           <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
           <ShareQRButton selfId={userId} selfChain={selfChain} />
           {activity !== 'signature' && (
-            <div onPointerDown={() => { hapticWasUnprimedRef.current = !vibrationPrimed; }}>
+            <div onPointerDown={hapticOnPointerDown}>
               <HapticIndicatorButton
-                enabled={hapticEnabled && vibrationPrimed}
+                enabled={hapticEffectivelyEnabled}
                 flashing={hapticFlashing}
                 canVibrate={WebHaptics.isSupported}
-                onToggle={() => {
-                  if (WebHaptics.isSupported) {
-                    if (hapticWasUnprimedRef.current) {
-                      hapticWasUnprimedRef.current = false;
-                    } else {
-                      setHapticEnabled(prev => !prev);
-                    }
-                  }
-                }}
+                onToggle={hapticOnToggle}
                 onShowInfo={() => setHapticPending(true)}
               />
             </div>
