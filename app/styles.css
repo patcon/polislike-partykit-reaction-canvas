@@ -1582,7 +1582,7 @@ body {
 
 .wakelock-indicator-btn {
   position: absolute;
-  top: 136px;
+  top: 128px;
   left: 8px;
   z-index: 200;
   background: transparent;
