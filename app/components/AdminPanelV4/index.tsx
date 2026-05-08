@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
+import { getPartySocketConfig } from "../../utils/partyHost";
 import ImageConfigModal from "../ImageConfigModal";
 import SocialConfigModal from "../SocialConfigModal";
 import GreeterConfigModal from "../GreeterConfigModal";
@@ -92,7 +93,7 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
   const dispatchRef = useRef<(data: Record<string, unknown>) => void>(() => {});
 
   const socket = usePartySocket({
-    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : window.location.hostname,
+    ...getPartySocketConfig(),
     room,
     query: { isAdmin: 'true' },
     onMessage(evt) {
@@ -454,6 +455,8 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
           }}
           ownValenceDisplay={roomConfig.ownValenceDisplay}
           onChangeOwnValenceDisplay={roomConfig.sendOwnValenceDisplay}
+          valenceInputMode={roomConfig.valenceInputMode}
+          onChangeValenceInputMode={roomConfig.sendValenceInputMode}
           onClose={() => roomConfig.setCanvasSettingsOpen(false)}
         />
       )}

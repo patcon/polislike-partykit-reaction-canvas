@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
+## Week 25 (2026-05-11)
+
+### Added
+- Canvas settings modal: **Valence Input tab** — emcee can now switch participants between four input modes ([#82](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/82)):
+  - **Touch** (default) — finger position on canvas
+  - **Orientation (Horizontal)** — phone face-up = agree, face-down = disagree; works for any flip direction or combination (`cos β · cos γ`)
+  - **Orientation (Vertical)** — phone upright = agree, flat = pass, upside-down = disagree (`sin β`)
+  - **Orientation (Rotation)** — steering-wheel from landscape: rotate right toward portrait = agree, rotate left toward upside-down = disagree (`cos(atan2(γ, β))`)
+- In orientation modes the cursor travels through the triangle centroid (barycentric centre) rather than along the edges, giving a direct disagree → centre → agree path.
+- Orientation modes require HTTPS; blocked by Chrome on plain HTTP LAN. iOS prompts for `DeviceOrientationEvent` permission on first tap; Android and other platforms require no permission.
+- `pnpm dev-https` script — runs `partykit dev --live --https` for local HTTPS testing of orientation APIs on LAN devices.
+
+### Fixed
+- WebSocket connections now use `wss://` when the page is served over HTTPS, preventing mixed-content errors on LAN addresses (`192.168.x.x`). Extracted shared `getPartySocketConfig()` utility (`app/utils/partyHost.ts`) used by all six socket-holding components. ([#82](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/82))
+
 ## Week 24 (2026-05-04)
 
 ### Added

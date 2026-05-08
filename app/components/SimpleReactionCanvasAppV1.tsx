@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
+import { getPartySocketConfig } from "../utils/partyHost";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import StatementPanel from "./StatementPanel";
@@ -52,7 +53,7 @@ export default function SimpleReactionCanvasAppV1() {
   }, []);
 
   const socket = usePartySocket({
-    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : window.location.hostname,
+    ...getPartySocketConfig(),
     room: room,
     onMessage(evt) {
       try {

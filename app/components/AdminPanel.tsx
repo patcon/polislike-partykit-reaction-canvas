@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import usePartySocket from "partysocket/react";
+import { getPartySocketConfig } from "../utils/partyHost";
 import CountdownTimer from "./CountdownTimer";
 import type { PolisStatement, QueueItem, Statement } from "../types";
 
@@ -26,7 +27,7 @@ export default function AdminPanel({ room }: AdminPanelProps) {
   const [ghostCursorsEnabled, setGhostCursorsEnabled] = useState(false);
 
   const socket = usePartySocket({
-    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : window.location.hostname,
+    ...getPartySocketConfig(),
     room: room,
     query: { isAdmin: 'true' },
     onMessage(evt) {

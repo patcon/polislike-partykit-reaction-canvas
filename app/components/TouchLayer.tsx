@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState } from "react";
 import usePartySocket from "partysocket/react";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../utils/voteRegion";
+import { getPartySocketConfig } from "../utils/partyHost";
 import type { ReactionAnchors } from "../utils/voteRegion";
 
 interface CursorPosition {
@@ -37,6 +38,7 @@ interface TouchLayerProps {
   anchors?: ReactionAnchors;
   onCursorEvent?: (type: 'move' | 'touch' | 'remove', pos: { x: number; y: number }) => void;
   imageUrl?: string; // When set, normalize coordinates relative to displayed image bounds
+  disabled?: boolean; // When true, keeps socket alive but ignores all pointer events
 }
 
 export default function TouchLayer({
@@ -52,6 +54,7 @@ export default function TouchLayer({
   anchors,
   onCursorEvent,
   imageUrl,
+  disabled = false,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [userReactionState, setUserReactionState] = useState<ReactionState>(null);
@@ -75,7 +78,7 @@ export default function TouchLayer({
   const lastPositionRef = useRef<CursorPosition | null>(null);
 
   const socket = usePartySocket({
-    host: window.location.port === '1999' ? `${window.location.hostname}:1999` : window.location.hostname,
+    ...getPartySocketConfig(),
     room: room,
     query: { userId },
     onMessage(evt) {
@@ -296,15 +299,15 @@ export default function TouchLayer({
         zIndex: 10, // Higher z-index to capture events
         touchAction: 'none',
         cursor: 'default',
-        pointerEvents: 'auto',
+        pointerEvents: disabled ? 'none' : 'auto',
         backgroundColor: 'transparent' // Completely transparent
       }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
+      onMouseMove={disabled ? undefined : handleMouseMove}
+      onMouseLeave={disabled ? undefined : handleMouseLeave}
+      onTouchStart={disabled ? undefined : handleTouchStart}
+      onTouchMove={disabled ? undefined : handleTouchMove}
+      onTouchEnd={disabled ? undefined : handleTouchEnd}
+      onTouchCancel={disabled ? undefined : handleTouchEnd}
     />
   );
 }

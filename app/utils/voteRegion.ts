@@ -27,6 +27,26 @@ export function reactionLabelStyle(anchor: { x: number; y: number }): { position
   };
 }
 
+export function valenceToPosition(valence: number, anchors: ReactionAnchors): { x: number; y: number } {
+  const clamped = Math.max(-1, Math.min(1, valence));
+  const centroid = {
+    x: (anchors.negative.x + anchors.neutral.x + anchors.positive.x) / 3,
+    y: (anchors.negative.y + anchors.neutral.y + anchors.positive.y) / 3,
+  };
+  if (clamped <= 0) {
+    const t = clamped + 1; // 0 at valence=-1, 1 at valence=0
+    return {
+      x: anchors.negative.x + t * (centroid.x - anchors.negative.x),
+      y: anchors.negative.y + t * (centroid.y - anchors.negative.y),
+    };
+  } else {
+    return {
+      x: centroid.x + clamped * (anchors.positive.x - centroid.x),
+      y: centroid.y + clamped * (anchors.positive.y - centroid.y),
+    };
+  }
+}
+
 export function computeReactionRegion(normalizedX: number, normalizedY: number, anchors: ReactionAnchors = DEFAULT_ANCHORS): ReactionRegion {
   const x = normalizedX / 100;
   const y = normalizedY / 100;
