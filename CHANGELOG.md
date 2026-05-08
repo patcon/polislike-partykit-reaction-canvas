@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 25 (2026-05-11)
 
 ### Added
-- **Steno interface** — a new V4 interface for live shared speech-to-text transcription. Unlock via `?interface=steno`, or push it to participants via the Emcee → Participants tab. Features: streaming Web Speech API (`continuous` mode with interim-text preview), a single-user recording mutex (one person transcribes at a time), server-persisted transcript shared live to all connected participants, Wake Lock while recording, and editable textarea (read-only for observers while another user holds the lock).
+- **Steno interface** — a new V4 interface for live shared speech-to-text transcription. Unlock via `?interface=steno`, or push it to participants via the Emcee → Participants tab. Features: streaming Web Speech API (`continuous` mode with interim-text preview), a single-user recording mutex (one person transcribes at a time), server-persisted transcript shared live to all connected participants, Wake Lock while recording, and editable textarea (read-only for observers while another user holds the lock). ([#85](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/85))
 - Canvas settings modal: **Valence Input tab** — emcee can now switch participants between four input modes ([#82](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/82)):
   - **Touch** (default) — finger position on canvas
   - **Orientation (Horizontal)** — phone face-up = agree, face-down = disagree; works for any flip direction or combination (`cos β · cos γ`)
