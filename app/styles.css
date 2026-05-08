@@ -1580,6 +1580,27 @@ body {
   color: rgba(0, 0, 0, 0.75);
 }
 
+.wakelock-indicator-btn {
+  position: absolute;
+  top: 136px;
+  left: 8px;
+  z-index: 200;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  color: rgba(0, 0, 0, 0.6);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+}
+
+.wakelock-indicator-btn--off {
+  color: rgba(0, 0, 0, 0.2);
+}
+
 .share-qr-modal {
   position: fixed;
   inset: 0;

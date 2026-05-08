@@ -24,6 +24,7 @@ import ShareQRButton from "./ShareQRButton";
 import QRWithCopy from "./QRWithCopy";
 import { parseInviteChain, appendSelfToChain, chainToEdges, storeChain, getStoredChain } from "../utils/inviteChain";
 import HapticIndicatorButton from "./HapticIndicatorButton";
+import WakeLockIndicatorButton from "./WakeLockIndicatorButton";
 import Treevites from "./Treevites";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
@@ -162,9 +163,12 @@ export default function ReactionCanvasAppV4() {
   const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasConnectedRef = useRef(false);
   const { trigger: triggerHaptic } = useWebHaptics();
+  const [wakeLockEnabled, setWakeLockEnabled] = useState(false);
+  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
 
   // Derived early so useCallback deps below can reference it (must still be before any early return)
   const isEmcee = unlockedInterfaces.includes('emcee');
+  const isOrientationMode = valenceInputMode !== 'touch';
 
   const triggerBuzzForUpdate = useCallback(() => {
     if (hapticFlashTimeoutRef.current) clearTimeout(hapticFlashTimeoutRef.current);
@@ -203,6 +207,53 @@ export default function ReactionCanvasAppV4() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const acquireWakeLock = useCallback(async () => {
+    if (!('wakeLock' in navigator)) return;
+    try {
+      wakeLockRef.current = await navigator.wakeLock.request('screen');
+    } catch {
+      // Wake lock request failed (e.g. low battery, non-secure context)
+    }
+  }, []);
+
+  const releaseWakeLock = useCallback(async () => {
+    if (wakeLockRef.current) {
+      await wakeLockRef.current.release();
+      wakeLockRef.current = null;
+    }
+  }, []);
+
+  const toggleWakeLock = useCallback(() => {
+    setWakeLockEnabled(prev => !prev);
+  }, []);
+
+  useEffect(() => {
+    if (wakeLockEnabled && isOrientationMode) {
+      acquireWakeLock();
+    } else {
+      releaseWakeLock();
+    }
+  }, [wakeLockEnabled, isOrientationMode, acquireWakeLock, releaseWakeLock]);
+
+  // Re-acquire wake lock after tab becomes visible again (API releases it on hide)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && wakeLockEnabled && isOrientationMode) {
+        acquireWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [wakeLockEnabled, isOrientationMode, acquireWakeLock]);
+
+  // Release and reset wake lock when switching away from orientation mode
+  useEffect(() => {
+    if (!isOrientationMode) {
+      releaseWakeLock();
+      setWakeLockEnabled(false);
+    }
+  }, [isOrientationMode, releaseWakeLock]);
 
   const requestOrientationPermission = useCallback(async () => {
     if (typeof DeviceOrientationEvent !== 'undefined' &&
@@ -395,6 +446,13 @@ export default function ReactionCanvasAppV4() {
               canVibrate={WebHaptics.isSupported}
               onToggle={() => { if (WebHaptics.isSupported) setHapticEnabled(prev => !prev); }}
               onShowInfo={() => setHapticPending(true)}
+            />
+          )}
+          {isOrientationMode && (
+            <WakeLockIndicatorButton
+              enabled={wakeLockEnabled}
+              active={wakeLockRef.current !== null}
+              onToggle={toggleWakeLock}
             />
           )}
           {touchPos && (
