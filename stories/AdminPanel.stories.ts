@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import AdminPanel from '../app/components/AdminPanel';
+import AdminPanel from '../app/components/panels/AdminPanel';
 
 // AdminPanel is heavily socket-driven: it starts in a loading state and
 // populates once the PartyKit server sends back the statements pool and queue

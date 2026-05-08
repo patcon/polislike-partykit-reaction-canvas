@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import SimpleReactionCanvasAppV1 from '../app/components/SimpleReactionCanvasAppV1';
+import SimpleReactionCanvasAppV1 from '../app/components/apps/SimpleReactionCanvasAppV1';
 
 // Full app rendered in isolation. The socket is mocked so statements won't
 // load from the server — the panel shows "Loading statement..." — but the

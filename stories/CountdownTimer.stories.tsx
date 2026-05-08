@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import CountdownTimer from '../app/components/CountdownTimer';
+import CountdownTimer from '../app/components/shared/CountdownTimer';
 
 const meta = {
   title: 'App/CountdownTimer',

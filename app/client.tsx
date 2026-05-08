@@ -2,12 +2,12 @@ import "./styles.css";
 declare const PARTYKIT_EVENT_BUILD: boolean;
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
-import SimpleReactionCanvasAppV1 from "./components/SimpleReactionCanvasAppV1";
-import QRWithCopy from "./components/QRWithCopy";
-import ReactionCanvasAppV2 from "./components/ReactionCanvasAppV2";
-import ReactionCanvasAppV4 from "./components/ReactionCanvasAppV4";
-import ReactionCanvasAppV5 from "./components/ReactionCanvasAppV5";
-import ValenceViz from "./components/ValenceViz";
+import SimpleReactionCanvasAppV1 from "./components/apps/SimpleReactionCanvasAppV1";
+import QRWithCopy from "./components/shared/QRWithCopy";
+import ReactionCanvasAppV2 from "./components/apps/ReactionCanvasAppV2";
+import ReactionCanvasAppV4 from "./components/apps/ReactionCanvasAppV4";
+import ReactionCanvasAppV5 from "./components/apps/ReactionCanvasAppV5";
+import ValenceViz from "./components/viz/ValenceViz";
 
 function IndexApp() {
   const pageUrl = window.location.origin + window.location.pathname;

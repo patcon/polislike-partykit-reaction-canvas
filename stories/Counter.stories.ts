@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import Counter from '../app/components/Counter';
+import Counter from '../app/components/shared/Counter';
 
 // Counter is a legacy example component from the PartyKit starter template.
 // It connects to a socket to sync a shared count; in Storybook the socket is

@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import StatementPanel from '../app/components/StatementPanel';
+import StatementPanel from '../app/components/panels/StatementPanel';
 import type { PolisStatement } from '../app/types';
 
 const meta = {
