@@ -468,7 +468,10 @@ export default function ReactionCanvasAppV4() {
             disableCursorValence={activity === 'image-canvas'}
             disableBackgroundValence={activity === 'image-canvas'}
             onOwnValenceDisplayChange={setOwnValenceDisplay}
-            onValenceInputModeChange={setValenceInputMode}
+            onValenceInputModeChange={(mode) => {
+              if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
+              setValenceInputMode(mode);
+            }}
             currentReactionState={canvasBackgroundReactionState}
             heightOffset={chipBarOffset}
             onPresenceCount={setPresenceCount}
