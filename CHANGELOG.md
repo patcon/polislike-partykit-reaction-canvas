@@ -14,9 +14,11 @@ All notable changes to this project will be documented in this file. Releases cu
 - Orientation modes require HTTPS; blocked by Chrome on plain HTTP LAN. iOS prompts for `DeviceOrientationEvent` permission on first tap; Android and other platforms require no permission.
 - `pnpm dev-https` script — runs `partykit dev --live --https` for local HTTPS testing of orientation APIs on LAN devices.
 
-- **Wake lock indicator** — a screen-lock toggle button appears below the vibration icon whenever an orientation valence mode is active. Tap to keep the screen awake during orientation-based sessions; the lock icon (`MdScreenLockLandscape`) shows when held, the screen icon (`MdSmartScreen`) shows when off. The lock is released and hidden automatically when switching back to touch mode.
+- **Wake lock indicator** — a screen-lock toggle button appears below the vibration icon whenever an orientation valence mode is active. Tap to keep the screen awake during orientation-based sessions; the lock icon (`MdScreenLockLandscape`) shows when held, the screen icon (`MdSmartScreen`) shows when off. The lock is released and hidden automatically when switching back to touch mode. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 
 ### Fixed
+- Haptic feedback now works immediately on Android without needing to toggle the icon off and on; the icon starts dim and lights up on first touch as the Vibration API is primed. If the first touch lands on the icon itself it activates rather than toggling off. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
+- Changing valence input mode now triggers a haptic buzz, matching the existing behaviour for label and activity changes. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 - WebSocket connections now use `wss://` when the page is served over HTTPS, preventing mixed-content errors on LAN addresses (`192.168.x.x`). Extracted shared `getPartySocketConfig()` utility (`app/utils/partyHost.ts`) used by all six socket-holding components. ([#82](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/82))
 
 ## Week 24 (2026-05-04)
