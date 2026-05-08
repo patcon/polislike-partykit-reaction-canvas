@@ -19,7 +19,7 @@ const OWN_VALENCE_OPTIONS: { value: 'background' | 'labels' | 'none'; label: str
 
 const VALENCE_INPUT_OPTIONS: { value: ValenceInputMode; label: string; description: string }[] = [
   { value: 'touch', label: 'Touch', description: 'Move your finger across the canvas to express your reaction' },
-  { value: 'orientation-horizontal', label: 'Orientation (Horizontal)', description: 'Phone face-up = agree, edge-on = pass, face-down = disagree' },
+  { value: 'orientation-horizontal', label: 'Orientation (Horizontal)', description: 'Flip phone sideways on table — face-up = agree, edge-on = pass, face-down = disagree' },
   { value: 'orientation-vertical', label: 'Orientation (Vertical)', description: 'Phone upright = agree, phone flat = pass, phone upside-down = disagree' },
 ];
 

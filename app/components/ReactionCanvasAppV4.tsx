@@ -256,11 +256,18 @@ export default function ReactionCanvasAppV4() {
     let lastSent = 0;
 
     const handleOrientation = (e: DeviceOrientationEvent) => {
-      if (e.beta === null) return;
-      const beta = e.beta;
-      const rawValence = valenceInputMode === 'orientation-horizontal'
-        ? Math.cos(beta * Math.PI / 180)
-        : Math.sin(beta * Math.PI / 180);
+      if (e.beta === null || e.gamma === null) return;
+      let rawValence: number;
+      if (valenceInputMode === 'orientation-horizontal') {
+        // Sideways flip on table: face-up = +1, edge-on = 0, face-down = -1.
+        // gamma saturates at ±90° so cos(gamma) alone can't reach -1 at face-down.
+        // When the phone passes edge-on, beta flips past ±90° — use that to negate.
+        const sign = Math.abs(e.beta) > 90 ? -1 : 1;
+        rawValence = sign * Math.cos(e.gamma * Math.PI / 180);
+      } else {
+        // Vertical: phone upright = +1, flat = 0, upside-down = -1
+        rawValence = Math.sin(e.beta * Math.PI / 180);
+      }
       const valence = Math.max(-1, Math.min(1, rawValence));
       const pos = valenceToPosition(valence, anchorsRef.current);
 
