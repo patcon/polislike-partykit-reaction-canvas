@@ -159,11 +159,13 @@ export default function ReactionCanvasAppV4() {
     () => localStorage.getItem('v4-suppress-haptic-modal') !== 'false'
   );
   const [hapticEnabled, setHapticEnabled] = useState(WebHaptics.isSupported);
-  // Stays false on supported devices until first touch primes the Vibration API.
-  // Initialized to true on unsupported devices so the button just shows as disabled normally.
+  // False on haptic-capable devices until first touch; true elsewhere (no priming needed).
   const [vibrationPrimed, setVibrationPrimed] = useState(!WebHaptics.isSupported);
   const [hapticFlashing, setHapticFlashing] = useState(false);
   const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Captures whether the button was unprimed at pointerdown, so click can skip the toggle
+  // when the first touch is the button itself (avoiding an accidental disable).
+  const hapticWasUnprimedRef = useRef(false);
   const hasConnectedRef = useRef(false);
   const { trigger: triggerHaptic } = useWebHaptics();
   const [wakeLockEnabled, setWakeLockEnabled] = useState(false);
@@ -455,13 +457,23 @@ export default function ReactionCanvasAppV4() {
           <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
           <ShareQRButton selfId={userId} selfChain={selfChain} />
           {activity !== 'signature' && (
-            <HapticIndicatorButton
-              enabled={hapticEnabled && vibrationPrimed}
-              flashing={hapticFlashing}
-              canVibrate={WebHaptics.isSupported}
-              onToggle={() => { if (WebHaptics.isSupported) setHapticEnabled(prev => !prev); }}
-              onShowInfo={() => setHapticPending(true)}
-            />
+            <div onPointerDown={() => { hapticWasUnprimedRef.current = !vibrationPrimed; }}>
+              <HapticIndicatorButton
+                enabled={hapticEnabled && vibrationPrimed}
+                flashing={hapticFlashing}
+                canVibrate={WebHaptics.isSupported}
+                onToggle={() => {
+                  if (WebHaptics.isSupported) {
+                    if (hapticWasUnprimedRef.current) {
+                      hapticWasUnprimedRef.current = false;
+                    } else {
+                      setHapticEnabled(prev => !prev);
+                    }
+                  }
+                }}
+                onShowInfo={() => setHapticPending(true)}
+              />
+            </div>
           )}
           {isOrientationMode && (
             <WakeLockIndicatorButton
