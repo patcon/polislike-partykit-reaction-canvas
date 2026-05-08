@@ -247,9 +247,15 @@ interface ClearSignatureEvent {
 
 interface PersistedState {
   roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
+  stenoText: string;
 }
 
-type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent;
+interface StenoStartRecordingEvent { type: 'stenoStartRecording'; userId: string }
+interface StenoStopRecordingEvent  { type: 'stenoStopRecording';  userId: string }
+interface StenoAppendTextEvent     { type: 'stenoAppendText';     userId: string; text: string }
+interface StenoSetTextEvent        { type: 'stenoSetText';        userId: string; text: string }
+
+type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -321,6 +327,8 @@ export default class Server implements Party.Server {
   private roomHost: string | null = null;
   private readonly BAT_SIGNAL_THRESHOLD = 3;
   private seenUserIds = new Set<string>();
+  private stenoText: string = '';
+  private stenoLockUserId: string | null = null;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -362,11 +370,13 @@ export default class Server implements Party.Server {
   private getPersistedState(): PersistedState {
     return {
       roomSocialConfig: this.roomSocialConfig,
+      stenoText: this.stenoText,
     };
   }
 
   private applyPersistedState(saved: Partial<PersistedState>): void {
     if (saved.roomSocialConfig !== undefined) this.roomSocialConfig = saved.roomSocialConfig;
+    if (saved.stenoText !== undefined) this.stenoText = saved.stenoText;
   }
 
   private async persistState(): Promise<void> {
@@ -510,6 +520,8 @@ export default class Server implements Party.Server {
       defaultCursorColor: this.defaultCursorColor,
       ownValenceDisplay: this.ownValenceDisplay,
       valenceInputMode: this.valenceInputMode,
+      stenoText: this.stenoText,
+      stenoLockUserId: this.stenoLockUserId,
     }));
   }
 
@@ -525,6 +537,10 @@ export default class Server implements Party.Server {
 
     if (!isAdmin && userId) {
       this.room.broadcast(JSON.stringify({ type: 'userLeft', userId, wasViewer }));
+      if (this.stenoLockUserId === userId) {
+        this.stenoLockUserId = null;
+        this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId }));
+      }
     }
 
     const count = this.participantCount();
@@ -723,6 +739,27 @@ export default class Server implements Party.Server {
         this.room.broadcast(message);
       } else if (event.type === 'clearSignature') {
         this.room.broadcast(JSON.stringify({ type: 'signatureCleared', userId: event.userId }));
+      } else if (event.type === 'stenoStartRecording') {
+        if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) {
+          sender.send(JSON.stringify({ type: 'stenoLockDenied', lockHolderUserId: this.stenoLockUserId }));
+          return;
+        }
+        this.stenoLockUserId = event.userId;
+        this.room.broadcast(JSON.stringify({ type: 'stenoLockAcquired', userId: event.userId }));
+      } else if (event.type === 'stenoStopRecording') {
+        if (this.stenoLockUserId !== event.userId) return;
+        this.stenoLockUserId = null;
+        this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId: event.userId }));
+      } else if (event.type === 'stenoAppendText') {
+        if (this.stenoLockUserId !== event.userId) return;
+        this.stenoText += (this.stenoText.length > 0 ? ' ' : '') + event.text;
+        this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoText }));
+        void this.persistState();
+      } else if (event.type === 'stenoSetText') {
+        if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) return;
+        this.stenoText = event.text;
+        this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoText }));
+        void this.persistState();
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
