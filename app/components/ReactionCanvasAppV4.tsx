@@ -415,8 +415,11 @@ export default function ReactionCanvasAppV4() {
       {activeInterface === 'canvas' && activity === 'greeter' && (
         <GreeterPanel greeterConfig={serverGreeterConfig} />
       )}
+      {activeInterface === 'canvas' && activity === 'steno' && (
+        <StenoPanel room={room} userId={userId} />
+      )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter') ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter' && activity !== 'steno') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}

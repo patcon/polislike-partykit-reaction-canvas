@@ -46,7 +46,7 @@ const ROWS: { id: string; label: string; desc: string; patchable: boolean; activ
   { id: 'mood-tones',   label: 'Mood Tones',      desc: 'Generative audio keyed to audience reactions',  patchable: true,  activityMode: true  },
   { id: 'treevites',    label: 'Leaderboard',     desc: 'Invite stats — who invited whom',                patchable: true,  activityMode: true  },
   { id: 'greeter',      label: 'Greeter',         desc: 'Guild event attendee welcome list',              patchable: true,  activityMode: true  },
-  { id: 'steno',        label: 'Steno',           desc: 'Live shared speech-to-text transcript',          patchable: true,  activityMode: false },
+  { id: 'steno',        label: 'Steno',           desc: 'Live shared speech-to-text transcript',          patchable: true,  activityMode: true  },
 ];
 
 export default function InterfacesTab({
