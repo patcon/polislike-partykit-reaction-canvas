@@ -454,6 +454,8 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
           }}
           ownValenceDisplay={roomConfig.ownValenceDisplay}
           onChangeOwnValenceDisplay={roomConfig.sendOwnValenceDisplay}
+          valenceInputMode={roomConfig.valenceInputMode}
+          onChangeValenceInputMode={roomConfig.sendValenceInputMode}
           onClose={() => roomConfig.setCanvasSettingsOpen(false)}
         />
       )}

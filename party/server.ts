@@ -227,6 +227,11 @@ interface SetOwnValenceDisplayEvent {
   mode: 'background' | 'labels' | 'none';
 }
 
+interface SetValenceInputModeEvent {
+  type: 'setValenceInputMode';
+  mode: 'touch' | 'orientation-horizontal' | 'orientation-vertical';
+}
+
 interface StrokeSegmentEvent {
   type: 'strokeSegment';
   userId: string;
@@ -244,7 +249,7 @@ interface PersistedState {
   roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
 }
 
-type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | StrokeSegmentEvent | ClearSignatureEvent;
+type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -312,6 +317,7 @@ export default class Server implements Party.Server {
   private colorCursorsByVote: boolean = false;
   private defaultCursorColor: string = '#d4d4d4';
   private ownValenceDisplay: 'background' | 'labels' | 'none' = 'labels';
+  private valenceInputMode: 'touch' | 'orientation-horizontal' | 'orientation-vertical' = 'touch';
   private roomHost: string | null = null;
   private readonly BAT_SIGNAL_THRESHOLD = 3;
   private seenUserIds = new Set<string>();
@@ -503,6 +509,7 @@ export default class Server implements Party.Server {
       colorCursorsByVote: this.colorCursorsByVote,
       defaultCursorColor: this.defaultCursorColor,
       ownValenceDisplay: this.ownValenceDisplay,
+      valenceInputMode: this.valenceInputMode,
     }));
   }
 
@@ -686,6 +693,10 @@ export default class Server implements Party.Server {
         if (!this.adminConnectionIds.has(sender.id)) return;
         this.ownValenceDisplay = event.mode;
         this.room.broadcast(JSON.stringify({ type: 'ownValenceDisplayChanged', ownValenceDisplay: this.ownValenceDisplay }));
+      } else if (event.type === 'setValenceInputMode') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        this.valenceInputMode = event.mode;
+        this.room.broadcast(JSON.stringify({ type: 'valenceInputModeChanged', valenceInputMode: this.valenceInputMode }));
       } else if (event.type === 'setDefaultCursorColor') {
         if (!this.adminConnectionIds.has(sender.id)) return;
         this.defaultCursorColor = event.color;

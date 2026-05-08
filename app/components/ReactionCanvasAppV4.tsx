@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import SignatureLayer from "./SignatureLayer";
@@ -8,14 +8,14 @@ import InterfaceChipBar from "./InterfaceChipBar";
 import SocialPanel from "./SocialPanel";
 import MoodTonesPanel from "./MoodTonesPanel";
 import GreeterPanel from "./GreeterPanel";
-import type { ActivityMode, GreeterConfig, SocialConfig } from "../types";
+import type { ActivityMode, GreeterConfig, SocialConfig, ValenceInputMode } from "../types";
 import GithubUsernameModal from "./GithubUsernameModal";
 import FeedbackStarsModal from "./FeedbackStarsModal";
 import InterfacePushModal from "./InterfacePushModal";
 import HapticPushModal from "./HapticPushModal";
 import { WebHaptics } from "web-haptics";
 import { useWebHaptics } from "web-haptics/react";
-import { DEFAULT_ANCHORS, reactionLabelStyle } from "../utils/voteRegion";
+import { DEFAULT_ANCHORS, reactionLabelStyle, valenceToPosition, computeReactionRegion } from "../utils/voteRegion";
 import type { ReactionAnchors } from "../utils/voteRegion";
 import { getReactionLabelSet } from "../voteLabels";
 import type { ReactionLabelSet } from "../voteLabels";
@@ -143,6 +143,8 @@ export default function ReactionCanvasAppV4() {
   const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
+  const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
+  const [orientationPermission, setOrientationPermission] = useState<'unknown' | 'granted' | 'denied' | 'not-required'>('unknown');
   const [isPresenter, setIsPresenter] = useState(false);
   const [signatureStrokes, setSignatureStrokes] = useState<Record<string, Array<{ strokeId: string; points: Array<{ x: number; y: number }> }>>>({});
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
@@ -201,6 +203,92 @@ export default function ReactionCanvasAppV4() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
+
+  const requestOrientationPermission = useCallback(async () => {
+    if (typeof DeviceOrientationEvent !== 'undefined' &&
+        typeof (DeviceOrientationEvent as unknown as { requestPermission?: () => Promise<string> }).requestPermission === 'function') {
+      const result = await (DeviceOrientationEvent as unknown as { requestPermission: () => Promise<string> }).requestPermission();
+      setOrientationPermission(result === 'granted' ? 'granted' : 'denied');
+    } else {
+      setOrientationPermission('not-required');
+    }
+  }, []);
+
+  // When switching away from orientation mode, clear the cursor and touch indicator.
+  useEffect(() => {
+    if (valenceInputMode === 'touch') {
+      socketSendRef.current?.(JSON.stringify({
+        type: 'remove',
+        position: { x: 0, y: 0, timestamp: Date.now(), userId },
+      }));
+      setCanvasBackgroundReactionState(null);
+      setTouchPos(null);
+    }
+  }, [valenceInputMode]);
+
+  // Initialise permission state when entering an orientation mode.
+  useEffect(() => {
+    if (valenceInputMode === 'touch') return;
+    // Chrome 74+ blocks DeviceOrientationEvent on non-secure (non-HTTPS, non-localhost) pages.
+    if (!window.isSecureContext) {
+      setOrientationPermission('denied');
+      return;
+    }
+    if (typeof DeviceOrientationEvent === 'undefined') {
+      setOrientationPermission('not-required');
+      return;
+    }
+    if (typeof (DeviceOrientationEvent as unknown as { requestPermission?: unknown }).requestPermission !== 'function') {
+      // Non-iOS: no explicit permission needed.
+      setOrientationPermission('not-required');
+    }
+    // iOS: leave as 'unknown' so the permission banner is shown.
+  }, [valenceInputMode]);
+
+  const anchorsRef = useRef(serverAnchors ?? DEFAULT_ANCHORS);
+  anchorsRef.current = serverAnchors ?? DEFAULT_ANCHORS;
+
+  // Orientation → cursor send loop.
+  useEffect(() => {
+    if (valenceInputMode === 'touch') return;
+    if (orientationPermission !== 'granted' && orientationPermission !== 'not-required') return;
+
+    let lastSent = 0;
+
+    const handleOrientation = (e: DeviceOrientationEvent) => {
+      if (e.beta === null) return;
+      const beta = e.beta;
+      const rawValence = valenceInputMode === 'orientation-horizontal'
+        ? Math.cos(beta * Math.PI / 180)
+        : Math.sin(beta * Math.PI / 180);
+      const valence = Math.max(-1, Math.min(1, rawValence));
+      const pos = valenceToPosition(valence, anchorsRef.current);
+
+      const now = Date.now();
+      if (now - lastSent < 50) return;
+      lastSent = now;
+
+      socketSendRef.current?.(JSON.stringify({
+        type: 'touch',
+        position: { x: pos.x, y: pos.y, timestamp: now, userId },
+      }));
+
+      const reactionState = computeReactionRegion(pos.x, pos.y, anchorsRef.current);
+      setCanvasBackgroundReactionState(reactionState);
+      setTouchPos({ x: (pos.x / 100) * window.innerWidth, y: (pos.y / 100) * window.innerHeight });
+    };
+
+    window.addEventListener('deviceorientation', handleOrientation);
+    return () => {
+      window.removeEventListener('deviceorientation', handleOrientation);
+      socketSendRef.current?.(JSON.stringify({
+        type: 'remove',
+        position: { x: 0, y: 0, timestamp: Date.now(), userId },
+      }));
+      setCanvasBackgroundReactionState(null);
+      setTouchPos(null);
+    };
+  }, [valenceInputMode, orientationPermission, userId]);
 
   const roomHasSpace = userCap === null || presenceCount < userCap;
 
@@ -312,6 +400,7 @@ export default function ReactionCanvasAppV4() {
             disableCursorValence={activity === 'image-canvas'}
             disableBackgroundValence={activity === 'image-canvas'}
             onOwnValenceDisplayChange={setOwnValenceDisplay}
+            onValenceInputModeChange={setValenceInputMode}
             currentReactionState={canvasBackgroundReactionState}
             heightOffset={chipBarOffset}
             onPresenceCount={setPresenceCount}
@@ -392,6 +481,19 @@ export default function ReactionCanvasAppV4() {
               {nowLabel}
             </div>
           )}
+          {valenceInputMode !== 'touch' && orientationPermission === 'unknown' && (
+            <div className="viewer-mode-banner">
+              Tap to enable device orientation tracking
+              <button className="viewer-join-btn" onClick={requestOrientationPermission}>Enable</button>
+            </div>
+          )}
+          {valenceInputMode !== 'touch' && orientationPermission === 'denied' && (
+            <div className="viewer-mode-banner">
+              {!window.isSecureContext
+                ? 'Orientation needs HTTPS — works on the deployed app, not over local network HTTP.'
+                : 'Orientation permission denied — switch back to Touch mode to react.'}
+            </div>
+          )}
           {!isViewer && activity !== 'social' && activity !== 'greeter' && activity !== 'signature' && (
             <TouchLayer
               room={room}
@@ -404,6 +506,7 @@ export default function ReactionCanvasAppV4() {
               heightOffset={chipBarOffset}
               anchors={anchors}
               imageUrl={activity === 'image-canvas' ? (serverImageUrl || undefined) : undefined}
+              disabled={valenceInputMode !== 'touch'}
             />
           )}
           {activity === 'signature' && !isPresenter && !isViewer && (

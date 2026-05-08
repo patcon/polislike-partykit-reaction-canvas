@@ -37,6 +37,7 @@ interface TouchLayerProps {
   anchors?: ReactionAnchors;
   onCursorEvent?: (type: 'move' | 'touch' | 'remove', pos: { x: number; y: number }) => void;
   imageUrl?: string; // When set, normalize coordinates relative to displayed image bounds
+  disabled?: boolean; // When true, keeps socket alive but ignores all pointer events
 }
 
 export default function TouchLayer({
@@ -52,6 +53,7 @@ export default function TouchLayer({
   anchors,
   onCursorEvent,
   imageUrl,
+  disabled = false,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [userReactionState, setUserReactionState] = useState<ReactionState>(null);
@@ -296,15 +298,15 @@ export default function TouchLayer({
         zIndex: 10, // Higher z-index to capture events
         touchAction: 'none',
         cursor: 'default',
-        pointerEvents: 'auto',
+        pointerEvents: disabled ? 'none' : 'auto',
         backgroundColor: 'transparent' // Completely transparent
       }}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
-      onTouchCancel={handleTouchEnd}
+      onMouseMove={disabled ? undefined : handleMouseMove}
+      onMouseLeave={disabled ? undefined : handleMouseLeave}
+      onTouchStart={disabled ? undefined : handleTouchStart}
+      onTouchMove={disabled ? undefined : handleTouchMove}
+      onTouchEnd={disabled ? undefined : handleTouchEnd}
+      onTouchCancel={disabled ? undefined : handleTouchEnd}
     />
   );
 }

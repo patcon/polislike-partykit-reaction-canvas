@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
+## Week 25 (2026-05-11)
+
+### Added
+- Canvas settings modal: **Valence Input tab** — emcee can now switch participants between Touch (default), Orientation (Horizontal), and Orientation (Vertical) input modes. In orientation modes the cursor travels along the disagree → pass → agree path based on phone tilt angle. Requires HTTPS (works on deployed app; blocked by Chrome on local-network HTTP). iOS prompts for permission; Android and other platforms require no permission.
+
 ## Week 24 (2026-05-04)
 
 ### Added

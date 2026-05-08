@@ -55,6 +55,7 @@ interface CanvasProps {
   onNowLabelChange?: (label: string) => void;
   onInviteEdges?: (edges: Record<string, string>) => void;
   onOwnValenceDisplayChange?: (mode: 'background' | 'labels' | 'none') => void;
+  onValenceInputModeChange?: (mode: 'touch' | 'orientation-horizontal' | 'orientation-vertical') => void;
   onStrokeSegment?: (userId: string, strokeId: string, points: Array<{ x: number; y: number }>, isFinal: boolean) => void;
   onSignatureCleared?: (userId: string) => void;
   onConnectedUsers?: (ids: string[]) => void;
@@ -83,7 +84,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
@@ -154,6 +155,9 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
             const mode = data.ownValenceDisplay as 'background' | 'labels' | 'none';
             setOwnValenceDisplay(mode);
             onOwnValenceDisplayChange?.(mode);
+          }
+          if ('valenceInputMode' in data && data.valenceInputMode) {
+            onValenceInputModeChange?.(data.valenceInputMode as 'touch' | 'orientation-horizontal' | 'orientation-vertical');
           }
           if ('currentActivity' in data) {
             const act = data.currentActivity ?? 'canvas';
@@ -248,6 +252,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           const mode = data.ownValenceDisplay as 'background' | 'labels' | 'none';
           setOwnValenceDisplay(mode);
           onOwnValenceDisplayChange?.(mode);
+          return;
+        }
+
+        if (data.type === 'valenceInputModeChanged') {
+          onValenceInputModeChange?.(data.valenceInputMode as 'touch' | 'orientation-horizontal' | 'orientation-vertical');
           return;
         }
 
