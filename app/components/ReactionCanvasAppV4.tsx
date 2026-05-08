@@ -159,6 +159,9 @@ export default function ReactionCanvasAppV4() {
     () => localStorage.getItem('v4-suppress-haptic-modal') !== 'false'
   );
   const [hapticEnabled, setHapticEnabled] = useState(WebHaptics.isSupported);
+  // Stays false on supported devices until first touch primes the Vibration API.
+  // Initialized to true on unsupported devices so the button just shows as disabled normally.
+  const [vibrationPrimed, setVibrationPrimed] = useState(!WebHaptics.isSupported);
   const [hapticFlashing, setHapticFlashing] = useState(false);
   const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const hasConnectedRef = useRef(false);
@@ -212,7 +215,10 @@ export default function ReactionCanvasAppV4() {
   // on first touch so socket-triggered buzzes work without needing a manual toggle.
   useEffect(() => {
     if (!WebHaptics.isSupported) return;
-    const prime = () => navigator.vibrate(0);
+    const prime = () => {
+      navigator.vibrate(0);
+      setVibrationPrimed(true);
+    };
     document.addEventListener('touchstart', prime, { once: true });
     return () => document.removeEventListener('touchstart', prime);
   }, []);
@@ -450,7 +456,7 @@ export default function ReactionCanvasAppV4() {
           <ShareQRButton selfId={userId} selfChain={selfChain} />
           {activity !== 'signature' && (
             <HapticIndicatorButton
-              enabled={hapticEnabled}
+              enabled={hapticEnabled && vibrationPrimed}
               flashing={hapticFlashing}
               canVibrate={WebHaptics.isSupported}
               onToggle={() => { if (WebHaptics.isSupported) setHapticEnabled(prev => !prev); }}
