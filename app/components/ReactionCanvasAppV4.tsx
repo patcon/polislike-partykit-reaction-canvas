@@ -208,6 +208,15 @@ export default function ReactionCanvasAppV4() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Android Chrome gates navigator.vibrate() on prior user interaction. Prime it
+  // on first touch so socket-triggered buzzes work without needing a manual toggle.
+  useEffect(() => {
+    if (!WebHaptics.isSupported) return;
+    const prime = () => navigator.vibrate(0);
+    document.addEventListener('touchstart', prime, { once: true });
+    return () => document.removeEventListener('touchstart', prime);
+  }, []);
+
   const acquireWakeLock = useCallback(async () => {
     if (!('wakeLock' in navigator)) return;
     try {
