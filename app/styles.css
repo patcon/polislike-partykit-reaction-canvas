@@ -1963,6 +1963,18 @@ body {
   overflow: hidden;
 }
 
+/* Wake lock button — inverted for dark panel background, anchored left in footer */
+.steno-panel .wakelock-indicator-btn {
+  position: absolute;
+  left: 8px;
+  top: unset;
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.steno-panel .wakelock-indicator-btn--off {
+  color: rgba(255, 255, 255, 0.15);
+}
+
 .steno-body {
   flex: 1;
   display: flex;
@@ -2013,10 +2025,10 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px;
   padding: 10px 12px 14px;
   border-top: 1px solid #222;
   flex-shrink: 0;
+  position: relative;
 }
 
 .steno-record-btn {
@@ -2045,8 +2057,3 @@ body {
   cursor: not-allowed;
 }
 
-.steno-wakelock-hint {
-  color: rgba(255, 255, 255, 0.3);
-  display: flex;
-  align-items: center;
-}

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../utils/partyHost";
 import { MdKeyboard, MdStopCircle } from "react-icons/md";
-import { MdScreenLockLandscape } from "react-icons/md";
+import WakeLockIndicatorButton from "./WakeLockIndicatorButton";
 
 interface StenoPanelProps {
   room: string;
@@ -18,6 +18,7 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
   const [interimText, setInterimText] = useState('');
   const [lockHolder, setLockHolder] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
+  const [wakeLockActive, setWakeLockActive] = useState(false);
   const isRecordingRef = useRef(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,6 +33,7 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
     if (!('wakeLock' in navigator)) return;
     try {
       wakeLockRef.current = await navigator.wakeLock.request('screen');
+      setWakeLockActive(true);
     } catch { /* unavailable: low battery, non-secure context, etc. */ }
   }, []);
 
@@ -39,6 +41,7 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
     if (wakeLockRef.current) {
       await wakeLockRef.current.release();
       wakeLockRef.current = null;
+      setWakeLockActive(false);
     }
   }, []);
 
@@ -166,11 +169,11 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
         {interimText && <div className="steno-interim">{interimText}</div>}
       </div>
       <div className="steno-footer">
-        {isRecording && (
-          <span className="steno-wakelock-hint" title="Screen lock active">
-            <MdScreenLockLandscape size={16} />
-          </span>
-        )}
+        <WakeLockIndicatorButton
+          enabled={isRecording}
+          active={wakeLockActive}
+          onToggle={() => {}}
+        />
         <button
           className={`steno-record-btn${isRecording ? ' steno-record-btn--active' : ''}${isLockedByOther ? ' steno-record-btn--locked' : ''}`}
           onClick={isRecording ? stopRecording : startRecording}
