@@ -3,6 +3,7 @@ import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../../utils/partyHost";
 import { MdKeyboard, MdStopCircle } from "react-icons/md";
 import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
+import { extractPlainText } from "../../utils/vttUtils";
 
 interface StenoPanelProps {
   room: string;
@@ -14,19 +15,19 @@ const SpeechRecognitionCtor: (new () => any) | null =
   (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 export default function StenoPanel({ room, userId }: StenoPanelProps) {
-  const [stenoText, setStenoText] = useState('');
+  const [stenoVtt, setStenoVtt] = useState('WEBVTT\n');
   const [interimText, setInterimText] = useState('');
   const [lockHolder, setLockHolder] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
   const [wakeLockActive, setWakeLockActive] = useState(false);
+  const [viewMode, setViewMode] = useState<'vtt' | 'plaintext'>('vtt');
   const isRecordingRef = useRef(false);
   const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
-  // baseTextRef: server text captured when recording started; carried forward across
-  // onend/restart cycles so each new recognition run appends to the right base.
-  // sessionFinalRef: transcript of the latest final result in the current run.
-  const baseTextRef = useRef('');
+  // segmentStartRef: ISO timestamp captured when first interim result arrives for a speech segment.
+  // sessionFinalRef: deduplicates repeated transcripts across onend/restart cycles.
+  const segmentStartRef = useRef<string | null>(null);
   const sessionFinalRef = useRef('');
 
   const acquireWakeLock = useCallback(async () => {
@@ -60,11 +61,11 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
     onMessage(evt) {
       const data = JSON.parse(evt.data);
       if (data.type === 'connected') {
-        setStenoText(data.stenoText ?? '');
+        setStenoVtt(data.stenoVtt ?? 'WEBVTT\n');
         setLockHolder(data.stenoLockUserId ?? null);
         return;
       }
-      if (data.type === 'stenoTextChanged') { setStenoText(data.text); return; }
+      if (data.type === 'stenoTextChanged') { setStenoVtt(data.text); return; }
       if (data.type === 'stenoLockAcquired') { setLockHolder(data.userId); return; }
       if (data.type === 'stenoLockReleased') {
         setLockHolder(null);
@@ -86,13 +87,13 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
 
   const startRecording = useCallback(() => {
     socket.send(JSON.stringify({ type: 'stenoStartRecording', userId }));
-    baseTextRef.current = stenoText;
     sessionFinalRef.current = '';
+    segmentStartRef.current = null;
     setIsRecording(true);
     isRecordingRef.current = true;
     acquireWakeLock();
     try { recognitionRef.current?.start(); } catch { /* ignore if already started */ }
-  }, [socket, userId, acquireWakeLock, stenoText]);
+  }, [socket, userId, acquireWakeLock]);
 
   useEffect(() => {
     if (!SpeechRecognitionCtor) return;
@@ -104,8 +105,17 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     r.onresult = (e: any) => {
       let interim = '';
+      let hasInterim = false;
       for (let i = 0; i < e.results.length; i++) {
-        if (!e.results[i].isFinal) interim += e.results[i][0].transcript;
+        if (!e.results[i].isFinal) {
+          interim += e.results[i][0].transcript;
+          hasInterim = true;
+        }
+      }
+
+      // Capture cue start time on first interim result of a new speech segment.
+      if (hasInterim && !segmentStartRef.current) {
+        segmentStartRef.current = new Date().toISOString();
       }
       setInterimText(interim);
 
@@ -116,13 +126,16 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
       const latest = e.results[e.resultIndex];
       if (!latest.isFinal) return;
 
+      const endTime = new Date().toISOString();
+      const startTime = segmentStartRef.current ?? endTime;
+      segmentStartRef.current = null;
+
       const transcript = latest[0].transcript.trim();
       if (!transcript || transcript === sessionFinalRef.current) return;
 
       sessionFinalRef.current = transcript;
-      const base = baseTextRef.current.trimEnd();
-      const fullText = base ? `${base} ${transcript}` : transcript;
-      socket.send(JSON.stringify({ type: 'stenoSetText', userId, text: fullText }));
+      const cue = `${startTime} --> ${endTime}\n${transcript}`;
+      socket.send(JSON.stringify({ type: 'stenoAppendText', userId, text: cue }));
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -135,14 +148,9 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
 
     r.onend = () => {
       // Mobile browsers stop recognition after each phrase; restart if still recording.
-      // Promote sessionFinalRef into baseTextRef so the next run appends correctly.
       if (isRecordingRef.current) {
-        const session = sessionFinalRef.current.trim();
-        if (session) {
-          const base = baseTextRef.current.trimEnd();
-          baseTextRef.current = base ? `${base} ${session}` : session;
-          sessionFinalRef.current = '';
-        }
+        segmentStartRef.current = null;
+        sessionFinalRef.current = '';
         try { r.start(); } catch { /* ignore */ }
       }
     };
@@ -155,14 +163,24 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
 
   return (
     <div className="steno-panel">
+      <div className="steno-view-toggle">
+        <button
+          className={`steno-view-btn${viewMode === 'vtt' ? ' steno-view-btn--active' : ''}`}
+          onClick={() => setViewMode('vtt')}
+        >VTT</button>
+        <button
+          className={`steno-view-btn${viewMode === 'plaintext' ? ' steno-view-btn--active' : ''}`}
+          onClick={() => setViewMode('plaintext')}
+        >Plaintext</button>
+      </div>
       <div className="steno-body">
         <textarea
           className="steno-textarea"
-          value={stenoText}
-          placeholder="Transcription will appear here..."
-          readOnly={isLockedByOther}
+          value={viewMode === 'vtt' ? stenoVtt : extractPlainText(stenoVtt)}
+          placeholder={viewMode === 'vtt' ? 'WEBVTT\n\n...' : 'Transcription will appear here...'}
+          readOnly={isLockedByOther || viewMode === 'plaintext'}
           onChange={e => {
-            if (isLockedByOther) return;
+            if (isLockedByOther || viewMode === 'plaintext') return;
             socket.send(JSON.stringify({ type: 'stenoSetText', userId, text: e.target.value }));
           }}
         />

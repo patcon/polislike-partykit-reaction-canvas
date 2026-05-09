@@ -146,6 +146,30 @@
   color: rgba(255, 255, 255, 0.15);
 }
 
+.steno-view-toggle {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px 0;
+  flex-shrink: 0;
+}
+
+.steno-view-btn {
+  padding: 4px 12px;
+  background: transparent;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #666;
+  font-family: monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.steno-view-btn--active {
+  border-color: #888;
+  color: #ccc;
+  background: #1e1e1e;
+}
+
 .steno-body {
   flex: 1;
   display: flex;
