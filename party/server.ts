@@ -247,7 +247,7 @@ interface ClearSignatureEvent {
 
 interface PersistedState {
   roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
-  stenoText: string;
+  stenoVtt: string;
 }
 
 interface StenoStartRecordingEvent { type: 'stenoStartRecording'; userId: string }
@@ -327,7 +327,7 @@ export default class Server implements Party.Server {
   private roomHost: string | null = null;
   private readonly BAT_SIGNAL_THRESHOLD = 3;
   private seenUserIds = new Set<string>();
-  private stenoText: string = '';
+  private stenoVtt: string = 'WEBVTT\n';
   private stenoLockUserId: string | null = null;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
@@ -370,13 +370,13 @@ export default class Server implements Party.Server {
   private getPersistedState(): PersistedState {
     return {
       roomSocialConfig: this.roomSocialConfig,
-      stenoText: this.stenoText,
+      stenoVtt: this.stenoVtt,
     };
   }
 
   private applyPersistedState(saved: Partial<PersistedState>): void {
     if (saved.roomSocialConfig !== undefined) this.roomSocialConfig = saved.roomSocialConfig;
-    if (saved.stenoText !== undefined) this.stenoText = saved.stenoText;
+    if (saved.stenoVtt !== undefined) this.stenoVtt = saved.stenoVtt;
   }
 
   private async persistState(): Promise<void> {
@@ -520,7 +520,7 @@ export default class Server implements Party.Server {
       defaultCursorColor: this.defaultCursorColor,
       ownValenceDisplay: this.ownValenceDisplay,
       valenceInputMode: this.valenceInputMode,
-      stenoText: this.stenoText,
+      stenoVtt: this.stenoVtt,
       stenoLockUserId: this.stenoLockUserId,
     }));
   }
@@ -752,13 +752,13 @@ export default class Server implements Party.Server {
         this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId: event.userId }));
       } else if (event.type === 'stenoAppendText') {
         if (this.stenoLockUserId !== event.userId) return;
-        this.stenoText += (this.stenoText.length > 0 ? ' ' : '') + event.text;
-        this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoText }));
+        this.stenoVtt += '\n' + event.text + '\n';
+        this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
         void this.persistState();
       } else if (event.type === 'stenoSetText') {
         if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) return;
-        this.stenoText = event.text;
-        this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoText }));
+        this.stenoVtt = event.text;
+        this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
         void this.persistState();
       }
     } catch (e) {

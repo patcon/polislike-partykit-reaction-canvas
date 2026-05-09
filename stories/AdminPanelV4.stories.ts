@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within } from 'storybook/test';
-import AdminPanelV4 from '../app/components/AdminPanelV4';
+import AdminPanelV4 from '../app/components/panels/AdminPanelV4';
 
 // AdminPanelV4 is socket-driven: the PartyKit socket is mocked in Storybook
 // (no-op, readyState: CLOSED), so server-pushed state (cursors, connected users,

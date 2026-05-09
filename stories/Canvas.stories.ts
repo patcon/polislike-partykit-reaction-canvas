@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import Canvas from '../app/components/Canvas';
+import Canvas from '../app/components/shared/Canvas';
 
 // Note: Canvas uses usePartySocket internally (mocked in Storybook).
 // Cursor dots come from real-time socket messages so won't appear here.

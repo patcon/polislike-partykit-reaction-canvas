@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import ReactionCanvasAppV2 from '../app/components/ReactionCanvasAppV2';
+import ReactionCanvasAppV2 from '../app/components/apps/ReactionCanvasAppV2';
 
 const meta = {
   title: 'App/ReactionCanvasAppV2',

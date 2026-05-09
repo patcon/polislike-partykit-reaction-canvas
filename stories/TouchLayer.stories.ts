@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { fn } from 'storybook/test';
-import TouchLayer from '../app/components/TouchLayer';
+import TouchLayer from '../app/components/shared/TouchLayer';
 
 // TouchLayer is a fully transparent overlay div that captures mouse/touch events
 // and translates cursor position into reaction state (positive/negative/neutral) based on

@@ -1,0 +1,243 @@
+/* V3: Recording badge */
+.v3-rec-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(220, 30, 30, 0.85);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.v3-rec-badge--off {
+  background: rgba(100, 100, 100, 0.45);
+  color: rgba(255, 255, 255, 0.5);
+}
+
+.v3-rec-badge--left {
+  right: unset;
+  left: 8px;
+  top: 100px;
+}
+
+/* V3: Admin panel container */
+.v3-admin-panel {
+  width: 100vw;
+  min-height: 100vh;
+  padding: 32px;
+  font-family: sans-serif;
+  background: #1a1a1a;
+  color: #eee;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+/* V3: Admin buttons */
+.v3-admin-btn {
+  display: inline-block;
+  padding: 12px 24px;
+  font-size: 16px;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+}
+
+.v3-admin-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.v3-admin-btn-record {
+  background: #c0392b;
+  color: #fff;
+}
+
+.v3-admin-btn-record:hover {
+  background: #e74c3c;
+}
+
+.v3-admin-btn-stop {
+  background: #555;
+  color: #fff;
+}
+
+.v3-admin-btn-stop:hover {
+  background: #777;
+}
+
+.v3-admin-btn--destructive {
+  background: #dc3545;
+  color: #fff;
+}
+
+.v3-admin-btn--destructive:hover:not(:disabled) {
+  background: #c82333;
+}
+
+.v3-admin-btn--destructive:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* AdminPanelV4 mobile-friendly tab bar */
+.admin-v4-tab-bar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+}
+
+.admin-v4-tab-bar::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* Responsive ghost cursors control */
+@media (max-width: 768px) {
+  .ghost-cursors-control {
+    margin-top: 15px;
+    padding: 12px;
+  }
+
+  .ghost-cursors-checkbox {
+    font-size: 14px;
+  }
+
+  .ghost-cursors-description {
+    font-size: 12px;
+  }
+}
+
+/* Viewer mode */
+.v2-counter-dim {
+  color: #888;
+  font-size: 0.85em;
+}
+
+.canvas-now-label {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #eee;
+  font-size: 1.2rem;
+  font-family: 'DM Mono', monospace;
+  pointer-events: none;
+  z-index: 10;
+  text-align: center;
+  background: rgba(0, 0, 0, 0.4);
+  padding: 4px 16px;
+  border-radius: 4px;
+  max-width: min(60vw, 380px);
+  width: max-content;
+  white-space: normal;
+  word-break: break-word;
+}
+
+@media (min-width: 768px) {
+  .canvas-now-label {
+    max-width: 75vw;
+  }
+}
+
+.viewer-mode-banner {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.75);
+  color: #fff;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 14px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap;
+}
+
+.viewer-join-btn {
+  background: #4a7;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.github-corner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 9999;
+}
+
+.github-corner svg {
+  fill: #151513;
+  color: #fff;
+  transform: scaleX(-1);
+}
+
+.github-corner:hover .octo-arm {
+  animation: octocat-wave 560ms ease-in-out;
+}
+
+@keyframes octocat-wave {
+  0%, 100% { transform: rotate(0); }
+  20%, 60% { transform: rotate(-25deg); }
+  40%, 80% { transform: rotate(10deg); }
+}
+
+@media (max-width: 500px) {
+  .github-corner:hover .octo-arm { animation: none; }
+  .github-corner .octo-arm { animation: octocat-wave 560ms ease-in-out; }
+}
+
+/* V5: Async YouTube + Reaction Canvas */
+.v5-app-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.v5-youtube-container {
+  position: relative;
+  width: 100%;
+  flex-shrink: 0;
+  background: #000;
+}
+
+.v5-youtube-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  display: block;
+}
+
+.v5-vote-canvas-container {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+
+.v5-touch-indicator {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: rgba(30, 120, 255, 0.35);
+  border: 3px solid rgba(30, 120, 255, 0.75);
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  z-index: 5;
+}
+
