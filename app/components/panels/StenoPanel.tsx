@@ -181,7 +181,13 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
           readOnly={isLockedByOther || viewMode === 'plaintext'}
           onChange={e => {
             if (isLockedByOther || viewMode === 'plaintext') return;
-            socket.send(JSON.stringify({ type: 'stenoSetText', userId, text: e.target.value }));
+            let text = e.target.value;
+            if (!text.startsWith('WEBVTT\n')) {
+              const after = text.indexOf('\n');
+              text = 'WEBVTT\n' + (after >= 0 ? text.slice(after + 1) : '');
+            }
+            setStenoVtt(text);
+            socket.send(JSON.stringify({ type: 'stenoSetText', userId, text }));
           }}
         />
         {interimText && <div className="steno-interim">{interimText}</div>}
