@@ -40,9 +40,9 @@ export function useEmbeddingWorker() {
             setPhase({ status: 'error', message: msg.message }); break
         }
       }
-      w.onerror = (e) => {
-        console.error('[embeddingWorker] uncaught error', e)
-        setPhase({ status: 'error', message: `Worker error: ${e.message ?? 'unknown'}` })
+      w.onerror = (e: ErrorEvent) => {
+        console.error('[embeddingWorker] uncaught error', e.message, e.filename, `line ${e.lineno}`, e)
+        setPhase({ status: 'error', message: `Worker error: ${e.message || '(no message — check console)'}` })
       }
       w.onmessageerror = (e) => {
         console.error('[embeddingWorker] message deserialisation error', e)
