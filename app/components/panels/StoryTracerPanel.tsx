@@ -18,6 +18,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const [stenoVtt, setStenoVtt] = useState('WEBVTT\n');
   const [storedMeta, setStoredMeta] = useState<StoryTracerMeta | null>(null);
   const [isRerunMode, setIsRerunMode] = useState(false);
+  const [segmentsOpen, setSegmentsOpen] = useState(false);
 
   const [selectedModel, setSelectedModel] = useState<EmbeddingModelId>(() => {
     const stored = localStorage.getItem(LS_MODEL);
@@ -182,7 +183,18 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
           </div>
 
           {hasContent && chunks.length > 0 && (
-            <div className="story-tracer-preview">→ {chunks.length} segment{chunks.length !== 1 ? 's' : ''}</div>
+            <div className={`story-tracer-segments${segmentsOpen ? ' story-tracer-segments--open' : ''}`}>
+              <button className="story-tracer-segments-summary" onClick={() => setSegmentsOpen(o => !o)}>
+                {segmentsOpen ? '▾' : '▸'} {chunks.length} segment{chunks.length !== 1 ? 's' : ''}
+              </button>
+              {segmentsOpen && (
+                <ol className="story-tracer-segments-list">
+                  {chunks.map((chunk, i) => (
+                    <li key={i} className="story-tracer-segment-item">{chunk}</li>
+                  ))}
+                </ol>
+              )}
+            </div>
           )}
         </div>
       )}
