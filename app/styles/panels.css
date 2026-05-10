@@ -468,6 +468,13 @@
   border-radius: 6px;
 }
 
+.story-tracer-3d-container {
+  flex: 1;
+  min-height: 0;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
 .story-tracer-result {
   display: flex;
   flex-direction: column;
@@ -476,6 +483,7 @@
   background: #111d11;
   border: 1px solid #2a3d2a;
   border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .story-tracer-result-text {

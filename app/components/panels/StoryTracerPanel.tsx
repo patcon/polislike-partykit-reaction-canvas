@@ -4,6 +4,7 @@ import { getPartySocketConfig } from '../../utils/partyHost';
 import { useEmbeddingWorker, EMBEDDING_MODELS, type EmbeddingModelId } from '../../utils/useEmbeddingWorker';
 import { parseVttCues, computeChunks, getTimestampForWordIndex } from '../../utils/storyTracerUtils';
 import type { StoryTracerMeta, StoryTracerPoint } from '../../types';
+import NarrativePath3D from './NarrativePath3D';
 
 interface StoryTracerPanelProps {
   room: string;
@@ -17,6 +18,7 @@ const LS_OVERLAP = 'story-tracer-overlap';
 export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps) {
   const [stenoVtt, setStenoVtt] = useState('WEBVTT\n');
   const [storedMeta, setStoredMeta] = useState<StoryTracerMeta | null>(null);
+  const [storedPoints, setStoredPoints] = useState<StoryTracerPoint[] | null>(null);
   const [isRerunMode, setIsRerunMode] = useState(false);
   const [segmentsOpen, setSegmentsOpen] = useState(false);
 
@@ -40,11 +42,13 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
       if (data.type === 'connected') {
         setStenoVtt(data.stenoVtt ?? 'WEBVTT\n');
         setStoredMeta(data.storyTracerMeta ?? null);
+        setStoredPoints(data.storyTracerPoints ?? null);
         return;
       }
       if (data.type === 'stenoTextChanged') { setStenoVtt(data.text); return; }
       if (data.type === 'storyTracerPointsChanged') {
         setStoredMeta(data.meta ?? null);
+        setStoredPoints(data.points ?? null);
         return;
       }
     },
@@ -242,6 +246,12 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
 
       {phase.status === 'error' && (
         <div className="story-tracer-error">⚠ {phase.message}</div>
+      )}
+
+      {showResult && storedPoints && (
+        <div className="story-tracer-3d-container">
+          <NarrativePath3D points={storedPoints} />
+        </div>
       )}
 
       {showResult && (
