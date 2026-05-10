@@ -4,8 +4,9 @@
   "private": true,
   "packageManager": "pnpm@10.18.0",
   "scripts": {
-    "dev": "partykit dev --live",
-    "dev-https": "partykit dev --live --https",
+    "build:worker": "esbuild app/workers/embeddingWorker.ts --bundle --format=esm --platform=browser --outfile=public/embeddingWorker.js",
+    "dev": "pnpm run build:worker && partykit dev --live",
+    "dev-https": "pnpm run build:worker && partykit dev --live --https",
     "deploy": "npm run cachebust && partykit deploy",
     "deploy:staging": "pnpm run cachebust && partykit deploy --preview staging",
     "cachebust": "node scripts/build-with-cachebust.js",

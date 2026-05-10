@@ -168,6 +168,7 @@ dist
 
 .partykit
 .DS_Store
+public/embeddingWorker.js
 
 *storybook.log
 storybook-static

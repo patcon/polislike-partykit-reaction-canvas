@@ -24,7 +24,7 @@ export function useEmbeddingWorker() {
 
   const getWorker = useCallback(() => {
     if (!workerRef.current) {
-      const w = new Worker(new URL('../workers/embeddingWorker.ts', import.meta.url), { type: 'module' })
+      const w = new Worker('/embeddingWorker.js', { type: 'module' })
       w.onmessage = (e: MessageEvent<WorkerEvent>) => {
         const msg = e.data
         switch (msg.type) {
