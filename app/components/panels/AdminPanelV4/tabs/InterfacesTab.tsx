@@ -47,6 +47,7 @@ const ROWS: { id: string; label: string; desc: string; patchable: boolean; activ
   { id: 'treevites',    label: 'Leaderboard',     desc: 'Invite stats — who invited whom',                patchable: true,  activityMode: true  },
   { id: 'greeter',      label: 'Greeter',         desc: 'Guild event attendee welcome list',              patchable: true,  activityMode: true  },
   { id: 'steno',        label: 'Steno',           desc: 'Live shared speech-to-text transcript',          patchable: true,  activityMode: true  },
+  { id: 'story-tracer', label: 'Story Tracer',   desc: 'Semantic 3D narrative path from VTT transcript',  patchable: true,  activityMode: true  },
 ];
 
 export default function InterfacesTab({

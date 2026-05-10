@@ -4,10 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 25 (2026-05-11)
 
-### Fixed
-- **Steno: max 5-second segment duration** — VTT cues are now force-flushed after 5 seconds of continuous speech even if no natural pause is detected, preventing ~60-second monolithic chunks in rapid panel discussions where speakers don't pause between turns.
-
 ### Added
+- **Story Tracer panel** — a new V4 interface that takes the current Steno VTT transcript and processes it into a 3D semantic narrative path using text embeddings + UMAP. Unlock via `?interface=story-tracer`. Features: model selection (MiniLM-L6/L12, MPNet, Multilingual MiniLM), sliding window chunking (configurable size + overlap), progress bars for model download / embedding / UMAP reduction, cancel and rerun support, server-persisted 3D points (with approximate wall-clock timestamps from VTT cues), and an expandable preview of the text segments before running.
+- **Story Tracer: 3D narrative path viewer** — after computing, a Three.js scene renders the narrative path as a green→red gradient line (green = start, red = end) with orbit/zoom controls. The viewer fills the panel above the Rerun/Clear controls.
 - **Steno: VTT transcript format** — the Steno panel now stores transcriptions as WebVTT with absolute ISO 8601 wall-clock timestamps (e.g. `2026-05-09T14:30:05Z --> 2026-05-09T14:30:08Z`) so cues are independently timestamped without relative-offset math. A VTT / Plaintext toggle switches between the editable raw VTT view and a read-only concatenated text view.
 - **Steno interface** — a new V4 interface for live shared speech-to-text transcription. Unlock via `?interface=steno`, or push it to participants via the Emcee → Participants tab. Features: streaming Web Speech API (`continuous` mode with interim-text preview), a single-user recording mutex (one person transcribes at a time), server-persisted transcript shared live to all connected participants, Wake Lock while recording, and editable textarea (read-only for observers while another user holds the lock). ([#85](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/85))
 - Canvas settings modal: **Valence Input tab** — emcee can now switch participants between four input modes ([#82](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/82)):
@@ -18,10 +17,10 @@ All notable changes to this project will be documented in this file. Releases cu
 - In orientation modes the cursor travels through the triangle centroid (barycentric centre) rather than along the edges, giving a direct disagree → centre → agree path.
 - Orientation modes require HTTPS; blocked by Chrome on plain HTTP LAN. iOS prompts for `DeviceOrientationEvent` permission on first tap; Android and other platforms require no permission.
 - `pnpm dev-https` script — runs `partykit dev --live --https` for local HTTPS testing of orientation APIs on LAN devices.
-
 - **Wake lock indicator** — a screen-lock toggle button appears below the vibration icon whenever an orientation valence mode is active. Tap to keep the screen awake during orientation-based sessions; the lock icon (`MdScreenLockLandscape`) shows when held, the screen icon (`MdSmartScreen`) shows when off. The lock is released and hidden automatically when switching back to touch mode. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 
 ### Fixed
+- **Steno: max 5-second segment duration** — VTT cues are now force-flushed after 5 seconds of continuous speech even if no natural pause is detected, preventing ~60-second monolithic chunks in rapid panel discussions where speakers don't pause between turns.
 - Haptic feedback now works immediately on Android without needing to toggle the icon off and on; the icon starts dim and lights up on first touch as the Vibration API is primed. If the first touch lands on the icon itself it activates rather than toggling off. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 - Changing valence input mode now triggers a haptic buzz, matching the existing behaviour for label and activity changes. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 - WebSocket connections now use `wss://` when the page is served over HTTPS, preventing mixed-content errors on LAN addresses (`192.168.x.x`). Extracted shared `getPartySocketConfig()` utility (`app/utils/partyHost.ts`) used by all six socket-holding components. ([#82](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/82))

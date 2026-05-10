@@ -4,10 +4,12 @@
   "private": true,
   "packageManager": "pnpm@10.18.0",
   "scripts": {
-    "dev": "partykit dev --live",
-    "dev-https": "partykit dev --live --https",
-    "deploy": "npm run cachebust && partykit deploy",
-    "deploy:staging": "pnpm run cachebust && partykit deploy --preview staging",
+    "build:worker": "esbuild app/workers/embeddingWorker.ts --bundle --format=esm --platform=browser --outfile=public/embeddingWorker.js",
+    "build:worker-watch": "esbuild app/workers/embeddingWorker.ts --bundle --format=esm --platform=browser --outfile=public/embeddingWorker.js --watch=forever",
+    "dev": "trap 'pkill -f embeddingWorker 2>/dev/null' EXIT INT TERM; pnpm run build:worker-watch & partykit dev --live",
+    "dev-https": "trap 'pkill -f embeddingWorker 2>/dev/null' EXIT INT TERM; pnpm run build:worker-watch & partykit dev --live --https",
+    "deploy": "pnpm run build:worker && pnpm run cachebust && partykit deploy",
+    "deploy:staging": "pnpm run build:worker && pnpm run cachebust && partykit deploy --preview staging",
     "cachebust": "node scripts/build-with-cachebust.js",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -15,6 +17,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@huggingface/transformers": "^4.2.0",
     "@supabase/supabase-js": "^2.98.0",
     "@types/d3": "^7.4.3",
     "@yudiel/react-qr-scanner": "^2.5.1",
@@ -27,6 +30,7 @@
     "react-icons": "^5.6.0",
     "simplex-noise": "^4.0.3",
     "three": "^0.183.2",
+    "umap-js": "^1.4.0",
     "web-haptics": "^0.0.6"
   },
   "devDependencies": {

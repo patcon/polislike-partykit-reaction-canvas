@@ -28,7 +28,23 @@ export interface Statement {
   text: string;
 }
 
-export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social' | 'mood-tones' | 'treevites' | 'greeter' | 'signature' | 'steno';
+export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social' | 'mood-tones' | 'treevites' | 'greeter' | 'signature' | 'steno' | 'story-tracer';
+
+export interface StoryTracerPoint {
+  x: number
+  y: number
+  z: number
+  text: string
+  startTime?: string
+}
+
+export interface StoryTracerMeta {
+  modelId: string
+  windowSize: number
+  overlapPct: number
+  segmentCount: number
+  computedAt: string
+}
 
 export type ValenceInputMode = 'touch' | 'orientation-horizontal' | 'orientation-vertical' | 'orientation-rotation';
 

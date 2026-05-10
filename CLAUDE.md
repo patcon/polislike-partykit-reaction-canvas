@@ -194,3 +194,17 @@ Tests run via `npx vitest`, which uses `@storybook/addon-vitest` to execute stor
 - **Socket-driven state** — `activity`, remote cursors, server-pushed config — never arrives in Storybook because the socket is a no-op mock. Tests that need `activity !== 'canvas'` cannot be written against the current component interfaces.
 
 **Rule of thumb:** if the behavior-under-test requires knowing the viewport size or depends on socket messages, extract it to a pure function and write a plain vitest unit test instead. If it's purely a UI state machine, a `play` function story is the right home.
+
+## Adding a new V4 interface panel
+
+When adding a new interface panel (e.g. `my-panel`), always apply all of these by default unless explicitly told otherwise:
+
+1. **`InterfacesTab.tsx` ROWS entry** — `patchable: true, activityMode: true` unless there's a specific reason not to.
+2. **`ActivityMode` union** (`app/types.ts`) — add `'my-panel'` so the Solo radio button works.
+3. **`OfferInterfaceModal.tsx`** — add `<option value="my-panel">my-panel</option>` so emcee can push it to participants.
+4. **`ReactionCanvasAppV4.tsx`** — three places:
+   - URL param unlock: `if (p.get('interface') === 'my-panel') interfaces.push('my-panel')`
+   - `KNOWN_CHIPS`: `'my-panel': 'My Panel'`
+   - Interface chip render: `} : activeInterface === 'my-panel' ? (<MyPanel ... />) : null}`
+   - Canvas activity overlay: `{activeInterface === 'canvas' && activity === 'my-panel' && (<MyPanel ... />)}`
+   - Hide canvas when active: extend the `activity !== ...` condition in the `v2-vote-canvas-container` `display` style.

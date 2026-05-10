@@ -1,5 +1,5 @@
 import type * as Party from "partykit/server";
-import type { ActivityMode } from "../app/types";
+import type { ActivityMode, StoryTracerPoint, StoryTracerMeta } from "../app/types";
 // Ghost cursor imports (for demo purposes - can be easily removed)
 import { createNoise2D } from 'simplex-noise';
 
@@ -248,6 +248,8 @@ interface ClearSignatureEvent {
 interface PersistedState {
   roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
   stenoVtt: string;
+  storyTracerPoints?: StoryTracerPoint[] | null;
+  storyTracerMeta?: StoryTracerMeta | null;
 }
 
 interface StenoStartRecordingEvent { type: 'stenoStartRecording'; userId: string }
@@ -255,7 +257,10 @@ interface StenoStopRecordingEvent  { type: 'stenoStopRecording';  userId: string
 interface StenoAppendTextEvent     { type: 'stenoAppendText';     userId: string; text: string }
 interface StenoSetTextEvent        { type: 'stenoSetText';        userId: string; text: string }
 
-type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent;
+interface StoryTracerSetPointsEvent  { type: 'storyTracerSetPoints';  userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta }
+interface StoryTracerClearPointsEvent { type: 'storyTracerClearPoints'; userId: string }
+
+type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -329,6 +334,8 @@ export default class Server implements Party.Server {
   private seenUserIds = new Set<string>();
   private stenoVtt: string = 'WEBVTT\n';
   private stenoLockUserId: string | null = null;
+  private storyTracerPoints: StoryTracerPoint[] | null = null;
+  private storyTracerMeta: StoryTracerMeta | null = null;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -371,12 +378,16 @@ export default class Server implements Party.Server {
     return {
       roomSocialConfig: this.roomSocialConfig,
       stenoVtt: this.stenoVtt,
+      storyTracerPoints: this.storyTracerPoints,
+      storyTracerMeta: this.storyTracerMeta,
     };
   }
 
   private applyPersistedState(saved: Partial<PersistedState>): void {
     if (saved.roomSocialConfig !== undefined) this.roomSocialConfig = saved.roomSocialConfig;
     if (saved.stenoVtt !== undefined) this.stenoVtt = saved.stenoVtt;
+    if (saved.storyTracerPoints !== undefined) this.storyTracerPoints = saved.storyTracerPoints ?? null;
+    if (saved.storyTracerMeta !== undefined) this.storyTracerMeta = saved.storyTracerMeta ?? null;
   }
 
   private async persistState(): Promise<void> {
@@ -522,6 +533,8 @@ export default class Server implements Party.Server {
       valenceInputMode: this.valenceInputMode,
       stenoVtt: this.stenoVtt,
       stenoLockUserId: this.stenoLockUserId,
+      storyTracerPoints: this.storyTracerPoints,
+      storyTracerMeta: this.storyTracerMeta,
     }));
   }
 
@@ -760,6 +773,16 @@ export default class Server implements Party.Server {
         this.stenoVtt = event.text;
         this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
         void this.persistState();
+      } else if (event.type === 'storyTracerSetPoints') {
+        this.storyTracerPoints = event.points;
+        this.storyTracerMeta = event.meta;
+        void this.persistState();
+        this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: event.points, meta: event.meta }));
+      } else if (event.type === 'storyTracerClearPoints') {
+        this.storyTracerPoints = null;
+        this.storyTracerMeta = null;
+        void this.persistState();
+        this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: null, meta: null }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
