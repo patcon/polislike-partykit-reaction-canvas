@@ -2,13 +2,11 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
-## Week 26 (2026-05-18)
+## Week 25 (2026-05-11)
 
 ### Added
 - **Story Tracer panel** — a new V4 interface that takes the current Steno VTT transcript and processes it into a 3D semantic narrative path using text embeddings + UMAP. Unlock via `?interface=story-tracer`. Features: model selection (MiniLM-L6/L12, MPNet, Multilingual MiniLM), sliding window chunking (configurable size + overlap), progress bars for model download / embedding / UMAP reduction, cancel and rerun support, server-persisted 3D points (with approximate wall-clock timestamps from VTT cues), and an expandable preview of the text segments before running.
 - **Story Tracer: 3D narrative path viewer** — after computing, a Three.js scene renders the narrative path as a green→red gradient line (green = start, red = end) with orbit/zoom controls. The viewer fills the panel above the Rerun/Clear controls.
-
-## Week 25 (2026-05-11)
 
 ### Fixed
 - **Steno: max 5-second segment duration** — VTT cues are now force-flushed after 5 seconds of continuous speech even if no natural pause is detected, preventing ~60-second monolithic chunks in rapid panel discussions where speakers don't pause between turns.
