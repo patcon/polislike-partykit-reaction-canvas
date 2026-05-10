@@ -27,8 +27,10 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
   const recognitionRef = useRef<any>(null);
   // segmentStartRef: ISO timestamp captured when first interim result arrives for a speech segment.
   // sessionFinalRef: deduplicates repeated transcripts across onend/restart cycles.
+  // segmentTimerRef: forces a flush if speech runs longer than MAX_SEGMENT_MS without a natural pause.
   const segmentStartRef = useRef<string | null>(null);
   const sessionFinalRef = useRef('');
+  const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const acquireWakeLock = useCallback(async () => {
     if (!('wakeLock' in navigator)) return;
@@ -80,6 +82,10 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
     setIsRecording(false);
     isRecordingRef.current = false;
     setInterimText('');
+    if (segmentTimerRef.current !== null) {
+      clearTimeout(segmentTimerRef.current);
+      segmentTimerRef.current = null;
+    }
     releaseWakeLock();
     try { recognitionRef.current?.stop(); } catch { /* ignore */ }
     socket.send(JSON.stringify({ type: 'stenoStopRecording', userId }));
@@ -94,6 +100,8 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
     acquireWakeLock();
     try { recognitionRef.current?.start(); } catch { /* ignore if already started */ }
   }, [socket, userId, acquireWakeLock]);
+
+  const MAX_SEGMENT_MS = 5_000;
 
   useEffect(() => {
     if (!SpeechRecognitionCtor) return;
@@ -113,9 +121,14 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
         }
       }
 
-      // Capture cue start time on first interim result of a new speech segment.
+      // Capture cue start time on first interim result of a new speech segment,
+      // and start a forced-flush timer in case speech runs without a natural pause.
       if (hasInterim && !segmentStartRef.current) {
         segmentStartRef.current = new Date().toISOString();
+        segmentTimerRef.current = setTimeout(() => {
+          segmentTimerRef.current = null;
+          try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+        }, MAX_SEGMENT_MS);
       }
       setInterimText(interim);
 
@@ -124,6 +137,12 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
       // is the full phrase accumulated so far — concatenating ALL results would
       // duplicate words. On desktop a single result becomes final with the whole phrase.
       const latest = e.results[e.resultIndex];
+      if (latest.isFinal) {
+        if (segmentTimerRef.current !== null) {
+          clearTimeout(segmentTimerRef.current);
+          segmentTimerRef.current = null;
+        }
+      }
       if (!latest.isFinal) return;
 
       const endTime = new Date().toISOString();
@@ -147,6 +166,10 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
     };
 
     r.onend = () => {
+      if (segmentTimerRef.current !== null) {
+        clearTimeout(segmentTimerRef.current);
+        segmentTimerRef.current = null;
+      }
       // Mobile browsers stop recognition after each phrase; restart if still recording.
       if (isRecordingRef.current) {
         segmentStartRef.current = null;
