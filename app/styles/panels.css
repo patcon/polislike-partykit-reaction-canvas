@@ -274,6 +274,10 @@
   border-radius: 6px;
 }
 
+.story-tracer-source-stored {
+  color: #7aaa7a;
+}
+
 .story-tracer-settings {
   display: flex;
   flex-direction: column;

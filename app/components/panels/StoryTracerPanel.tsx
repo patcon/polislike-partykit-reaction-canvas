@@ -72,6 +72,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     };
     socket.send(JSON.stringify({ type: 'storyTracerSetPoints', userId, points, meta }));
     setIsRerunMode(false);
+    resetPhase();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase.status]);
 
@@ -125,6 +126,9 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
         {hasContent
           ? `${cues.length} cue${cues.length !== 1 ? 's' : ''} · ${wordCount} words`
           : 'No VTT content yet — use Steno to record a transcript'}
+        {storedMeta && (
+          <span className="story-tracer-source-stored"> · {storedMeta.segmentCount} points stored</span>
+        )}
       </div>
 
       {showSettings && (
