@@ -6,8 +6,8 @@
   "scripts": {
     "build:worker": "esbuild app/workers/embeddingWorker.ts --bundle --format=esm --platform=browser --outfile=public/embeddingWorker.js",
     "build:worker-watch": "esbuild app/workers/embeddingWorker.ts --bundle --format=esm --platform=browser --outfile=public/embeddingWorker.js --watch=forever",
-    "dev": "pnpm run build:worker-watch & partykit dev --live",
-    "dev-https": "pnpm run build:worker-watch & partykit dev --live --https",
+    "dev": "trap 'kill $(jobs -p) 2>/dev/null' EXIT INT TERM; pnpm run build:worker-watch & partykit dev --live",
+    "dev-https": "trap 'kill $(jobs -p) 2>/dev/null' EXIT INT TERM; pnpm run build:worker-watch & partykit dev --live --https",
     "deploy": "pnpm run build:worker && pnpm run cachebust && partykit deploy",
     "deploy:staging": "pnpm run build:worker && pnpm run cachebust && partykit deploy --preview staging",
     "cachebust": "node scripts/build-with-cachebust.js",
