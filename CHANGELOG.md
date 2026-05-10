@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 25 (2026-05-11)
 
+### Fixed
+- **Steno: max 5-second segment duration** — VTT cues are now force-flushed after 5 seconds of continuous speech even if no natural pause is detected, preventing ~60-second monolithic chunks in rapid panel discussions where speakers don't pause between turns.
+
 ### Added
 - **Steno: VTT transcript format** — the Steno panel now stores transcriptions as WebVTT with absolute ISO 8601 wall-clock timestamps (e.g. `2026-05-09T14:30:05Z --> 2026-05-09T14:30:08Z`) so cues are independently timestamped without relative-offset math. A VTT / Plaintext toggle switches between the editable raw VTT view and a read-only concatenated text view.
 - **Steno interface** — a new V4 interface for live shared speech-to-text transcription. Unlock via `?interface=steno`, or push it to participants via the Emcee → Participants tab. Features: streaming Web Speech API (`continuous` mode with interim-text preview), a single-user recording mutex (one person transcribes at a time), server-persisted transcript shared live to all connected participants, Wake Lock while recording, and editable textarea (read-only for observers while another user holds the lock). ([#85](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/85))
