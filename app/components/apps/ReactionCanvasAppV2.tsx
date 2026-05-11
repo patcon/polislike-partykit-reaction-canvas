@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
 import { getReactionLabelSet } from "../../voteLabels";
@@ -177,7 +177,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
             {!allTouching && (
               <div className="v2-video-paused-overlay">
                 <div className="v2-paused-overlay-content">
-                  <QRCodeSVG value={window.location.href} size={72} bgColor="#ffffff" fgColor="#000000" />
+                  <QRCodeCanvas value={window.location.href} size={72} bgColor="#ffffff" fgColor="#000000" />
                   <p>Everyone watching must keep a finger on the space below to keep the video playing</p>
                 </div>
               </div>

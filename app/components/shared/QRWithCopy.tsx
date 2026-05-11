@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeCanvas } from "qrcode.react";
 
 interface QRWithCopyProps {
   url: string;
@@ -36,7 +36,7 @@ export default function QRWithCopy({
   return (
     <>
       <div className={qrClassName}>
-        <QRCodeSVG value={url} size={size} />
+        <QRCodeCanvas value={url} size={size} />
       </div>
       <div className="qr-url-row">
         <p className={urlClassName}>{url}</p>
