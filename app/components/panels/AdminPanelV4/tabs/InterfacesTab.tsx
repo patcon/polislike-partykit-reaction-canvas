@@ -38,6 +38,7 @@ function getPatchUrl(interfaceName: string, selfId?: string, selfChain?: string[
 }
 
 const ROWS: { id: string; label: string; desc: string; patchable: boolean; activityMode: boolean }[] = [
+  { id: 'emcee',        label: 'Emcee',            desc: 'Event host controls and tools',                  patchable: true,  activityMode: false },
   { id: 'canvas',       label: 'Reaction Canvas',  desc: 'Standard reaction canvas',                       patchable: false, activityMode: true  },
   { id: 'image-canvas', label: 'Image Canvas',    desc: 'React over a shared background image',           patchable: false, activityMode: true  },
   { id: 'signature',    label: 'Signature Canvas', desc: 'Collect participant signatures live',            patchable: false, activityMode: true  },

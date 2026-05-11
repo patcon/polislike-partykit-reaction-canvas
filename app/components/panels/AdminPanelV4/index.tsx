@@ -152,7 +152,7 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
     if (tab === 'events') return githubSubmissions.length > 0 ? `Events (${githubSubmissions.length})` : 'Events';
     if (tab === 'participants') return participants.connectedUsers.size > 0 ? `People (${participants.connectedUsers.size})` : 'People';
     if (tab === 'moments') return participants.moments.length > 0 ? `Moments (${participants.moments.length})` : 'Moments';
-    if (tab === 'interfaces') return 'Interface';
+    if (tab === 'interfaces') return 'Interfaces';
     if (tab === 'record') return 'Record';
     return tab.charAt(0).toUpperCase() + tab.slice(1);
   };

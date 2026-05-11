@@ -19,6 +19,9 @@ All notable changes to this project will be documented in this file. Releases cu
 - `pnpm dev-https` script — runs `partykit dev --live --https` for local HTTPS testing of orientation APIs on LAN devices.
 - **Wake lock indicator** — a screen-lock toggle button appears below the vibration icon whenever an orientation valence mode is active. Tap to keep the screen awake during orientation-based sessions; the lock icon (`MdScreenLockLandscape`) shows when held, the screen icon (`MdSmartScreen`) shows when off. The lock is released and hidden automatically when switching back to touch mode. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 
+### Changed
+- **Interfaces tab** — renamed from "Interface" to "Interfaces"; added Emcee row at the top with a shareable patch URL so emcee access can be granted without a push.
+
 ### Fixed
 - **QR codes are now right-click saveable as images** — switched from `QRCodeSVG` to `QRCodeCanvas` throughout; canvas elements support "Save image as" in all browsers.
 - **CI deploy** — added `esbuild` as a direct `devDependency` so the `build:worker` script can find the binary in CI (it was only a transitive dep through vite/storybook, which isn't guaranteed to land in PATH).
