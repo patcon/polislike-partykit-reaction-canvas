@@ -34,7 +34,7 @@ async function runReducer(algorithmId: ReducerAlgorithmId, data: number[][], n: 
   const druid = await import('@saehrimnir/druidjs') as any
   if (algorithmId === 'umap-druid') {
     const reducer = new druid.UMAP(data, { d: 3, n_neighbors: Math.min(p.n_neighbors, n - 1), min_dist: p.min_dist, _spread: p.spread })
-    return reducer.transform(epochs).to2dArray()
+    return reducer.transform(epochs)
   }
   if (algorithmId === 'localmap') {
     const reducer = new druid.LocalMAP(data, {
@@ -44,7 +44,7 @@ async function runReducer(algorithmId: ReducerAlgorithmId, data: number[][], n: 
       FP_ratio: p.FP_ratio,
       low_dist_thres: p.low_dist_thres,
     })
-    return reducer.transform().to2dArray()
+    return reducer.transform()
   }
   // pacmap
   const reducer = new druid.PaCMAP(data, {
@@ -53,7 +53,7 @@ async function runReducer(algorithmId: ReducerAlgorithmId, data: number[][], n: 
     MN_ratio: p.MN_ratio,
     FP_ratio: p.FP_ratio,
   })
-  return reducer.transform().to2dArray()
+  return reducer.transform()
 }
 
 self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
