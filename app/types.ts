@@ -40,6 +40,7 @@ export interface StoryTracerPoint {
 
 export interface StoryTracerMeta {
   modelId: string
+  algorithmId: string
   windowSize: number
   overlapPct: number
   segmentCount: number

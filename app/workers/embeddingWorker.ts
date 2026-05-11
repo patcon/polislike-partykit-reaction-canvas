@@ -1,4 +1,4 @@
-import type { WorkerCommand, WorkerEvent } from './embeddingWorker.types'
+import type { ReducerAlgorithmId, ReducerParams, WorkerCommand, WorkerEvent } from './embeddingWorker.types'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyPipeline = any
@@ -13,6 +13,47 @@ self.onerror = (msg, src, line, col, err) => {
 self.onunhandledrejection = (e: PromiseRejectionEvent) => {
   console.error('[embeddingWorker] unhandled rejection', e.reason)
   self.postMessage({ type: 'error', message: `Worker unhandled rejection: ${String(e.reason)}` } satisfies WorkerEvent)
+}
+
+async function runReducer(algorithmId: ReducerAlgorithmId, data: number[][], n: number, p: ReducerParams): Promise<number[][]> {
+  // Mirror umap-js epoch auto-calculation: fewer epochs for larger datasets
+  const autoEpochs = n <= 2500 ? 500 : n <= 5000 ? 400 : n <= 7500 ? 300 : 200
+  const epochs = p.epochs > 0 ? p.epochs : autoEpochs
+  if (algorithmId === 'umap-js') {
+    const { UMAP } = await import('umap-js')
+    const umap = new UMAP({
+      nComponents: 3,
+      nNeighbors: Math.min(p.n_neighbors, n - 1),
+      minDist: p.min_dist,
+      spread: p.spread,
+      nEpochs: p.epochs,  // 0 triggers umap-js's own auto-calculation
+    })
+    return umap.fit(data) as number[][]
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const druid = await import('@saehrimnir/druidjs') as any
+  if (algorithmId === 'umap-druid') {
+    const reducer = new druid.UMAP(data, { d: 3, n_neighbors: Math.min(p.n_neighbors, n - 1), min_dist: p.min_dist, _spread: p.spread })
+    return reducer.transform(epochs)
+  }
+  if (algorithmId === 'localmap') {
+    const reducer = new druid.LocalMAP(data, {
+      d: 3,
+      n_neighbors: Math.min(p.n_neighbors, n - 1),
+      MN_ratio: p.MN_ratio,
+      FP_ratio: p.FP_ratio,
+      low_dist_thres: p.low_dist_thres,
+    })
+    return reducer.transform()
+  }
+  // pacmap
+  const reducer = new druid.PaCMAP(data, {
+    d: 3,
+    n_neighbors: Math.min(p.n_neighbors, n - 1),
+    MN_ratio: p.MN_ratio,
+    FP_ratio: p.FP_ratio,
+  })
+  return reducer.transform()
 }
 
 self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
@@ -38,12 +79,10 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
         vectors.push(output.data as Float32Array)
       }
 
-      self.postMessage({ type: 'progress:umap-running' } satisfies WorkerEvent)
+      self.postMessage({ type: 'progress:reducer-running' } satisfies WorkerEvent)
       const n = vectors.length
       const data = vectors.map(v => Array.from(v))
-      const { UMAP } = await import('umap-js')
-      const umap = new UMAP({ nComponents: 3, nNeighbors: Math.min(15, n - 1), minDist: 0.1 })
-      const result = umap.fit(data)
+      const result = await runReducer(cmd.algorithmId, data, n, cmd.reducerParams)
       self.postMessage({ type: 'done', points: result as [number, number, number][] } satisfies WorkerEvent)
     } catch (err) {
       console.error('[embeddingWorker] caught error', err)

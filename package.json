@@ -9,7 +9,8 @@
     "dev": "trap 'pkill -f embeddingWorker 2>/dev/null' EXIT INT TERM; pnpm run build:worker-watch & partykit dev --live",
     "dev-https": "trap 'pkill -f embeddingWorker 2>/dev/null' EXIT INT TERM; pnpm run build:worker-watch & partykit dev --live --https",
     "deploy": "pnpm run build:worker && pnpm run cachebust && partykit deploy",
-    "deploy:staging": "pnpm run build:worker && pnpm run cachebust && partykit deploy --preview staging",
+    "deploy:preview": "pnpm run build:worker && pnpm run cachebust && partykit deploy --preview $PREVIEW_NAME",
+    "deploy:staging": "PREVIEW_NAME=staging pnpm run deploy:preview",
     "cachebust": "node scripts/build-with-cachebust.js",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
@@ -18,6 +19,7 @@
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
+    "@saehrimnir/druidjs": "github:patcon/DruidJS#612e1c5",
     "@supabase/supabase-js": "^2.98.0",
     "@types/d3": "^7.4.3",
     "@yudiel/react-qr-scanner": "^2.5.1",

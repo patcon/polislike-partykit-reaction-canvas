@@ -4,6 +4,10 @@ on:
   issues:
     types: [labeled, closed]
 
+concurrency:
+  group: event-preview-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
 jobs:
   deploy-event-preview:
     if: github.event.action == 'labeled' && github.event.label.name == 'event-preview'
@@ -49,6 +53,7 @@ jobs:
         env:
           HASH: ${{ steps.config.outputs.hash }}
         run: |
+          pnpm run build:worker
           pnpm run cachebust
           sed -i 's|<title>[^<]*</title>|<title>App</title>|' public/index.html
           sed -i '/<meta name="title"/d' public/index.html

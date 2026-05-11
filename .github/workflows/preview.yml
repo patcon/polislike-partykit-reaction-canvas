@@ -4,6 +4,10 @@ on:
   pull_request:
     types: [opened, synchronize, reopened]
 
+concurrency:
+  group: preview-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -60,7 +64,7 @@ jobs:
               state: 'in_progress',
             });
             core.setOutput('deployment_id', deployment.id);
-      - run: pnpm run cachebust && pnpm exec partykit deploy --preview pr-${{ github.event.pull_request.number }}
+      - run: PREVIEW_NAME=pr-${{ github.event.pull_request.number }} pnpm run deploy:preview
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
