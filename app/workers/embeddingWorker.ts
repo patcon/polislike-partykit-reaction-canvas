@@ -16,23 +16,24 @@ self.onunhandledrejection = (e: PromiseRejectionEvent) => {
 }
 
 async function runReducer(algorithmId: ReducerAlgorithmId, data: number[][], n: number, p: ReducerParams): Promise<number[][]> {
+  // Mirror umap-js epoch auto-calculation: fewer epochs for larger datasets
+  const autoEpochs = n <= 2500 ? 500 : n <= 5000 ? 400 : n <= 7500 ? 300 : 200
+  const epochs = p.epochs > 0 ? p.epochs : autoEpochs
   if (algorithmId === 'umap-js') {
     const { UMAP } = await import('umap-js')
     const umap = new UMAP({
       nComponents: 3,
-      nNeighbors: Math.min(p.nNeighbors, n - 1),
-      minDist: p.minDist,
+      nNeighbors: Math.min(p.n_neighbors, n - 1),
+      minDist: p.min_dist,
       spread: p.spread,
+      nEpochs: p.epochs,  // 0 triggers umap-js's own auto-calculation
     })
     return umap.fit(data) as number[][]
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const druid = await import('@saehrimnir/druidjs') as any
   if (algorithmId === 'umap-druid') {
-    // Mirror umap-js epoch auto-calculation when epochs param is 0
-    const autoEpochs = n <= 2500 ? 500 : n <= 5000 ? 400 : n <= 7500 ? 300 : 200
-    const epochs = p.epochs > 0 ? p.epochs : autoEpochs
-    const reducer = new druid.UMAP(data, { d: 3, n_neighbors: Math.min(p.n_neighbors, n - 1), min_dist: p.min_dist })
+    const reducer = new druid.UMAP(data, { d: 3, n_neighbors: Math.min(p.n_neighbors, n - 1), min_dist: p.min_dist, _spread: p.spread })
     return reducer.transform(epochs).to2dArray()
   }
   if (algorithmId === 'localmap') {

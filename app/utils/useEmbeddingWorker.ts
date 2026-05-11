@@ -23,14 +23,16 @@ export type ParamDef = { label: string; min: number; max: number; step: number; 
 
 export const REDUCER_PARAM_DEFS: Record<ReducerAlgorithmId, Record<string, ParamDef>> = {
   'umap-js': {
-    nNeighbors: { label: 'Neighbors',  min: 2,   max: 200, step: 1,    default: 15  },
-    minDist:    { label: 'Min dist',   min: 0,   max: 1,   step: 0.01, default: 0.1 },
-    spread:     { label: 'Spread',     min: 0.1, max: 10,  step: 0.1,  default: 1.0 },
+    n_neighbors: { label: 'Neighbors',       min: 2,   max: 200,  step: 1,    default: 15  },
+    min_dist:    { label: 'Min dist',        min: 0,   max: 1,    step: 0.01, default: 0.1 },
+    spread:      { label: 'Spread',          min: 0.1, max: 10,   step: 0.1,  default: 1.0 },
+    epochs:      { label: 'Epochs (0=auto)', min: 0,   max: 1000, step: 10,   default: 0   },
   },
   'umap-druid': {
-    n_neighbors: { label: 'Neighbors',      min: 2, max: 200, step: 1,    default: 15  },
-    min_dist:    { label: 'Min dist',       min: 0, max: 1,   step: 0.01, default: 0.1 },
-    epochs:      { label: 'Epochs (0=auto)', min: 0, max: 1000, step: 10, default: 0   },
+    n_neighbors: { label: 'Neighbors',       min: 2,   max: 200,  step: 1,    default: 15  },
+    min_dist:    { label: 'Min dist',        min: 0,   max: 1,    step: 0.01, default: 0.1 },
+    spread:      { label: 'Spread',          min: 0.1, max: 10,   step: 0.1,  default: 1.0 },
+    epochs:      { label: 'Epochs (0=auto)', min: 0,   max: 1000, step: 10,   default: 0   },
   },
   'pacmap': {
     n_neighbors: { label: 'Neighbors', min: 2,   max: 200, step: 1,   default: 10  },
