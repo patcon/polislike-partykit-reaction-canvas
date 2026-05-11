@@ -4,6 +4,10 @@ on:
   issues:
     types: [labeled, closed]
 
+concurrency:
+  group: event-preview-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
 jobs:
   deploy-event-preview:
     if: github.event.action == 'labeled' && github.event.label.name == 'event-preview'
