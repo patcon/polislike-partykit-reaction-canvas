@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Wake lock indicator** — a screen-lock toggle button appears below the vibration icon whenever an orientation valence mode is active. Tap to keep the screen awake during orientation-based sessions; the lock icon (`MdScreenLockLandscape`) shows when held, the screen icon (`MdSmartScreen`) shows when off. The lock is released and hidden automatically when switching back to touch mode. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 
 ### Fixed
+- **CI deploy** — added `esbuild` as a direct `devDependency` so the `build:worker` script can find the binary in CI (it was only a transitive dep through vite/storybook, which isn't guaranteed to land in PATH).
 - **Steno: max 5-second segment duration** — VTT cues are now force-flushed after 5 seconds of continuous speech even if no natural pause is detected, preventing ~60-second monolithic chunks in rapid panel discussions where speakers don't pause between turns.
 - Haptic feedback now works immediately on Android without needing to toggle the icon off and on; the icon starts dim and lights up on first touch as the Vibration API is primed. If the first touch lands on the icon itself it activates rather than toggling off. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 - Changing valence input mode now triggers a haptic buzz, matching the existing behaviour for label and activity changes. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))

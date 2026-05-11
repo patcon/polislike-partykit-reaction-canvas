@@ -45,6 +45,7 @@
     "@types/three": "^0.183.1",
     "@vitest/browser-playwright": "^4.0.14",
     "@vitest/coverage-v8": "^4.0.14",
+    "esbuild": "^0.28.0",
     "partykit": "^0.0.110",
     "playwright": "^1.57.0",
     "storybook": "^10.1.0",
