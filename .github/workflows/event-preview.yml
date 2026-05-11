@@ -49,6 +49,7 @@ jobs:
         env:
           HASH: ${{ steps.config.outputs.hash }}
         run: |
+          pnpm run build:worker
           pnpm run cachebust
           sed -i 's|<title>[^<]*</title>|<title>App</title>|' public/index.html
           sed -i '/<meta name="title"/d' public/index.html
