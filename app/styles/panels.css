@@ -313,6 +313,10 @@
   gap: 10px;
 }
 
+.story-tracer-row--wrap {
+  flex-wrap: wrap;
+}
+
 .story-tracer-field {
   display: flex;
   align-items: center;

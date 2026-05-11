@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
 import { getPartySocketConfig } from '../../utils/partyHost';
-import { useEmbeddingWorker, EMBEDDING_MODELS, REDUCERS, type EmbeddingModelId, type ReducerAlgorithmId } from '../../utils/useEmbeddingWorker';
+import { useEmbeddingWorker, EMBEDDING_MODELS, REDUCERS, REDUCER_PARAM_DEFS, defaultReducerParams, type EmbeddingModelId, type ReducerAlgorithmId, type ReducerParams } from '../../utils/useEmbeddingWorker';
 import { parseVttCues, computeChunks, getTimestampForWordIndex } from '../../utils/storyTracerUtils';
 import type { StoryTracerMeta, StoryTracerPoint } from '../../types';
 import NarrativePath3D from './NarrativePath3D';
@@ -31,6 +31,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     const stored = localStorage.getItem(LS_ALGO) as ReducerAlgorithmId | null;
     return (REDUCERS.find(r => r.id === stored) ?? REDUCERS.find(r => r.default)!).id;
   });
+  const [reducerParams, setReducerParams] = useState<Record<ReducerAlgorithmId, ReducerParams>>(defaultReducerParams);
   const [windowSize, setWindowSize] = useState(() => parseInt(localStorage.getItem(LS_WINDOW) ?? '40'));
   const [overlapPct, setOverlapPct] = useState(() => parseInt(localStorage.getItem(LS_OVERLAP) ?? '80'));
 
@@ -100,7 +101,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     const freshChunks = computeChunks(text, windowSize, overlapPct);
     pendingChunksRef.current = freshChunks;
     pendingCuesRef.current = freshCues;
-    runEmbedding(freshChunks, selectedModel, selectedAlgo);
+    runEmbedding(freshChunks, selectedModel, selectedAlgo, reducerParams[selectedAlgo]);
   }, [hasContent, stenoVtt, windowSize, overlapPct, selectedModel, runEmbedding]);
 
   const handleClear = useCallback(() => {
@@ -174,6 +175,31 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
               <option key={r.id} value={r.id}>{r.label}</option>
             ))}
           </select>
+
+          <div className="story-tracer-row story-tracer-row--wrap">
+            {Object.entries(REDUCER_PARAM_DEFS[selectedAlgo]).map(([key, def]) => (
+              <div key={key} className="story-tracer-field">
+                <label className="story-tracer-label">{def.label}</label>
+                <input
+                  type="number"
+                  className="story-tracer-number"
+                  min={def.min}
+                  max={def.max}
+                  step={def.step}
+                  value={reducerParams[selectedAlgo][key]}
+                  onChange={e => {
+                    const v = parseFloat(e.target.value);
+                    if (!isNaN(v)) {
+                      setReducerParams(prev => ({
+                        ...prev,
+                        [selectedAlgo]: { ...prev[selectedAlgo], [key]: v },
+                      }));
+                    }
+                  }}
+                />
+              </div>
+            ))}
+          </div>
 
           <div className="story-tracer-row">
             <div className="story-tracer-field">

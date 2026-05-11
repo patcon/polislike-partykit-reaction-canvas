@@ -1,7 +1,9 @@
 export type ReducerAlgorithmId = 'umap-js' | 'umap-druid' | 'localmap' | 'pacmap'
 
+export type ReducerParams = Record<string, number>
+
 export type WorkerCommand =
-  | { type: 'embed'; texts: string[]; modelId: string; algorithmId: ReducerAlgorithmId }
+  | { type: 'embed'; texts: string[]; modelId: string; algorithmId: ReducerAlgorithmId; reducerParams: ReducerParams }
 
 export type WorkerEvent =
   | { type: 'progress:model-loading'; progress: number }
