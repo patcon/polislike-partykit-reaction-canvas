@@ -23,11 +23,16 @@ async function runReducer(algorithmId: ReducerAlgorithmId, data: number[][], n: 
   }
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const druid = await import('@saehrimnir/druidjs') as any
+  // Mirror umap-js epoch auto-calculation: fewer epochs for larger datasets
+  const autoEpochs = n <= 2500 ? 500 : n <= 5000 ? 400 : n <= 7500 ? 300 : 200
+  if (algorithmId === 'umap-druid') {
+    const reducer = new druid.UMAP(data, { d: 3, n_neighbors: Math.min(15, n - 1), min_dist: 0.1 })
+    return reducer.transform(autoEpochs).to2dArray()
+  }
+  // PaCMAP and LocalMAP use their own 3-phase num_iters schedule; n_neighbors default is 10
   const nNeighbors = Math.min(10, n - 1)
   let reducer: { transform: () => { to2dArray: () => number[][] } }
-  if (algorithmId === 'umap-druid') {
-    reducer = new druid.UMAP(data, { d: 3, n_neighbors: nNeighbors })
-  } else if (algorithmId === 'localmap') {
+  if (algorithmId === 'localmap') {
     reducer = new druid.LocalMAP(data, { d: 3, n_neighbors: nNeighbors })
   } else {
     reducer = new druid.PaCMAP(data, { d: 3, n_neighbors: nNeighbors })
