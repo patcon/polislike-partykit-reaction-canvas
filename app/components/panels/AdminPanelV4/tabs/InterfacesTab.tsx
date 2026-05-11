@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { IoMdSettings } from "react-icons/io";
+import { FaCheckCircle, FaCircle } from "react-icons/fa";
 import QRWithCopy from '../../../shared/QRWithCopy';
 import type { ActivityMode } from "../../../../types";
 import { appendSelfToChain } from "../../../../utils/inviteChain";
@@ -81,34 +82,32 @@ export default function InterfacesTab({
               <tr key={id} style={{ borderTop: '1px solid #2a2a2a' }}>
                 {/* Description */}
                 <td style={{ padding: '10px 8px 10px 0' }}>
-                  <label style={{ cursor: activityMode ? 'pointer' : 'default', display: 'block' }} htmlFor={activityMode ? `activity-${id}` : undefined}>
-                    <span style={{ fontWeight: isActive ? 600 : 400, color: isActive ? '#eee' : '#bbb' }}>{label}</span>
-                    <span style={{ color: '#666', marginLeft: 8 }}>{desc}</span>
-                    {id === 'canvas' && (
-                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setCanvasSettingsOpen(true); }}><IoMdSettings /></button>
-                    )}
-                    {id === 'image-canvas' && (
-                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}><IoMdSettings /></button>
-                    )}
-                    {id === 'social' && (
-                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>
-                    )}
-                    {id === 'greeter' && (
-                      <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setGreeterConfigOpen(true); }}><IoMdSettings /></button>
-                    )}
-                  </label>
+                  <span style={{ fontWeight: isActive ? 600 : 400, color: isActive ? '#eee' : '#bbb' }}>{label}</span>
+                  <span style={{ color: '#666', marginLeft: 8 }}>{desc}</span>
+                  {id === 'canvas' && (
+                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setCanvasSettingsOpen(true); }}><IoMdSettings /></button>
+                  )}
+                  {id === 'image-canvas' && (
+                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}><IoMdSettings /></button>
+                  )}
+                  {id === 'social' && (
+                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>
+                  )}
+                  {id === 'greeter' && (
+                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setGreeterConfigOpen(true); }}><IoMdSettings /></button>
+                  )}
                 </td>
                 {/* Solo */}
                 <td style={{ textAlign: 'center', padding: '10px 8px' }}>
                   {activityMode ? (
-                    <input
-                      id={`activity-${id}`}
-                      type="radio"
-                      name="activity"
-                      value={id}
-                      checked={isActive}
-                      onChange={() => sendActivity(id as ActivityMode)}
-                    />
+                    <button
+                      onClick={() => sendActivity(id as ActivityMode)}
+                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 0, color: isActive ? '#eee' : '#555' }}
+                      aria-label={`Switch to ${label}`}
+                      aria-pressed={isActive}
+                    >
+                      {isActive ? <FaCheckCircle size={14} /> : <FaCircle size={14} />}
+                    </button>
                   ) : (
                     <span style={{ color: '#3a3a3a', fontSize: 11 }}>—</span>
                   )}

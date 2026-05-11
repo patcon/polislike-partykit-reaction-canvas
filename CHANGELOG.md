@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Changed
 - **Interfaces tab** — renamed from "Interface" to "Interfaces"; added Emcee row at the top with a shareable patch URL so emcee access can be granted without a push.
+- **Interfaces tab: Solo column** — replaced radio inputs with `FaCheckCircle` / `FaCircle` icon buttons; clicking the icon is the only way to select (row label no longer acts as a click target).
 
 ### Fixed
 - **QR codes are now right-click saveable as images** — switched from `QRCodeSVG` to `QRCodeCanvas` throughout; canvas elements support "Save image as" in all browsers.
