@@ -1,5 +1,7 @@
 import { useState, useRef, useCallback } from 'react'
-import type { WorkerEvent } from '../workers/embeddingWorker.types'
+import type { ReducerAlgorithmId, WorkerEvent } from '../workers/embeddingWorker.types'
+
+export type { ReducerAlgorithmId }
 
 export const EMBEDDING_MODELS = [
   { id: 'Xenova/all-MiniLM-L6-v2',                      label: 'MiniLM-L6 (fast, ~22 MB)',         default: false },
@@ -10,11 +12,18 @@ export const EMBEDDING_MODELS = [
 
 export type EmbeddingModelId = typeof EMBEDDING_MODELS[number]['id']
 
+export const REDUCERS = [
+  { id: 'umap-js'    as ReducerAlgorithmId, label: 'UMAP (umap-js)',  default: true  },
+  { id: 'umap-druid' as ReducerAlgorithmId, label: 'UMAP (DruidJS)',  default: false },
+  { id: 'localmap'   as ReducerAlgorithmId, label: 'LocalMAP',        default: false },
+  { id: 'pacmap'     as ReducerAlgorithmId, label: 'PaCMAP',          default: false },
+] as const
+
 export type EmbedPhase =
   | { status: 'idle' }
   | { status: 'model-loading'; progress: number }
   | { status: 'embedding'; loaded: number; total: number }
-  | { status: 'umap-running' }
+  | { status: 'reducer-running' }
   | { status: 'done'; points: [number, number, number][] }
   | { status: 'error'; message: string }
 
@@ -32,8 +41,8 @@ export function useEmbeddingWorker() {
             setPhase({ status: 'model-loading', progress: msg.progress }); break
           case 'progress:embedding':
             setPhase({ status: 'embedding', loaded: msg.loaded, total: msg.total }); break
-          case 'progress:umap-running':
-            setPhase({ status: 'umap-running' }); break
+          case 'progress:reducer-running':
+            setPhase({ status: 'reducer-running' }); break
           case 'done':
             setPhase({ status: 'done', points: msg.points }); break
           case 'error':
@@ -53,9 +62,9 @@ export function useEmbeddingWorker() {
     return workerRef.current
   }, [])
 
-  const runEmbedding = useCallback((texts: string[], modelId: EmbeddingModelId) => {
+  const runEmbedding = useCallback((texts: string[], modelId: EmbeddingModelId, algorithmId: ReducerAlgorithmId) => {
     setPhase({ status: 'model-loading', progress: 0 })
-    getWorker().postMessage({ type: 'embed', texts, modelId })
+    getWorker().postMessage({ type: 'embed', texts, modelId, algorithmId })
   }, [getWorker])
 
   const cancelEmbedding = useCallback(() => {

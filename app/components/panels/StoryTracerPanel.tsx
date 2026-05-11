@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
 import { getPartySocketConfig } from '../../utils/partyHost';
-import { useEmbeddingWorker, EMBEDDING_MODELS, type EmbeddingModelId } from '../../utils/useEmbeddingWorker';
+import { useEmbeddingWorker, EMBEDDING_MODELS, REDUCERS, type EmbeddingModelId, type ReducerAlgorithmId } from '../../utils/useEmbeddingWorker';
 import { parseVttCues, computeChunks, getTimestampForWordIndex } from '../../utils/storyTracerUtils';
 import type { StoryTracerMeta, StoryTracerPoint } from '../../types';
 import NarrativePath3D from './NarrativePath3D';
@@ -12,6 +12,7 @@ interface StoryTracerPanelProps {
 }
 
 const LS_MODEL = 'story-tracer-model';
+const LS_ALGO = 'story-tracer-algo';
 const LS_WINDOW = 'story-tracer-window';
 const LS_OVERLAP = 'story-tracer-overlap';
 
@@ -25,6 +26,10 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const [selectedModel, setSelectedModel] = useState<EmbeddingModelId>(() => {
     const stored = localStorage.getItem(LS_MODEL);
     return (EMBEDDING_MODELS.find(m => m.id === stored) ?? EMBEDDING_MODELS.find(m => m.default)!).id;
+  });
+  const [selectedAlgo, setSelectedAlgo] = useState<ReducerAlgorithmId>(() => {
+    const stored = localStorage.getItem(LS_ALGO) as ReducerAlgorithmId | null;
+    return (REDUCERS.find(r => r.id === stored) ?? REDUCERS.find(r => r.default)!).id;
   });
   const [windowSize, setWindowSize] = useState(() => parseInt(localStorage.getItem(LS_WINDOW) ?? '40'));
   const [overlapPct, setOverlapPct] = useState(() => parseInt(localStorage.getItem(LS_OVERLAP) ?? '80'));
@@ -70,6 +75,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     });
     const meta: StoryTracerMeta = {
       modelId: selectedModel,
+      algorithmId: selectedAlgo,
       windowSize,
       overlapPct,
       segmentCount: chunks.length,
@@ -94,7 +100,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     const freshChunks = computeChunks(text, windowSize, overlapPct);
     pendingChunksRef.current = freshChunks;
     pendingCuesRef.current = freshCues;
-    runEmbedding(freshChunks, selectedModel);
+    runEmbedding(freshChunks, selectedModel, selectedAlgo);
   }, [hasContent, stenoVtt, windowSize, overlapPct, selectedModel, runEmbedding]);
 
   const handleClear = useCallback(() => {
@@ -108,12 +114,13 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     setIsRerunMode(false);
   }, [cancelEmbedding]);
 
-  const isRunning = phase.status === 'model-loading' || phase.status === 'embedding' || phase.status === 'umap-running';
+  const isRunning = phase.status === 'model-loading' || phase.status === 'embedding' || phase.status === 'reducer-running';
   const isDone = phase.status === 'done';
   const showSettings = !isRunning && (!storedMeta || isRerunMode) && !isDone;
   const showResult = !isRunning && (storedMeta !== null) && !isRerunMode && !isDone;
 
   const modelLabel = EMBEDDING_MODELS.find(m => m.id === (storedMeta?.modelId ?? selectedModel))?.label ?? selectedModel.split('/').pop();
+  const reducerLabel = REDUCERS.find(r => r.id === (storedMeta?.algorithmId ?? selectedAlgo))?.label ?? (storedMeta?.algorithmId ?? selectedAlgo);
 
   const computedAgo = storedMeta ? (() => {
     const diffMs = Date.now() - new Date(storedMeta.computedAt).getTime();
@@ -150,6 +157,21 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
           >
             {EMBEDDING_MODELS.map(m => (
               <option key={m.id} value={m.id}>{m.label}</option>
+            ))}
+          </select>
+
+          <label className="story-tracer-label">Reducer</label>
+          <select
+            className="story-tracer-select"
+            value={selectedAlgo}
+            onChange={e => {
+              const v = e.target.value as ReducerAlgorithmId;
+              setSelectedAlgo(v);
+              localStorage.setItem(LS_ALGO, v);
+            }}
+          >
+            {REDUCERS.map(r => (
+              <option key={r.id} value={r.id}>{r.label}</option>
             ))}
           </select>
 
@@ -229,11 +251,11 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
               </div>
             </>
           )}
-          {phase.status === 'umap-running' && (
+          {phase.status === 'reducer-running' && (
             <>
               <div className="story-tracer-progress-row">
                 <div className="story-tracer-spinner" />
-                <span>Reducing to 3D…</span>
+                <span>Running reducer…</span>
                 <button className="story-tracer-cancel-btn" onClick={handleCancel}>Cancel</button>
               </div>
               <div className="story-tracer-bar story-tracer-bar--indeterminate">
@@ -258,7 +280,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
         <div className="story-tracer-result">
           <div className="story-tracer-result-text">
             ✓ {storedMeta!.segmentCount} points stored
-            <span className="story-tracer-result-meta"> ({modelLabel} · {computedAgo})</span>
+            <span className="story-tracer-result-meta"> ({modelLabel} · {reducerLabel} · {computedAgo})</span>
           </div>
           <div className="story-tracer-result-actions">
             <button className="story-tracer-btn" onClick={() => setIsRerunMode(true)}>Rerun</button>
