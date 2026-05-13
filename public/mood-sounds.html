@@ -643,8 +643,6 @@ const audienceN    = document.getElementById('audience-n');
 const presetsEl    = document.getElementById('presets');
 
 // ── Room URL param ───────────────────────────────────────────────
-const DEFAULT_HOST = 'polislike-partykit-reaction-canvas.patcon.partykit.dev';
-
 function getUrlParam(key) {
   return new URLSearchParams(window.location.search).get(key);
 }
@@ -1033,8 +1031,8 @@ valenceUnit.addEventListener('click', () => {
 function wsUrl(room) {
   const host = window.location.hostname === 'localhost'
     ? 'localhost:1999'
-    : DEFAULT_HOST;
-  const proto = host.startsWith('localhost') ? 'ws' : 'wss';
+    : window.location.host;
+  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
   const userId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
   return `${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`;
 }

@@ -429,7 +429,8 @@ export default class Server implements Party.Server {
       return;
     }
 
-    const host = this.roomHost ?? 'polislike-partykit-reaction-canvas.patcon.partykit.dev';
+    const host = this.roomHost; // always set by first connection; bat signal only fires with N+ connections
+    if (!host) return;
     const roomUrl = `https://${host}/?room=${encodeURIComponent(this.room.id)}`;
     const text = `👀 Something's happening in the reaction canvas (${this.BAT_SIGNAL_THRESHOLD}+ devices in room) — ${roomUrl}`;
 

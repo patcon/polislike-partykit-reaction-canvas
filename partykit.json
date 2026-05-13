@@ -1,6 +1,6 @@
 {
   "$schema": "https://www.partykit.io/schema.json",
-  "name": "polislike-partykit-reaction-canvas",
+  "name": "whispering-gallery",
   "main": "party/server.ts",
   "compatibilityDate": "2025-11-20",
   "serve": {
