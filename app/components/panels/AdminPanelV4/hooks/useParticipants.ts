@@ -73,7 +73,9 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
       });
     }
     setMoments(prev => {
-      const merged = [...newMoments, ...prev];
+      const importedLabels = new Set(newMoments.map(m => m.label));
+      const kept = prev.filter(m => !importedLabels.has(m.label));
+      const merged = [...newMoments, ...kept];
       localStorage.setItem(`v4-moments-${room}`, JSON.stringify(merged));
       return merged;
     });
