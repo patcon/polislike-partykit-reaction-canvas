@@ -37,6 +37,9 @@ export const REACTION_LABEL_PRESETS: Record<string, ReactionLabelSet> = {
   engagement: {
     positive: 'Engaged', negative: 'Disengaged', neutral: 'Baseline',
   },
+  yes: {
+    positive: 'Yes', negative: 'No', neutral: 'Maybe',
+  },
 };
 
 const STORAGE_KEY = 'polis_label_set';
