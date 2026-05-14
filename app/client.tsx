@@ -1,5 +1,6 @@
 import "./styles.css";
 declare const PARTYKIT_EVENT_BUILD: boolean;
+declare const APP_TITLE: string;
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
 import SimpleReactionCanvasAppV1 from "./components/apps/SimpleReactionCanvasAppV1";
@@ -13,7 +14,7 @@ function IndexApp() {
   const pageUrl = window.location.origin + window.location.pathname;
   return (
     <div className="index-app">
-      <h1 className="index-title">Polislike Reaction Canvas Apps</h1>
+      <h1 className="index-title">{APP_TITLE} Apps</h1>
       <div className="index-qr">
         <QRWithCopy url={pageUrl} size={120} urlClassName="index-qr-label" qrClassName="index-qr-code" />
       </div>
@@ -145,7 +146,7 @@ function App() {
 
   useEffect(() => {
     const isAdmin = new URLSearchParams(window.location.search).get('admin') === 'true';
-    document.title = TITLES[hash]?.(isAdmin) ?? 'Polislike Reaction Canvas';
+    document.title = TITLES[hash]?.(isAdmin) ?? APP_TITLE;
   }, [hash]);
 
   let page;
