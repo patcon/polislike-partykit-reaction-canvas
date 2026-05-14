@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { computeReactionRegion } from "../../../../utils/voteRegion";
 import type { ReactionAnchors, ReactionRegion } from "../../../../utils/voteRegion";
 import type { ReactionLabelSet } from "../../../../voteLabels";
@@ -19,6 +19,7 @@ interface MomentsTabProps {
   editingMomentLabel: string;
   setEditingMomentLabel: (v: string) => void;
   snapMoment: () => void;
+  importPolisCSV: (commentsFile: File, votesFile: File) => Promise<void>;
   activeLabels: ReactionLabelSet;
   activeAnchors: ReactionAnchors;
   room: string;
@@ -31,8 +32,24 @@ function MomentsTabInner({
   expandedMoments, setExpandedMoments,
   editingMomentId, setEditingMomentId,
   editingMomentLabel, setEditingMomentLabel,
-  snapMoment, activeLabels, activeAnchors, room,
+  snapMoment, importPolisCSV, activeLabels, activeAnchors, room,
 }: MomentsTabProps) {
+  const [commentsFile, setCommentsFile] = useState<File | null>(null);
+  const [votesFile, setVotesFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+
+  const handleImport = async () => {
+    if (!commentsFile || !votesFile || importing) return;
+    setImporting(true);
+    try {
+      await importPolisCSV(commentsFile, votesFile);
+      setCommentsFile(null);
+      setVotesFile(null);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const toggleExpanded = (id: string) => {
     setExpandedMoments(prev => {
       const s = new Set(prev);
@@ -125,6 +142,45 @@ function MomentsTabInner({
           style={{ display: 'block', width: '100%', padding: '12px', background: '#1a7a3c', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
         >
           Snap Moment
+        </button>
+      </div>
+
+      {/* Polis CSV import */}
+      <div style={{ marginBottom: 20, border: '1px solid #333', borderRadius: 6, padding: '10px 12px' }}>
+        <div style={{ fontWeight: 600, fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Import from Polis CSV</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <span className="v3-admin-btn" style={{ display: 'inline-block', fontSize: 12, flexShrink: 0 }}>↑ comments.csv</span>
+            <span style={{ fontSize: 12, color: commentsFile ? '#cec' : '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {commentsFile ? commentsFile.name : 'no file selected'}
+            </span>
+            <input
+              type="file"
+              accept=".csv"
+              style={{ display: 'none' }}
+              onChange={e => setCommentsFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+            <span className="v3-admin-btn" style={{ display: 'inline-block', fontSize: 12, flexShrink: 0 }}>↑ votes.csv</span>
+            <span style={{ fontSize: 12, color: votesFile ? '#cec' : '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {votesFile ? votesFile.name : 'no file selected'}
+            </span>
+            <input
+              type="file"
+              accept=".csv"
+              style={{ display: 'none' }}
+              onChange={e => setVotesFile(e.target.files?.[0] ?? null)}
+            />
+          </label>
+        </div>
+        <button
+          className="v3-admin-btn"
+          disabled={!commentsFile || !votesFile || importing}
+          onClick={handleImport}
+          style={{ opacity: (!commentsFile || !votesFile || importing) ? 0.4 : 1 }}
+        >
+          {importing ? 'Importing…' : 'Import moments'}
         </button>
       </div>
 

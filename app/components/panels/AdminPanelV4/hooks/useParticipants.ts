@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { generateUUID } from "../../../../utils/userId";
 import { computeReactionRegion } from "../../../../utils/voteRegion";
+import { parsePolisComments, parsePolisVotes, assemblePolisImport } from "../../../../utils/polisImport";
 import type { ReactionAnchors } from "../../../../utils/voteRegion";
 import type { MomentSnapshot, PushTarget } from "../types";
 import type PartySocket from "partysocket";
@@ -56,6 +57,18 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
       const next = new Set([...prev, userId]);
       localStorage.setItem(`v4-seen-users-${room}`, JSON.stringify([...next]));
       return next;
+    });
+  };
+
+  const importPolisCSV = async (commentsFile: File, votesFile: File) => {
+    const [commentsText, votesText] = await Promise.all([commentsFile.text(), votesFile.text()]);
+    const comments = parsePolisComments(commentsText);
+    const votes = parsePolisVotes(votesText);
+    const newMoments = assemblePolisImport(comments, votes, [...seenUsers]);
+    setMoments(prev => {
+      const merged = [...newMoments, ...prev];
+      localStorage.setItem(`v4-moments-${room}`, JSON.stringify(merged));
+      return merged;
     });
   };
 
@@ -164,6 +177,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     openMenuGroupKey, setOpenMenuGroupKey,
     feedbackStars, setFeedbackStars,
     snapMoment,
+    importPolisCSV,
     applyConnected,
     handleSocketEvent,
   };
