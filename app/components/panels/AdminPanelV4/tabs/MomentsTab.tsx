@@ -174,14 +174,29 @@ function MomentsTabInner({
             />
           </label>
         </div>
-        <button
-          className="v3-admin-btn"
-          disabled={!commentsFile || !votesFile || importing}
-          onClick={handleImport}
-          style={{ opacity: (!commentsFile || !votesFile || importing) ? 0.4 : 1 }}
-        >
-          {importing ? 'Importing…' : 'Import moments'}
-        </button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="v3-admin-btn"
+            disabled={!commentsFile || !votesFile || importing}
+            onClick={handleImport}
+            style={{ opacity: (!commentsFile || !votesFile || importing) ? 0.4 : 1 }}
+          >
+            {importing ? 'Importing…' : 'Import moments'}
+          </button>
+          <button
+            className="v3-admin-btn"
+            disabled={moments.length === 0}
+            onClick={() => {
+              if (window.confirm('Clear all moments?')) {
+                setMoments([]);
+                localStorage.setItem(`v4-moments-${room}`, JSON.stringify([]));
+              }
+            }}
+            style={{ opacity: moments.length === 0 ? 0.4 : 1 }}
+          >
+            Clear all
+          </button>
+        </div>
       </div>
 
       {moments.length === 0 ? (
