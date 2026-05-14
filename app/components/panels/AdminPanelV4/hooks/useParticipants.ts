@@ -64,7 +64,14 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     const [commentsText, votesText] = await Promise.all([commentsFile.text(), votesFile.text()]);
     const comments = parsePolisComments(commentsText);
     const votes = parsePolisVotes(votesText);
-    const newMoments = assemblePolisImport(comments, votes, [...seenUsers]);
+    const { moments: newMoments, syntheticUserIds } = assemblePolisImport(comments, votes, [...seenUsers]);
+    if (syntheticUserIds.length > 0) {
+      setSeenUsers(prev => {
+        const next = new Set([...prev, ...syntheticUserIds]);
+        localStorage.setItem(`v4-seen-users-${room}`, JSON.stringify([...next]));
+        return next;
+      });
+    }
     setMoments(prev => {
       const merged = [...newMoments, ...prev];
       localStorage.setItem(`v4-moments-${room}`, JSON.stringify(merged));

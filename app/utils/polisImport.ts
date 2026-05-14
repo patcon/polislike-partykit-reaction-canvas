@@ -39,11 +39,16 @@ function shuffle<T>(arr: T[]): T[] {
   return a;
 }
 
+export interface PolisImportResult {
+  moments: MomentSnapshot[];
+  syntheticUserIds: string[];
+}
+
 export function assemblePolisImport(
   comments: ReturnType<typeof parsePolisComments>,
   votes: ReturnType<typeof parsePolisVotes>,
   seenUsers: string[],
-): MomentSnapshot[] {
+): PolisImportResult {
   // Count votes per voter-id to find most participatory voters
   const voteCounts = new Map<number, number>();
   for (const v of votes) {
@@ -53,12 +58,18 @@ export function assemblePolisImport(
     .sort((a, b) => b[1] - a[1])
     .map(([voterId]) => voterId);
 
-  // Randomly map top-N voter-ids to seen users
+  // Map top-N voter-ids to real seen users; generate synthetic IDs for the rest
   const shuffledUsers = shuffle(seenUsers);
   const n = Math.min(rankedVoterIds.length, shuffledUsers.length);
   const voterToUser = new Map<number, string>();
   for (let i = 0; i < n; i++) {
     voterToUser.set(rankedVoterIds[i], shuffledUsers[i]);
+  }
+  const syntheticUserIds: string[] = [];
+  for (let i = n; i < rankedVoterIds.length; i++) {
+    const syntheticId = generateUUID();
+    voterToUser.set(rankedVoterIds[i], syntheticId);
+    syntheticUserIds.push(syntheticId);
   }
 
   // Build commentId → voterId → vote lookup
@@ -70,7 +81,7 @@ export function assemblePolisImport(
 
   const sorted = [...comments].sort((a, b) => a.timestamp - b.timestamp);
 
-  return sorted.map(comment => {
+  const moments = sorted.map(comment => {
     const regions: Record<string, 'positive' | 'negative' | 'neutral' | null> = {};
     const votesForComment = commentVotes.get(comment.commentId);
     for (const [voterId, userId] of voterToUser) {
@@ -87,4 +98,6 @@ export function assemblePolisImport(
       regions,
     };
   });
+
+  return { moments, syntheticUserIds };
 }
