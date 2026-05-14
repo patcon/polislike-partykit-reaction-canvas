@@ -218,11 +218,7 @@ export default function ReactionCanvasAppV4() {
   useEffect(() => {
     localStorage.setItem('v4-active-interface', activeInterface);
     const p = new URLSearchParams(window.location.search);
-    if (activeInterface === 'canvas') {
-      p.delete('interface');
-    } else {
-      p.set('interface', activeInterface);
-    }
+    p.set('interface', activeInterface);
     const qs = p.toString();
     window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
   }, [activeInterface]);
