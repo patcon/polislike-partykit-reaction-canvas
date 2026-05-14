@@ -242,7 +242,16 @@ function MomentsTabInner({
                   ) : (
                     <span style={{ flex: 1, fontSize: 13, color: '#ddd' }}>{moment.label}</span>
                   )}
-                  <span style={{ fontSize: 11, color: '#555', flexShrink: 0 }}>{new Date(moment.timestamp).toLocaleTimeString()}</span>
+                  <span style={{ fontSize: 11, color: '#555', flexShrink: 0 }}>
+                    {(() => {
+                      const d = new Date(moment.timestamp);
+                      const today = new Date();
+                      const isToday = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+                      return isToday
+                        ? d.toLocaleTimeString()
+                        : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${d.toLocaleTimeString()}`;
+                    })()}
+                  </span>
                   <button
                     onClick={e => { e.stopPropagation(); setEditingMomentId(moment.id); setEditingMomentLabel(moment.label); }}
                     style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
