@@ -79,7 +79,7 @@ export function assemblePolisImport(
     commentVotes.get(v.commentId)!.set(v.voterId, v.vote);
   }
 
-  const sorted = [...comments].sort((a, b) => a.timestamp - b.timestamp);
+  const sorted = [...comments].sort((a, b) => b.timestamp - a.timestamp);
 
   const moments = sorted.map(comment => {
     const regions: Record<string, 'positive' | 'negative' | 'neutral' | null> = {};
