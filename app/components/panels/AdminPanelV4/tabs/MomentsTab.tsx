@@ -158,7 +158,7 @@ function MomentsTabInner({
               type="file"
               accept=".csv"
               style={{ display: 'none' }}
-              onChange={e => setCommentsFile(e.target.files?.[0] ?? null)}
+              onChange={e => { setCommentsFile(e.target.files?.[0] ?? null); e.target.value = ''; }}
             />
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
@@ -170,7 +170,7 @@ function MomentsTabInner({
               type="file"
               accept=".csv"
               style={{ display: 'none' }}
-              onChange={e => setVotesFile(e.target.files?.[0] ?? null)}
+              onChange={e => { setVotesFile(e.target.files?.[0] ?? null); e.target.value = ''; }}
             />
           </label>
         </div>
