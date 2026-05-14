@@ -700,7 +700,6 @@ renderer.domElement.addEventListener('touchmove', e=>{
 renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
 
 // ── WebSocket / live-user state ───────────────────────────
-const DEFAULT_HOST='polislike-partykit-reaction-canvas.patcon.partykit.dev';
 let ws=null, wsReconnectTimer=null, wsConnectedFlag=false;
 
 function setConnStatus(text,cls){const el=document.getElementById('conn-status');el.textContent=text;el.className=cls||'';}
@@ -743,9 +742,8 @@ function connectWs(room){
   setConnStatus('connecting…','connecting');
   const {hostname,port}=window.location;
   const isLocal=port==='1999';
-  const isPreview=hostname.endsWith('.partykit.dev')&&hostname!==DEFAULT_HOST;
-  const host=isLocal?`${hostname}:1999`:isPreview?hostname:DEFAULT_HOST;
-  const proto=isLocal?'ws':'wss';
+  const host=isLocal?`${hostname}:1999`:hostname;
+  const proto=window.location.protocol==='https:'?'wss':'ws';
   const userId=crypto.randomUUID?.()??'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
   ws=new WebSocket(`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`);
   ws.onopen=()=>{
@@ -802,8 +800,7 @@ function handleConnectClick(){
 function v4Url(room){
   const {hostname,port}=window.location;
   const isLocal=port==='1999';
-  const isPreview=hostname.endsWith('.partykit.dev')&&hostname!==DEFAULT_HOST;
-  const appHost=isLocal?`${hostname}:1999`:isPreview?hostname:DEFAULT_HOST;
+  const appHost=isLocal?`${hostname}:1999`:hostname;
   return`${window.location.protocol}//${appHost}/?room=${encodeURIComponent(room)}#v4`;
 }
 function openQrModal(){

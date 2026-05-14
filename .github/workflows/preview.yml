@@ -72,8 +72,10 @@ jobs:
         uses: actions/github-script@v9
         with:
           script: |
+            const fs = require('fs');
+            const { name } = JSON.parse(fs.readFileSync('partykit.json', 'utf8'));
             const num = context.payload.pull_request.number;
-            const url = `https://pr-${num}.polislike-partykit-reaction-canvas.patcon.partykit.dev`;
+            const url = `https://pr-${num}.${name}.patcon.partykit.dev`;
             await github.rest.repos.createDeploymentStatus({
               owner: context.repo.owner,
               repo: context.repo.repo,

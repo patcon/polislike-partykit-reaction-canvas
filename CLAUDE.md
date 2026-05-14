@@ -52,7 +52,7 @@ CI deploys automatically on merge to `main`. Deploying from the workstation is a
 
 `public/index.html` is **generated** from `public/index.template.html` by `npm run cachebust`, which stamps `?v=<timestamp>` onto the JS and CSS asset URLs to force browsers to reload after a deploy.
 
-`npm run deploy` runs cachebust automatically before uploading. The committed `public/index.html` serves local dev as-is (stale timestamp is fine locally). Do not run cachebust manually or commit the result — CI handles it.
+`pnpm run deploy` runs cachebust automatically before uploading. `pnpm run dev` and `pnpm run dev-https` also run cachebust on startup to generate `public/index.html` fresh. `public/index.html` is gitignored — do not commit it.
 
 ## Architecture
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://www.partykit.io/schema.json",
-  "name": "polislike-partykit-reaction-canvas",
+  "name": "whispering-gallery",
   "main": "party/server.ts",
   "compatibilityDate": "2025-11-20",
   "serve": {
@@ -10,7 +10,8 @@
       "define": {
         "process.env.PARTYKIT_SUPABASE_URL": "\"https://cufrmdhkoabpwilwztym.supabase.co\"",
         "process.env.PARTYKIT_SUPABASE_ANON_KEY": "\"sb_publishable_HoNA1ULIi6X_bW9-4UJOMQ_zUuNogkJ\"",
-        "PARTYKIT_EVENT_BUILD": "false"
+        "PARTYKIT_EVENT_BUILD": "false",
+        "APP_TITLE": "\"Whispering Gallery\""
       }
     }
   }

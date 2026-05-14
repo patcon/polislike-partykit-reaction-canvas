@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Wake lock indicator** — a screen-lock toggle button appears below the vibration icon whenever an orientation valence mode is active. Tap to keep the screen awake during orientation-based sessions; the lock icon (`MdScreenLockLandscape`) shows when held, the screen icon (`MdSmartScreen`) shows when off. The lock is released and hidden automatically when switching back to touch mode. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 
 ### Changed
+- **Renamed PartyKit deployment** — URL changed from `polislike-partykit-reaction-canvas.patcon.partykit.dev` to `whispering-gallery.patcon.partykit.dev`. The slug is now defined only in `partykit.json`; standalone HTML pages derive the host from `window.location` and the CI preview workflow reads it from `partykit.json` at runtime.
 - **Interfaces tab** — renamed from "Interface" to "Interfaces"; added Emcee row at the top with a shareable patch URL so emcee access can be granted without a push.
 - **Interfaces tab: Solo column** — replaced radio inputs with `FaCheckCircle` / `FaCircle` icon buttons; clicking the icon is the only way to select (row label no longer acts as a click target).
 
@@ -31,6 +32,8 @@ All notable changes to this project will be documented in this file. Releases cu
 - Haptic feedback now works immediately on Android without needing to toggle the icon off and on; the icon starts dim and lights up on first touch as the Vibration API is primed. If the first touch lands on the icon itself it activates rather than toggling off. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 - Changing valence input mode now triggers a haptic buzz, matching the existing behaviour for label and activity changes. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 - WebSocket connections now use `wss://` when the page is served over HTTPS, preventing mixed-content errors on LAN addresses (`192.168.x.x`). Extracted shared `getPartySocketConfig()` utility (`app/utils/partyHost.ts`) used by all six socket-holding components. ([#82](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/82))
+- Standalone HTML pages (`mood-sounds.html`, `valence-onboarding-v2.html`, `valence-onboarding-v3.html`) now derive the WebSocket scheme from `window.location.protocol` rather than hostname/port heuristics, fixing `ws://` mixed-content errors when accessed over HTTPS on LAN addresses.
+- `getPartySocketConfig()` now uses `window.location.protocol` instead of `window.isSecureContext` to pick `ws` vs `wss`, fixing WebSocket failures on `http://localhost:1999` and `http://127.0.0.1:1999` (browsers treat loopback as a secure context even over plain HTTP, so `isSecureContext` was incorrectly returning `wss://` for the plain HTTP dev server).
 
 ## Week 24 (2026-05-04)
 

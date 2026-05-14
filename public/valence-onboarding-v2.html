@@ -585,7 +585,6 @@ renderer.domElement.addEventListener('touchmove', e=>{
 renderer.domElement.addEventListener('touchend',()=>{isDragging=false;});
 
 // ── WebSocket / live-user state ───────────────────────────
-const DEFAULT_HOST='polislike-partykit-reaction-canvas.patcon.partykit.dev';
 let ws=null, wsReconnectTimer=null, wsConnectedFlag=false;
 
 function setConnStatus(text,cls){const el=document.getElementById('conn-status');el.textContent=text;el.className=cls||'';}
@@ -626,8 +625,8 @@ function connectWs(room){
   if(ws){ws.onclose=null;ws.close();}
   if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
   setConnStatus('connecting…','connecting');
-  const host=window.location.port==='1999'?`${window.location.hostname}:1999`:DEFAULT_HOST;
-  const proto=window.location.port==='1999'?'ws':'wss';
+  const host=window.location.port==='1999'?`${window.location.hostname}:1999`:window.location.host;
+  const proto=window.location.protocol==='https:'?'wss':'ws';
   const userId=crypto.randomUUID?.()??'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
   ws=new WebSocket(`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`);
   ws.onopen=()=>{

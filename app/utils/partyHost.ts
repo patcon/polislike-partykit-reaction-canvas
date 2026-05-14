@@ -15,7 +15,7 @@ export function getPartySocketConfig(): { host: string; protocol: 'ws' | 'wss' }
   if (window.location.port === '1999') {
     return {
       host: `${window.location.hostname}:1999`,
-      protocol: window.isSecureContext ? 'wss' : 'ws',
+      protocol: window.location.protocol === 'https:' ? 'wss' : 'ws',
     };
   }
   return {
