@@ -30,7 +30,8 @@ function getPatchUrl(interfaceName: string, selfId?: string, selfChain?: string[
   const p = new URLSearchParams(window.location.search);
   p.delete('forceView');
   p.delete('admin');
-  p.set('interface', interfaceName);
+  p.delete('interface');
+  p.set('addInterface', interfaceName);
   if (selfId && selfChain !== undefined) {
     p.set('inviteChain', appendSelfToChain(selfChain, selfId).join(','));
   }
