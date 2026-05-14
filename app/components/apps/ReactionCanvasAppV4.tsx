@@ -59,16 +59,27 @@ const CHIP_BAR_HEIGHT = 40;
 
 const PUSHED_INTERFACES_KEY = 'v4-pushed-interfaces';
 
+// Process ?addInterface=X: add to localStorage, force ?interface= to X, strip addInterface from URL
+(function processAddInterfaceParam() {
+  const p = new URLSearchParams(window.location.search);
+  const toAdd = p.get('addInterface');
+  if (!toAdd) return;
+  try {
+    const stored: string[] = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
+    if (!stored.includes(toAdd)) {
+      localStorage.setItem(PUSHED_INTERFACES_KEY, JSON.stringify([...stored, toAdd]));
+    }
+  } catch { /* ignore */ }
+  p.delete('addInterface');
+  p.set('interface', toAdd);
+  history.replaceState(null, '', `?${p}${window.location.hash}`);
+})();
+
 function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
   const interfaces = ['canvas'];
+  // Only emcee is URL-privileged; all other patchable interfaces are localStorage-only
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
-  if (p.get('interface') === 'social') interfaces.push('social');
-  if (p.get('interface') === 'mood-tones') interfaces.push('mood-tones');
-  if (p.get('interface') === 'treevites') interfaces.push('treevites');
-  if (p.get('interface') === 'greeter') interfaces.push('greeter');
-  if (p.get('interface') === 'steno') interfaces.push('steno');
-  if (p.get('interface') === 'story-tracer') interfaces.push('story-tracer');
   try {
     const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
     if (Array.isArray(stored)) {
@@ -108,6 +119,9 @@ export default function ReactionCanvasAppV4() {
   const [unlockedInterfaces, setUnlockedInterfaces] = useState(() => getUnlockedInterfaces());
   const [activeInterface, setActiveInterface] = useState(() => {
     const unlocked = getUnlockedInterfaces();
+    const p = new URLSearchParams(window.location.search);
+    const fromUrl = p.get('interface');
+    if (fromUrl && unlocked.includes(fromUrl)) return fromUrl;
     const saved = localStorage.getItem('v4-active-interface');
     if (saved && unlocked.includes(saved)) return saved;
     return unlocked.includes('emcee') ? 'emcee' : 'canvas';
@@ -203,6 +217,10 @@ export default function ReactionCanvasAppV4() {
 
   useEffect(() => {
     localStorage.setItem('v4-active-interface', activeInterface);
+    const p = new URLSearchParams(window.location.search);
+    p.set('interface', activeInterface);
+    const qs = p.toString();
+    window.history.replaceState(null, '', `${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`);
   }, [activeInterface]);
 
   useEffect(() => {
