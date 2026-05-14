@@ -35,7 +35,7 @@ export function useLabels(socket: PartySocket) {
       ([, set]) => set.positive === labels.positive && set.negative === labels.negative && set.neutral === labels.neutral
     )?.[0];
     if (matchedKey) {
-      setLabelSelected(matchedKey);
+      selectPreset(matchedKey);
     } else {
       setLabelSelected('custom');
       setCustomPositive(labels.positive);

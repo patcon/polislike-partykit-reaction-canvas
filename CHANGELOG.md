@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 25 (2026-05-11)
 
+### Fixed
+- **Labels tab: custom fields pre-filled on load** — switching to a preset radio now pre-fills the Custom fields even when the selection is restored from the server on arrival, not just on explicit click.
+
 ### Added
 - **Yes / No / Maybe label preset** — added a new `yes` reaction label preset (Yes / No / Maybe) available in the emcee Labels tab.
 - **Story Tracer: reducer algorithm selector + parameter controls** — choose between four dimensionality reduction algorithms via a new dropdown in the Story Tracer settings: UMAP (umap-js, default), UMAP (DruidJS), LocalMAP, and PaCMAP. Per-algorithm parameter inputs appear below the selector (e.g. neighbors, min dist, spread for UMAP; MN/FP ratio and low-dist threshold for PaCMAP/LocalMAP; epochs with auto-calculation for DruidJS UMAP). The selected algorithm is persisted to localStorage and stored alongside the computed points' metadata. All algorithms run inside the existing Web Worker. ([#94](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/94))
