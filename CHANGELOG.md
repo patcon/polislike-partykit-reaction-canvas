@@ -33,6 +33,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - Changing valence input mode now triggers a haptic buzz, matching the existing behaviour for label and activity changes. ([#84](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/84))
 - WebSocket connections now use `wss://` when the page is served over HTTPS, preventing mixed-content errors on LAN addresses (`192.168.x.x`). Extracted shared `getPartySocketConfig()` utility (`app/utils/partyHost.ts`) used by all six socket-holding components. ([#82](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/82))
 - Standalone HTML pages (`mood-sounds.html`, `valence-onboarding-v2.html`, `valence-onboarding-v3.html`) now derive the WebSocket scheme from `window.location.protocol` rather than hostname/port heuristics, fixing `ws://` mixed-content errors when accessed over HTTPS on LAN addresses.
+- `getPartySocketConfig()` now uses `window.location.protocol` instead of `window.isSecureContext` to pick `ws` vs `wss`, fixing WebSocket failures on `http://localhost:1999` and `http://127.0.0.1:1999` (browsers treat loopback as a secure context even over plain HTTP, so `isSecureContext` was incorrectly returning `wss://` for the plain HTTP dev server).
 
 ## Week 24 (2026-05-04)
 
