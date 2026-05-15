@@ -145,10 +145,14 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
         }
 
         const pipe = pipelineCache.get(cmd.modelId)!
+        const cachedCount = cmd.texts.length - toEmbed.length
+        // Jump bar to cached position before starting
+        if (cachedCount > 0) {
+          self.postMessage({ type: 'progress:embedding', loaded: cachedCount - 1, total: cmd.texts.length } satisfies WorkerEvent)
+        }
         for (let j = 0; j < toEmbed.length; j++) {
           const i = toEmbed[j]
-          // progress counts only the chunks that actually need embedding
-          self.postMessage({ type: 'progress:embedding', loaded: j, total: toEmbed.length } satisfies WorkerEvent)
+          self.postMessage({ type: 'progress:embedding', loaded: i, total: cmd.texts.length } satisfies WorkerEvent)
           const output = await pipe(cmd.texts[i], { pooling: 'mean', normalize: true })
           const vector = output.data as Float32Array
           vectors[i] = vector
