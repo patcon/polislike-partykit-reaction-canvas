@@ -37,6 +37,7 @@ function MomentsTabInner({
   const [commentsFile, setCommentsFile] = useState<File | null>(null);
   const [votesFile, setVotesFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
+  const [multiFileMode, setMultiFileMode] = useState(true);
 
   const handleImport = async () => {
     if (!commentsFile || !votesFile || importing) return;
@@ -149,32 +150,69 @@ function MomentsTabInner({
       <div style={{ marginBottom: 20, border: '1px solid #333', borderRadius: 6, padding: '10px 12px' }}>
         <div style={{ fontWeight: 600, fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Import from Polis CSV</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-            <span className="v3-admin-btn" style={{ display: 'inline-block', fontSize: 12, flexShrink: 0 }}>↑ Select files</span>
-            <span style={{ fontSize: 12, color: (commentsFile || votesFile) ? '#cec' : '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {commentsFile && votesFile
-                ? `${commentsFile.name}, ${votesFile.name}`
-                : commentsFile
-                  ? commentsFile.name
-                  : votesFile
-                    ? votesFile.name
-                    : 'select *comments.csv + *votes.csv'}
-            </span>
-            <input
-              type="file"
-              accept=".csv"
-              multiple
-              style={{ display: 'none' }}
-              onChange={e => {
-                const files = Array.from(e.target.files ?? []);
-                setCommentsFile(files.find(f => f.name.endsWith('comments.csv')) ?? null);
-                setVotesFile(files.find(f => f.name.endsWith('votes.csv')) ?? null);
-                e.target.value = '';
-              }}
-            />
-          </label>
+          {multiFileMode ? (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <span className="v3-admin-btn" style={{ display: 'inline-block', fontSize: 12, flexShrink: 0 }}>↑ Select files</span>
+              <span style={{ fontSize: 12, color: (commentsFile || votesFile) ? '#cec' : '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {commentsFile && votesFile
+                  ? `${commentsFile.name}, ${votesFile.name}`
+                  : commentsFile
+                    ? commentsFile.name
+                    : votesFile
+                      ? votesFile.name
+                      : 'select *comments.csv + *votes.csv'}
+              </span>
+              <input
+                type="file"
+                accept=".csv"
+                multiple
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const files = Array.from(e.target.files ?? []);
+                  setCommentsFile(files.find(f => f.name.endsWith('comments.csv')) ?? null);
+                  setVotesFile(files.find(f => f.name.endsWith('votes.csv')) ?? null);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          ) : (
+            <>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <span className="v3-admin-btn" style={{ display: 'inline-block', fontSize: 12, flexShrink: 0 }}>↑ comments.csv</span>
+                <span style={{ fontSize: 12, color: commentsFile ? '#cec' : '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {commentsFile ? commentsFile.name : 'no file selected'}
+                </span>
+                <input
+                  type="file"
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  onChange={e => { setCommentsFile(e.target.files?.[0] ?? null); e.target.value = ''; }}
+                />
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <span className="v3-admin-btn" style={{ display: 'inline-block', fontSize: 12, flexShrink: 0 }}>↑ votes.csv</span>
+                <span style={{ fontSize: 12, color: votesFile ? '#cec' : '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {votesFile ? votesFile.name : 'no file selected'}
+                </span>
+                <input
+                  type="file"
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  onChange={e => { setVotesFile(e.target.files?.[0] ?? null); e.target.value = ''; }}
+                />
+              </label>
+            </>
+          )}
           {commentsFile && !votesFile && <span style={{ fontSize: 11, color: '#a74' }}>Missing *votes.csv</span>}
           {votesFile && !commentsFile && <span style={{ fontSize: 11, color: '#a74' }}>Missing *comments.csv</span>}
+          {multiFileMode && (
+            <button
+              onClick={() => setMultiFileMode(false)}
+              style={{ background: 'none', border: 'none', padding: 0, color: '#555', fontSize: 11, cursor: 'pointer', textAlign: 'left', textDecoration: 'underline' }}
+            >
+              load each file individually?
+            </button>
+          )}
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <button
