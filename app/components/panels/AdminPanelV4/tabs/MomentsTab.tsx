@@ -1,4 +1,4 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import { computeReactionRegion } from "../../../../utils/voteRegion";
 import type { ReactionAnchors, ReactionRegion } from "../../../../utils/voteRegion";
 import type { ReactionLabelSet } from "../../../../voteLabels";
@@ -19,6 +19,7 @@ interface MomentsTabProps {
   editingMomentLabel: string;
   setEditingMomentLabel: (v: string) => void;
   snapMoment: () => void;
+  importPolisCSV: (commentsFile: File, votesFile: File) => Promise<void>;
   activeLabels: ReactionLabelSet;
   activeAnchors: ReactionAnchors;
   room: string;
@@ -31,8 +32,25 @@ function MomentsTabInner({
   expandedMoments, setExpandedMoments,
   editingMomentId, setEditingMomentId,
   editingMomentLabel, setEditingMomentLabel,
-  snapMoment, activeLabels, activeAnchors, room,
+  snapMoment, importPolisCSV, activeLabels, activeAnchors, room,
 }: MomentsTabProps) {
+  const [commentsFile, setCommentsFile] = useState<File | null>(null);
+  const [votesFile, setVotesFile] = useState<File | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [multiFileMode, setMultiFileMode] = useState(true);
+
+  const handleImport = async () => {
+    if (!commentsFile || !votesFile || importing) return;
+    setImporting(true);
+    try {
+      await importPolisCSV(commentsFile, votesFile);
+      setCommentsFile(null);
+      setVotesFile(null);
+    } finally {
+      setImporting(false);
+    }
+  };
+
   const toggleExpanded = (id: string) => {
     setExpandedMoments(prev => {
       const s = new Set(prev);
@@ -128,6 +146,99 @@ function MomentsTabInner({
         </button>
       </div>
 
+      {/* Polis CSV import */}
+      <div style={{ marginBottom: 20, border: '1px solid #333', borderRadius: 6, padding: '10px 12px' }}>
+        <div style={{ fontWeight: 600, fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Import from Polis CSV</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+          {multiFileMode ? (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+              <span className="v3-admin-btn" style={{ display: 'inline-block', fontSize: 12, flexShrink: 0 }}>↑ Select files</span>
+              <span style={{ fontSize: 12, color: (commentsFile || votesFile) ? '#cec' : '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {commentsFile && votesFile
+                  ? `${commentsFile.name}, ${votesFile.name}`
+                  : commentsFile
+                    ? commentsFile.name
+                    : votesFile
+                      ? votesFile.name
+                      : 'select *comments.csv + *votes.csv'}
+              </span>
+              <input
+                type="file"
+                accept=".csv"
+                multiple
+                style={{ display: 'none' }}
+                onChange={e => {
+                  const files = Array.from(e.target.files ?? []);
+                  setCommentsFile(files.find(f => f.name.endsWith('comments.csv')) ?? null);
+                  setVotesFile(files.find(f => f.name.endsWith('votes.csv')) ?? null);
+                  e.target.value = '';
+                }}
+              />
+            </label>
+          ) : (
+            <>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <span className="v3-admin-btn" style={{ display: 'inline-block', fontSize: 12, flexShrink: 0 }}>↑ comments.csv</span>
+                <span style={{ fontSize: 12, color: commentsFile ? '#cec' : '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {commentsFile ? commentsFile.name : 'no file selected'}
+                </span>
+                <input
+                  type="file"
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  onChange={e => { setCommentsFile(e.target.files?.[0] ?? null); e.target.value = ''; }}
+                />
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                <span className="v3-admin-btn" style={{ display: 'inline-block', fontSize: 12, flexShrink: 0 }}>↑ votes.csv</span>
+                <span style={{ fontSize: 12, color: votesFile ? '#cec' : '#555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {votesFile ? votesFile.name : 'no file selected'}
+                </span>
+                <input
+                  type="file"
+                  accept=".csv"
+                  style={{ display: 'none' }}
+                  onChange={e => { setVotesFile(e.target.files?.[0] ?? null); e.target.value = ''; }}
+                />
+              </label>
+            </>
+          )}
+          {commentsFile && !votesFile && <span style={{ fontSize: 11, color: '#a74' }}>Missing *votes.csv</span>}
+          {votesFile && !commentsFile && <span style={{ fontSize: 11, color: '#a74' }}>Missing *comments.csv</span>}
+          {multiFileMode && (
+            <button
+              onClick={() => setMultiFileMode(false)}
+              style={{ background: 'none', border: 'none', padding: 0, color: '#555', fontSize: 11, cursor: 'pointer', textAlign: 'left', textDecoration: 'underline' }}
+            >
+              load each file individually?
+            </button>
+          )}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            className="v3-admin-btn"
+            disabled={!commentsFile || !votesFile || importing}
+            onClick={handleImport}
+            style={{ opacity: (!commentsFile || !votesFile || importing) ? 0.4 : 1 }}
+          >
+            {importing ? 'Importing…' : 'Import moments'}
+          </button>
+          <button
+            className="v3-admin-btn"
+            disabled={moments.length === 0}
+            onClick={() => {
+              if (window.confirm('Clear all moments?')) {
+                setMoments([]);
+                localStorage.setItem(`v4-moments-${room}`, JSON.stringify([]));
+              }
+            }}
+            style={{ opacity: moments.length === 0 ? 0.4 : 1 }}
+          >
+            Clear all
+          </button>
+        </div>
+      </div>
+
       {moments.length === 0 ? (
         <p style={{ color: '#666', fontSize: 13 }}>No moments captured yet.</p>
       ) : (
@@ -171,7 +282,16 @@ function MomentsTabInner({
                   ) : (
                     <span style={{ flex: 1, fontSize: 13, color: '#ddd' }}>{moment.label}</span>
                   )}
-                  <span style={{ fontSize: 11, color: '#555', flexShrink: 0 }}>{new Date(moment.timestamp).toLocaleTimeString()}</span>
+                  <span style={{ fontSize: 11, color: '#555', flexShrink: 0 }}>
+                    {(() => {
+                      const d = new Date(moment.timestamp);
+                      const today = new Date();
+                      const isToday = d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate();
+                      return isToday
+                        ? d.toLocaleTimeString()
+                        : `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${d.toLocaleTimeString()}`;
+                    })()}
+                  </span>
                   <button
                     onClick={e => { e.stopPropagation(); setEditingMomentId(moment.id); setEditingMomentLabel(moment.label); }}
                     style={{ background: 'none', border: 'none', color: '#555', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}

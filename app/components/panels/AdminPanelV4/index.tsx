@@ -355,6 +355,7 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
             editingMomentLabel={participants.editingMomentLabel}
             setEditingMomentLabel={participants.setEditingMomentLabel}
             snapMoment={participants.snapMoment}
+            importPolisCSV={participants.importPolisCSV}
             activeLabels={labels.activeLabels}
             activeAnchors={anchors.activeAnchors}
             room={room}

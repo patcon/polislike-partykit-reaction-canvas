@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
+## Week 26 (2026-05-18)
+
+### Added
+- **Moments: import Polis CSV exports** — load a `*comments.csv` and `*votes.csv` from a Polis export to generate synthetic Moments in the emcee Moments tab. Each comment becomes a Moment (labeled with the comment body); votes are mapped onto People-tab participants by randomly assigning the most-participatory Polis voters to seen users. ([#103](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/103))
+
 ## Week 25 (2026-05-11)
 
 ### Fixed
