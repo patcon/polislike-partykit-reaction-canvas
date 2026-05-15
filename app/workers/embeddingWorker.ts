@@ -67,10 +67,41 @@ self.onunhandledrejection = (e: PromiseRejectionEvent) => {
   self.postMessage({ type: 'error', message: `Worker unhandled rejection: ${String(e.reason)}` } satisfies WorkerEvent)
 }
 
-async function runReducer(algorithmId: ReducerAlgorithmId, data: number[][], n: number, p: ReducerParams): Promise<number[][]> {
+const PROGRESS_INTERVAL = 10  // emit progress every N epochs
+
+async function druidGenerate(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  reducer: any,
+  total: number,
+  onProgress: (epoch: number, total: number) => void,
+): Promise<number[][]> {
+  const gen = reducer.generator(total === 0 ? undefined : total)
+  let i = 0
+  while (true) {
+    const { done } = gen.next()
+    if (done) break
+    i++
+    if (i % PROGRESS_INTERVAL === 0) {
+      onProgress(i, total || i)
+      await new Promise(resolve => setTimeout(resolve, 0))
+    }
+  }
+  onProgress(total || i, total || i)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return reducer.projection as any
+}
+
+async function runReducer(
+  algorithmId: ReducerAlgorithmId,
+  data: number[][],
+  n: number,
+  p: ReducerParams,
+  onProgress: (epoch: number, total: number) => void,
+): Promise<number[][]> {
   // Mirror umap-js epoch auto-calculation: fewer epochs for larger datasets
   const autoEpochs = n <= 2500 ? 500 : n <= 5000 ? 400 : n <= 7500 ? 300 : 200
   const epochs = p.epochs > 0 ? p.epochs : autoEpochs
+
   if (algorithmId === 'umap-js') {
     const { UMAP } = await import('umap-js')
     const umap = new UMAP({
@@ -80,13 +111,24 @@ async function runReducer(algorithmId: ReducerAlgorithmId, data: number[][], n: 
       spread: p.spread,
       nEpochs: p.epochs,  // 0 triggers umap-js's own auto-calculation
     })
-    return umap.fit(data) as number[][]
+    umap.initializeFit(data)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const total: number = (umap as any).getNEpochs()
+    for (let i = 0; i < total; i++) {
+      umap.step()
+      if (i % PROGRESS_INTERVAL === 0 || i === total - 1) {
+        onProgress(i + 1, total)
+        await new Promise(resolve => setTimeout(resolve, 0))
+      }
+    }
+    return umap.getEmbedding() as number[][]
   }
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const druid = await import('@saehrimnir/druidjs') as any
   if (algorithmId === 'umap-druid') {
     const reducer = new druid.UMAP(data, { d: 3, n_neighbors: Math.min(p.n_neighbors, n - 1), min_dist: p.min_dist, _spread: p.spread })
-    return reducer.transform(epochs)
+    return druidGenerate(reducer, epochs, onProgress)
   }
   if (algorithmId === 'localmap') {
     const reducer = new druid.LocalMAP(data, {
@@ -96,7 +138,8 @@ async function runReducer(algorithmId: ReducerAlgorithmId, data: number[][], n: 
       FP_ratio: p.FP_ratio,
       low_dist_thres: p.low_dist_thres,
     })
-    return reducer.transform()
+    // total comes from the algorithm's own num_iters phases; pass 0 to use default
+    return druidGenerate(reducer, 0, onProgress)
   }
   // pacmap
   const reducer = new druid.PaCMAP(data, {
@@ -105,7 +148,7 @@ async function runReducer(algorithmId: ReducerAlgorithmId, data: number[][], n: 
     MN_ratio: p.MN_ratio,
     FP_ratio: p.FP_ratio,
   })
-  return reducer.transform()
+  return druidGenerate(reducer, 0, onProgress)
 }
 
 self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
@@ -161,10 +204,16 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
         }
       }
 
-      self.postMessage({ type: 'progress:reducer-running' } satisfies WorkerEvent)
+      self.postMessage({ type: 'progress:reducer', epoch: 0, total: 0 } satisfies WorkerEvent)
       const finalVectors = vectors as Float32Array[]
       const data = finalVectors.map(v => Array.from(v))
-      const result = await runReducer(cmd.algorithmId, data, finalVectors.length, cmd.reducerParams)
+      const result = await runReducer(
+        cmd.algorithmId,
+        data,
+        finalVectors.length,
+        cmd.reducerParams,
+        (epoch, total) => self.postMessage({ type: 'progress:reducer', epoch, total } satisfies WorkerEvent),
+      )
       self.postMessage({ type: 'done', points: result as [number, number, number][] } satisfies WorkerEvent)
     } catch (err) {
       console.error('[embeddingWorker] caught error', err)

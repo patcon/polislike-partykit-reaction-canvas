@@ -281,11 +281,18 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
             <>
               <div className="story-tracer-progress-row">
                 <div className="story-tracer-spinner" />
-                <span>Running reducer…</span>
+                <span>
+                  {phase.total > 0
+                    ? `Running reducer… ${phase.epoch} / ${phase.total}`
+                    : 'Running reducer…'}
+                </span>
                 <button className="story-tracer-cancel-btn" onClick={handleCancel}>Cancel</button>
               </div>
-              <div className="story-tracer-bar story-tracer-bar--indeterminate">
-                <div className="story-tracer-bar-fill" />
+              <div className={`story-tracer-bar${phase.total === 0 ? ' story-tracer-bar--indeterminate' : ''}`}>
+                <div
+                  className="story-tracer-bar-fill"
+                  style={{ width: phase.total > 0 ? `${(phase.epoch / phase.total) * 100}%` : undefined }}
+                />
               </div>
             </>
           )}

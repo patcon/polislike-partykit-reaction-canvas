@@ -60,7 +60,7 @@ export type EmbedPhase =
   | { status: 'idle' }
   | { status: 'model-loading'; progress: number }
   | { status: 'embedding'; loaded: number; total: number }
-  | { status: 'reducer-running' }
+  | { status: 'reducer-running'; epoch: number; total: number }
   | { status: 'done'; points: [number, number, number][] }
   | { status: 'error'; message: string }
 
@@ -78,8 +78,8 @@ export function useEmbeddingWorker() {
             setPhase({ status: 'model-loading', progress: msg.progress }); break
           case 'progress:embedding':
             setPhase({ status: 'embedding', loaded: msg.loaded, total: msg.total }); break
-          case 'progress:reducer-running':
-            setPhase({ status: 'reducer-running' }); break
+          case 'progress:reducer':
+            setPhase({ status: 'reducer-running', epoch: msg.epoch, total: msg.total }); break
           case 'done':
             setPhase({ status: 'done', points: msg.points }); break
           case 'error':

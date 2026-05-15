@@ -8,6 +8,6 @@ export type WorkerCommand =
 export type WorkerEvent =
   | { type: 'progress:model-loading'; progress: number }
   | { type: 'progress:embedding'; loaded: number; total: number }
-  | { type: 'progress:reducer-running' }
+  | { type: 'progress:reducer'; epoch: number; total: number }
   | { type: 'done'; points: [number, number, number][] }
   | { type: 'error'; message: string }
