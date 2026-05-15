@@ -290,7 +290,9 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
                 <div className="story-tracer-spinner" />
                 <span>
                   {phase.total > 0
-                    ? `Running reducer… iteration ${phase.epoch} / ${phase.total}`
+                    ? phase.epoch === 0
+                      ? `Running reducer… (generating KNN graph)`
+                      : `Running reducer… iteration ${phase.epoch} / ${phase.total}`
                     : 'Running reducer…'}
                 </span>
                 <button className="story-tracer-cancel-btn" onClick={handleCancel}>Cancel</button>
