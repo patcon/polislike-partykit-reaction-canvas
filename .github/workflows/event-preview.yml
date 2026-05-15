@@ -41,6 +41,28 @@ jobs:
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
           echo "hash=$HASH" >> "$GITHUB_OUTPUT"
 
+      - name: Post deploy started comment
+        id: post_comment
+        uses: actions/github-script@v9
+        env:
+          SLUG: ${{ steps.config.outputs.slug }}
+          PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
+        with:
+          script: |
+            const slug = process.env.SLUG;
+            const project = process.env.PARTYKIT_EVENT_PROJECT;
+            const url = `https://${slug}.${project}.patcon.partykit.dev`;
+            const marker = '<!-- event-preview-url -->';
+            const body = `${marker}\n🔧 Deploying event preview: ${url}\n\nClose this issue to tear down the preview.`;
+            const { data: comment } = await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body,
+            });
+            core.setOutput('comment_id', comment.id);
+            core.setOutput('url', url);
+
       - name: Generate partykit.event.json
         env:
           PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
@@ -78,27 +100,19 @@ jobs:
           pnpm exec partykit env pull partykit.event.json
           pnpm exec partykit env push --config partykit.event.json --preview "$SLUG"
 
-      - name: Post initial deployment comment
-        id: post_comment
+      - name: Update comment when deployed
         uses: actions/github-script@v9
-        env:
-          SLUG: ${{ steps.config.outputs.slug }}
-          PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
         with:
           script: |
-            const slug = process.env.SLUG;
-            const project = process.env.PARTYKIT_EVENT_PROJECT;
-            const url = `https://${slug}.${project}.patcon.partykit.dev`;
             const marker = '<!-- event-preview-url -->';
+            const url = '${{ steps.post_comment.outputs.url }}';
             const body = `${marker}\nEvent preview deployed: ${url}\n\n⏳ May take up to ~2 minutes to be available on first provision.\n\nClose this issue to tear down the preview.`;
-            const { data: comment } = await github.rest.issues.createComment({
-              issue_number: context.issue.number,
+            await github.rest.issues.updateComment({
+              comment_id: ${{ steps.post_comment.outputs.comment_id }},
               owner: context.repo.owner,
               repo: context.repo.repo,
               body,
             });
-            core.setOutput('comment_id', comment.id);
-            core.setOutput('url', url);
 
       - name: Wait for preview to return 200
         env:
