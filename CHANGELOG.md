@@ -4,8 +4,8 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 26 (2026-05-18)
 
-<!-- test PR to verify batsignal env vars are pushed to preview deployments -->
-
+### Changed
+- **Event preview workflow: health check before posting URL** — after deploy, the workflow polls the preview URL with Fibonacci backoff (1, 1, 2, 3, 5, 8, 13, 21, 34, 55s — up to ~2m20s total) and only posts the "deployed" comment once it returns 200. Fails the job if it never comes up.
 
 ### Added
 - **Moments: import Polis CSV exports** — load a `*comments.csv` and `*votes.csv` from a Polis export to generate synthetic Moments in the emcee Moments tab. Each comment becomes a Moment (labeled with the comment body); votes are mapped onto People-tab participants by randomly assigning the most-participatory Polis voters to seen users. ([#103](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/103))

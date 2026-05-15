@@ -78,6 +78,21 @@ jobs:
           pnpm exec partykit env pull partykit.event.json
           pnpm exec partykit env push --config partykit.event.json --preview "$SLUG"
 
+      - name: Wait for preview to return 200
+        env:
+          SLUG: ${{ steps.config.outputs.slug }}
+          PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
+        run: |
+          URL="https://${SLUG}.${PARTYKIT_EVENT_PROJECT}.patcon.partykit.dev"
+          fibs=(1 1 2 3 5 8 13 21 34 55)
+          for wait in "${fibs[@]}"; do
+            status=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+            [ "$status" = "200" ] && echo "Preview live ($status)" && exit 0
+            echo "Got $status, retrying in ${wait}s..."
+            sleep "$wait"
+          done
+          echo "Preview did not return 200 after all retries" && exit 1
+
       - name: Post deployment comment
         uses: actions/github-script@v9
         env:
