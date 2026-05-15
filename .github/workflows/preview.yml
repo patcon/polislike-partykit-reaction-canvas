@@ -72,14 +72,10 @@ jobs:
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
-            printf 'TELEGRAM_BOT_TOKEN="%s"\nTELEGRAM_CHAT_ID="%s"\n' "$TELEGRAM_BOT_TOKEN" "$TELEGRAM_CHAT_ID" > .env
-            pnpm exec partykit env push --preview pr-${{ github.event.pull_request.number }}
-            rm -f .env
-          fi
+          pnpm exec partykit env pull .env
+          pnpm exec partykit env push --preview pr-${{ github.event.pull_request.number }}
+          rm -f .env
       - name: Mark deployment success and post preview URL
         uses: actions/github-script@v9
         with:
