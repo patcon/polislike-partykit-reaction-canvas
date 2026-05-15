@@ -4,9 +4,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 26 (2026-05-18)
 
-### Changed
-- **Event preview workflow: GitHub Deployments API** — event previews now create a GitHub deployment (visible in the repo's Environments tab) with `in_progress` → `success` status and an `environment_url`. On teardown the deployment is marked `inactive`.
-
+<!-- test PR to verify batsignal env vars are pushed to preview deployments -->
 
 
 ### Added

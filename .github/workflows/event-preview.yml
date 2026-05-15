@@ -16,7 +16,6 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     permissions:
       issues: write
-      deployments: write
     steps:
       - uses: actions/checkout@v6
         with:
@@ -62,29 +61,6 @@ jobs:
           sed -i '/<meta name="author"/d' public/index.html
           sed -i "s|</head>|<script>if (!window.location.hash) window.location.hash = '#${HASH}';</script>\n  </head>|" public/index.html
 
-      - name: Create GitHub deployment
-        id: deployment
-        uses: actions/github-script@v9
-        with:
-          script: |
-            const slug = '${{ steps.config.outputs.slug }}';
-            const { data: deployment } = await github.rest.repos.createDeployment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: context.sha,
-              environment: `event-${slug}`,
-              auto_merge: false,
-              required_contexts: [],
-              description: `Event preview: ${slug}`,
-            });
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: deployment.id,
-              state: 'in_progress',
-            });
-            core.setOutput('deployment_id', deployment.id);
-
       - name: Deploy event preview
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
@@ -102,7 +78,7 @@ jobs:
           pnpm exec partykit env pull partykit.event.json
           pnpm exec partykit env push --config partykit.event.json --preview "$SLUG"
 
-      - name: Mark deployment success and post comment
+      - name: Post deployment comment
         uses: actions/github-script@v9
         env:
           SLUG: ${{ steps.config.outputs.slug }}
@@ -112,14 +88,6 @@ jobs:
             const slug = process.env.SLUG;
             const project = process.env.PARTYKIT_EVENT_PROJECT;
             const url = `https://${slug}.${project}.patcon.partykit.dev`;
-            await github.rest.repos.createDeploymentStatus({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              deployment_id: ${{ steps.deployment.outputs.deployment_id }},
-              state: 'success',
-              environment_url: url,
-              log_url: `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
-            });
             const marker = '<!-- event-preview-url -->';
             const body = `${marker}\nEvent preview deployed: ${url}\n\nClose this issue to tear down the preview.`;
             await github.rest.issues.createComment({
@@ -136,7 +104,6 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     permissions:
       issues: write
-      deployments: write
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -167,24 +134,10 @@ jobs:
           mv partykit.tmp.json partykit.json
           pnpm exec partykit delete --preview "$SLUG" --force
 
-      - name: Mark deployment inactive and post teardown comment
+      - name: Redact preview URL and post teardown comment
         uses: actions/github-script@v9
         with:
           script: |
-            const slug = '${{ steps.config.outputs.slug }}';
-            const { data: deployments } = await github.rest.repos.listDeployments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              environment: `event-${slug}`,
-            });
-            for (const deployment of deployments) {
-              await github.rest.repos.createDeploymentStatus({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                deployment_id: deployment.id,
-                state: 'inactive',
-              });
-            }
             const marker = '<!-- event-preview-url -->';
             const { data: comments } = await github.rest.issues.listComments({
               issue_number: context.issue.number,
