@@ -22,6 +22,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const [storedPoints, setStoredPoints] = useState<StoryTracerPoint[] | null>(null);
   const [isRerunMode, setIsRerunMode] = useState(false);
   const [segmentsOpen, setSegmentsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [selectedModel, setSelectedModel] = useState<EmbeddingModelId>(() => {
     const stored = localStorage.getItem(LS_MODEL);
@@ -55,6 +56,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
       if (data.type === 'storyTracerPointsChanged') {
         setStoredMeta(data.meta ?? null);
         setStoredPoints(data.points ?? null);
+        setIsSaving(false);
         return;
       }
     },
@@ -85,6 +87,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     // Send via HTTP POST — the full points payload can exceed the WebSocket frame limit
     const { host, protocol } = getPartySocketConfig()
     const httpProtocol = protocol === 'wss' ? 'https' : 'http'
+    setIsSaving(true);
     void fetch(`${httpProtocol}://${host}/parties/main/${room}/storyTracerSetPoints`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -303,6 +306,18 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {isSaving && (
+        <div className="story-tracer-progress">
+          <div className="story-tracer-progress-row">
+            <div className="story-tracer-spinner" />
+            <span>Saving to server…</span>
+          </div>
+          <div className="story-tracer-bar story-tracer-bar--indeterminate">
+            <div className="story-tracer-bar-fill" />
+          </div>
         </div>
       )}
 
