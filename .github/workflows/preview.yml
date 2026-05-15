@@ -68,6 +68,14 @@ jobs:
         env:
           PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
           PARTYKIT_LOGIN: patcon
+      - name: Set Telegram env vars for preview
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+          PARTYKIT_LOGIN: patcon
+        run: |
+          pnpm exec partykit env pull .env
+          pnpm exec partykit env push --preview pr-${{ github.event.pull_request.number }}
+          rm -f .env
       - name: Mark deployment success and post preview URL
         uses: actions/github-script@v9
         with:

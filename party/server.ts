@@ -330,8 +330,9 @@ export default class Server implements Party.Server {
   private ownValenceDisplay: 'background' | 'labels' | 'none' = 'labels';
   private valenceInputMode: 'touch' | 'orientation-horizontal' | 'orientation-vertical' | 'orientation-rotation' = 'touch';
   private roomHost: string | null = null;
-  private readonly BAT_SIGNAL_THRESHOLD = 3;
-  private seenUserIds = new Set<string>();
+  private readonly BAT_SIGNAL_FIBONACCI = [3, 5, 8, 13, 21, 34, 55, 89, 144, 233];
+  private maxParticipantCount = 0;
+  private lastFibNotifiedIndex = -1;
   private stenoVtt: string = 'WEBVTT\n';
   private stenoLockUserId: string | null = null;
   private storyTracerPoints: StoryTracerPoint[] | null = null;
@@ -421,7 +422,7 @@ export default class Server implements Party.Server {
     });
   }
 
-  private async sendTelegramBatSignal(): Promise<void> {
+  private async sendTelegramBatSignal(count: number): Promise<void> {
     const token = this.room.env.TELEGRAM_BOT_TOKEN as string | undefined;
     const chatId = this.room.env.TELEGRAM_CHAT_ID as string | undefined;
     if (!token || !chatId) {
@@ -432,7 +433,7 @@ export default class Server implements Party.Server {
     const host = this.roomHost; // always set by first connection; bat signal only fires with N+ connections
     if (!host) return;
     const roomUrl = `https://${host}/?room=${encodeURIComponent(this.room.id)}`;
-    const text = `👀 Something's happening in the reaction canvas (${this.BAT_SIGNAL_THRESHOLD}+ devices in room) — ${roomUrl}`;
+    const text = `👀 ${count} devices in the reaction canvas — ${roomUrl}`;
 
     console.log(`[bat-signal] room=${this.room.id} firing → ${roomUrl}`);
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
@@ -477,12 +478,15 @@ export default class Server implements Party.Server {
     const count = this.participantCount();
     const vCount = this.viewerCount();
 
-    const isNewUser = !isAdmin && !isViewer && !this.seenUserIds.has(userId);
-    if (isNewUser) {
-      const prevSeenCount = this.seenUserIds.size;
-      this.seenUserIds.add(userId);
-      if (prevSeenCount < this.BAT_SIGNAL_THRESHOLD && this.seenUserIds.size >= this.BAT_SIGNAL_THRESHOLD) {
-        void this.sendTelegramBatSignal();
+    if (!isAdmin && !isViewer && count > this.maxParticipantCount) {
+      this.maxParticipantCount = count;
+      for (let i = this.lastFibNotifiedIndex + 1; i < this.BAT_SIGNAL_FIBONACCI.length; i++) {
+        if (this.BAT_SIGNAL_FIBONACCI[i] <= this.maxParticipantCount) {
+          this.lastFibNotifiedIndex = i;
+          void this.sendTelegramBatSignal(this.maxParticipantCount);
+        } else {
+          break;
+        }
       }
     }
     // Send directly to new connection (broadcast may not include it)

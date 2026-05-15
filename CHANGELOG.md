@@ -9,6 +9,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 25 (2026-05-11)
 
+### Changed
+- **Batsignal: Fibonacci-milestone notifications** — instead of a single notification when 3 unique users have ever visited, the batsignal now tracks max concurrent participants and fires at each Fibonacci milestone (3, 5, 8, 13, 21, …). The Telegram message now includes the actual count (e.g. "👀 5 devices in the reaction canvas"). State resets on server restart. Batsignal Telegram credentials are now also pushed to PR preview and event-preview deployments during CI, so the signal fires in those environments too. ([#98](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/98))
+
 ### Fixed
 - **Labels tab: custom fields pre-filled on load** — switching to a preset radio now pre-fills the Custom fields even when the selection is restored from the server on arrival, not just on explicit click.
 
