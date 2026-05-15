@@ -82,7 +82,14 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
       segmentCount: chunks.length,
       computedAt: new Date().toISOString(),
     };
-    socket.send(JSON.stringify({ type: 'storyTracerSetPoints', userId, points, meta }));
+    // Send via HTTP POST — the full points payload can exceed the WebSocket frame limit
+    const { host, protocol } = getPartySocketConfig()
+    const httpProtocol = protocol === 'wss' ? 'https' : 'http'
+    void fetch(`${httpProtocol}://${host}/parties/main/${room}/storyTracerSetPoints`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, points, meta }),
+    })
     setIsRerunMode(false);
     resetPhase();
   // eslint-disable-next-line react-hooks/exhaustive-deps
