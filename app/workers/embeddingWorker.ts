@@ -114,6 +114,9 @@ async function runReducer(
     umap.initializeFit(data)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const total: number = (umap as any).getNEpochs()
+    // Signal that KNN init is done and epochs are about to start
+    onProgress(0, total)
+    await new Promise(resolve => setTimeout(resolve, 0))
     for (let i = 0; i < total; i++) {
       umap.step()
       if (i % PROGRESS_INTERVAL === 0 || i === total - 1) {
