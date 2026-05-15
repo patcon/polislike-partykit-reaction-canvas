@@ -1266,6 +1266,20 @@ export default class Server implements Party.Server {
     const url = new URL(request.url);
     console.log(`[VOTE] Incoming request: ${request.method} ${url.pathname}`);
 
+    if (request.method === "POST" && url.pathname.endsWith("/storyTracerSetPoints")) {
+      try {
+        const body = await request.json<{ userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta }>()
+        this.storyTracerPoints = body.points
+        this.storyTracerMeta = body.meta
+        void this.persistState()
+        this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: body.points, meta: body.meta }))
+        return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } })
+      } catch (err) {
+        console.error('[storyTracer] error processing setPoints:', err)
+        return new Response('Invalid request', { status: 400 })
+      }
+    }
+
     if (request.method === "POST" && url.pathname.endsWith("/vote")) {
       console.log(`[VOTE] Processing vote submission...`);
       try {

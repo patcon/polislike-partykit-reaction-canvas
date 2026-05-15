@@ -22,6 +22,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const [storedPoints, setStoredPoints] = useState<StoryTracerPoint[] | null>(null);
   const [isRerunMode, setIsRerunMode] = useState(false);
   const [segmentsOpen, setSegmentsOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const [selectedModel, setSelectedModel] = useState<EmbeddingModelId>(() => {
     const stored = localStorage.getItem(LS_MODEL);
@@ -55,6 +56,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
       if (data.type === 'storyTracerPointsChanged') {
         setStoredMeta(data.meta ?? null);
         setStoredPoints(data.points ?? null);
+        setIsSaving(false);
         return;
       }
     },
@@ -65,15 +67,12 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     if (phase.status !== 'done') return;
     const chunks = pendingChunksRef.current;
     const cues = pendingCuesRef.current;
-    const points: StoryTracerPoint[] = phase.points.map(([x, y, z], i) => {
-      const words = chunks.slice(0, i + 1).join(' ').trim().split(/\s+/)
-      const wordIndex = Math.max(0, words.length - windowSize)
-      return {
-        x, y, z,
-        text: chunks[i],
-        startTime: getTimestampForWordIndex(wordIndex, cues),
-      }
-    });
+    const step = Math.max(1, Math.round(windowSize * (1 - overlapPct / 100)))
+    const points: StoryTracerPoint[] = phase.points.map(([x, y, z], i) => ({
+      x, y, z,
+      text: chunks[i],
+      startTime: getTimestampForWordIndex(i * step, cues),
+    }));
     const meta: StoryTracerMeta = {
       modelId: selectedModel,
       algorithmId: selectedAlgo,
@@ -82,7 +81,15 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
       segmentCount: chunks.length,
       computedAt: new Date().toISOString(),
     };
-    socket.send(JSON.stringify({ type: 'storyTracerSetPoints', userId, points, meta }));
+    // Send via HTTP POST — the full points payload can exceed the WebSocket frame limit
+    const { host, protocol } = getPartySocketConfig()
+    const httpProtocol = protocol === 'wss' ? 'https' : 'http'
+    setIsSaving(true);
+    void fetch(`${httpProtocol}://${host}/parties/main/${room}/storyTracerSetPoints`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, points, meta }),
+    })
     setIsRerunMode(false);
     resetPhase();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -102,7 +109,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     pendingChunksRef.current = freshChunks;
     pendingCuesRef.current = freshCues;
     runEmbedding(freshChunks, selectedModel, selectedAlgo, reducerParams[selectedAlgo]);
-  }, [hasContent, stenoVtt, windowSize, overlapPct, selectedModel, runEmbedding]);
+  }, [hasContent, stenoVtt, windowSize, overlapPct, selectedModel, selectedAlgo, reducerParams, runEmbedding]);
 
   const handleClear = useCallback(() => {
     socket.send(JSON.stringify({ type: 'storyTracerClearPoints', userId }));
@@ -281,14 +288,35 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
             <>
               <div className="story-tracer-progress-row">
                 <div className="story-tracer-spinner" />
-                <span>Running reducer…</span>
+                <span>
+                  {phase.total > 0
+                    ? phase.epoch === 0
+                      ? `Running reducer… (generating KNN graph)`
+                      : `Running reducer… iteration ${phase.epoch} / ${phase.total}`
+                    : 'Running reducer…'}
+                </span>
                 <button className="story-tracer-cancel-btn" onClick={handleCancel}>Cancel</button>
               </div>
-              <div className="story-tracer-bar story-tracer-bar--indeterminate">
-                <div className="story-tracer-bar-fill" />
+              <div className={`story-tracer-bar${phase.total === 0 ? ' story-tracer-bar--indeterminate' : ''}`}>
+                <div
+                  className="story-tracer-bar-fill"
+                  style={{ width: phase.total > 0 ? `${(phase.epoch / phase.total) * 100}%` : undefined }}
+                />
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {isSaving && (
+        <div className="story-tracer-progress">
+          <div className="story-tracer-progress-row">
+            <div className="story-tracer-spinner" />
+            <span>Saving to server…</span>
+          </div>
+          <div className="story-tracer-bar story-tracer-bar--indeterminate">
+            <div className="story-tracer-bar-fill" />
+          </div>
         </div>
       )}
 
