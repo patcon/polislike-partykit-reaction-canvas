@@ -4,29 +4,37 @@ import type { ReducerAlgorithmId, ReducerParams, WorkerCommand, WorkerEvent } fr
 type AnyPipeline = any
 
 const pipelineCache = new Map<string, AnyPipeline>()
-const vectorCache = new Map<string, Float32Array[]>()
+// Per-chunk vector cache: key = `${modelId}\x00${text}`
+const vectorCache = new Map<string, Float32Array>()
 
-const IDB_DB = 'embedding-cache'
 const IDB_STORE = 'vectors'
+let dbPromise: Promise<IDBDatabase> | null = null
 
-function openIdb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const req = indexedDB.open(IDB_DB, 1)
-    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE)
-    req.onsuccess = () => resolve(req.result)
-    req.onerror = () => reject(req.error)
-  })
+function getDb(): Promise<IDBDatabase> {
+  if (!dbPromise) {
+    dbPromise = new Promise((resolve, reject) => {
+      // Version 2: per-chunk entries (ArrayBuffer each); v1 used per-batch (ArrayBuffer[]) — incompatible, so recreate the store
+      const req = indexedDB.open('embedding-cache', 2)
+      req.onupgradeneeded = (ev) => {
+        const db = (ev.target as IDBOpenDBRequest).result
+        if (db.objectStoreNames.contains(IDB_STORE)) db.deleteObjectStore(IDB_STORE)
+        db.createObjectStore(IDB_STORE)
+      }
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => { dbPromise = null; reject(req.error) }
+    })
+  }
+  return dbPromise
 }
 
-async function idbGet(key: string): Promise<Float32Array[] | null> {
+async function idbGetChunk(key: string): Promise<Float32Array | null> {
   try {
-    const db = await openIdb()
+    const db = await getDb()
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(IDB_STORE, 'readonly')
-      const req = tx.objectStore(IDB_STORE).get(key)
+      const req = db.transaction(IDB_STORE, 'readonly').objectStore(IDB_STORE).get(key)
       req.onsuccess = () => {
-        const val = req.result as ArrayBuffer[] | undefined
-        resolve(val ? val.map(buf => new Float32Array(buf)) : null)
+        const buf = req.result as ArrayBuffer | undefined
+        resolve(buf ? new Float32Array(buf) : null)
       }
       req.onerror = () => reject(req.error)
     })
@@ -35,13 +43,12 @@ async function idbGet(key: string): Promise<Float32Array[] | null> {
   }
 }
 
-async function idbSet(key: string, vectors: Float32Array[]): Promise<void> {
+async function idbSetChunk(key: string, vector: Float32Array): Promise<void> {
   try {
-    const db = await openIdb()
+    const db = await getDb()
     return new Promise((resolve, reject) => {
-      const tx = db.transaction(IDB_STORE, 'readwrite')
-      const bufs = vectors.map(v => v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength))
-      const req = tx.objectStore(IDB_STORE).put(bufs, key)
+      const buf = vector.buffer.slice(vector.byteOffset, vector.byteOffset + vector.byteLength)
+      const req = db.transaction(IDB_STORE, 'readwrite').objectStore(IDB_STORE).put(buf, key)
       req.onsuccess = () => resolve()
       req.onerror = () => reject(req.error)
     })
@@ -105,16 +112,27 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
   const cmd = e.data
   if (cmd.type === 'embed') {
     try {
-      const cacheKey = `${cmd.modelId}\x00${cmd.texts.join('\x00')}`
+      const chunkKeys = cmd.texts.map(text => `${cmd.modelId}\x00${text}`)
 
-      let vectors = vectorCache.get(cacheKey) ?? null
+      // Pass 1: in-memory cache
+      const vectors: (Float32Array | null)[] = chunkKeys.map(k => vectorCache.get(k) ?? null)
 
-      if (!vectors) {
-        vectors = await idbGet(cacheKey)
-        if (vectors) vectorCache.set(cacheKey, vectors)
+      // Pass 2: IDB for any still-missing chunks (parallel reads)
+      const afterMemory = vectors.map((v, i) => v === null ? i : -1).filter(i => i >= 0)
+      if (afterMemory.length > 0) {
+        const idbResults = await Promise.all(afterMemory.map(i => idbGetChunk(chunkKeys[i])))
+        for (let j = 0; j < afterMemory.length; j++) {
+          const i = afterMemory[j]
+          if (idbResults[j]) {
+            vectors[i] = idbResults[j]
+            vectorCache.set(chunkKeys[i], idbResults[j]!)
+          }
+        }
       }
 
-      if (!vectors) {
+      // Pass 3: embed any still-missing chunks
+      const toEmbed = vectors.map((v, i) => v === null ? i : -1).filter(i => i >= 0)
+      if (toEmbed.length > 0) {
         if (!pipelineCache.has(cmd.modelId)) {
           const { pipeline } = await import('@huggingface/transformers')
           const instance = await pipeline('feature-extraction', cmd.modelId, {
@@ -127,21 +145,22 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
         }
 
         const pipe = pipelineCache.get(cmd.modelId)!
-        vectors = []
-        for (let i = 0; i < cmd.texts.length; i++) {
-          self.postMessage({ type: 'progress:embedding', loaded: i, total: cmd.texts.length } satisfies WorkerEvent)
+        for (let j = 0; j < toEmbed.length; j++) {
+          const i = toEmbed[j]
+          // progress counts only the chunks that actually need embedding
+          self.postMessage({ type: 'progress:embedding', loaded: j, total: toEmbed.length } satisfies WorkerEvent)
           const output = await pipe(cmd.texts[i], { pooling: 'mean', normalize: true })
-          vectors.push(output.data as Float32Array)
+          const vector = output.data as Float32Array
+          vectors[i] = vector
+          vectorCache.set(chunkKeys[i], vector)
+          void idbSetChunk(chunkKeys[i], vector)
         }
-
-        vectorCache.set(cacheKey, vectors)
-        void idbSet(cacheKey, vectors)
       }
 
       self.postMessage({ type: 'progress:reducer-running' } satisfies WorkerEvent)
-      const n = vectors.length
-      const data = vectors.map(v => Array.from(v))
-      const result = await runReducer(cmd.algorithmId, data, n, cmd.reducerParams)
+      const finalVectors = vectors as Float32Array[]
+      const data = finalVectors.map(v => Array.from(v))
+      const result = await runReducer(cmd.algorithmId, data, finalVectors.length, cmd.reducerParams)
       self.postMessage({ type: 'done', points: result as [number, number, number][] } satisfies WorkerEvent)
     } catch (err) {
       console.error('[embeddingWorker] caught error', err)
