@@ -121,7 +121,7 @@ jobs:
           script: |
             const marker = '<!-- event-preview-url -->';
             const url = '${{ steps.post_comment.outputs.url }}';
-            const body = `${marker}\nEvent preview deployed: ${url}\n\n~~⏳ May take up to ~2 minutes to be available on first provision.~~ ✅ Now available!\n\nClose this issue to tear down the preview.`;
+            const body = `${marker}\nEvent preview deployed: ${url}\n\n~⏳ May take up to \\~2 minutes to be available on first provision.~ ✅ Now available!\n\nClose this issue to tear down the preview.`;
             await github.rest.issues.updateComment({
               comment_id: ${{ steps.post_comment.outputs.comment_id }},
               owner: context.repo.owner,
