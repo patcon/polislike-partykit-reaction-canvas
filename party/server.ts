@@ -581,7 +581,7 @@ export default class Server implements Party.Server {
         }));
       } else if ('position' in event) {
         // Handle cursor events
-        console.log(`Cursor event from ${sender.id}:`, event.type, event.position);
+        if (event.type !== 'move') console.log(`Cursor event from ${sender.id}:`, event.type, event.position);
         // Track cursor positions for soccer physics
         if (event.type === 'move' || event.type === 'touch') {
           this.cursorPositions.set(event.position.userId, { x: event.position.x, y: event.position.y });
