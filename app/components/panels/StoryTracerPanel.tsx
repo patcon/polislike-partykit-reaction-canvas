@@ -109,7 +109,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     pendingChunksRef.current = freshChunks;
     pendingCuesRef.current = freshCues;
     runEmbedding(freshChunks, selectedModel, selectedAlgo, reducerParams[selectedAlgo]);
-  }, [hasContent, stenoVtt, windowSize, overlapPct, selectedModel, runEmbedding]);
+  }, [hasContent, stenoVtt, windowSize, overlapPct, selectedModel, selectedAlgo, reducerParams, runEmbedding]);
 
   const handleClear = useCallback(() => {
     socket.send(JSON.stringify({ type: 'storyTracerClearPoints', userId }));
