@@ -581,8 +581,9 @@ export default class Server implements Party.Server {
         }));
       } else if ('position' in event) {
         // Handle cursor events
-        const isFirstMove = event.type === 'move' && !this.cursorPositions.has(event.position.userId);
-        if (event.type !== 'move' || isFirstMove) console.log(`Cursor event from ${sender.id}:`, event.type, event.position);
+        const isFirstAppearance = (event.type === 'move' || event.type === 'touch') && !this.cursorPositions.has(event.position.userId);
+        if (isFirstAppearance) console.log(`Cursor appeared for ${event.position.userId} via ${event.type}`);
+        else if (event.type === 'remove') console.log(`Cursor removed for ${event.position.userId}`);
         // Track cursor positions for soccer physics
         if (event.type === 'move' || event.type === 'touch') {
           this.cursorPositions.set(event.position.userId, { x: event.position.x, y: event.position.y });
