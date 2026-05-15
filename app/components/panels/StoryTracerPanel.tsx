@@ -67,15 +67,12 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     if (phase.status !== 'done') return;
     const chunks = pendingChunksRef.current;
     const cues = pendingCuesRef.current;
-    const points: StoryTracerPoint[] = phase.points.map(([x, y, z], i) => {
-      const words = chunks.slice(0, i + 1).join(' ').trim().split(/\s+/)
-      const wordIndex = Math.max(0, words.length - windowSize)
-      return {
-        x, y, z,
-        text: chunks[i],
-        startTime: getTimestampForWordIndex(wordIndex, cues),
-      }
-    });
+    const step = Math.max(1, Math.round(windowSize * (1 - overlapPct / 100)))
+    const points: StoryTracerPoint[] = phase.points.map(([x, y, z], i) => ({
+      x, y, z,
+      text: chunks[i],
+      startTime: getTimestampForWordIndex(i * step, cues),
+    }));
     const meta: StoryTracerMeta = {
       modelId: selectedModel,
       algorithmId: selectedAlgo,
