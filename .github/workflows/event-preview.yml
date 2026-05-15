@@ -75,9 +75,8 @@ jobs:
           PARTYKIT_LOGIN: patcon
           SLUG: ${{ steps.config.outputs.slug }}
         run: |
-          pnpm exec partykit env pull .env
+          pnpm exec partykit env pull partykit.event.json
           pnpm exec partykit env push --config partykit.event.json --preview "$SLUG"
-          rm -f .env
 
       - name: Post deployment comment
         uses: actions/github-script@v9
