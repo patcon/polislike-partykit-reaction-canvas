@@ -153,7 +153,7 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
           const vector = output.data as Float32Array
           vectors[i] = vector
           vectorCache.set(chunkKeys[i], vector)
-          void idbSetChunk(chunkKeys[i], vector)
+          await idbSetChunk(chunkKeys[i], vector)
         }
       }
 
