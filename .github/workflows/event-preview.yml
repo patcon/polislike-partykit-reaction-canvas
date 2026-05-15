@@ -122,9 +122,9 @@ jobs:
           URL="https://${SLUG}.${PARTYKIT_EVENT_PROJECT}.patcon.partykit.dev"
           fibs=(1 1 2 3 5 8 13 21 34 55)
           for wait in "${fibs[@]}"; do
-            status=$(curl -s -o /dev/null -w "%{http_code}" "$URL")
+            status=$(curl -s -o /dev/null -w "%{http_code}" "$URL") || true
             [ "$status" = "200" ] && echo "Preview live ($status)" && exit 0
-            echo "Got $status, retrying in ${wait}s..."
+            echo "Got $status (exit $?), retrying in ${wait}s..."
             sleep "$wait"
           done
           echo "Preview did not return 200 after all retries" && exit 1
