@@ -180,7 +180,7 @@ jobs:
           mv partykit.tmp.json partykit.json
           pnpm exec partykit delete --preview "$SLUG" --force
 
-      - name: Redact preview URL and post teardown comment
+      - name: Update comment on teardown
         uses: actions/github-script@v9
         with:
           script: |
@@ -196,12 +196,6 @@ jobs:
                 comment_id: existing.id,
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                body: `${marker}\nEvent preview torn down. Link: <link removed>`,
+                body: `${marker}\nEvent preview torn down.`,
               });
             }
-            await github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: 'Event preview torn down.',
-            });
