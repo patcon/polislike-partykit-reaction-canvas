@@ -4,6 +4,51 @@ import type { ReducerAlgorithmId, ReducerParams, WorkerCommand, WorkerEvent } fr
 type AnyPipeline = any
 
 const pipelineCache = new Map<string, AnyPipeline>()
+const vectorCache = new Map<string, Float32Array[]>()
+
+const IDB_DB = 'embedding-cache'
+const IDB_STORE = 'vectors'
+
+function openIdb(): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_DB, 1)
+    req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE)
+    req.onsuccess = () => resolve(req.result)
+    req.onerror = () => reject(req.error)
+  })
+}
+
+async function idbGet(key: string): Promise<Float32Array[] | null> {
+  try {
+    const db = await openIdb()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readonly')
+      const req = tx.objectStore(IDB_STORE).get(key)
+      req.onsuccess = () => {
+        const val = req.result as ArrayBuffer[] | undefined
+        resolve(val ? val.map(buf => new Float32Array(buf)) : null)
+      }
+      req.onerror = () => reject(req.error)
+    })
+  } catch {
+    return null
+  }
+}
+
+async function idbSet(key: string, vectors: Float32Array[]): Promise<void> {
+  try {
+    const db = await openIdb()
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, 'readwrite')
+      const bufs = vectors.map(v => v.buffer.slice(v.byteOffset, v.byteOffset + v.byteLength))
+      const req = tx.objectStore(IDB_STORE).put(bufs, key)
+      req.onsuccess = () => resolve()
+      req.onerror = () => reject(req.error)
+    })
+  } catch {
+    // non-fatal — cache write failure doesn't break the run
+  }
+}
 
 self.onerror = (msg, src, line, col, err) => {
   console.error('[embeddingWorker] global onerror', { msg, src, line, col, err })
@@ -60,23 +105,37 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
   const cmd = e.data
   if (cmd.type === 'embed') {
     try {
-      if (!pipelineCache.has(cmd.modelId)) {
-        const { pipeline } = await import('@huggingface/transformers')
-        const instance = await pipeline('feature-extraction', cmd.modelId, {
-          progress_callback: (info: unknown) => {
-            const pct = (info as { progress?: number })?.progress ?? 0
-            self.postMessage({ type: 'progress:model-loading', progress: Math.round(pct) } satisfies WorkerEvent)
-          },
-        })
-        pipelineCache.set(cmd.modelId, instance)
+      const cacheKey = `${cmd.modelId}\x00${cmd.texts.join('\x00')}`
+
+      let vectors = vectorCache.get(cacheKey) ?? null
+
+      if (!vectors) {
+        vectors = await idbGet(cacheKey)
+        if (vectors) vectorCache.set(cacheKey, vectors)
       }
 
-      const pipe = pipelineCache.get(cmd.modelId)!
-      const vectors: Float32Array[] = []
-      for (let i = 0; i < cmd.texts.length; i++) {
-        self.postMessage({ type: 'progress:embedding', loaded: i, total: cmd.texts.length } satisfies WorkerEvent)
-        const output = await pipe(cmd.texts[i], { pooling: 'mean', normalize: true })
-        vectors.push(output.data as Float32Array)
+      if (!vectors) {
+        if (!pipelineCache.has(cmd.modelId)) {
+          const { pipeline } = await import('@huggingface/transformers')
+          const instance = await pipeline('feature-extraction', cmd.modelId, {
+            progress_callback: (info: unknown) => {
+              const pct = (info as { progress?: number })?.progress ?? 0
+              self.postMessage({ type: 'progress:model-loading', progress: Math.round(pct) } satisfies WorkerEvent)
+            },
+          })
+          pipelineCache.set(cmd.modelId, instance)
+        }
+
+        const pipe = pipelineCache.get(cmd.modelId)!
+        vectors = []
+        for (let i = 0; i < cmd.texts.length; i++) {
+          self.postMessage({ type: 'progress:embedding', loaded: i, total: cmd.texts.length } satisfies WorkerEvent)
+          const output = await pipe(cmd.texts[i], { pooling: 'mean', normalize: true })
+          vectors.push(output.data as Float32Array)
+        }
+
+        vectorCache.set(cacheKey, vectors)
+        void idbSet(cacheKey, vectors)
       }
 
       self.postMessage({ type: 'progress:reducer-running' } satisfies WorkerEvent)

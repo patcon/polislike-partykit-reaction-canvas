@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 26 (2026-05-18)
 
+### Added
+- **Story Tracer: cache embeddings across runs** — raw embedding vectors are now cached in-memory and in IndexedDB, keyed by model + chunks. Re-running with different reducer params or after a page reload skips the embedding step entirely and jumps straight to the reducer. ([#96](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/96))
+
 ### Changed
 - **Event preview workflow: health check before posting URL** — after deploy, the workflow polls the preview URL with Fibonacci backoff (1, 1, 2, 3, 5, 8, 13, 21, 34, 55s — up to ~2m20s total) and only posts the "deployed" comment once it returns 200. Fails the job if it never comes up.
 
