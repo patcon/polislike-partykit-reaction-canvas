@@ -15,7 +15,7 @@ export type EmbeddingModelId = typeof EMBEDDING_MODELS[number]['id']
 export const REDUCERS = [
   { id: 'umap-js'    as ReducerAlgorithmId, label: 'UMAP (umap-js)',  default: true  },
   { id: 'umap-druid' as ReducerAlgorithmId, label: 'UMAP (DruidJS)',  default: false },
-  { id: 'localmap'   as ReducerAlgorithmId, label: 'LocalMAP',        default: false },
+  { id: 'localmap'   as ReducerAlgorithmId, label: 'LocalMAP (maybe broken)', default: false },
   { id: 'pacmap'     as ReducerAlgorithmId, label: 'PaCMAP',          default: false },
 ] as const
 
