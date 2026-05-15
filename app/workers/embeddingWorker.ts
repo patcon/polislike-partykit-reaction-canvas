@@ -72,17 +72,26 @@ const PROGRESS_INTERVAL = 10  // emit progress every N epochs
 async function druidGenerate(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reducer: any,
-  total: number,
+  explicitTotal: number,
   onProgress: (epoch: number, total: number) => void,
 ): Promise<number[][]> {
-  const gen = reducer.generator(total === 0 ? undefined : total)
+  // For algorithms that don't take an explicit iteration count (localmap/pacmap),
+  // compute the total from their internal num_iters phase array so the bar is determinate
+  let total = explicitTotal
+  if (total === 0) {
+    try {
+      const numIters = reducer.parameter('num_iters') as number[]
+      total = numIters.reduce((a: number, b: number) => a + b, 0)
+    } catch { /* leave as 0 — bar stays indeterminate */ }
+  }
+  const gen = reducer.generator(total || undefined)
   let i = 0
   while (true) {
     const { done } = gen.next()
     if (done) break
     i++
     if (i % PROGRESS_INTERVAL === 0) {
-      onProgress(i, total || i)
+      onProgress(i, total)
       await new Promise(resolve => setTimeout(resolve, 0))
     }
   }
