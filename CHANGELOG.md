@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 26 (2026-05-18)
 
+<!-- test PR to verify batsignal env vars are pushed to preview deployments -->
+
+
 ### Added
 - **Moments: import Polis CSV exports** — load a `*comments.csv` and `*votes.csv` from a Polis export to generate synthetic Moments in the emcee Moments tab. Each comment becomes a Moment (labeled with the comment body); votes are mapped onto People-tab participants by randomly assigning the most-participatory Polis voters to seen users. ([#103](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/103))
 
