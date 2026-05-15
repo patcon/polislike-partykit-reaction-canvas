@@ -84,6 +84,9 @@ async function druidGenerate(
       total = numIters.reduce((a: number, b: number) => a + b, 0)
     } catch { /* leave as 0 — bar stays indeterminate */ }
   }
+  // Show determinate bar immediately while the first gen.next() runs init
+  onProgress(0, total)
+  await new Promise(resolve => setTimeout(resolve, 0))
   const gen = reducer.generator(total || undefined)
   let i = 0
   while (true) {
