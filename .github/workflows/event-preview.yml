@@ -69,6 +69,20 @@ jobs:
         run: |
           pnpm exec partykit deploy --config partykit.event.json --preview "$SLUG"
 
+      - name: Set Telegram env vars for event preview
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+          PARTYKIT_LOGIN: patcon
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SLUG: ${{ steps.config.outputs.slug }}
+        run: |
+          if [ -n "$TELEGRAM_BOT_TOKEN" ]; then
+            printf 'TELEGRAM_BOT_TOKEN="%s"\nTELEGRAM_CHAT_ID="%s"\n' "$TELEGRAM_BOT_TOKEN" "$TELEGRAM_CHAT_ID" > .env
+            pnpm exec partykit env push --config partykit.event.json --preview "$SLUG"
+            rm -f .env
+          fi
+
       - name: Post deployment comment
         uses: actions/github-script@v9
         env:
