@@ -12,8 +12,8 @@ importers:
         specifier: ^4.2.0
         version: 4.2.0
       '@saehrimnir/druidjs':
-        specifier: github:patcon/DruidJS#612e1c5
-        version: https://codeload.github.com/patcon/DruidJS/tar.gz/612e1c5
+        specifier: github:patcon/DruidJS#add-pacmap-support
+        version: https://codeload.github.com/patcon/DruidJS/tar.gz/95fe5f8294fd04b23644a47c1b79e0e2b01d89b9
       '@supabase/supabase-js':
         specifier: ^2.98.0
         version: 2.104.0
@@ -1028,8 +1028,8 @@ packages:
       rollup:
         optional: true
 
-  '@saehrimnir/druidjs@https://codeload.github.com/patcon/DruidJS/tar.gz/612e1c5':
-    resolution: {tarball: https://codeload.github.com/patcon/DruidJS/tar.gz/612e1c5}
+  '@saehrimnir/druidjs@https://codeload.github.com/patcon/DruidJS/tar.gz/95fe5f8294fd04b23644a47c1b79e0e2b01d89b9':
+    resolution: {tarball: https://codeload.github.com/patcon/DruidJS/tar.gz/95fe5f8294fd04b23644a47c1b79e0e2b01d89b9}
     version: 0.8.0
     engines: {node: '>=20'}
 
@@ -3302,7 +3302,7 @@ snapshots:
       estree-walker: 2.0.2
       picomatch: 4.0.4
 
-  '@saehrimnir/druidjs@https://codeload.github.com/patcon/DruidJS/tar.gz/612e1c5': {}
+  '@saehrimnir/druidjs@https://codeload.github.com/patcon/DruidJS/tar.gz/95fe5f8294fd04b23644a47c1b79e0e2b01d89b9': {}
 
   '@standard-schema/spec@1.1.0': {}
 
