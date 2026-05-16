@@ -464,24 +464,28 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
         />
         <span className="story-tracer-replay-counter">
           {phase.status === 'reducer-running'
-            ? `${phase.epoch}/${phase.total}`
+            ? `iter ${phase.epoch}/${phase.total}`
             : replayFrames.length > 1
               ? `iter ${replayIdx * PREVIEW_FRAME_STEP}/${(replayFrames.length - 1) * PREVIEW_FRAME_STEP}`
               : ''}
         </span>
       </div>}
 
-      {showResult && (
+      {!isRerunMode && (
         <div className="story-tracer-result">
-          <div className="story-tracer-result-text">
-            ✓ {storedMeta!.segmentCount} points stored
-            <span className="story-tracer-result-meta"> ({modelLabel} · {reducerLabel} · {computedAgo})</span>
-          </div>
-          {!isSaving && (
-            <div className="story-tracer-result-actions">
-              <button className="story-tracer-btn" onClick={() => setIsRerunMode(true)}>Rerun</button>
-              <button className="story-tracer-btn story-tracer-btn--danger" onClick={handleClear}>Clear</button>
-            </div>
+          {showResult && (
+            <>
+              <div className="story-tracer-result-text">
+                ✓ {storedMeta!.segmentCount} points stored
+                <span className="story-tracer-result-meta"> ({modelLabel} · {reducerLabel} · {computedAgo})</span>
+              </div>
+              {!isSaving && (
+                <div className="story-tracer-result-actions">
+                  <button className="story-tracer-btn" onClick={() => setIsRerunMode(true)}>Rerun</button>
+                  <button className="story-tracer-btn story-tracer-btn--danger" onClick={handleClear}>Clear</button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

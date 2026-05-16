@@ -554,6 +554,7 @@
   border: 1px solid #2a3d2a;
   border-radius: 6px;
   flex-shrink: 0;
+  min-height: 72px;
 }
 
 .story-tracer-result-text {
