@@ -478,6 +478,7 @@
   border-radius: 6px;
   overflow: hidden;
   background: #0f0f0e;
+  border: 1px solid #2a2a2a;
 }
 
 .story-tracer-replay {

@@ -161,6 +161,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const handleRun = useCallback(() => {
     if (!hasContent) return;
     stopReplay();
+    setIsRerunMode(false);
     replayFramesRef.current = [];
     setReplayFrames([]);
     setReplayIdx(0);
@@ -472,10 +473,12 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
             ✓ {storedMeta!.segmentCount} points stored
             <span className="story-tracer-result-meta"> ({modelLabel} · {reducerLabel} · {computedAgo})</span>
           </div>
-          <div className="story-tracer-result-actions">
-            <button className="story-tracer-btn" onClick={() => setIsRerunMode(true)}>Rerun</button>
-            <button className="story-tracer-btn story-tracer-btn--danger" onClick={handleClear}>Clear</button>
-          </div>
+          {!isSaving && (
+            <div className="story-tracer-result-actions">
+              <button className="story-tracer-btn" onClick={() => setIsRerunMode(true)}>Rerun</button>
+              <button className="story-tracer-btn story-tracer-btn--danger" onClick={handleClear}>Clear</button>
+            </div>
+          )}
         </div>
       )}
 
