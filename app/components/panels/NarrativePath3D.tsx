@@ -24,39 +24,29 @@ function normalize(pts: [number, number, number][]): [number, number, number][] 
   )
 }
 
-function buildBuffers(pts: StoryTracerPoint[]): { positions: Float32Array; colors: Float32Array } {
+function toNormalizedPositions(pts: StoryTracerPoint[], out: Float32Array) {
   const raw = pts.map(p => [p.x, p.y, p.z] as [number, number, number])
   const normalized = normalize(raw)
-  const n = normalized.length
-  const positions = new Float32Array(n * 3)
-  const colors = new Float32Array(n * 3)
-  for (let i = 0; i < n; i++) {
-    positions[i * 3]     = normalized[i][0]
-    positions[i * 3 + 1] = normalized[i][1]
-    positions[i * 3 + 2] = normalized[i][2]
-    const t = n > 1 ? i / (n - 1) : 0
-    const color = new THREE.Color().setHSL((1 - t) * 0.33, 1, 0.55)
-    colors[i * 3]     = color.r
-    colors[i * 3 + 1] = color.g
-    colors[i * 3 + 2] = color.b
+  for (let i = 0; i < normalized.length; i++) {
+    out[i * 3]     = normalized[i][0]
+    out[i * 3 + 1] = normalized[i][1]
+    out[i * 3 + 2] = normalized[i][2]
   }
-  return { positions, colors }
 }
+
+// Exponential smoothing factor per frame at ~60fps. Higher = snappier, lower = smoother.
+const LERP_ALPHA = 0.12
 
 export default function NarrativePath3D({ points }: Props) {
   const mountRef = useRef<HTMLDivElement>(null)
-  // Holds the in-place update function once the scene is initialized
   const updateRef = useRef<((pts: StoryTracerPoint[]) => void) | null>(null)
-  // Always tracks the latest points so delayed init can apply them immediately
   const latestPointsRef = useRef(points)
 
-  // Keep latestPointsRef current and propagate to scene if already initialized
   useEffect(() => {
     latestPointsRef.current = points
     updateRef.current?.(points)
   }, [points])
 
-  // Initialize Three.js scene once on mount; update geometry in-place via updateRef
   useEffect(() => {
     const mount = mountRef.current!
     if (!mount) return
@@ -83,36 +73,43 @@ export default function NarrativePath3D({ points }: Props) {
       controls.enableDamping = true
       controls.dampingFactor = 0.08
 
-      const { positions, colors } = buildBuffers(initialPts)
+      // currentPos is the live animated state; targetPos is where we're lerping toward.
+      // Both BufferAttributes reference currentPos so updating it updates both geometries.
+      const currentPos = new Float32Array(n * 3)
+      const targetPos = new Float32Array(n * 3)
+      toNormalizedPositions(initialPts, currentPos)
+      targetPos.set(currentPos)
 
-      const posAttr = new THREE.BufferAttribute(positions, 3)
+      const colors = new Float32Array(n * 3)
+      for (let i = 0; i < n; i++) {
+        const t = n > 1 ? i / (n - 1) : 0
+        const color = new THREE.Color().setHSL((1 - t) * 0.33, 1, 0.55)
+        colors[i * 3]     = color.r
+        colors[i * 3 + 1] = color.g
+        colors[i * 3 + 2] = color.b
+      }
+
+      const posAttr = new THREE.BufferAttribute(currentPos, 3)
       const colorAttr = new THREE.BufferAttribute(colors, 3)
       const geo = new THREE.BufferGeometry()
       geo.setAttribute('position', posAttr)
       geo.setAttribute('color', colorAttr)
       scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.04, sizeAttenuation: true, vertexColors: true })))
 
-      const linePosAttr = new THREE.BufferAttribute(positions.slice(), 3)
-      const lineColorAttr = new THREE.BufferAttribute(colors.slice(), 3)
+      // Line shares the same currentPos array so it moves in sync for free
+      const linePosAttr = new THREE.BufferAttribute(currentPos, 3)
+      const lineColorAttr = new THREE.BufferAttribute(colors, 3)
       const lineGeo = new THREE.BufferGeometry()
       lineGeo.setAttribute('position', linePosAttr)
       lineGeo.setAttribute('color', lineColorAttr)
       scene.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ vertexColors: true, opacity: 0.4, transparent: true })))
 
+      // Only updates targetPos; the animation loop lerps currentPos toward it
       updateRef.current = (pts: StoryTracerPoint[]) => {
         if (pts.length !== n) return
-        const { positions: newPos, colors: newColors } = buildBuffers(pts)
-        posAttr.array.set(newPos)
-        posAttr.needsUpdate = true
-        colorAttr.array.set(newColors)
-        colorAttr.needsUpdate = true
-        linePosAttr.array.set(newPos)
-        linePosAttr.needsUpdate = true
-        lineColorAttr.array.set(newColors)
-        lineColorAttr.needsUpdate = true
+        toNormalizedPositions(pts, targetPos)
       }
 
-      // Apply any points that arrived while init was pending (delayed-mount path)
       if (latestPointsRef.current !== initialPts) {
         updateRef.current(latestPointsRef.current)
       }
@@ -121,6 +118,23 @@ export default function NarrativePath3D({ points }: Props) {
       const animate = () => {
         animId = requestAnimationFrame(animate)
         controls.update()
+
+        // Lerp currentPos toward targetPos; mark buffers dirty only when still moving
+        let moved = false
+        for (let i = 0; i < currentPos.length; i++) {
+          const d = targetPos[i] - currentPos[i]
+          if (Math.abs(d) > 1e-5) {
+            currentPos[i] += d * LERP_ALPHA
+            moved = true
+          } else {
+            currentPos[i] = targetPos[i]
+          }
+        }
+        if (moved) {
+          posAttr.needsUpdate = true
+          linePosAttr.needsUpdate = true
+        }
+
         renderer.render(scene, camera)
       }
       animate()
