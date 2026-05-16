@@ -206,6 +206,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const isDone = phase.status === 'done';
   const showSettings = !isRunning && (!storedMeta || isRerunMode) && !isDone;
   const showResult = !isRunning && (storedMeta !== null) && !isRerunMode && !isDone;
+  const replayActive = !isRunning && replayFrames.length > 1;
 
   const previewPoints: StoryTracerPoint[] | null =
     phase.status === 'reducer-running' && phase.previewPoints && phase.previewPoints.length > 0
@@ -213,7 +214,12 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
           x, y, z,
           text: pendingChunksRef.current[i] ?? '',
         }))
-      : null;
+      // The final reducer-running message has no previewPoints (completion signal),
+      // and the 'done' phase exists before the done effect sets replayFrames state.
+      // In both cases, hold the last accumulated frame so the canvas never blanks.
+      : (phase.status === 'reducer-running' || phase.status === 'done') && replayFramesRef.current.length > 0
+        ? replayFramesRef.current[replayFramesRef.current.length - 1]
+        : null;
 
   const modelLabel = EMBEDDING_MODELS.find(m => m.id === (storedMeta?.modelId ?? selectedModel))?.label ?? selectedModel.split('/').pop();
   const reducerLabel = REDUCERS.find(r => r.id === (storedMeta?.algorithmId ?? selectedAlgo))?.label ?? (storedMeta?.algorithmId ?? selectedAlgo);
@@ -408,64 +414,62 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
         </div>
       )}
 
-      {(isRunning || (showResult && storedPoints)) && (
-        <div className="story-tracer-3d-container">
-          {(previewPoints || (!isRunning && storedPoints)) && (
-            <NarrativePath3D
-              points={
-                previewPoints
-                  ? previewPoints
-                  : replayFrames.length > 0 ? replayFrames[replayIdx] : storedPoints!
-              }
-              lerpAlpha={!isRunning && replayFrames.length > 0 ? replayLerpAlpha : undefined}
-            />
-          )}
-        </div>
-      )}
+      {!isRerunMode && <div className="story-tracer-3d-container">
+        {(previewPoints || (!isRunning && (replayFrames.length > 0 || storedPoints))) && (
+          <NarrativePath3D
+            points={
+              previewPoints
+                ? previewPoints
+                : replayFrames.length > 0 ? replayFrames[replayIdx] : storedPoints!
+            }
+            lerpAlpha={!isRunning && replayFrames.length > 0 ? replayLerpAlpha : undefined}
+          />
+        )}
+      </div>}
 
       {phase.status === 'error' && (
         <div className="story-tracer-error">⚠ {phase.message}</div>
       )}
 
-      {(isRunning || replayFrames.length > 1) && (
-        <div className="story-tracer-replay">
-          <button
-            className="story-tracer-replay-btn story-tracer-replay-btn--duration"
-            disabled={isRunning}
-            onClick={() => {
-              const nextIdx = (durationIdx + 1) % REPLAY_DURATIONS.length;
-              const nextDuration = REPLAY_DURATIONS[nextIdx];
-              frameIntervalMsRef.current = (nextDuration * 1000) / replayFrames.length;
-              setDurationIdx(nextIdx);
-              if (isReplaying) startReplay(replayIdx, replayFrames.length);
-            }}
-          >
-            {REPLAY_DURATIONS[durationIdx]}s
-          </button>
-          <button
-            className="story-tracer-replay-btn"
-            disabled={isRunning}
-            onClick={() => isReplaying ? stopReplay() : startReplay(replayIdx, replayFrames.length)}
-          >
-            {isReplaying ? '⏸' : '▶'}
-          </button>
-          <input
-            type="range"
-            className="story-tracer-replay-slider"
-            min={0}
-            max={phase.status === 'reducer-running' && phase.total > 0 ? phase.total - 1 : (replayFrames.length - 1) * PREVIEW_FRAME_STEP}
-            step={phase.status === 'reducer-running' ? 1 : PREVIEW_FRAME_STEP}
-            value={phase.status === 'reducer-running' ? phase.epoch : replayIdx * PREVIEW_FRAME_STEP}
-            disabled={isRunning}
-            onChange={isRunning ? undefined : e => { stopReplay(); setReplayIdx(Math.round(Number(e.target.value) / PREVIEW_FRAME_STEP)); }}
-          />
-          <span className="story-tracer-replay-counter">
-            {phase.status === 'reducer-running'
-              ? `${phase.epoch}/${phase.total}`
-              : `iter ${replayIdx * PREVIEW_FRAME_STEP}/${(replayFrames.length - 1) * PREVIEW_FRAME_STEP}`}
-          </span>
-        </div>
-      )}
+      {!isRerunMode && <div className="story-tracer-replay">
+        <button
+          className="story-tracer-replay-btn story-tracer-replay-btn--duration"
+          disabled={!replayActive}
+          onClick={() => {
+            const nextIdx = (durationIdx + 1) % REPLAY_DURATIONS.length;
+            const nextDuration = REPLAY_DURATIONS[nextIdx];
+            frameIntervalMsRef.current = (nextDuration * 1000) / replayFrames.length;
+            setDurationIdx(nextIdx);
+            if (isReplaying) startReplay(replayIdx, replayFrames.length);
+          }}
+        >
+          {REPLAY_DURATIONS[durationIdx]}s
+        </button>
+        <button
+          className="story-tracer-replay-btn"
+          disabled={!replayActive}
+          onClick={() => isReplaying ? stopReplay() : startReplay(replayIdx, replayFrames.length)}
+        >
+          {isReplaying ? '⏸' : '▶'}
+        </button>
+        <input
+          type="range"
+          className="story-tracer-replay-slider"
+          min={0}
+          max={phase.status === 'reducer-running' && phase.total > 0 ? phase.total - 1 : Math.max(0, (replayFrames.length - 1) * PREVIEW_FRAME_STEP)}
+          step={phase.status === 'reducer-running' ? 1 : PREVIEW_FRAME_STEP}
+          value={phase.status === 'reducer-running' ? phase.epoch : replayIdx * PREVIEW_FRAME_STEP}
+          disabled={!replayActive && phase.status !== 'reducer-running'}
+          onChange={replayActive ? e => { stopReplay(); setReplayIdx(Math.round(Number(e.target.value) / PREVIEW_FRAME_STEP)); } : undefined}
+        />
+        <span className="story-tracer-replay-counter">
+          {phase.status === 'reducer-running'
+            ? `${phase.epoch}/${phase.total}`
+            : replayFrames.length > 1
+              ? `iter ${replayIdx * PREVIEW_FRAME_STEP}/${(replayFrames.length - 1) * PREVIEW_FRAME_STEP}`
+              : ''}
+        </span>
+      </div>}
 
       {showResult && (
         <div className="story-tracer-result">
