@@ -503,6 +503,15 @@
   color: #aacfff;
 }
 
+.story-tracer-replay-btn--duration {
+  color: #888;
+  min-width: 32px;
+}
+
+.story-tracer-replay-btn--duration:hover {
+  color: #aaa;
+}
+
 .story-tracer-replay-slider {
   flex: 1;
   accent-color: #4a7acf;

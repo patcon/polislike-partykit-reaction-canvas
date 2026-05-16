@@ -46,6 +46,11 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const [isReplaying, setIsReplaying] = useState(false);
   const replayTimerRef = useRef<number | null>(null);
 
+  const REPLAY_DURATIONS = [3, 5, 10, 20] as const;
+  const [durationIdx, setDurationIdx] = useState(1); // default 5s
+  // Ref so startReplay's setInterval closure always reads the latest interval without needing to re-create
+  const frameIntervalMsRef = useRef(100);
+
   const socket = usePartySocket({
     ...getPartySocketConfig(),
     room,
@@ -145,7 +150,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
       } else {
         setReplayIdx(idx);
       }
-    }, 80);
+    }, frameIntervalMsRef.current);
   }, [stopReplay]);
 
   // Clear replay interval on unmount
@@ -185,6 +190,14 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     }
     setIsRerunMode(false);
   }, [cancelEmbedding]);
+
+  // Frame interval drives both setInterval cadence and lerp alpha.
+  // alpha formula: target 25% remaining after one interval → alpha = 1 - 0.25^(1/framesPerInterval)
+  const frameIntervalMs = replayFrames.length > 1
+    ? (REPLAY_DURATIONS[durationIdx] * 1000) / replayFrames.length
+    : 100;
+  frameIntervalMsRef.current = frameIntervalMs;
+  const replayLerpAlpha = Math.max(0.05, Math.min(0.6, 1 - Math.pow(0.25, 1 / (frameIntervalMs / (1000 / 60)))));
 
   const isRunning = phase.status === 'model-loading' || phase.status === 'embedding' || phase.status === 'reducer-running';
   const isDone = phase.status === 'done';
@@ -404,12 +417,27 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
 
       {showResult && storedPoints && (
         <div className="story-tracer-3d-container">
-          <NarrativePath3D points={replayFrames.length > 0 ? replayFrames[replayIdx] : storedPoints} />
+          <NarrativePath3D
+            points={replayFrames.length > 0 ? replayFrames[replayIdx] : storedPoints}
+            lerpAlpha={replayFrames.length > 0 ? replayLerpAlpha : undefined}
+          />
         </div>
       )}
 
       {showResult && replayFrames.length > 1 && (
         <div className="story-tracer-replay">
+          <button
+            className="story-tracer-replay-btn story-tracer-replay-btn--duration"
+            onClick={() => {
+              const nextIdx = (durationIdx + 1) % REPLAY_DURATIONS.length;
+              const nextDuration = REPLAY_DURATIONS[nextIdx];
+              frameIntervalMsRef.current = (nextDuration * 1000) / replayFrames.length;
+              setDurationIdx(nextIdx);
+              if (isReplaying) startReplay(replayIdx, replayFrames.length);
+            }}
+          >
+            {REPLAY_DURATIONS[durationIdx]}s
+          </button>
           <button
             className="story-tracer-replay-btn"
             onClick={() => isReplaying ? stopReplay() : startReplay(replayIdx, replayFrames.length)}

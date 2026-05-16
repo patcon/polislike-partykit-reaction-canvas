@@ -5,6 +5,7 @@ import type { StoryTracerPoint } from '../../types'
 
 interface Props {
   points: StoryTracerPoint[]
+  lerpAlpha?: number
 }
 
 function normalize(pts: [number, number, number][]): [number, number, number][] {
@@ -34,18 +35,21 @@ function toNormalizedPositions(pts: StoryTracerPoint[], out: Float32Array) {
   }
 }
 
-// Exponential smoothing factor per frame at ~60fps. Higher = snappier, lower = smoother.
-const LERP_ALPHA = 0.12
-
-export default function NarrativePath3D({ points }: Props) {
+export default function NarrativePath3D({ points, lerpAlpha }: Props) {
   const mountRef = useRef<HTMLDivElement>(null)
   const updateRef = useRef<((pts: StoryTracerPoint[]) => void) | null>(null)
   const latestPointsRef = useRef(points)
+  // Kept in a ref so the RAF closure always reads the current value without a restart
+  const lerpAlphaRef = useRef(lerpAlpha ?? 0.12)
 
   useEffect(() => {
     latestPointsRef.current = points
     updateRef.current?.(points)
   }, [points])
+
+  useEffect(() => {
+    lerpAlphaRef.current = lerpAlpha ?? 0.12
+  }, [lerpAlpha])
 
   useEffect(() => {
     const mount = mountRef.current!
@@ -124,7 +128,7 @@ export default function NarrativePath3D({ points }: Props) {
         for (let i = 0; i < currentPos.length; i++) {
           const d = targetPos[i] - currentPos[i]
           if (Math.abs(d) > 1e-5) {
-            currentPos[i] += d * LERP_ALPHA
+            currentPos[i] += d * lerpAlphaRef.current
             moved = true
           } else {
             currentPos[i] = targetPos[i]
