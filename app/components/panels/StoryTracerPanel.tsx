@@ -40,6 +40,12 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const pendingChunksRef = useRef<string[]>([]);
   const pendingCuesRef = useRef<ReturnType<typeof parseVttCues>>([]);
 
+  const replayFramesRef = useRef<StoryTracerPoint[][]>([]);
+  const [replayFrames, setReplayFrames] = useState<StoryTracerPoint[][]>([]);
+  const [replayIdx, setReplayIdx] = useState(0);
+  const [isReplaying, setIsReplaying] = useState(false);
+  const replayTimerRef = useRef<number | null>(null);
+
   const socket = usePartySocket({
     ...getPartySocketConfig(),
     room,
@@ -61,6 +67,16 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
       }
     },
   });
+
+  // Accumulate reducer preview frames into replayFramesRef for post-run replay
+  useEffect(() => {
+    if (phase.status !== 'reducer-running' || !phase.previewPoints || phase.previewPoints.length === 0) return;
+    const pts = phase.previewPoints.map(([x, y, z], i) => ({
+      x, y, z,
+      text: pendingChunksRef.current[i] ?? '',
+    }));
+    replayFramesRef.current.push(pts);
+  }, [phase]);
 
   // When embedding finishes, annotate points with timestamps and send to server
   useEffect(() => {
@@ -84,6 +100,11 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     // Send via HTTP POST — the full points payload can exceed the WebSocket frame limit
     const { host, protocol } = getPartySocketConfig()
     const httpProtocol = protocol === 'wss' ? 'https' : 'http'
+    const frames = replayFramesRef.current;
+    if (frames.length > 0) {
+      setReplayFrames([...frames]);
+      setReplayIdx(frames.length - 1);
+    }
     setIsSaving(true);
     void fetch(`${httpProtocol}://${host}/parties/main/${room}/storyTracerSetPoints`, {
       method: 'POST',
@@ -101,24 +122,67 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const chunks = wordCount > 0 ? computeChunks(allText, windowSize, overlapPct) : [];
   const hasContent = wordCount > 0;
 
+  const stopReplay = useCallback(() => {
+    if (replayTimerRef.current !== null) {
+      clearInterval(replayTimerRef.current);
+      replayTimerRef.current = null;
+    }
+    setIsReplaying(false);
+  }, []);
+
+  const startReplay = useCallback((fromIdx: number, total: number) => {
+    stopReplay();
+    let idx = fromIdx >= total - 1 ? 0 : fromIdx;
+    setReplayIdx(idx);
+    setIsReplaying(true);
+    replayTimerRef.current = window.setInterval(() => {
+      idx++;
+      if (idx >= total) {
+        clearInterval(replayTimerRef.current!);
+        replayTimerRef.current = null;
+        setIsReplaying(false);
+        setReplayIdx(total - 1);
+      } else {
+        setReplayIdx(idx);
+      }
+    }, 80);
+  }, [stopReplay]);
+
+  // Clear replay interval on unmount
+  useEffect(() => () => stopReplay(), [stopReplay]);
+
   const handleRun = useCallback(() => {
     if (!hasContent) return;
+    stopReplay();
+    replayFramesRef.current = [];
+    setReplayFrames([]);
+    setReplayIdx(0);
     const freshCues = parseVttCues(stenoVtt);
     const text = freshCues.map(c => c.text).join(' ');
     const freshChunks = computeChunks(text, windowSize, overlapPct);
     pendingChunksRef.current = freshChunks;
     pendingCuesRef.current = freshCues;
     runEmbedding(freshChunks, selectedModel, selectedAlgo, reducerParams[selectedAlgo]);
-  }, [hasContent, stenoVtt, windowSize, overlapPct, selectedModel, selectedAlgo, reducerParams, runEmbedding]);
+  }, [hasContent, stenoVtt, windowSize, overlapPct, selectedModel, selectedAlgo, reducerParams, runEmbedding, stopReplay]);
 
   const handleClear = useCallback(() => {
+    stopReplay();
+    replayFramesRef.current = [];
+    setReplayFrames([]);
+    setReplayIdx(0);
     socket.send(JSON.stringify({ type: 'storyTracerClearPoints', userId }));
     resetPhase();
     setIsRerunMode(false);
-  }, [socket, userId, resetPhase]);
+  }, [socket, userId, resetPhase, stopReplay]);
 
   const handleCancel = useCallback(() => {
     cancelEmbedding();
+    // Freeze whatever frames accumulated so the user can replay the partial run
+    const frames = replayFramesRef.current;
+    if (frames.length > 0) {
+      setReplayFrames([...frames]);
+      setReplayIdx(frames.length - 1);
+    }
     setIsRerunMode(false);
   }, [cancelEmbedding]);
 
@@ -340,7 +404,27 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
 
       {showResult && storedPoints && (
         <div className="story-tracer-3d-container">
-          <NarrativePath3D points={storedPoints} />
+          <NarrativePath3D points={replayFrames.length > 0 ? replayFrames[replayIdx] : storedPoints} />
+        </div>
+      )}
+
+      {showResult && replayFrames.length > 1 && (
+        <div className="story-tracer-replay">
+          <button
+            className="story-tracer-replay-btn"
+            onClick={() => isReplaying ? stopReplay() : startReplay(replayIdx, replayFrames.length)}
+          >
+            {isReplaying ? '⏸' : '▶'}
+          </button>
+          <input
+            type="range"
+            className="story-tracer-replay-slider"
+            min={0}
+            max={replayFrames.length - 1}
+            value={replayIdx}
+            onChange={e => { stopReplay(); setReplayIdx(Number(e.target.value)); }}
+          />
+          <span className="story-tracer-replay-counter">{replayIdx + 1}/{replayFrames.length}</span>
         </div>
       )}
 

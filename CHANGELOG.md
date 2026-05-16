@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 26 (2026-05-18)
 
 ### Added
-- **Story Tracer: live 3D preview during reducer iterations** — the 3D plot now appears and animates in real-time as the dimensionality reduction runs, showing each intermediate layout as the algorithm converges. Works for all backends (umap-js, umap-druid, PaCMAP, LocalMAP). Final coordinates are still pushed to the server only after completion.
+- **Story Tracer: live 3D preview and replay during reducer iterations** — the 3D plot animates in real-time as dimensionality reduction runs, showing each intermediate layout as the algorithm converges. After the run (or cancel), a play/pause button and scrub slider let you replay the full optimization journey frame-by-frame. Works for all backends (umap-js, umap-druid, PaCMAP, LocalMAP).
 - **Story Tracer: cache embeddings with resume support** — raw embedding vectors are cached per-chunk in-memory and in IndexedDB. Re-running with different reducer params skips embedding entirely. Cancelling mid-run and re-running resumes from where it left off — only un-cached chunks are re-embedded. ([#96](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/96))
 
 ### Changed

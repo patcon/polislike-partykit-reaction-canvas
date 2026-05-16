@@ -479,6 +479,45 @@
   overflow: hidden;
 }
 
+.story-tracer-replay {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.story-tracer-replay-btn {
+  padding: 3px 9px;
+  background: #1e1e1e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  color: #7aacff;
+  font-family: monospace;
+  font-size: 13px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.story-tracer-replay-btn:hover {
+  border-color: #666;
+  color: #aacfff;
+}
+
+.story-tracer-replay-slider {
+  flex: 1;
+  accent-color: #4a7acf;
+  cursor: pointer;
+}
+
+.story-tracer-replay-counter {
+  font-size: 11px;
+  color: #555;
+  font-family: monospace;
+  flex-shrink: 0;
+  min-width: 44px;
+  text-align: right;
+}
+
 .story-tracer-result {
   display: flex;
   flex-direction: column;
