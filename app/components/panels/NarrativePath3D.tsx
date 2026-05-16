@@ -24,16 +24,48 @@ function normalize(pts: [number, number, number][]): [number, number, number][] 
   )
 }
 
+function buildBuffers(pts: StoryTracerPoint[]): { positions: Float32Array; colors: Float32Array } {
+  const raw = pts.map(p => [p.x, p.y, p.z] as [number, number, number])
+  const normalized = normalize(raw)
+  const n = normalized.length
+  const positions = new Float32Array(n * 3)
+  const colors = new Float32Array(n * 3)
+  for (let i = 0; i < n; i++) {
+    positions[i * 3]     = normalized[i][0]
+    positions[i * 3 + 1] = normalized[i][1]
+    positions[i * 3 + 2] = normalized[i][2]
+    const t = n > 1 ? i / (n - 1) : 0
+    const color = new THREE.Color().setHSL((1 - t) * 0.33, 1, 0.55)
+    colors[i * 3]     = color.r
+    colors[i * 3 + 1] = color.g
+    colors[i * 3 + 2] = color.b
+  }
+  return { positions, colors }
+}
+
 export default function NarrativePath3D({ points }: Props) {
   const mountRef = useRef<HTMLDivElement>(null)
+  // Holds the in-place update function once the scene is initialized
+  const updateRef = useRef<((pts: StoryTracerPoint[]) => void) | null>(null)
+  // Always tracks the latest points so delayed init can apply them immediately
+  const latestPointsRef = useRef(points)
 
+  // Keep latestPointsRef current and propagate to scene if already initialized
+  useEffect(() => {
+    latestPointsRef.current = points
+    updateRef.current?.(points)
+  }, [points])
+
+  // Initialize Three.js scene once on mount; update geometry in-place via updateRef
   useEffect(() => {
     const mount = mountRef.current!
-    if (!mount || points.length === 0) return
+    if (!mount) return
 
     let cleanup: (() => void) | undefined
 
-    const init = () => {
+    const init = (initialPts: StoryTracerPoint[]) => {
+      if (initialPts.length === 0) return
+      const n = initialPts.length
       const w = mount.clientWidth
       const h = mount.clientHeight
 
@@ -51,33 +83,39 @@ export default function NarrativePath3D({ points }: Props) {
       controls.enableDamping = true
       controls.dampingFactor = 0.08
 
-      const raw = points.map(p => [p.x, p.y, p.z] as [number, number, number])
-      const normalized = normalize(raw)
-      const n = normalized.length
+      const { positions, colors } = buildBuffers(initialPts)
 
-      const positions = new Float32Array(n * 3)
-      const colors = new Float32Array(n * 3)
-      for (let i = 0; i < n; i++) {
-        positions[i * 3]     = normalized[i][0]
-        positions[i * 3 + 1] = normalized[i][1]
-        positions[i * 3 + 2] = normalized[i][2]
-        const t = n > 1 ? i / (n - 1) : 0
-        // green (hue 0.33) at start → red (hue 0) at end
-        const color = new THREE.Color().setHSL((1 - t) * 0.33, 1, 0.55)
-        colors[i * 3]     = color.r
-        colors[i * 3 + 1] = color.g
-        colors[i * 3 + 2] = color.b
-      }
-
+      const posAttr = new THREE.BufferAttribute(positions, 3)
+      const colorAttr = new THREE.BufferAttribute(colors, 3)
       const geo = new THREE.BufferGeometry()
-      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+      geo.setAttribute('position', posAttr)
+      geo.setAttribute('color', colorAttr)
       scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.04, sizeAttenuation: true, vertexColors: true })))
 
+      const linePosAttr = new THREE.BufferAttribute(positions.slice(), 3)
+      const lineColorAttr = new THREE.BufferAttribute(colors.slice(), 3)
       const lineGeo = new THREE.BufferGeometry()
-      lineGeo.setAttribute('position', new THREE.BufferAttribute(positions.slice(), 3))
-      lineGeo.setAttribute('color', new THREE.BufferAttribute(colors.slice(), 3))
+      lineGeo.setAttribute('position', linePosAttr)
+      lineGeo.setAttribute('color', lineColorAttr)
       scene.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ vertexColors: true, opacity: 0.4, transparent: true })))
+
+      updateRef.current = (pts: StoryTracerPoint[]) => {
+        if (pts.length !== n) return
+        const { positions: newPos, colors: newColors } = buildBuffers(pts)
+        posAttr.array.set(newPos)
+        posAttr.needsUpdate = true
+        colorAttr.array.set(newColors)
+        colorAttr.needsUpdate = true
+        linePosAttr.array.set(newPos)
+        linePosAttr.needsUpdate = true
+        lineColorAttr.array.set(newColors)
+        lineColorAttr.needsUpdate = true
+      }
+
+      // Apply any points that arrived while init was pending (delayed-mount path)
+      if (latestPointsRef.current !== initialPts) {
+        updateRef.current(latestPointsRef.current)
+      }
 
       let animId = 0
       const animate = () => {
@@ -97,6 +135,7 @@ export default function NarrativePath3D({ points }: Props) {
       ro.observe(mount)
 
       cleanup = () => {
+        updateRef.current = null
         cancelAnimationFrame(animId)
         controls.dispose()
         renderer.dispose()
@@ -105,13 +144,14 @@ export default function NarrativePath3D({ points }: Props) {
       }
     }
 
+    const initialPts = latestPointsRef.current
     if (mount.clientWidth > 0 && mount.clientHeight > 0) {
-      init()
+      init(initialPts)
     } else {
       const ro = new ResizeObserver(() => {
         if (mount.clientWidth > 0 && mount.clientHeight > 0) {
           ro.disconnect()
-          init()
+          init(latestPointsRef.current)
         }
       })
       ro.observe(mount)
@@ -119,7 +159,8 @@ export default function NarrativePath3D({ points }: Props) {
     }
 
     return () => cleanup?.()
-  }, [points])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
 }

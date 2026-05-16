@@ -73,7 +73,7 @@ async function druidGenerate(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   reducer: any,
   explicitTotal: number,
-  onProgress: (epoch: number, total: number) => void,
+  onProgress: (epoch: number, total: number, previewPoints?: [number, number, number][]) => void,
 ): Promise<number[][]> {
   // For algorithms that don't take an explicit iteration count (localmap/pacmap),
   // compute the total from their internal num_iters phase array so the bar is determinate
@@ -94,7 +94,10 @@ async function druidGenerate(
     if (done) break
     i++
     if (i % PROGRESS_INTERVAL === 0) {
-      onProgress(i, total)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const proj = reducer.projection as any
+      const preview = (proj as number[][]).map(row => [row[0], row[1], row[2]] as [number, number, number])
+      onProgress(i, total, preview)
       await new Promise(resolve => setTimeout(resolve, 0))
     }
   }
@@ -108,7 +111,7 @@ async function runReducer(
   data: number[][],
   n: number,
   p: ReducerParams,
-  onProgress: (epoch: number, total: number) => void,
+  onProgress: (epoch: number, total: number, previewPoints?: [number, number, number][]) => void,
 ): Promise<number[][]> {
   // Mirror umap-js epoch auto-calculation: fewer epochs for larger datasets
   const autoEpochs = n <= 2500 ? 500 : n <= 5000 ? 400 : n <= 7500 ? 300 : 200
@@ -132,7 +135,8 @@ async function runReducer(
     for (let i = 0; i < total; i++) {
       umap.step()
       if (i % PROGRESS_INTERVAL === 0 || i === total - 1) {
-        onProgress(i + 1, total)
+        const preview = (umap.getEmbedding() as number[][]).map(row => [row[0], row[1], row[2]] as [number, number, number])
+        onProgress(i + 1, total, preview)
         await new Promise(resolve => setTimeout(resolve, 0))
       }
     }
@@ -227,7 +231,7 @@ self.onmessage = async (e: MessageEvent<WorkerCommand>) => {
         data,
         finalVectors.length,
         cmd.reducerParams,
-        (epoch, total) => self.postMessage({ type: 'progress:reducer', epoch, total } satisfies WorkerEvent),
+        (epoch, total, previewPoints?) => self.postMessage({ type: 'progress:reducer', epoch, total, previewPoints } satisfies WorkerEvent),
       )
       self.postMessage({ type: 'done', points: result as [number, number, number][] } satisfies WorkerEvent)
     } catch (err) {

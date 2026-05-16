@@ -127,6 +127,14 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const showSettings = !isRunning && (!storedMeta || isRerunMode) && !isDone;
   const showResult = !isRunning && (storedMeta !== null) && !isRerunMode && !isDone;
 
+  const previewPoints: StoryTracerPoint[] | null =
+    phase.status === 'reducer-running' && phase.previewPoints && phase.previewPoints.length > 0
+      ? phase.previewPoints.map(([x, y, z], i) => ({
+          x, y, z,
+          text: pendingChunksRef.current[i] ?? '',
+        }))
+      : null;
+
   const modelLabel = EMBEDDING_MODELS.find(m => m.id === (storedMeta?.modelId ?? selectedModel))?.label ?? selectedModel.split('/').pop();
   const reducerLabel = REDUCERS.find(r => r.id === (storedMeta?.algorithmId ?? selectedAlgo))?.label ?? (storedMeta?.algorithmId ?? selectedAlgo);
 
@@ -317,6 +325,12 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
           <div className="story-tracer-bar story-tracer-bar--indeterminate">
             <div className="story-tracer-bar-fill" />
           </div>
+        </div>
+      )}
+
+      {previewPoints && (
+        <div className="story-tracer-3d-container">
+          <NarrativePath3D points={previewPoints} />
         </div>
       )}
 
