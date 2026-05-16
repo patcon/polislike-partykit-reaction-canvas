@@ -81,6 +81,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
       text: pendingChunksRef.current[i] ?? '',
     }));
     replayFramesRef.current.push(pts);
+    setReplayIdx(replayFramesRef.current.length - 1);
   }, [phase]);
 
   // When embedding finishes, annotate points with timestamps and send to server
@@ -405,9 +406,16 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
         </div>
       )}
 
-      {previewPoints && (
+      {(previewPoints || (showResult && storedPoints)) && (
         <div className="story-tracer-3d-container">
-          <NarrativePath3D points={previewPoints} />
+          <NarrativePath3D
+            points={
+              previewPoints
+                ? previewPoints
+                : replayFrames.length > 0 ? replayFrames[replayIdx] : storedPoints!
+            }
+            lerpAlpha={!previewPoints && replayFrames.length > 0 ? replayLerpAlpha : undefined}
+          />
         </div>
       )}
 
@@ -415,19 +423,11 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
         <div className="story-tracer-error">⚠ {phase.message}</div>
       )}
 
-      {showResult && storedPoints && (
-        <div className="story-tracer-3d-container">
-          <NarrativePath3D
-            points={replayFrames.length > 0 ? replayFrames[replayIdx] : storedPoints}
-            lerpAlpha={replayFrames.length > 0 ? replayLerpAlpha : undefined}
-          />
-        </div>
-      )}
-
-      {showResult && replayFrames.length > 1 && (
+      {(isRunning ? replayFramesRef.current.length > 1 : replayFrames.length > 1) && (
         <div className="story-tracer-replay">
           <button
             className="story-tracer-replay-btn story-tracer-replay-btn--duration"
+            disabled={isRunning}
             onClick={() => {
               const nextIdx = (durationIdx + 1) % REPLAY_DURATIONS.length;
               const nextDuration = REPLAY_DURATIONS[nextIdx];
@@ -440,6 +440,7 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
           </button>
           <button
             className="story-tracer-replay-btn"
+            disabled={isRunning}
             onClick={() => isReplaying ? stopReplay() : startReplay(replayIdx, replayFrames.length)}
           >
             {isReplaying ? '⏸' : '▶'}
@@ -448,11 +449,13 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
             type="range"
             className="story-tracer-replay-slider"
             min={0}
-            max={replayFrames.length - 1}
+            max={isRunning ? replayFramesRef.current.length - 1 : replayFrames.length - 1}
             value={replayIdx}
-            onChange={e => { stopReplay(); setReplayIdx(Number(e.target.value)); }}
+            onChange={isRunning ? undefined : e => { stopReplay(); setReplayIdx(Number(e.target.value)); }}
           />
-          <span className="story-tracer-replay-counter">{replayIdx + 1}/{replayFrames.length}</span>
+          <span className="story-tracer-replay-counter">
+            {replayIdx + 1}/{isRunning ? replayFramesRef.current.length : replayFrames.length}
+          </span>
         </div>
       )}
 
