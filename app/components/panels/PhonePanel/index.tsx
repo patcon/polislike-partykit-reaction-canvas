@@ -34,9 +34,11 @@ function classifyDevice(label: string): 'earpiece' | 'bluetooth' | 'headset' | '
 
 const HEADSET_CLASSES: ReturnType<typeof classifyDevice>[] = ['earpiece', 'bluetooth', 'headset'];
 
-function enumOutputs(): Promise<MediaDeviceInfo[]> {
-  return navigator.mediaDevices.enumerateDevices()
-    .then(devs => devs.filter(d => d.kind === 'audiooutput'));
+function enumAudioDevices(): Promise<{ inputs: MediaDeviceInfo[]; outputs: MediaDeviceInfo[] }> {
+  return navigator.mediaDevices.enumerateDevices().then(devs => ({
+    inputs: devs.filter(d => d.kind === 'audioinput'),
+    outputs: devs.filter(d => d.kind === 'audiooutput'),
+  }));
 }
 
 export default function PhonePanel({ room, userId }: PhonePanelProps) {
@@ -45,6 +47,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState(0);
+  const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioOutputDevices, setAudioOutputDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedSinkLabel, setSelectedSinkLabel] = useState<string | null>(null);
   const [hasHeadset, setHasHeadset] = useState<boolean | null>(null);
@@ -68,18 +71,20 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
       .catch(() => setMicError('Microphone permission denied'));
   }, []);
 
-  const updateDevices = (outputs: MediaDeviceInfo[]) => {
+  const updateDevices = ({ inputs, outputs }: { inputs: MediaDeviceInfo[]; outputs: MediaDeviceInfo[] }) => {
+    setAudioInputDevices(inputs);
     setAudioOutputDevices(outputs);
-    const detected = outputs.some(d => HEADSET_CLASSES.includes(classifyDevice(d.label)));
+    // Check both audioinput and audiooutput — on Android, BT headsets appear in audioinput
+    const detected = [...inputs, ...outputs].some(d => HEADSET_CLASSES.includes(classifyDevice(d.label)));
     setHasHeadset(detected);
     if (detected) setShowSpeakerphoneWarning(false);
   };
 
   useEffect(() => {
     if (!localStream) return;
-    enumOutputs().then(updateDevices).catch(() => {});
+    enumAudioDevices().then(updateDevices).catch(() => {});
 
-    const handleDeviceChange = () => { enumOutputs().then(updateDevices).catch(() => {}); };
+    const handleDeviceChange = () => { enumAudioDevices().then(updateDevices).catch(() => {}); };
     navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
 
     return () => {
@@ -172,34 +177,38 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const trySelectAudioOutput = async () => {
     const mda = navigator.mediaDevices as MediaDevices & { selectAudioOutput?: () => Promise<MediaDeviceInfo> };
     if (!mda.selectAudioOutput) return;
-    const before = audioOutputDevices.length;
+    const beforeOut = audioOutputDevices.length;
     try {
       const picked = await mda.selectAudioOutput();
-      const after = await enumOutputs();
+      const after = await enumAudioDevices();
       updateDevices(after);
-      logExperiment(`selectAudioOutput: picked "${picked.label}" — devices ${before}→${after.length}`);
+      logExperiment(`selectAudioOutput: picked "${picked.label}" — outputs ${beforeOut}→${after.outputs.length}`);
     } catch (err) {
       logExperiment(`selectAudioOutput: ${err}`);
     }
   };
 
   const tryReEnumerate = async () => {
-    const before = audioOutputDevices.length;
-    const after = await enumOutputs();
+    const beforeIn = audioInputDevices.length;
+    const beforeOut = audioOutputDevices.length;
+    const after = await enumAudioDevices();
     updateDevices(after);
-    const newLabels = after.map(d => d.label).filter(l => !audioOutputDevices.some(d => d.label === l));
-    logExperiment(`re-enumerate: ${before}→${after.length} devices${newLabels.length ? `, new: ${newLabels.join(', ')}` : ''}`);
+    const newIn = after.inputs.map(d => d.label).filter(l => !audioInputDevices.some(d => d.label === l));
+    const newOut = after.outputs.map(d => d.label).filter(l => !audioOutputDevices.some(d => d.label === l));
+    logExperiment(`re-enumerate: in ${beforeIn}→${after.inputs.length}, out ${beforeOut}→${after.outputs.length}${[...newIn, ...newOut].length ? `, new: ${[...newIn, ...newOut].join(', ')}` : ''}`);
   };
 
   const tryAudioVideo = async () => {
-    const before = audioOutputDevices.length;
+    const beforeIn = audioInputDevices.length;
+    const beforeOut = audioOutputDevices.length;
     let videoStream: MediaStream | null = null;
     try {
       videoStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-      const after = await enumOutputs();
+      const after = await enumAudioDevices();
       updateDevices(after);
-      const newLabels = after.map(d => d.label).filter(l => !audioOutputDevices.some(d => d.label === l));
-      logExperiment(`audio+video: ${before}→${after.length} devices${newLabels.length ? `, new: ${newLabels.join(', ')}` : ' (no new labels)'}`);
+      const newIn = after.inputs.map(d => d.label).filter(l => !audioInputDevices.some(d => d.label === l));
+      const newOut = after.outputs.map(d => d.label).filter(l => !audioOutputDevices.some(d => d.label === l));
+      logExperiment(`audio+video: in ${beforeIn}→${after.inputs.length}, out ${beforeOut}→${after.outputs.length}${[...newIn, ...newOut].length ? `, new: ${[...newIn, ...newOut].join(', ')}` : ' (no new labels)'}`);
     } catch (err) {
       logExperiment(`audio+video: ${err}`);
     } finally {
@@ -274,31 +283,38 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
             </div>
 
             {/* Section B — Devices */}
-            <div style={{ color: '#777', marginBottom: 6, textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>
-              audiooutput devices ({audioOutputDevices.length})
-            </div>
-            {audioOutputDevices.length === 0 ? (
-              <div style={{ color: '#555', marginBottom: 12 }}>
-                {localStream ? '(none returned)' : 'grant mic permission first'}
+            {[
+              { label: 'audioinput', devices: audioInputDevices },
+              { label: 'audiooutput', devices: audioOutputDevices },
+            ].map(({ label: kind, devices }) => (
+              <div key={kind}>
+                <div style={{ color: '#777', marginBottom: 6, textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>
+                  {kind} devices ({devices.length})
+                </div>
+                {devices.length === 0 ? (
+                  <div style={{ color: '#555', marginBottom: 12 }}>
+                    {localStream ? '(none returned)' : 'grant mic permission first'}
+                  </div>
+                ) : (
+                  <div style={{ marginBottom: 12 }}>
+                    {devices.map((d, i) => {
+                      const cls = classifyDevice(d.label);
+                      const clsColor: Record<string, string> = { earpiece: '#4c4', bluetooth: '#4af', headset: '#4af', speaker: '#f84', unknown: '#666' };
+                      return (
+                        <div key={i} style={{ marginBottom: 6, paddingLeft: 8, borderLeft: '2px solid #333' }}>
+                          <div style={{ color: '#ccc' }}>
+                            {d.label || '(no label)'}
+                            {' '}
+                            <span style={{ color: clsColor[cls] ?? '#666', fontSize: 10 }}>[{cls}]</span>
+                          </div>
+                          <div style={{ color: '#555' }}>{d.deviceId.slice(0, 20)}{d.deviceId.length > 20 ? '…' : ''}</div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
-            ) : (
-              <div style={{ marginBottom: 12 }}>
-                {audioOutputDevices.map((d, i) => {
-                  const cls = classifyDevice(d.label);
-                  const clsColor: Record<string, string> = { earpiece: '#4c4', bluetooth: '#4af', headset: '#4af', speaker: '#f84', unknown: '#666' };
-                  return (
-                    <div key={i} style={{ marginBottom: 6, paddingLeft: 8, borderLeft: '2px solid #333' }}>
-                      <div style={{ color: '#ccc' }}>
-                        {d.label || '(no label)'}
-                        {' '}
-                        <span style={{ color: clsColor[cls] ?? '#666', fontSize: 10 }}>[{cls}]</span>
-                      </div>
-                      <div style={{ color: '#555' }}>{d.deviceId.slice(0, 20)}{d.deviceId.length > 20 ? '…' : ''}</div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+            ))}
 
             {/* Section C — Permission experiments */}
             <div style={{ color: '#777', marginBottom: 6, textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>permission experiments</div>
