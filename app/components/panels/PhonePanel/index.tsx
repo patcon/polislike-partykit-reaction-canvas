@@ -194,7 +194,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const socket = usePartySocket({
     ...getPartySocketConfig(),
     room,
-    query: { userId },
+    query: { userId, isPhonePanel: 'true' },
     onMessage(evt) {
       try {
         void dispatchRef.current(JSON.parse(evt.data) as Record<string, unknown>);

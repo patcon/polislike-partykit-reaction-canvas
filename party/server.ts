@@ -489,10 +489,13 @@ export default class Server implements Party.Server {
     const userId = url.searchParams.get('userId') ?? conn.id;
     this.connectionUserMap.set(conn.id, userId);
 
-    // If this user reconnected within the grace period after a drop, cancel the hangup
-    // timer and restore both sides of the call.
+    // If this user's PhonePanel reconnected within the grace period after a drop, cancel
+    // the hangup timer and restore both sides of the call. We check isPhonePanel because
+    // the Canvas socket (same userId, different connection) reconnects independently and
+    // must not trigger the resume — it fires first and would cancel the timer prematurely.
+    const isPhonePanel = url.searchParams.get('isPhonePanel') === 'true';
     const reconnectTimer = this.callReconnectTimers.get(userId);
-    if (reconnectTimer !== undefined) {
+    if (isPhonePanel && reconnectTimer !== undefined) {
       clearTimeout(reconnectTimer);
       this.callReconnectTimers.delete(userId);
       const peerId = this.callPairs.get(userId);
@@ -604,9 +607,19 @@ export default class Server implements Party.Server {
       // Notify the peer they're waiting, then give the disconnected user time to come back.
       const peerId = this.callPairs.get(userId);
       if (peerId) {
-        console.log(`[call] ${userId} dropped — notifying peer ${peerId}, grace period ${this.CALL_RECONNECT_GRACE_MS}ms`);
-        for (const conn of this.getTargetConnections(peerId)) {
-          conn.send(JSON.stringify({ type: 'peerReconnecting', fromUserId: userId }));
+        // Cancel any existing timer for this userId — both Canvas and PhonePanel share
+        // the same userId, and both drop when the screen turns off. Without this, the
+        // first timer keeps running even after the map entry is overwritten, causing a
+        // double expiry that sends hangUp twice.
+        const existing = this.callReconnectTimers.get(userId);
+        if (existing !== undefined) {
+          clearTimeout(existing);
+          console.log(`[call] ${userId} another connection dropped — resetting grace period`);
+        } else {
+          console.log(`[call] ${userId} dropped — notifying peer ${peerId}, grace period ${this.CALL_RECONNECT_GRACE_MS}ms`);
+          for (const conn of this.getTargetConnections(peerId)) {
+            conn.send(JSON.stringify({ type: 'peerReconnecting', fromUserId: userId }));
+          }
         }
         const timer = setTimeout(() => {
           this.callReconnectTimers.delete(userId);
