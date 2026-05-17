@@ -312,6 +312,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const [copyLabel, setCopyLabel] = useState('copy');
   const copyDebugInfo = () => {
     const lines: string[] = [
+      `timestamp: ${new Date().toISOString()}`,
       `platform: ${platform.label}`,
       `userAgent: ${navigator.userAgent}`,
       `setSinkId: ${hasSinkId ? 'yes' : 'no'}`,
