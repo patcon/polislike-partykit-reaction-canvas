@@ -487,18 +487,18 @@ function IdleView({ onAccept, onCancelConfirm, disabled, micError, speakerphoneW
 
       {speakerphoneWarning === 'no-headset' && (
         <div style={{ background: '#2a1e00', border: '1px solid #5a3a00', borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
-          <p style={{ color: '#fa4', fontSize: 13, fontWeight: 600, margin: '0 0 4px' }}>No headphones detected</p>
+          <p style={{ color: '#fa4', fontSize: 13, fontWeight: 600, margin: '0 0 4px' }}>Plug in headphones first</p>
           <p style={{ color: '#a87', fontSize: 12, margin: 0, lineHeight: 1.5 }}>
-            Connect Bluetooth headphones or wired earphones before calling — otherwise audio will play through the speakerphone.
+            This app is designed for live events. If everyone uses speakerphone it gets chaotic fast — headphones let each person focus on their own call.
           </p>
         </div>
       )}
 
       {speakerphoneWarning === 'unknown' && (
         <div style={{ background: '#1e1e2a', border: '1px solid #3a3a5a', borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
-          <p style={{ color: '#88f', fontSize: 13, fontWeight: 600, margin: '0 0 4px' }}>Headphones can't be detected</p>
+          <p style={{ color: '#88f', fontSize: 13, fontWeight: 600, margin: '0 0 4px' }}>Headphones recommended</p>
           <p style={{ color: '#778', fontSize: 12, margin: 0, lineHeight: 1.5 }}>
-            Your browser can't report connected audio devices. If you're not wearing headphones, others may hear your call.
+            This app is designed for live events. Headphones keep things focused — your browser can't confirm whether you have them connected.
           </p>
         </div>
       )}
@@ -511,8 +511,8 @@ function IdleView({ onAccept, onCancelConfirm, disabled, micError, speakerphoneW
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
           <p style={{ color: '#fa4', fontSize: 13, textAlign: 'center', margin: 0 }}>
             {speakerphoneWarning === 'unknown'
-              ? 'Audio may play through speakerphone — connect anyway?'
-              : 'Audio will play through speakerphone — connect anyway?'}
+              ? 'Connect without confirming headphones?'
+              : 'Connect without headphones?'}
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
             <button
