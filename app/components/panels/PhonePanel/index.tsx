@@ -511,7 +511,7 @@ function IdleView({ onAccept, onCancelConfirm, disabled, micError, speakerphoneW
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
           <p style={{ color: '#fa4', fontSize: 13, textAlign: 'center', margin: 0 }}>
             {speakerphoneWarning === 'unknown'
-              ? 'Connect without confirming headphones?'
+              ? 'Headphones are recommended for live events'
               : 'Connect without headphones?'}
           </p>
           <div style={{ display: 'flex', gap: 10 }}>
