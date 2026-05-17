@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import usePartySocket from 'partysocket/react';
 import { FaPhone, FaPhoneSlash, FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import { getPartySocketConfig } from '../../../utils/partyHost';
@@ -9,10 +9,48 @@ interface PhonePanelProps {
   userId: string;
 }
 
+function detectPlatform() {
+  const ua = navigator.userAgent;
+  const isAndroid = /Android/i.test(ua);
+  const isIOS = /iPhone|iPad|iPod/i.test(ua);
+  const isChrome = /Chrome/i.test(ua) && !/Firefox/i.test(ua) && !/EdgA/i.test(ua);
+  const isFirefox = /Firefox/i.test(ua);
+  const label = isIOS ? 'ios'
+    : isAndroid && isChrome ? 'android-chrome'
+    : isAndroid && isFirefox ? 'android-firefox'
+    : isAndroid ? 'android-other'
+    : 'desktop';
+  return { isIOS, isAndroid, isChrome, isFirefox, label };
+}
+
+function classifyDevice(label: string): 'earpiece' | 'bluetooth' | 'headset' | 'speaker' | 'unknown' {
+  const l = label.toLowerCase();
+  if (['earpiece', 'handset', 'ear'].some(k => l.includes(k))) return 'earpiece';
+  if (['bluetooth', 'a2dp', 'sco', 'wireless', 'airpods', 'buds'].some(k => l.includes(k))) return 'bluetooth';
+  if (['headset', 'headphone', 'wired'].some(k => l.includes(k))) return 'headset';
+  if (['speaker', 'loud'].some(k => l.includes(k))) return 'speaker';
+  return 'unknown';
+}
+
+const HEADSET_CLASSES: ReturnType<typeof classifyDevice>[] = ['earpiece', 'bluetooth', 'headset'];
+
+function enumOutputs(): Promise<MediaDeviceInfo[]> {
+  return navigator.mediaDevices.enumerateDevices()
+    .then(devs => devs.filter(d => d.kind === 'audiooutput'));
+}
+
 export default function PhonePanel({ room, userId }: PhonePanelProps) {
+  const platform = useMemo(() => detectPlatform(), []);
+
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const [callDuration, setCallDuration] = useState(0);
+  const [audioOutputDevices, setAudioOutputDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedSinkLabel, setSelectedSinkLabel] = useState<string | null>(null);
+  const [hasHeadset, setHasHeadset] = useState<boolean | null>(null);
+  const [showSpeakerphoneWarning, setShowSpeakerphoneWarning] = useState(false);
+  const [showDebug, setShowDebug] = useState(false);
+  const [experimentLog, setExperimentLog] = useState<string[]>([]);
   const callStartRef = useRef<number | null>(null);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -30,10 +68,25 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
       .catch(() => setMicError('Microphone permission denied'));
   }, []);
 
+  const updateDevices = (outputs: MediaDeviceInfo[]) => {
+    setAudioOutputDevices(outputs);
+    const detected = outputs.some(d => HEADSET_CLASSES.includes(classifyDevice(d.label)));
+    setHasHeadset(detected);
+    if (detected) setShowSpeakerphoneWarning(false);
+  };
+
   useEffect(() => {
     if (!localStream) return;
-    return () => localStream.getTracks().forEach(t => t.stop());
-  }, [localStream]);
+    enumOutputs().then(updateDevices).catch(() => {});
+
+    const handleDeviceChange = () => { enumOutputs().then(updateDevices).catch(() => {}); };
+    navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
+
+    return () => {
+      navigator.mediaDevices.removeEventListener('devicechange', handleDeviceChange);
+      localStream.getTracks().forEach(t => t.stop());
+    };
+  }, [localStream]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sendRef = useRef<(msg: object) => void>(() => {});
   const dispatchRef = useRef<(data: Record<string, unknown>) => Promise<void>>(async () => {});
@@ -54,12 +107,29 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const wrtc = useWebRTCCall(sendRef, localStream);
   dispatchRef.current = wrtc.handleServerMessage;
 
-  // Attach remote audio stream
+  // Attach remote audio stream, then try to route to earpiece (best-effort, Firefox Android)
   useEffect(() => {
-    if (remoteAudioRef.current && wrtc.remoteStream) {
-      remoteAudioRef.current.srcObject = wrtc.remoteStream;
-      remoteAudioRef.current.play().catch(() => {});
+    const el = remoteAudioRef.current;
+    if (!el || !wrtc.remoteStream) return;
+    el.srcObject = wrtc.remoteStream;
+    el.play().catch(() => {});
+
+    if (!('setSinkId' in el)) {
+      setSelectedSinkLabel('(setSinkId not supported)');
+      return;
     }
+    navigator.mediaDevices.enumerateDevices().then(devices => {
+      const outputs = devices.filter(d => d.kind === 'audiooutput');
+      const earpiece = outputs.find(d => HEADSET_CLASSES.includes(classifyDevice(d.label)));
+      if (earpiece) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (el as any).setSinkId(earpiece.deviceId)
+          .then(() => setSelectedSinkLabel(earpiece.label || earpiece.deviceId))
+          .catch((err: unknown) => setSelectedSinkLabel(`setSinkId failed: ${err}`));
+      } else {
+        setSelectedSinkLabel('(no earpiece device found)');
+      }
+    }).catch(() => setSelectedSinkLabel('(enumerateDevices failed)'));
   }, [wrtc.remoteStream]);
 
   // Call duration timer
@@ -89,30 +159,79 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
     return `${m}:${s}`;
   };
 
+  const handleJoinQueue = () => {
+    if (platform.isAndroid && hasHeadset === false) {
+      setShowSpeakerphoneWarning(true);
+      return;
+    }
+    wrtc.joinQueue();
+  };
+
+  const logExperiment = (line: string) => setExperimentLog(prev => [...prev, line]);
+
+  const trySelectAudioOutput = async () => {
+    const mda = navigator.mediaDevices as MediaDevices & { selectAudioOutput?: () => Promise<MediaDeviceInfo> };
+    if (!mda.selectAudioOutput) return;
+    const before = audioOutputDevices.length;
+    try {
+      const picked = await mda.selectAudioOutput();
+      const after = await enumOutputs();
+      updateDevices(after);
+      logExperiment(`selectAudioOutput: picked "${picked.label}" — devices ${before}→${after.length}`);
+    } catch (err) {
+      logExperiment(`selectAudioOutput: ${err}`);
+    }
+  };
+
+  const tryReEnumerate = async () => {
+    const before = audioOutputDevices.length;
+    const after = await enumOutputs();
+    updateDevices(after);
+    const newLabels = after.map(d => d.label).filter(l => !audioOutputDevices.some(d => d.label === l));
+    logExperiment(`re-enumerate: ${before}→${after.length} devices${newLabels.length ? `, new: ${newLabels.join(', ')}` : ''}`);
+  };
+
+  const tryAudioVideo = async () => {
+    const before = audioOutputDevices.length;
+    let videoStream: MediaStream | null = null;
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      const after = await enumOutputs();
+      updateDevices(after);
+      const newLabels = after.map(d => d.label).filter(l => !audioOutputDevices.some(d => d.label === l));
+      logExperiment(`audio+video: ${before}→${after.length} devices${newLabels.length ? `, new: ${newLabels.join(', ')}` : ' (no new labels)'}`);
+    } catch (err) {
+      logExperiment(`audio+video: ${err}`);
+    } finally {
+      videoStream?.getTracks().forEach(t => t.stop());
+    }
+  };
+
+  const hasSinkId = 'setSinkId' in HTMLAudioElement.prototype;
+  const hasSelectAudioOutput = 'selectAudioOutput' in navigator.mediaDevices;
+
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      background: '#111', color: '#eee', padding: 32, minHeight: 0,
+      background: '#111', color: '#eee', padding: 32, minHeight: 0, position: 'relative',
     }}>
       {/* Hidden audio element for remote stream */}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
 
-      {wrtc.callState === 'idle' && (
+      {wrtc.callState === 'idle' && showSpeakerphoneWarning ? (
+        <SpeakerphoneWarningView
+          onProceed={() => { setShowSpeakerphoneWarning(false); wrtc.joinQueue(); }}
+          onCancel={() => setShowSpeakerphoneWarning(false)}
+        />
+      ) : wrtc.callState === 'idle' ? (
         <IdleView
-          onAccept={wrtc.joinQueue}
+          onAccept={handleJoinQueue}
           disabled={!!micError || !localStream}
           micError={micError}
         />
-      )}
-
-      {wrtc.callState === 'queued' && (
-        <QueuedView onCancel={wrtc.cancelQueue} />
-      )}
-
-      {wrtc.callState === 'connecting' && (
-        <ConnectingView />
-      )}
-
+      ) : null}
+      {wrtc.callState === 'queued' && <QueuedView onCancel={wrtc.cancelQueue} />}
+      {wrtc.callState === 'connecting' && <ConnectingView />}
       {wrtc.callState === 'connected' && (
         <ConnectedView
           peerId={wrtc.peerId}
@@ -122,6 +241,127 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
           onHangUp={wrtc.hangUp}
         />
       )}
+
+      {/* Debug panel — bottom of screen */}
+      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 12px 8px' }}>
+        <button
+          onClick={() => setShowDebug(v => !v)}
+          style={{ background: 'none', border: 'none', color: '#444', fontSize: 11, cursor: 'pointer', padding: '4px 0' }}
+        >
+          {showDebug ? '▾' : '▸'} audio debug
+        </button>
+        {showDebug && (
+          <div style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 6, padding: 10, fontSize: 11, fontFamily: 'monospace', maxHeight: '60vh', overflowY: 'auto' }}>
+
+            {/* Section A — Environment */}
+            <div style={{ color: '#777', marginBottom: 6, textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>environment</div>
+            <div style={{ color: '#666', marginBottom: 4 }}>
+              platform: <span style={{ color: '#aaa' }}>{platform.label}</span>
+            </div>
+            <div style={{ color: '#666', marginBottom: 4 }}>
+              setSinkId: <span style={{ color: hasSinkId ? '#4c4' : '#f55' }}>{hasSinkId ? 'yes' : 'no'}</span>
+            </div>
+            <div style={{ color: '#666', marginBottom: 4 }}>
+              selectAudioOutput: <span style={{ color: hasSelectAudioOutput ? '#4c4' : '#f55' }}>{hasSelectAudioOutput ? 'yes (Firefox)' : 'no'}</span>
+            </div>
+            <div style={{ color: '#666', marginBottom: 4 }}>
+              headset detected: <span style={{
+                color: hasHeadset === null ? '#888' : hasHeadset ? '#4c4' : '#fa4'
+              }}>{hasHeadset === null ? 'checking…' : hasHeadset ? 'yes' : 'no'}</span>
+            </div>
+            <div style={{ color: '#666', marginBottom: 12 }}>
+              selected sink: <span style={{ color: '#aaa' }}>{selectedSinkLabel ?? '(none yet)'}</span>
+            </div>
+
+            {/* Section B — Devices */}
+            <div style={{ color: '#777', marginBottom: 6, textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>
+              audiooutput devices ({audioOutputDevices.length})
+            </div>
+            {audioOutputDevices.length === 0 ? (
+              <div style={{ color: '#555', marginBottom: 12 }}>
+                {localStream ? '(none returned)' : 'grant mic permission first'}
+              </div>
+            ) : (
+              <div style={{ marginBottom: 12 }}>
+                {audioOutputDevices.map((d, i) => {
+                  const cls = classifyDevice(d.label);
+                  const clsColor: Record<string, string> = { earpiece: '#4c4', bluetooth: '#4af', headset: '#4af', speaker: '#f84', unknown: '#666' };
+                  return (
+                    <div key={i} style={{ marginBottom: 6, paddingLeft: 8, borderLeft: '2px solid #333' }}>
+                      <div style={{ color: '#ccc' }}>
+                        {d.label || '(no label)'}
+                        {' '}
+                        <span style={{ color: clsColor[cls] ?? '#666', fontSize: 10 }}>[{cls}]</span>
+                      </div>
+                      <div style={{ color: '#555' }}>{d.deviceId.slice(0, 20)}{d.deviceId.length > 20 ? '…' : ''}</div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Section C — Permission experiments */}
+            <div style={{ color: '#777', marginBottom: 6, textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>permission experiments</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 8 }}>
+              {hasSelectAudioOutput && (
+                <button onClick={trySelectAudioOutput} style={btnStyle}>
+                  Try selectAudioOutput() — Firefox only
+                </button>
+              )}
+              <button onClick={tryReEnumerate} style={btnStyle}>
+                Re-enumerate devices
+              </button>
+              <button onClick={tryAudioVideo} style={btnStyle}>
+                Try audio+video permission
+              </button>
+            </div>
+            {experimentLog.length > 0 && (
+              <div style={{ borderTop: '1px solid #2a2a2a', paddingTop: 6 }}>
+                {experimentLog.map((line, i) => (
+                  <div key={i} style={{ color: '#7a7', marginBottom: 3 }}>{line}</div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+const btnStyle: React.CSSProperties = {
+  background: '#222', border: '1px solid #444', color: '#aaa',
+  borderRadius: 4, padding: '4px 8px', fontSize: 10, cursor: 'pointer', textAlign: 'left',
+};
+
+function SpeakerphoneWarningView({ onProceed, onCancel }: { onProceed: () => void; onCancel: () => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, maxWidth: 280, textAlign: 'center' }}>
+      <div style={{ fontSize: 40, color: '#fa4' }}>⚠</div>
+      <p style={{ color: '#fa4', fontSize: 16, fontWeight: 600, margin: 0 }}>No headphones detected</p>
+      <p style={{ color: '#888', fontSize: 13, margin: 0, lineHeight: 1.5 }}>
+        Your call audio may play through the speakerphone. Connect Bluetooth headphones or wired earphones first, or proceed anyway.
+      </p>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
+        <button
+          onClick={onProceed}
+          style={{
+            background: '#7a4a00', color: '#fca', border: 'none', borderRadius: 8,
+            padding: '12px 20px', fontSize: 14, cursor: 'pointer',
+          }}
+        >
+          Use speakerphone anyway
+        </button>
+        <button
+          onClick={onCancel}
+          style={{
+            background: 'none', color: '#888', border: '1px solid #444',
+            borderRadius: 8, padding: '10px 20px', fontSize: 13, cursor: 'pointer',
+          }}
+        >
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
