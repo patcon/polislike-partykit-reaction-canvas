@@ -135,7 +135,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const [audioOutputDevices, setAudioOutputDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedSinkLabel, setSelectedSinkLabel] = useState<string | null>(null);
   const [hasExternalAudio, setHasExternalAudio] = useState<boolean | null>(null);
-  const [showSpeakerphoneWarning, setShowSpeakerphoneWarning] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [experimentLog, setExperimentLog] = useState<string[]>([]);
   const callStartRef = useRef<number | null>(null);
@@ -162,7 +162,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
     // "Headset earpiece" and "Speakerphone" are phantom routing modes, not real connected devices.
     const detected = [...inputs, ...outputs].some(d => EXTERNAL_AUDIO_CLASSES.includes(classifyDevice(d.label)));
     setHasExternalAudio(detected);
-    if (detected) setShowSpeakerphoneWarning(false);
+    if (detected) setConfirming(false);
   };
 
   useEffect(() => {
@@ -249,11 +249,14 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
     return `${m}:${s}`;
   };
 
+  const needsConfirm = platform.isAndroid && !hasExternalAudio;
+
   const handleJoinQueue = () => {
-    if (platform.isAndroid && hasExternalAudio === false) {
-      setShowSpeakerphoneWarning(true);
+    if (needsConfirm && !confirming) {
+      setConfirming(true);
       return;
     }
+    setConfirming(false);
     wrtc.joinQueue();
   };
 
@@ -337,18 +340,16 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
       {/* Hidden audio element for remote stream */}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
 
-      {wrtc.callState === 'idle' && showSpeakerphoneWarning ? (
-        <SpeakerphoneWarningView
-          onProceed={() => { setShowSpeakerphoneWarning(false); wrtc.joinQueue(); }}
-          onCancel={() => setShowSpeakerphoneWarning(false)}
-        />
-      ) : wrtc.callState === 'idle' ? (
+      {wrtc.callState === 'idle' && (
         <IdleView
           onAccept={handleJoinQueue}
+          onCancelConfirm={() => setConfirming(false)}
           disabled={!!micError || !localStream}
           micError={micError}
+          speakerphoneWarning={needsConfirm ? (platform.isFirefox ? 'unknown' : 'no-headset') : null}
+          confirming={confirming}
         />
-      ) : null}
+      )}
       {wrtc.callState === 'queued' && <QueuedView onCancel={wrtc.cancelQueue} />}
       {wrtc.callState === 'connecting' && <ConnectingView />}
       {wrtc.callState === 'connected' && (
@@ -467,68 +468,95 @@ const btnStyle: React.CSSProperties = {
   borderRadius: 4, padding: '4px 8px', fontSize: 10, cursor: 'pointer', textAlign: 'left',
 };
 
-function SpeakerphoneWarningView({ onProceed, onCancel }: { onProceed: () => void; onCancel: () => void }) {
+function IdleView({ onAccept, onCancelConfirm, disabled, micError, speakerphoneWarning, confirming }: {
+  onAccept: () => void;
+  onCancelConfirm: () => void;
+  disabled: boolean;
+  micError: string | null;
+  speakerphoneWarning: 'no-headset' | 'unknown' | null;
+  confirming: boolean;
+}) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 20, maxWidth: 280, textAlign: 'center' }}>
-      <div style={{ fontSize: 40, color: '#fa4' }}>⚠</div>
-      <p style={{ color: '#fa4', fontSize: 16, fontWeight: 600, margin: 0 }}>No headphones detected</p>
-      <p style={{ color: '#888', fontSize: 13, margin: 0, lineHeight: 1.5 }}>
-        Your call audio may play through the speakerphone. Connect Bluetooth headphones or wired earphones first, or proceed anyway.
-      </p>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-        <button
-          onClick={onProceed}
-          style={{
-            background: '#7a4a00', color: '#fca', border: 'none', borderRadius: 8,
-            padding: '12px 20px', fontSize: 14, cursor: 'pointer',
-          }}
-        >
-          Use speakerphone anyway
-        </button>
-        <button
-          onClick={onCancel}
-          style={{
-            background: 'none', color: '#888', border: '1px solid #444',
-            borderRadius: 8, padding: '10px 20px', fontSize: 13, cursor: 'pointer',
-          }}
-        >
-          Cancel
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function IdleView({ onAccept, disabled, micError }: { onAccept: () => void; disabled: boolean; micError: string | null }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24, maxWidth: 280, width: '100%' }}>
       <div style={{ fontSize: 48, color: '#555' }}>
         <FaPhone />
       </div>
       <p style={{ color: '#888', fontSize: 15, textAlign: 'center', margin: 0 }}>
         Voice calls
       </p>
+
+      {speakerphoneWarning === 'no-headset' && (
+        <div style={{ background: '#2a1e00', border: '1px solid #5a3a00', borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
+          <p style={{ color: '#fa4', fontSize: 13, fontWeight: 600, margin: '0 0 4px' }}>No headphones detected</p>
+          <p style={{ color: '#a87', fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+            Connect Bluetooth headphones or wired earphones before calling — otherwise audio will play through the speakerphone.
+          </p>
+        </div>
+      )}
+
+      {speakerphoneWarning === 'unknown' && (
+        <div style={{ background: '#1e1e2a', border: '1px solid #3a3a5a', borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
+          <p style={{ color: '#88f', fontSize: 13, fontWeight: 600, margin: '0 0 4px' }}>Headphones can't be detected</p>
+          <p style={{ color: '#778', fontSize: 12, margin: 0, lineHeight: 1.5 }}>
+            Your browser can't report connected audio devices. If you're not wearing headphones, others may hear your call.
+          </p>
+        </div>
+      )}
+
       {micError && (
         <p style={{ color: '#f55', fontSize: 13, textAlign: 'center', margin: 0 }}>{micError}</p>
       )}
-      <button
-        onClick={onAccept}
-        disabled={disabled}
-        style={{
-          background: disabled ? '#333' : '#1a7a1a',
-          color: disabled ? '#555' : '#fff',
-          border: 'none', borderRadius: 50, width: 72, height: 72,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 28, cursor: disabled ? 'not-allowed' : 'pointer',
-          transition: 'background 0.15s',
-        }}
-        aria-label="Accept call"
-      >
-        <FaPhone />
-      </button>
-      <p style={{ color: '#666', fontSize: 12, textAlign: 'center', margin: 0 }}>
-        Tap to be connected with the next available person
-      </p>
+
+      {confirming ? (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
+          <p style={{ color: '#fa4', fontSize: 13, textAlign: 'center', margin: 0 }}>
+            {speakerphoneWarning === 'unknown'
+              ? 'Audio may play through speakerphone — connect anyway?'
+              : 'Audio will play through speakerphone — connect anyway?'}
+          </p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              onClick={onAccept}
+              style={{
+                background: '#7a4a00', color: '#fca', border: 'none', borderRadius: 8,
+                padding: '10px 18px', fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              Connect
+            </button>
+            <button
+              onClick={onCancelConfirm}
+              style={{
+                background: 'none', color: '#888', border: '1px solid #444',
+                borderRadius: 8, padding: '10px 18px', fontSize: 13, cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : (
+        <>
+          <button
+            onClick={onAccept}
+            disabled={disabled}
+            style={{
+              background: disabled ? '#333' : '#1a7a1a',
+              color: disabled ? '#555' : '#fff',
+              border: 'none', borderRadius: 50, width: 72, height: 72,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 28, cursor: disabled ? 'not-allowed' : 'pointer',
+              transition: 'background 0.15s',
+            }}
+            aria-label="Accept call"
+          >
+            <FaPhone />
+          </button>
+          <p style={{ color: '#666', fontSize: 12, textAlign: 'center', margin: 0 }}>
+            Tap to be connected with the next available person
+          </p>
+        </>
+      )}
     </div>
   );
 }
