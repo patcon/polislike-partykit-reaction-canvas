@@ -348,6 +348,12 @@ export default class Server implements Party.Server {
   private callQueue: string[] = [];
   private callPairs: Map<string, string> = new Map();
   private callAlgorithm: string = 'first-available';
+  // Grace period timers: when a paired user's WebSocket drops, we wait before notifying
+  // their peer. Android Chrome kills the WebSocket when the screen turns off but the
+  // WebRTC connection often survives. If the user reconnects within the window, we
+  // cancel the timer and send callResumed instead.
+  private callReconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly CALL_RECONNECT_GRACE_MS = 15_000;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -482,6 +488,22 @@ export default class Server implements Party.Server {
 
     const userId = url.searchParams.get('userId') ?? conn.id;
     this.connectionUserMap.set(conn.id, userId);
+
+    // If this user reconnected within the grace period after a drop, cancel the hangup
+    // timer and restore both sides of the call.
+    const reconnectTimer = this.callReconnectTimers.get(userId);
+    if (reconnectTimer !== undefined) {
+      clearTimeout(reconnectTimer);
+      this.callReconnectTimers.delete(userId);
+      const peerId = this.callPairs.get(userId);
+      if (peerId) {
+        conn.send(JSON.stringify({ type: 'callResumed', peerId }));
+        for (const peerConn of this.getTargetConnections(peerId)) {
+          peerConn.send(JSON.stringify({ type: 'callResumed', peerId: userId }));
+        }
+      }
+    }
+
     if (isViewer) {
       this.viewerConnectionIds.add(conn.id);
     }
@@ -571,16 +593,26 @@ export default class Server implements Party.Server {
         this.stenoLockUserId = null;
         this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId }));
       }
-      // Call queue cleanup
+      // Call queue cleanup (immediate — nothing to preserve)
       const qIdx = this.callQueue.indexOf(userId);
       if (qIdx !== -1) this.callQueue.splice(qIdx, 1);
+      // Call pair cleanup — deferred to allow brief reconnects (e.g. Android kills the
+      // WebSocket when the screen turns off, but the WebRTC connection often survives).
+      // Notify the peer they're waiting, then give the disconnected user time to come back.
       const peerId = this.callPairs.get(userId);
       if (peerId) {
-        this.callPairs.delete(userId);
-        this.callPairs.delete(peerId);
         for (const conn of this.getTargetConnections(peerId)) {
-          conn.send(JSON.stringify({ type: 'hangUp', fromUserId: userId }));
+          conn.send(JSON.stringify({ type: 'peerReconnecting', fromUserId: userId }));
         }
+        const timer = setTimeout(() => {
+          this.callReconnectTimers.delete(userId);
+          this.callPairs.delete(userId);
+          this.callPairs.delete(peerId);
+          for (const conn of this.getTargetConnections(peerId)) {
+            conn.send(JSON.stringify({ type: 'hangUp', fromUserId: userId }));
+          }
+        }, this.CALL_RECONNECT_GRACE_MS);
+        this.callReconnectTimers.set(userId, timer);
       }
     }
 

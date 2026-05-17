@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react';
 
-export type CallState = 'idle' | 'queued' | 'connecting' | 'connected';
+export type CallState = 'idle' | 'queued' | 'connecting' | 'connected' | 'reconnecting';
 
 const RTC_CONFIG: RTCConfiguration = {
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
@@ -125,6 +125,20 @@ export function useWebRTCCall(
     } else if (data.type === 'webrtcIce') {
       if (pcRef.current && data.candidate) {
         await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate as RTCIceCandidateInit));
+      }
+    } else if (data.type === 'peerReconnecting') {
+      setCallState('reconnecting');
+    } else if (data.type === 'callResumed') {
+      const peer = data.peerId as string;
+      if (pcRef.current && pcRef.current.connectionState === 'connected') {
+        // WebRTC survived the drop — just restore UI state
+        peerIdRef.current = peer;
+        setPeerId(peer);
+        setCallState('connected');
+      } else {
+        // WebRTC also died during the gap — clean up and let the server know
+        closePc();
+        sendRef.current({ type: 'hangUp', targetUserId: peer });
       }
     } else if (data.type === 'hangUp') {
       closePc();
