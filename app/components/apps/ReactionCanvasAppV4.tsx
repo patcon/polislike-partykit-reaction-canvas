@@ -29,6 +29,7 @@ import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
 import Treevites from "../panels/Treevites";
 import StenoPanel from "../panels/StenoPanel";
 import StoryTracerPanel from "../panels/StoryTracerPanel";
+import PhonePanel from "../panels/PhonePanel";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -80,6 +81,7 @@ function getUnlockedInterfaces(): string[] {
   const interfaces = ['canvas'];
   // Only emcee is URL-privileged; all other patchable interfaces are localStorage-only
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
+  if (p.get('interface') === 'phone') interfaces.push('phone');
   try {
     const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
     if (Array.isArray(stored)) {
@@ -392,7 +394,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones', treevites: 'Leaderboard', greeter: 'Greeter', steno: 'Steno', 'story-tracer': 'Story Tracer' };
+  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones', treevites: 'Leaderboard', greeter: 'Greeter', steno: 'Steno', 'story-tracer': 'Story Tracer', phone: 'Voice calls' };
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
@@ -421,6 +423,8 @@ export default function ReactionCanvasAppV4() {
         <StenoPanel room={room} userId={userId} />
       ) : activeInterface === 'story-tracer' ? (
         <StoryTracerPanel room={room} userId={userId} />
+      ) : activeInterface === 'phone' ? (
+        <PhonePanel room={room} userId={userId} />
       ) : null}
       {/* When activity is 'social', show SocialPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).
@@ -443,8 +447,11 @@ export default function ReactionCanvasAppV4() {
       {activeInterface === 'canvas' && activity === 'story-tracer' && (
         <StoryTracerPanel room={room} userId={userId} />
       )}
+      {activeInterface === 'canvas' && activity === 'phone' && (
+        <PhonePanel room={room} userId={userId} />
+      )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter' && activity !== 'steno' && activity !== 'story-tracer') ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter' && activity !== 'steno' && activity !== 'story-tracer' && activity !== 'phone') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}

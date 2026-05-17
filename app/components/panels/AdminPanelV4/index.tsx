@@ -14,6 +14,7 @@ import OfferInterfaceModal from "./OfferInterfaceModal";
 import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
 import CanvasSettingsModal from "./CanvasSettingsModal";
+import VoiceCallsConfigModal from "./VoiceCallsConfigModal";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -297,6 +298,7 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
             setGreeterConfigOpen={roomConfig.setGreeterConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
+            setVoiceCallsConfigOpen={roomConfig.setVoiceCallsConfigOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
             selfId={selfUserId}
             selfChain={selfChain}
@@ -473,6 +475,13 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
           current={roomConfig.greeterConfig}
           onSubmit={roomConfig.sendGreeterConfig}
           onClose={() => roomConfig.setGreeterConfigOpen(false)}
+        />
+      )}
+      {roomConfig.voiceCallsConfigOpen && (
+        <VoiceCallsConfigModal
+          currentAlgorithm={roomConfig.callAlgorithm}
+          onSubmit={roomConfig.sendCallAlgorithm}
+          onClose={() => roomConfig.setVoiceCallsConfigOpen(false)}
         />
       )}
     </div>

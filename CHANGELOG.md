@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 26 (2026-05-18)
 
 ### Added
+- **Voice calls panel** — a new V4 interface for peer-to-peer audio calls over WebRTC. Participants tap "Accept Call" to join a queue; the next person to tap is instantly connected. Signaling (offer/answer/ICE) flows through PartyKit; audio is peer-to-peer with no central server. Features: mute toggle, hang-up button, call duration timer, and familiar phone affordances. Emcee can configure the **Matching Mode** (currently "First Available" / FIFO) via a settings dialog in the Interfaces tab. Unlock via `?interface=phone` or push to participants from the emcee panel.
 - **Story Tracer: live 3D preview and replay during reducer iterations** — the 3D plot animates in real-time as dimensionality reduction runs, showing each intermediate layout as the algorithm converges. After the run (or cancel), a play/pause button and scrub slider let you replay the full optimization journey frame-by-frame. Works for all backends (umap-js, umap-druid, PaCMAP, LocalMAP).
 - **Story Tracer: cache embeddings with resume support** — raw embedding vectors are cached per-chunk in-memory and in IndexedDB. Re-running with different reducer params skips embedding entirely. Cancelling mid-run and re-running resumes from where it left off — only un-cached chunks are re-embedded. ([#96](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/96))
 

@@ -260,7 +260,15 @@ interface StenoSetTextEvent        { type: 'stenoSetText';        userId: string
 interface StoryTracerSetPointsEvent  { type: 'storyTracerSetPoints';  userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta }
 interface StoryTracerClearPointsEvent { type: 'storyTracerClearPoints'; userId: string }
 
-type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent;
+interface JoinCallQueueEvent   { type: 'joinCallQueue' }
+interface LeaveCallQueueEvent  { type: 'leaveCallQueue' }
+interface WebRTCOfferEvent     { type: 'webrtcOffer';   targetUserId: string; offer: unknown }
+interface WebRTCAnswerEvent    { type: 'webrtcAnswer';  targetUserId: string; answer: unknown }
+interface WebRTCIceEvent       { type: 'webrtcIce';     targetUserId: string; candidate: unknown }
+interface HangUpCallEvent      { type: 'hangUp';        targetUserId: string }
+interface SetCallAlgorithmEvent { type: 'setCallAlgorithm'; algorithm: string }
+
+type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -337,6 +345,9 @@ export default class Server implements Party.Server {
   private stenoLockUserId: string | null = null;
   private storyTracerPoints: StoryTracerPoint[] | null = null;
   private storyTracerMeta: StoryTracerMeta | null = null;
+  private callQueue: string[] = [];
+  private callPairs: Map<string, string> = new Map();
+  private callAlgorithm: string = 'first-available';
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -540,6 +551,7 @@ export default class Server implements Party.Server {
       stenoLockUserId: this.stenoLockUserId,
       storyTracerPoints: this.storyTracerPoints,
       storyTracerMeta: this.storyTracerMeta,
+      callAlgorithm: this.callAlgorithm,
     }));
   }
 
@@ -558,6 +570,17 @@ export default class Server implements Party.Server {
       if (this.stenoLockUserId === userId) {
         this.stenoLockUserId = null;
         this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId }));
+      }
+      // Call queue cleanup
+      const qIdx = this.callQueue.indexOf(userId);
+      if (qIdx !== -1) this.callQueue.splice(qIdx, 1);
+      const peerId = this.callPairs.get(userId);
+      if (peerId) {
+        this.callPairs.delete(userId);
+        this.callPairs.delete(peerId);
+        for (const conn of this.getTargetConnections(peerId)) {
+          conn.send(JSON.stringify({ type: 'hangUp', fromUserId: userId }));
+        }
       }
     }
 
@@ -790,6 +813,47 @@ export default class Server implements Party.Server {
         this.storyTracerMeta = null;
         void this.persistState();
         this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: null, meta: null }));
+      } else if (event.type === 'joinCallQueue') {
+        const senderId = this.connectionUserMap.get(sender.id);
+        if (!senderId) return;
+        if (this.callPairs.has(senderId)) return; // already in a call
+        if (this.callQueue.length > 0) {
+          const waiterId = this.callQueue.shift()!;
+          this.callPairs.set(waiterId, senderId);
+          this.callPairs.set(senderId, waiterId);
+          for (const conn of this.getTargetConnections(waiterId)) {
+            conn.send(JSON.stringify({ type: 'callPaired', role: 'initiator', peerId: senderId }));
+          }
+          sender.send(JSON.stringify({ type: 'callPaired', role: 'receiver', peerId: waiterId }));
+        } else {
+          this.callQueue.push(senderId);
+          sender.send(JSON.stringify({ type: 'callQueued' }));
+        }
+      } else if (event.type === 'leaveCallQueue') {
+        const senderId = this.connectionUserMap.get(sender.id);
+        if (!senderId) return;
+        const idx = this.callQueue.indexOf(senderId);
+        if (idx !== -1) this.callQueue.splice(idx, 1);
+      } else if (event.type === 'webrtcOffer' || event.type === 'webrtcAnswer' || event.type === 'webrtcIce') {
+        const senderId = this.connectionUserMap.get(sender.id);
+        if (!senderId) return;
+        const parsed = JSON.parse(message) as Record<string, unknown>;
+        for (const conn of this.getTargetConnections(event.targetUserId)) {
+          conn.send(JSON.stringify({ ...parsed, fromUserId: senderId }));
+        }
+      } else if (event.type === 'hangUp') {
+        const senderId = this.connectionUserMap.get(sender.id);
+        if (!senderId) return;
+        this.callPairs.delete(senderId);
+        const peerId = event.targetUserId;
+        this.callPairs.delete(peerId);
+        for (const conn of this.getTargetConnections(peerId)) {
+          conn.send(JSON.stringify({ type: 'hangUp', fromUserId: senderId }));
+        }
+      } else if (event.type === 'setCallAlgorithm') {
+        if (this.adminConnectionIds.has(sender.id)) {
+          this.callAlgorithm = event.algorithm;
+        }
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
