@@ -103,6 +103,37 @@ audiooutput devices (1):
 
 ---
 
+## Android Edge 148 (Android 10) — Chromium-based
+
+```
+platform: android-edge  ← was android-other before platform detection was fixed
+userAgent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36 EdgA/148.0.0.0
+setSinkId: no
+selectAudioOutput: no
+external audio: yes
+selected sink: (none)
+
+audioinput devices (4):
+  [unknown] Default — default
+  [speaker] Speakerphone — 3136799fe07495ab...
+  [earpiece] Headset earpiece — f413d970352497...
+  [bluetooth] Bluetooth headset — a2f79523b5d28e...
+
+audiooutput devices (1):
+  [unknown] Default — default
+```
+
+**Observations (BT earpiece was connected during this capture):**
+- Identical behaviour to Android Chrome — Edge on Android uses the Chromium
+  engine and the same `AudioManagerAndroid.java` device layer.
+- UA contains `EdgA/148.0.0.0`; platform detection now correctly labels it
+  `android-edge` (previously fell through to `android-other` because `EdgA`
+  was excluded from `isChrome` but had no dedicated branch).
+- "Bluetooth headset" appears in audioinput when BT is connected — same
+  reliable detection signal as Chrome and Opera.
+
+---
+
 ## Known gaps / to investigate
 
 - iOS (Safari, Chrome, Firefox) — no data yet.

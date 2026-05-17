@@ -95,14 +95,16 @@ function detectPlatform() {
   const ua = navigator.userAgent;
   const isAndroid = /Android/i.test(ua);
   const isIOS = /iPhone|iPad|iPod/i.test(ua);
-  const isChrome = /Chrome/i.test(ua) && !/Firefox/i.test(ua) && !/EdgA/i.test(ua);
+  const isEdge = /EdgA/i.test(ua);
+  const isChrome = /Chrome/i.test(ua) && !/Firefox/i.test(ua) && !isEdge;
   const isFirefox = /Firefox/i.test(ua);
   const label = isIOS ? 'ios'
     : isAndroid && isChrome ? 'android-chrome'
+    : isAndroid && isEdge ? 'android-edge'
     : isAndroid && isFirefox ? 'android-firefox'
     : isAndroid ? 'android-other'
     : 'desktop';
-  return { isIOS, isAndroid, isChrome, isFirefox, label };
+  return { isIOS, isAndroid, isChrome, isEdge, isFirefox, label };
 }
 
 function classifyDevice(label: string): 'earpiece' | 'bluetooth' | 'headset' | 'speaker' | 'unknown' {
