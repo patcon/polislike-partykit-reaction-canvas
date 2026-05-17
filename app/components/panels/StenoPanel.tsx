@@ -4,6 +4,7 @@ import { getPartySocketConfig } from "../../utils/partyHost";
 import { MdKeyboard, MdStopCircle } from "react-icons/md";
 import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
 import { extractPlainText } from "../../utils/vttUtils";
+import { useWakeLock } from "../../utils/useWakeLock";
 
 interface StenoPanelProps {
   room: string;
@@ -19,42 +20,17 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
   const [interimText, setInterimText] = useState('');
   const [lockHolder, setLockHolder] = useState<string | null>(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [wakeLockActive, setWakeLockActive] = useState(false);
   const [viewMode, setViewMode] = useState<'vtt' | 'plaintext'>('vtt');
   const isRecordingRef = useRef(false);
-  const wakeLockRef = useRef<WakeLockSentinel | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
+  const { acquired: wakeLockActive } = useWakeLock(isRecording);
   // segmentStartRef: ISO timestamp captured when first interim result arrives for a speech segment.
   // sessionFinalRef: deduplicates repeated transcripts across onend/restart cycles.
   // segmentTimerRef: forces a flush if speech runs longer than MAX_SEGMENT_MS without a natural pause.
   const segmentStartRef = useRef<string | null>(null);
   const sessionFinalRef = useRef('');
   const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const acquireWakeLock = useCallback(async () => {
-    if (!('wakeLock' in navigator)) return;
-    try {
-      wakeLockRef.current = await navigator.wakeLock.request('screen');
-      setWakeLockActive(true);
-    } catch { /* unavailable: low battery, non-secure context, etc. */ }
-  }, []);
-
-  const releaseWakeLock = useCallback(async () => {
-    if (wakeLockRef.current) {
-      await wakeLockRef.current.release();
-      wakeLockRef.current = null;
-      setWakeLockActive(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleVisibility = () => {
-      if (document.visibilityState === 'visible' && isRecordingRef.current) acquireWakeLock();
-    };
-    document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
-  }, [acquireWakeLock]);
 
   const socket = usePartySocket({
     ...getPartySocketConfig(),
@@ -86,10 +62,9 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
       clearTimeout(segmentTimerRef.current);
       segmentTimerRef.current = null;
     }
-    releaseWakeLock();
     try { recognitionRef.current?.stop(); } catch { /* ignore */ }
     socket.send(JSON.stringify({ type: 'stenoStopRecording', userId }));
-  }, [socket, userId, releaseWakeLock]);
+  }, [socket, userId]);
 
   const startRecording = useCallback(() => {
     socket.send(JSON.stringify({ type: 'stenoStartRecording', userId }));
@@ -97,9 +72,8 @@ export default function StenoPanel({ room, userId }: StenoPanelProps) {
     segmentStartRef.current = null;
     setIsRecording(true);
     isRecordingRef.current = true;
-    acquireWakeLock();
     try { recognitionRef.current?.start(); } catch { /* ignore if already started */ }
-  }, [socket, userId, acquireWakeLock]);
+  }, [socket, userId]);
 
   const MAX_SEGMENT_MS = 5_000;
 

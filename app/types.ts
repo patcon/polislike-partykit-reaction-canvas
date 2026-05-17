@@ -28,7 +28,7 @@ export interface Statement {
   text: string;
 }
 
-export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social' | 'mood-tones' | 'treevites' | 'greeter' | 'signature' | 'steno' | 'story-tracer';
+export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social' | 'mood-tones' | 'treevites' | 'greeter' | 'signature' | 'steno' | 'story-tracer' | 'phone';
 
 export interface StoryTracerPoint {
   x: number

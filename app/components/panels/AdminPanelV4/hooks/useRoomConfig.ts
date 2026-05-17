@@ -22,6 +22,8 @@ export function useRoomConfig(socket: PartySocket) {
   const [greeterConfigOpen, setGreeterConfigOpen] = useState(false);
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
+  const [voiceCallsConfigOpen, setVoiceCallsConfigOpen] = useState(false);
+  const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available');
 
   const sendAvatarStyle = (style: string | null) => {
     setAvatarStyle(style);
@@ -68,6 +70,11 @@ export function useRoomConfig(socket: PartySocket) {
     socket.send(JSON.stringify({ type: 'setGreeterConfig', config }));
   };
 
+  const sendCallAlgorithm = (algorithm: string) => {
+    setCallAlgorithm(algorithm);
+    socket.send(JSON.stringify({ type: 'setCallAlgorithm', algorithm }));
+  };
+
   const resetSoccerScore = () => {
     socket.send(JSON.stringify({ type: 'resetSoccerScore' }));
   };
@@ -88,6 +95,7 @@ export function useRoomConfig(socket: PartySocket) {
     if ('roomImageUrl' in data) setRoomImageUrl((data.roomImageUrl as string) ?? '');
     if ('roomSocialConfig' in data) setRoomSocialConfig((data.roomSocialConfig as SocialConfig | null) ?? null);
     if ('greeterConfig' in data) setGreeterConfig((data.greeterConfig as GreeterConfig | null) ?? null);
+    if ('callAlgorithm' in data && data.callAlgorithm) setCallAlgorithm(data.callAlgorithm as string);
     if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore as { left: number; right: number });
     if (data.userCap !== undefined) {
       setUserCap(data.userCap as number | null);
@@ -153,5 +161,8 @@ export function useRoomConfig(socket: PartySocket) {
     sendOwnValenceDisplay,
     valenceInputMode, setValenceInputMode,
     sendValenceInputMode,
+    voiceCallsConfigOpen, setVoiceCallsConfigOpen,
+    callAlgorithm,
+    sendCallAlgorithm,
   };
 }

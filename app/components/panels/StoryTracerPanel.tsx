@@ -40,6 +40,19 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const pendingChunksRef = useRef<string[]>([]);
   const pendingCuesRef = useRef<ReturnType<typeof parseVttCues>>([]);
 
+  const replayFramesRef = useRef<StoryTracerPoint[][]>([]);
+  const [replayFrames, setReplayFrames] = useState<StoryTracerPoint[][]>([]);
+  const [replayIdx, setReplayIdx] = useState(0);
+  const [isReplaying, setIsReplaying] = useState(false);
+  const replayTimerRef = useRef<number | null>(null);
+
+  // Must match PROGRESS_INTERVAL in app/workers/embeddingWorker.ts
+  const PREVIEW_FRAME_STEP = 10;
+  const REPLAY_DURATIONS = [3, 5, 10, 20] as const;
+  const [durationIdx, setDurationIdx] = useState(1); // default 5s
+  // Ref so startReplay's setInterval closure always reads the latest interval without needing to re-create
+  const frameIntervalMsRef = useRef(100);
+
   const socket = usePartySocket({
     ...getPartySocketConfig(),
     room,
@@ -61,6 +74,16 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
       }
     },
   });
+
+  // Accumulate reducer preview frames into replayFramesRef for post-run replay
+  useEffect(() => {
+    if (phase.status !== 'reducer-running' || !phase.previewPoints || phase.previewPoints.length === 0) return;
+    const pts = phase.previewPoints.map(([x, y, z], i) => ({
+      x, y, z,
+      text: pendingChunksRef.current[i] ?? '',
+    }));
+    replayFramesRef.current.push(pts);
+  }, [phase]);
 
   // When embedding finishes, annotate points with timestamps and send to server
   useEffect(() => {
@@ -84,6 +107,11 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
     // Send via HTTP POST — the full points payload can exceed the WebSocket frame limit
     const { host, protocol } = getPartySocketConfig()
     const httpProtocol = protocol === 'wss' ? 'https' : 'http'
+    const frames = replayFramesRef.current;
+    if (frames.length > 0) {
+      setReplayFrames([...frames]);
+      setReplayIdx(frames.length - 1);
+    }
     setIsSaving(true);
     void fetch(`${httpProtocol}://${host}/parties/main/${room}/storyTracerSetPoints`, {
       method: 'POST',
@@ -101,31 +129,97 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
   const chunks = wordCount > 0 ? computeChunks(allText, windowSize, overlapPct) : [];
   const hasContent = wordCount > 0;
 
+  const stopReplay = useCallback(() => {
+    if (replayTimerRef.current !== null) {
+      clearInterval(replayTimerRef.current);
+      replayTimerRef.current = null;
+    }
+    setIsReplaying(false);
+  }, []);
+
+  const startReplay = useCallback((fromIdx: number, total: number) => {
+    stopReplay();
+    let idx = fromIdx >= total - 1 ? 0 : fromIdx;
+    setReplayIdx(idx);
+    setIsReplaying(true);
+    replayTimerRef.current = window.setInterval(() => {
+      idx++;
+      if (idx >= total) {
+        clearInterval(replayTimerRef.current!);
+        replayTimerRef.current = null;
+        setIsReplaying(false);
+        setReplayIdx(total - 1);
+      } else {
+        setReplayIdx(idx);
+      }
+    }, frameIntervalMsRef.current);
+  }, [stopReplay]);
+
+  // Clear replay interval on unmount
+  useEffect(() => () => stopReplay(), [stopReplay]);
+
   const handleRun = useCallback(() => {
     if (!hasContent) return;
+    stopReplay();
+    setIsRerunMode(false);
+    replayFramesRef.current = [];
+    setReplayFrames([]);
+    setReplayIdx(0);
     const freshCues = parseVttCues(stenoVtt);
     const text = freshCues.map(c => c.text).join(' ');
     const freshChunks = computeChunks(text, windowSize, overlapPct);
     pendingChunksRef.current = freshChunks;
     pendingCuesRef.current = freshCues;
     runEmbedding(freshChunks, selectedModel, selectedAlgo, reducerParams[selectedAlgo]);
-  }, [hasContent, stenoVtt, windowSize, overlapPct, selectedModel, selectedAlgo, reducerParams, runEmbedding]);
+  }, [hasContent, stenoVtt, windowSize, overlapPct, selectedModel, selectedAlgo, reducerParams, runEmbedding, stopReplay]);
 
   const handleClear = useCallback(() => {
+    stopReplay();
+    replayFramesRef.current = [];
+    setReplayFrames([]);
+    setReplayIdx(0);
     socket.send(JSON.stringify({ type: 'storyTracerClearPoints', userId }));
     resetPhase();
     setIsRerunMode(false);
-  }, [socket, userId, resetPhase]);
+  }, [socket, userId, resetPhase, stopReplay]);
 
   const handleCancel = useCallback(() => {
     cancelEmbedding();
+    // Freeze whatever frames accumulated so the user can replay the partial run
+    const frames = replayFramesRef.current;
+    if (frames.length > 0) {
+      setReplayFrames([...frames]);
+      setReplayIdx(frames.length - 1);
+    }
     setIsRerunMode(false);
   }, [cancelEmbedding]);
+
+  // Frame interval drives both setInterval cadence and lerp alpha.
+  // alpha formula: target 25% remaining after one interval → alpha = 1 - 0.25^(1/framesPerInterval)
+  const frameIntervalMs = replayFrames.length > 1
+    ? (REPLAY_DURATIONS[durationIdx] * 1000) / replayFrames.length
+    : 100;
+  frameIntervalMsRef.current = frameIntervalMs;
+  const replayLerpAlpha = Math.max(0.05, Math.min(0.6, 1 - Math.pow(0.25, 1 / (frameIntervalMs / (1000 / 60)))));
 
   const isRunning = phase.status === 'model-loading' || phase.status === 'embedding' || phase.status === 'reducer-running';
   const isDone = phase.status === 'done';
   const showSettings = !isRunning && (!storedMeta || isRerunMode) && !isDone;
   const showResult = !isRunning && (storedMeta !== null) && !isRerunMode && !isDone;
+  const replayActive = !isRunning && replayFrames.length > 1;
+
+  const previewPoints: StoryTracerPoint[] | null =
+    phase.status === 'reducer-running' && phase.previewPoints && phase.previewPoints.length > 0
+      ? phase.previewPoints.map(([x, y, z], i) => ({
+          x, y, z,
+          text: pendingChunksRef.current[i] ?? '',
+        }))
+      // The final reducer-running message has no previewPoints (completion signal),
+      // and the 'done' phase exists before the done effect sets replayFrames state.
+      // In both cases, hold the last accumulated frame so the canvas never blanks.
+      : (phase.status === 'reducer-running' || phase.status === 'done') && replayFramesRef.current.length > 0
+        ? replayFramesRef.current[replayFramesRef.current.length - 1]
+        : null;
 
   const modelLabel = EMBEDDING_MODELS.find(m => m.id === (storedMeta?.modelId ?? selectedModel))?.label ?? selectedModel.split('/').pop();
   const reducerLabel = REDUCERS.find(r => r.id === (storedMeta?.algorithmId ?? selectedAlgo))?.label ?? (storedMeta?.algorithmId ?? selectedAlgo);
@@ -320,15 +414,62 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
         </div>
       )}
 
+      {!isRerunMode && <div className="story-tracer-3d-container">
+        {(previewPoints || (!isRunning && (replayFrames.length > 0 || storedPoints))) && (
+          <NarrativePath3D
+            points={
+              previewPoints
+                ? previewPoints
+                : replayFrames.length > 0 ? replayFrames[replayIdx] : storedPoints!
+            }
+            lerpAlpha={!isRunning && replayFrames.length > 0 ? replayLerpAlpha : undefined}
+          />
+        )}
+      </div>}
+
       {phase.status === 'error' && (
         <div className="story-tracer-error">⚠ {phase.message}</div>
       )}
 
-      {showResult && storedPoints && (
-        <div className="story-tracer-3d-container">
-          <NarrativePath3D points={storedPoints} />
-        </div>
-      )}
+      {!isRerunMode && <div className="story-tracer-replay">
+        <button
+          className="story-tracer-replay-btn story-tracer-replay-btn--duration"
+          disabled={!replayActive}
+          onClick={() => {
+            const nextIdx = (durationIdx + 1) % REPLAY_DURATIONS.length;
+            const nextDuration = REPLAY_DURATIONS[nextIdx];
+            frameIntervalMsRef.current = (nextDuration * 1000) / replayFrames.length;
+            setDurationIdx(nextIdx);
+            if (isReplaying) startReplay(replayIdx, replayFrames.length);
+          }}
+        >
+          {REPLAY_DURATIONS[durationIdx]}s
+        </button>
+        <button
+          className="story-tracer-replay-btn"
+          disabled={!replayActive}
+          onClick={() => isReplaying ? stopReplay() : startReplay(replayIdx, replayFrames.length)}
+        >
+          {isReplaying ? '⏸' : '▶'}
+        </button>
+        <input
+          type="range"
+          className="story-tracer-replay-slider"
+          min={0}
+          max={phase.status === 'reducer-running' && phase.total > 0 ? phase.total - 1 : Math.max(0, (replayFrames.length - 1) * PREVIEW_FRAME_STEP)}
+          step={phase.status === 'reducer-running' ? 1 : PREVIEW_FRAME_STEP}
+          value={phase.status === 'reducer-running' ? phase.epoch : replayIdx * PREVIEW_FRAME_STEP}
+          disabled={!replayActive && phase.status !== 'reducer-running'}
+          onChange={replayActive ? e => { stopReplay(); setReplayIdx(Math.round(Number(e.target.value) / PREVIEW_FRAME_STEP)); } : undefined}
+        />
+        <span className="story-tracer-replay-counter">
+          {phase.status === 'reducer-running'
+            ? `${phase.epoch}/${phase.total}`
+            : replayFrames.length > 1
+              ? `iter ${replayIdx * PREVIEW_FRAME_STEP}/${(replayFrames.length - 1) * PREVIEW_FRAME_STEP}`
+              : ''}
+        </span>
+      </div>}
 
       {showResult && (
         <div className="story-tracer-result">
@@ -336,10 +477,12 @@ export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps
             ✓ {storedMeta!.segmentCount} points stored
             <span className="story-tracer-result-meta"> ({modelLabel} · {reducerLabel} · {computedAgo})</span>
           </div>
-          <div className="story-tracer-result-actions">
-            <button className="story-tracer-btn" onClick={() => setIsRerunMode(true)}>Rerun</button>
-            <button className="story-tracer-btn story-tracer-btn--danger" onClick={handleClear}>Clear</button>
-          </div>
+          {!isSaving && (
+            <div className="story-tracer-result-actions">
+              <button className="story-tracer-btn" onClick={() => setIsRerunMode(true)}>Rerun</button>
+              <button className="story-tracer-btn story-tracer-btn--danger" onClick={handleClear}>Clear</button>
+            </div>
+          )}
         </div>
       )}
 

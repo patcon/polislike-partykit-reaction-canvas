@@ -5,6 +5,7 @@ import type { StoryTracerPoint } from '../../types'
 
 interface Props {
   points: StoryTracerPoint[]
+  lerpAlpha?: number
 }
 
 function normalize(pts: [number, number, number][]): [number, number, number][] {
@@ -24,16 +25,41 @@ function normalize(pts: [number, number, number][]): [number, number, number][] 
   )
 }
 
-export default function NarrativePath3D({ points }: Props) {
+function toNormalizedPositions(pts: StoryTracerPoint[], out: Float32Array) {
+  const raw = pts.map(p => [p.x, p.y, p.z] as [number, number, number])
+  const normalized = normalize(raw)
+  for (let i = 0; i < normalized.length; i++) {
+    out[i * 3]     = normalized[i][0]
+    out[i * 3 + 1] = normalized[i][1]
+    out[i * 3 + 2] = normalized[i][2]
+  }
+}
+
+export default function NarrativePath3D({ points, lerpAlpha }: Props) {
   const mountRef = useRef<HTMLDivElement>(null)
+  const updateRef = useRef<((pts: StoryTracerPoint[]) => void) | null>(null)
+  const latestPointsRef = useRef(points)
+  // Kept in a ref so the RAF closure always reads the current value without a restart
+  const lerpAlphaRef = useRef(lerpAlpha ?? 0.12)
+
+  useEffect(() => {
+    latestPointsRef.current = points
+    updateRef.current?.(points)
+  }, [points])
+
+  useEffect(() => {
+    lerpAlphaRef.current = lerpAlpha ?? 0.12
+  }, [lerpAlpha])
 
   useEffect(() => {
     const mount = mountRef.current!
-    if (!mount || points.length === 0) return
+    if (!mount) return
 
     let cleanup: (() => void) | undefined
 
-    const init = () => {
+    const init = (initialPts: StoryTracerPoint[]) => {
+      if (initialPts.length === 0) return
+      const n = initialPts.length
       const w = mount.clientWidth
       const h = mount.clientHeight
 
@@ -51,38 +77,68 @@ export default function NarrativePath3D({ points }: Props) {
       controls.enableDamping = true
       controls.dampingFactor = 0.08
 
-      const raw = points.map(p => [p.x, p.y, p.z] as [number, number, number])
-      const normalized = normalize(raw)
-      const n = normalized.length
+      // currentPos is the live animated state; targetPos is where we're lerping toward.
+      // Both BufferAttributes reference currentPos so updating it updates both geometries.
+      const currentPos = new Float32Array(n * 3)
+      const targetPos = new Float32Array(n * 3)
+      toNormalizedPositions(initialPts, currentPos)
+      targetPos.set(currentPos)
 
-      const positions = new Float32Array(n * 3)
       const colors = new Float32Array(n * 3)
       for (let i = 0; i < n; i++) {
-        positions[i * 3]     = normalized[i][0]
-        positions[i * 3 + 1] = normalized[i][1]
-        positions[i * 3 + 2] = normalized[i][2]
         const t = n > 1 ? i / (n - 1) : 0
-        // green (hue 0.33) at start → red (hue 0) at end
         const color = new THREE.Color().setHSL((1 - t) * 0.33, 1, 0.55)
         colors[i * 3]     = color.r
         colors[i * 3 + 1] = color.g
         colors[i * 3 + 2] = color.b
       }
 
+      const posAttr = new THREE.BufferAttribute(currentPos, 3)
+      const colorAttr = new THREE.BufferAttribute(colors, 3)
       const geo = new THREE.BufferGeometry()
-      geo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-      geo.setAttribute('color', new THREE.BufferAttribute(colors, 3))
+      geo.setAttribute('position', posAttr)
+      geo.setAttribute('color', colorAttr)
       scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ size: 0.04, sizeAttenuation: true, vertexColors: true })))
 
+      // Line shares the same currentPos array so it moves in sync for free
+      const linePosAttr = new THREE.BufferAttribute(currentPos, 3)
+      const lineColorAttr = new THREE.BufferAttribute(colors, 3)
       const lineGeo = new THREE.BufferGeometry()
-      lineGeo.setAttribute('position', new THREE.BufferAttribute(positions.slice(), 3))
-      lineGeo.setAttribute('color', new THREE.BufferAttribute(colors.slice(), 3))
+      lineGeo.setAttribute('position', linePosAttr)
+      lineGeo.setAttribute('color', lineColorAttr)
       scene.add(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ vertexColors: true, opacity: 0.4, transparent: true })))
+
+      // Only updates targetPos; the animation loop lerps currentPos toward it
+      updateRef.current = (pts: StoryTracerPoint[]) => {
+        if (pts.length !== n) return
+        toNormalizedPositions(pts, targetPos)
+      }
+
+      if (latestPointsRef.current !== initialPts) {
+        updateRef.current(latestPointsRef.current)
+      }
 
       let animId = 0
       const animate = () => {
         animId = requestAnimationFrame(animate)
         controls.update()
+
+        // Lerp currentPos toward targetPos; mark buffers dirty only when still moving
+        let moved = false
+        for (let i = 0; i < currentPos.length; i++) {
+          const d = targetPos[i] - currentPos[i]
+          if (Math.abs(d) > 1e-5) {
+            currentPos[i] += d * lerpAlphaRef.current
+            moved = true
+          } else {
+            currentPos[i] = targetPos[i]
+          }
+        }
+        if (moved) {
+          posAttr.needsUpdate = true
+          linePosAttr.needsUpdate = true
+        }
+
         renderer.render(scene, camera)
       }
       animate()
@@ -97,6 +153,7 @@ export default function NarrativePath3D({ points }: Props) {
       ro.observe(mount)
 
       cleanup = () => {
+        updateRef.current = null
         cancelAnimationFrame(animId)
         controls.dispose()
         renderer.dispose()
@@ -105,13 +162,14 @@ export default function NarrativePath3D({ points }: Props) {
       }
     }
 
+    const initialPts = latestPointsRef.current
     if (mount.clientWidth > 0 && mount.clientHeight > 0) {
-      init()
+      init(initialPts)
     } else {
       const ro = new ResizeObserver(() => {
         if (mount.clientWidth > 0 && mount.clientHeight > 0) {
           ro.disconnect()
-          init()
+          init(latestPointsRef.current)
         }
       })
       ro.observe(mount)
@@ -119,7 +177,8 @@ export default function NarrativePath3D({ points }: Props) {
     }
 
     return () => cleanup?.()
-  }, [points])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return <div ref={mountRef} style={{ width: '100%', height: '100%' }} />
 }
