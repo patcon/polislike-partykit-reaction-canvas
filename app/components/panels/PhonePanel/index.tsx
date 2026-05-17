@@ -18,9 +18,11 @@
  *   speakerphone.
  *
  * Android Firefox:
- *   setSinkId() has limited support. Audio output routing is mostly at the OS
- *   level. Device labels in enumerateDevices() are often empty on Android Firefox
- *   even after mic permission is granted (known bug, improved in Firefox 140+).
+ *   setSinkId() not supported. enumerateDevices() returns only a single generic
+ *   "Default audio input device" in audioinput and zero audiooutput entries —
+ *   even when a BT device is actively connected. BT detection is therefore
+ *   impossible on Android Firefox; our speakerphone warning will always fire
+ *   there regardless of headphone state. No known workaround.
  *   Ref: https://bugzilla.mozilla.org/show_bug.cgi?id=1681772
  *
  * Desktop (Chrome/Firefox/Safari):
@@ -63,6 +65,10 @@
  * Ref: https://github.com/mdn/browser-compat-data/issues/17033
  *
  * Video permission does NOT unlock additional audio device labels.
+ *
+ * Real-world device data (collected via the in-panel copy button) lives in
+ * ./AUDIO_COMPAT.md — update it whenever new browser/device observations are
+ * available, and correct anything here that turns out to be wrong.
  *
  * ─── Bluetooth detection strategy ────────────────────────────────────────────
  *
