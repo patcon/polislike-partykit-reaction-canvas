@@ -232,14 +232,21 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
     }).catch(() => setSelectedSinkLabel('(enumerateDevices failed)'));
   }, [wrtc.remoteStream]);
 
-  // Call duration timer
+  // Call duration timer — pauses during 'reconnecting' so the count survives the gap
   useEffect(() => {
     if (wrtc.callState === 'connected') {
-      callStartRef.current = Date.now();
-      setCallDuration(0);
+      if (!callStartRef.current) {
+        callStartRef.current = Date.now();
+        setCallDuration(0);
+      }
       durationIntervalRef.current = setInterval(() => {
         setCallDuration(Math.floor((Date.now() - (callStartRef.current ?? Date.now())) / 1000));
       }, 1000);
+    } else if (wrtc.callState === 'reconnecting') {
+      if (durationIntervalRef.current) {
+        clearInterval(durationIntervalRef.current);
+        durationIntervalRef.current = null;
+      }
     } else {
       if (durationIntervalRef.current) {
         clearInterval(durationIntervalRef.current);
@@ -407,6 +414,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
       )}
       {wrtc.callState === 'queued' && <QueuedView onCancel={wrtc.cancelQueue} />}
       {wrtc.callState === 'connecting' && <ConnectingView />}
+      {wrtc.callState === 'reconnecting' && <ReconnectingView onHangUp={wrtc.hangUp} />}
       {wrtc.callState === 'connected' && (
         <ConnectedView
           peerId={wrtc.peerId}
@@ -672,6 +680,29 @@ function ConnectingView() {
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
       <div style={{ fontSize: 36, color: '#1a7a1a' }}><FaPhone /></div>
       <p style={{ color: '#aaa', fontSize: 15, margin: 0 }}>Connecting…</p>
+    </div>
+  );
+}
+
+function ReconnectingView({ onHangUp }: { onHangUp: () => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 24 }}>
+      <div style={{ fontSize: 36, color: '#7a6a1a' }}><FaPhone /></div>
+      <p style={{ color: '#aaa', fontSize: 15, textAlign: 'center', margin: 0 }}>
+        Reconnecting…
+      </p>
+      <p style={{ color: '#666', fontSize: 12, textAlign: 'center', margin: 0 }}>
+        Your match lost connection briefly
+      </p>
+      <button
+        onClick={onHangUp}
+        style={{
+          background: 'none', color: '#888', border: '1px solid #444',
+          borderRadius: 20, padding: '8px 20px', fontSize: 13, cursor: 'pointer',
+        }}
+      >
+        Hang up
+      </button>
     </div>
   );
 }
