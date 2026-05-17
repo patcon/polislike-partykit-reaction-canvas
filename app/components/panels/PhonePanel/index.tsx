@@ -249,7 +249,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
     return `${m}:${s}`;
   };
 
-  const needsConfirm = platform.isAndroid && !hasExternalAudio;
+  const needsConfirm = platform.isAndroid && hasExternalAudio === false;
 
   const handleJoinQueue = () => {
     if (needsConfirm && !confirming) {
@@ -487,7 +487,7 @@ function IdleView({ onAccept, onCancelConfirm, disabled, micError, speakerphoneW
 
       {speakerphoneWarning === 'no-headset' && (
         <div style={{ background: '#2a1e00', border: '1px solid #5a3a00', borderRadius: 8, padding: '10px 14px', textAlign: 'center' }}>
-          <p style={{ color: '#fa4', fontSize: 13, fontWeight: 600, margin: '0 0 4px' }}>Plug in headphones first</p>
+          <p style={{ color: '#fa4', fontSize: 13, fontWeight: 600, margin: '0 0 4px' }}>Connect headphones first</p>
           <p style={{ color: '#a87', fontSize: 12, margin: 0, lineHeight: 1.5 }}>
             This app is designed for live events. If everyone uses speakerphone it gets chaotic fast — headphones let each person focus on their own call.
           </p>
