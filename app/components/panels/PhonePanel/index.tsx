@@ -32,7 +32,9 @@ function classifyDevice(label: string): 'earpiece' | 'bluetooth' | 'headset' | '
   return 'unknown';
 }
 
-const HEADSET_CLASSES: ReturnType<typeof classifyDevice>[] = ['earpiece', 'bluetooth', 'headset'];
+// 'earpiece' is NOT included — on Android it's a phantom routing mode ("Headset earpiece")
+// that's always present, not a real connected device. Only BT/wired/USB are real external audio.
+const EXTERNAL_AUDIO_CLASSES: ReturnType<typeof classifyDevice>[] = ['bluetooth', 'headset'];
 
 function enumAudioDevices(): Promise<{ inputs: MediaDeviceInfo[]; outputs: MediaDeviceInfo[] }> {
   return navigator.mediaDevices.enumerateDevices().then(devs => ({
@@ -50,7 +52,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const [audioInputDevices, setAudioInputDevices] = useState<MediaDeviceInfo[]>([]);
   const [audioOutputDevices, setAudioOutputDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedSinkLabel, setSelectedSinkLabel] = useState<string | null>(null);
-  const [hasHeadset, setHasHeadset] = useState<boolean | null>(null);
+  const [hasExternalAudio, setHasExternalAudio] = useState<boolean | null>(null);
   const [showSpeakerphoneWarning, setShowSpeakerphoneWarning] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [experimentLog, setExperimentLog] = useState<string[]>([]);
@@ -74,9 +76,10 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const updateDevices = ({ inputs, outputs }: { inputs: MediaDeviceInfo[]; outputs: MediaDeviceInfo[] }) => {
     setAudioInputDevices(inputs);
     setAudioOutputDevices(outputs);
-    // Check both audioinput and audiooutput — on Android, BT headsets appear in audioinput
-    const detected = [...inputs, ...outputs].some(d => HEADSET_CLASSES.includes(classifyDevice(d.label)));
-    setHasHeadset(detected);
+    // Check both kinds — on Android, BT headsets appear in audioinput as "Bluetooth headset".
+    // "Headset earpiece" and "Speakerphone" are phantom routing modes, not real connected devices.
+    const detected = [...inputs, ...outputs].some(d => EXTERNAL_AUDIO_CLASSES.includes(classifyDevice(d.label)));
+    setHasExternalAudio(detected);
     if (detected) setShowSpeakerphoneWarning(false);
   };
 
@@ -125,7 +128,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
     }
     navigator.mediaDevices.enumerateDevices().then(devices => {
       const outputs = devices.filter(d => d.kind === 'audiooutput');
-      const earpiece = outputs.find(d => HEADSET_CLASSES.includes(classifyDevice(d.label)));
+      const earpiece = outputs.find(d => EXTERNAL_AUDIO_CLASSES.includes(classifyDevice(d.label)));
       if (earpiece) {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (el as any).setSinkId(earpiece.deviceId)
@@ -165,7 +168,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   };
 
   const handleJoinQueue = () => {
-    if (platform.isAndroid && hasHeadset === false) {
+    if (platform.isAndroid && hasExternalAudio === false) {
       setShowSpeakerphoneWarning(true);
       return;
     }
@@ -274,9 +277,9 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
               selectAudioOutput: <span style={{ color: hasSelectAudioOutput ? '#4c4' : '#f55' }}>{hasSelectAudioOutput ? 'yes (Firefox)' : 'no'}</span>
             </div>
             <div style={{ color: '#666', marginBottom: 4 }}>
-              headset detected: <span style={{
-                color: hasHeadset === null ? '#888' : hasHeadset ? '#4c4' : '#fa4'
-              }}>{hasHeadset === null ? 'checking…' : hasHeadset ? 'yes' : 'no'}</span>
+              external audio: <span style={{
+                color: hasExternalAudio === null ? '#888' : hasExternalAudio ? '#4c4' : '#fa4'
+              }}>{hasExternalAudio === null ? 'checking…' : hasExternalAudio ? 'yes (BT/wired)' : 'no — phone only'}</span>
             </div>
             <div style={{ color: '#666', marginBottom: 12 }}>
               selected sink: <span style={{ color: '#aaa' }}>{selectedSinkLabel ?? '(none yet)'}</span>
