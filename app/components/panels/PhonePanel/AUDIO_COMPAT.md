@@ -210,6 +210,86 @@ audiooutput devices (1):
 
 ---
 
+## Desktop Chrome 148 — MacBook Pro (macOS)
+
+```
+timestamp: 2026-05-17T21:18:00.318Z
+platform: desktop
+userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36
+setSinkId: yes
+selectAudioOutput: no
+external audio: yes
+devicechange events: 0
+selected sink: (none)
+active mic track: MacBook Pro Microphone (Built-in)
+
+audioinput devices (5):
+  [unknown] MacBook Pro Microphone (Built-in)
+  [unknown] BlackHole 2ch (Virtual)
+  [unknown] VB-Cable (Virtual)
+  [unknown] ZoomAudioDevice (Virtual)
+  [unknown] Default - MacBook Pro Microphone (Built-in) — default
+
+audiooutput devices (6):
+  [speaker] Default - MacBook Pro Speakers (Built-in) — default
+  [unknown] BlackHole 2ch (Virtual)
+  [speaker] MacBook Pro Speakers (Built-in)
+  [unknown] VB-Cable (Virtual)
+  [unknown] ZoomAudioDevice (Virtual)
+  [headset] Blackhole + headphones (Aggregate)
+```
+
+**Observations:**
+- `setSinkId: yes` — desktop Chrome supports output device selection, unlike Android.
+- `selectAudioOutput: no` — Chrome-specific; this API is Firefox Desktop only.
+- Desktop enumerates all system audio devices with full labels — virtual devices
+  (BlackHole, VB-Cable, ZoomAudioDevice) and macOS aggregate devices all appear.
+- `active mic track: MacBook Pro Microphone (Built-in)` confirms Chrome selected
+  the built-in mic, not one of the virtual devices, when getUserMedia resolved.
+- `external audio: yes` here is a **false positive**: "Blackhole + headphones
+  (Aggregate)" is a custom macOS Audio MIDI Setup aggregate device, not a real
+  connected headset. Our `headset` classifier matched "headphones" in the label.
+  This is an inherent limitation of label-based detection on desktop — virtual
+  and aggregate devices can accidentally match headset keywords. The warning is
+  only shown on Android so this doesn't affect users in practice, but worth
+  knowing if detection is ever extended to desktop.
+
+---
+
+## iOS Chrome 147 (iOS 18) — Chrome for iOS uses WebKit, same as Safari
+
+```
+timestamp: 2026-05-17T21:16:45.573Z
+platform: ios
+userAgent: Mozilla/5.0 (iPhone; CPU iPhone OS 18_7_8 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/147.0.7727.99 Mobile/15E148 Safari/604.1
+setSinkId: no
+selectAudioOutput: no
+external audio: no
+devicechange events: 0
+selected sink: (none)
+active mic track: iPhone Microphone
+
+audioinput devices (1):
+  [unknown] iPhone Microphone — A1828EF806C7C78D7FCCDA316612A89472D00236
+
+audiooutput devices (0):
+```
+
+**Observations:**
+- All iOS browsers (Chrome, Safari, Firefox) use WebKit under the hood — this
+  data is representative of all of them.
+- Only 1 audioinput ("iPhone Microphone"), 0 audiooutput — iOS does not expose
+  BT audio devices via enumerateDevices regardless of connection state. The OS
+  handles routing automatically and keeps it opaque to the web layer.
+- `external audio: no` is always expected on iOS, even with BT connected — this
+  is why we skip the speakerphone warning entirely on iOS rather than showing a
+  false alarm.
+- No phantom routing modes like Android — iOS WebKit does not expose Speakerphone
+  or Headset Earpiece as separate virtual devices.
+- `active mic track: iPhone Microphone` — single built-in mic, no ambiguity.
+
+---
+
 ## Known gaps / to investigate
 
 - iOS (Safari, Chrome, Firefox) — no data yet.
