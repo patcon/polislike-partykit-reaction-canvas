@@ -86,8 +86,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import usePartySocket from 'partysocket/react';
 import { FaPhone, FaPhoneSlash, FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
+import { MdScreenLockPortrait } from 'react-icons/md';
 import { getPartySocketConfig } from '../../../utils/partyHost';
 import { useWebRTCCall } from './useWebRTCCall';
+import { useWakeLock } from '../../../utils/useWakeLock';
 
 interface PhonePanelProps {
   room: string;
@@ -147,7 +149,6 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const callStartRef = useRef<number | null>(null);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
-
   // Request mic on mount — mediaDevices requires a secure context (HTTPS or localhost)
   useEffect(() => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -258,6 +259,39 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
     return `${m}:${s}`;
   };
 
+  const { acquired: wakeLockAcquired } = useWakeLock(wrtc.callState !== 'idle');
+
+  // Media Session API — lock-screen call card (iOS 15+) + background tab keep-alive hint.
+  // Android Chrome does not show the notification for WebRTC calls regardless of approach
+  // tried — see https://github.com/patcon/polislike-partykit-reaction-canvas/issues/112
+  // 'hangup' is non-standard; iOS Safari throws on unknown actions so we guard with try/catch.
+  // 'stop' is standard infrastructure for if/when Android ever surfaces the notification.
+  // playbackState = 'playing' hints to Chrome not to throttle the background tab.
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+    const setHangupHandler = (handler: (() => void) | null) => {
+      try { navigator.mediaSession.setActionHandler('hangup' as MediaSessionAction, handler); } catch { /* not supported */ }
+    };
+    if (wrtc.callState !== 'idle') {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: wrtc.callState === 'connected' ? 'In call' : 'Waiting for match',
+        artist: 'Polis Voice',
+      });
+      navigator.mediaSession.playbackState = 'playing';
+      setHangupHandler(() => wrtc.hangUp());
+      navigator.mediaSession.setActionHandler('stop', () => wrtc.hangUp());
+    } else {
+      navigator.mediaSession.metadata = null;
+      navigator.mediaSession.playbackState = 'none';
+      setHangupHandler(null);
+      navigator.mediaSession.setActionHandler('stop', null);
+    }
+    return () => {
+      setHangupHandler(null);
+      navigator.mediaSession.setActionHandler('stop', null);
+    };
+  }, [wrtc.callState, wrtc.hangUp]);
+
   const needsConfirm = platform.isAndroid && hasExternalAudio === false;
 
   const handleJoinQueue = () => {
@@ -353,6 +387,13 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
     }}>
       {/* Hidden audio element for remote stream */}
       <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
+
+      {wakeLockAcquired && (
+        <div title="Screen kept awake" style={{ position: 'absolute', top: 10, right: 12, display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#555', pointerEvents: 'none' }}>
+          <MdScreenLockPortrait size={13} />
+          <span>screen on</span>
+        </div>
+      )}
 
       {wrtc.callState === 'idle' && (
         <IdleView
