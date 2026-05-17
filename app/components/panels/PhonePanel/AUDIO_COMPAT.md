@@ -72,6 +72,37 @@ audiooutput devices (0):
 
 ---
 
+## Android Opera 98 (Android 10) — Chromium-based
+
+```
+platform: android-chrome
+userAgent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/147.0.0.0 Mobile Safari/537.36 OPR/98.0.0.0
+setSinkId: no
+selectAudioOutput: no
+external audio: yes
+selected sink: (none)
+
+audioinput devices (4):
+  [unknown] Default — default
+  [speaker] Speakerphone — 7dd875cb37d771d8...
+  [earpiece] Headset earpiece — be310aa4cbd44f9f...
+  [bluetooth] Bluetooth headset — ff6e856b6cc3e994...
+
+audiooutput devices (1):
+  [unknown] Default — default
+```
+
+**Observations (BT earpiece was connected during this capture):**
+- Identical behaviour to Android Chrome — Opera on Android uses the Chromium
+  engine and the same `AudioManagerAndroid.java` device layer.
+- UA contains `OPR/98.0.0.0` but our platform detection correctly classifies
+  it as `android-chrome` (matches `Chrome/` and not `Firefox/` or `EdgA/`),
+  which is appropriate since the audio API behaviour is identical.
+- "Bluetooth headset" appears in audioinput when BT is connected — same
+  reliable detection signal as Chrome.
+
+---
+
 ## Known gaps / to investigate
 
 - iOS (Safari, Chrome, Firefox) — no data yet.
