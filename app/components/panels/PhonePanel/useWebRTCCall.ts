@@ -14,6 +14,8 @@ export function useWebRTCCall(
   const [peerId, setPeerId] = useState<string | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [rtcConnectionState, setRtcConnectionState] = useState<string>('—');
+  const [iceConnectionState, setIceConnectionState] = useState<string>('—');
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const peerIdRef = useRef<string | null>(null);
@@ -29,6 +31,8 @@ export function useWebRTCCall(
     setPeerId(null);
     peerIdRef.current = null;
     setCallState('idle');
+    setRtcConnectionState('—');
+    setIceConnectionState('—');
   }, []);
 
   const createPc = useCallback((peer: string) => {
@@ -62,11 +66,16 @@ export function useWebRTCCall(
     };
 
     pc.onconnectionstatechange = () => {
+      setRtcConnectionState(pc.connectionState);
       if (pc.connectionState === 'connected') {
         setCallState('connected');
       } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
         closePc();
       }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      setIceConnectionState(pc.iceConnectionState);
     };
 
     return pc;
@@ -130,14 +139,14 @@ export function useWebRTCCall(
       setCallState('reconnecting');
     } else if (data.type === 'callResumed') {
       const peer = data.peerId as string;
-      if (pcRef.current && pcRef.current.connectionState === 'connected') {
-        // WebRTC survived the drop — just restore UI state
+      if (pcRef.current) {
+        // PC still exists — WebRTC survived (may be 'disconnected' transiently, not yet 'failed').
+        // Restore UI state; onconnectionstatechange will call closePc() if it truly fails.
         peerIdRef.current = peer;
         setPeerId(peer);
         setCallState('connected');
       } else {
-        // WebRTC also died during the gap — clean up and let the server know
-        closePc();
+        // closePc() already ran (connection went 'failed') — inform server and stay idle
         sendRef.current({ type: 'hangUp', targetUserId: peer });
       }
     } else if (data.type === 'hangUp') {
@@ -145,5 +154,5 @@ export function useWebRTCCall(
     }
   }, [createPc, sendRef, closePc]);
 
-  return { callState, peerId, remoteStream, isMuted, joinQueue, cancelQueue, hangUp, toggleMute, handleServerMessage };
+  return { callState, peerId, remoteStream, isMuted, rtcConnectionState, iceConnectionState, joinQueue, cancelQueue, hangUp, toggleMute, handleServerMessage };
 }

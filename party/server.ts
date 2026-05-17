@@ -497,10 +497,13 @@ export default class Server implements Party.Server {
       this.callReconnectTimers.delete(userId);
       const peerId = this.callPairs.get(userId);
       if (peerId) {
+        console.log(`[call] ${userId} reconnected within grace period — resuming call with ${peerId}`);
         conn.send(JSON.stringify({ type: 'callResumed', peerId }));
         for (const peerConn of this.getTargetConnections(peerId)) {
           peerConn.send(JSON.stringify({ type: 'callResumed', peerId: userId }));
         }
+      } else {
+        console.log(`[call] ${userId} reconnected within grace period but call pair already gone`);
       }
     }
 
@@ -601,6 +604,7 @@ export default class Server implements Party.Server {
       // Notify the peer they're waiting, then give the disconnected user time to come back.
       const peerId = this.callPairs.get(userId);
       if (peerId) {
+        console.log(`[call] ${userId} dropped — notifying peer ${peerId}, grace period ${this.CALL_RECONNECT_GRACE_MS}ms`);
         for (const conn of this.getTargetConnections(peerId)) {
           conn.send(JSON.stringify({ type: 'peerReconnecting', fromUserId: userId }));
         }
@@ -608,6 +612,7 @@ export default class Server implements Party.Server {
           this.callReconnectTimers.delete(userId);
           this.callPairs.delete(userId);
           this.callPairs.delete(peerId);
+          console.log(`[call] grace period expired for ${userId} — hanging up peer ${peerId}`);
           for (const conn of this.getTargetConnections(peerId)) {
             conn.send(JSON.stringify({ type: 'hangUp', fromUserId: userId }));
           }

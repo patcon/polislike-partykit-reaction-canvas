@@ -363,6 +363,9 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const copyDebugInfo = () => {
     const lines: string[] = [
       `timestamp: ${new Date().toISOString()}`,
+      `callState: ${wrtc.callState}`,
+      `rtc: ${wrtc.rtcConnectionState}`,
+      `ice: ${wrtc.iceConnectionState}`,
       `platform: ${platform.label}`,
       `userAgent: ${navigator.userAgent}`,
       `setSinkId: ${hasSinkId ? 'yes' : 'no'}`,
@@ -442,6 +445,18 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
         </div>
         {showDebug && (
           <div style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 6, padding: 10, fontSize: 11, fontFamily: 'monospace', maxHeight: '60vh', overflowY: 'auto' }}>
+
+            {/* Section 0 — Call state */}
+            <div style={{ color: '#777', marginBottom: 6, textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>call state</div>
+            <div style={{ color: '#666', marginBottom: 4 }}>
+              callState: <span style={{ color: '#4af' }}>{wrtc.callState}</span>
+            </div>
+            <div style={{ color: '#666', marginBottom: 4 }}>
+              rtc: <span style={{ color: wrtc.rtcConnectionState === 'connected' ? '#4c4' : wrtc.rtcConnectionState === '—' ? '#555' : '#fa4' }}>{wrtc.rtcConnectionState}</span>
+            </div>
+            <div style={{ color: '#666', marginBottom: 12 }}>
+              ice: <span style={{ color: wrtc.iceConnectionState === 'connected' || wrtc.iceConnectionState === 'completed' ? '#4c4' : wrtc.iceConnectionState === '—' ? '#555' : '#fa4' }}>{wrtc.iceConnectionState}</span>
+            </div>
 
             {/* Section A — Environment */}
             <div style={{ color: '#777', marginBottom: 6, textTransform: 'uppercase', fontSize: 10, letterSpacing: 1 }}>environment</div>
