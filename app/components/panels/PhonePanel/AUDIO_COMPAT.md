@@ -134,6 +134,82 @@ audiooutput devices (1):
 
 ---
 
+## Android Brave (Android 10) — Chromium-based
+
+```
+platform: android-chrome
+userAgent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Mobile Safari/537.36
+setSinkId: no
+selectAudioOutput: no
+external audio: yes
+selected sink: (none)
+
+audioinput devices (4):
+  [unknown] Default — default
+  [speaker] Speakerphone — aec755a762f2cf22...
+  [earpiece] Headset earpiece — 580945982978438...
+  [bluetooth] Bluetooth headset — ca53db0013380df...
+
+audiooutput devices (1):
+  [unknown] Default — default
+```
+
+**Observations (BT earpiece was connected during this capture):**
+- Identical behaviour to Android Chrome.
+- Brave strips its own UA token entirely — the UA is indistinguishable from
+  stock Chrome. Platform detection correctly labels it `android-chrome` and
+  there is no way to tell them apart, nor any need to.
+
+---
+
+## Android Firefox Nightly 152 (Android 16) — BT attached
+
+```
+platform: android-firefox
+userAgent: Mozilla/5.0 (Android 16; Mobile; rv:152.0) Gecko/152.0 Firefox/152.0
+setSinkId: no
+selectAudioOutput: no
+external audio: no
+selected sink: (none)
+
+audioinput devices (1):
+  [unknown] Default audio input device — 3balnXRUyRF1bHe9aIaomK1PzCSg1VLGJfiexufAJZw=
+
+audiooutput devices (0):
+```
+
+**Observations (BT earpiece was connected during this capture):**
+- Identical to stable Firefox 150 — Nightly shows no improvement in device
+  enumeration. BT device invisible despite being connected.
+- Confirms this is a persistent engine-level limitation, not a versioning fluke.
+
+---
+
+## Android Chrome Canary 150 (Android 10) — BT attached
+
+```
+platform: android-chrome
+userAgent: Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/150.0.0.0 Mobile Safari/537.36
+setSinkId: no
+selectAudioOutput: no
+external audio: yes
+selected sink: (none)
+
+audioinput devices (4):
+  [unknown] Default — default
+  [speaker] Speakerphone — f9737a9ffb05eadc...
+  [earpiece] Headset earpiece — 3128d6ea37b978f2...
+  [bluetooth] Bluetooth headset — d1b25bc69197f40c...
+
+audiooutput devices (1):
+  [unknown] Default — default
+```
+
+**Observations (BT earpiece was connected during this capture):**
+- Identical to stable Chrome 148. No changes in Canary for device enumeration.
+
+---
+
 ## Known gaps / to investigate
 
 - iOS (Safari, Chrome, Firefox) — no data yet.
