@@ -292,8 +292,9 @@ audiooutput devices (0):
 
 ## Known gaps / to investigate
 
-- iOS (Safari, Chrome, Firefox) — no data yet.
 - Android Chrome without any BT device connected — confirm "Bluetooth headset"
   entry is absent (expected: only 3 audioinput entries instead of 4).
-- Desktop Chrome/Firefox — setSinkId and selectAudioOutput behaviour.
-- Whether `devicechange` fires reliably on Android Firefox when BT connects.
+- Desktop Firefox — setSinkId and selectAudioOutput behaviour; does
+  selectAudioOutput() actually appear in the debug panel?
+- Whether `devicechange` fires reliably on Android Firefox when BT connects
+  (use the devicechange counter in the debug panel to check).

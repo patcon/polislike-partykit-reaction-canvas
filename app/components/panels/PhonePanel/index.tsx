@@ -4,9 +4,12 @@
  * ─── Audio routing — platform summary ────────────────────────────────────────
  *
  * iOS (all browsers):
- *   Audio constraints alone (echoCancellation etc.) signal MODE_IN_COMMUNICATION
- *   to the OS, which routes audio to the earpiece automatically. No setSinkId or
- *   device selection needed. We skip the speakerphone warning entirely on iOS.
+ *   All iOS browsers use WebKit. The OS handles audio routing automatically —
+ *   BT devices are never exposed via enumerateDevices() regardless of connection
+ *   state, so external audio detection always returns false. We skip the
+ *   speakerphone warning entirely on iOS rather than showing a false alarm.
+ *   Whether audio constraints (echoCancellation etc.) influence routing on iOS
+ *   is unconfirmed from real data — the OS likely decides independently.
  *
  * Android Chrome:
  *   Same MODE_IN_COMMUNICATION trick works for the mic side, but output routing
