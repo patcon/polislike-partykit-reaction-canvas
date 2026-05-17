@@ -23,7 +23,9 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
       setMicError('Microphone unavailable — open via HTTPS or localhost');
       return;
     }
-    navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+    // Explicit communication constraints signal MODE_IN_COMMUNICATION on Android,
+    // routing audio to the earpiece rather than the loudspeaker.
+    navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false })
       .then(stream => setLocalStream(stream))
       .catch(() => setMicError('Microphone permission denied'));
   }, []);
