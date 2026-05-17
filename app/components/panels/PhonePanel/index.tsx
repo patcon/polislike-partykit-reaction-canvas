@@ -1,3 +1,79 @@
+/**
+ * PhonePanel — WebRTC P2P voice calls via PartyKit signaling
+ *
+ * ─── Audio routing — platform summary ────────────────────────────────────────
+ *
+ * iOS (all browsers):
+ *   Audio constraints alone (echoCancellation etc.) signal MODE_IN_COMMUNICATION
+ *   to the OS, which routes audio to the earpiece automatically. No setSinkId or
+ *   device selection needed. We skip the speakerphone warning entirely on iOS.
+ *
+ * Android Chrome:
+ *   Same MODE_IN_COMMUNICATION trick works for the mic side, but output routing
+ *   does not follow. In practice, WebRTC audio on Android Chrome plays through
+ *   the speakerphone regardless of MODE_IN_COMMUNICATION — the built-in earpiece
+ *   is not reachable as a web audio output. setSinkId() is NOT supported on
+ *   Android Chrome, and there is no known way to select an output sink from the
+ *   browser on Android. External audio (BT/wired) is the only escape from
+ *   speakerphone.
+ *
+ * Android Firefox:
+ *   setSinkId() has limited support. Audio output routing is mostly at the OS
+ *   level. Device labels in enumerateDevices() are often empty on Android Firefox
+ *   even after mic permission is granted (known bug, improved in Firefox 140+).
+ *   Ref: https://bugzilla.mozilla.org/show_bug.cgi?id=1681772
+ *
+ * Desktop (Chrome/Firefox/Safari):
+ *   Full setSinkId() support on Chrome/Edge. Firefox desktop supports
+ *   selectAudioOutput() (since v116) which grants speaker-selection permission
+ *   without requiring mic access first — more privacy-preserving.
+ *   Ref: https://developer.mozilla.org/en-US/docs/Web/API/MediaDevices/selectAudioOutput
+ *
+ * ─── enumerateDevices() on Android — phantom routing modes ───────────────────
+ *
+ * Chromium's AudioManagerAndroid.java maps Android AudioManager routing modes
+ * to enumerateDevices() entries as a fixed-index array. This means several
+ * "devices" are always present regardless of connected hardware:
+ *
+ *   Index 0: "Speakerphone"     ← always present, routing mode only
+ *   Index 1: "Wired headset"    ← appears when wired headset plugged in  ✓ real
+ *   Index 2: "Headset earpiece" ← always present, the phone's earpiece   ✗ phantom
+ *   Index 3: "Bluetooth headset"← appears when BT device connected       ✓ real
+ *   Index 4: "USB audio"        ← appears when USB audio device connected ✓ real
+ *
+ * Ref: https://github.com/Samsung/ChromiumGStreamerBackend/blob/master/media/base/android/java/src/org/chromium/media/AudioManagerAndroid.java
+ *
+ * "Headset earpiece" is NOT a connected external headset — it's the phone's
+ * built-in front speaker, always present. Do not use it as a detection signal.
+ * Only indices 1, 3, 4 are real connectable devices that appear/disappear.
+ * EXTERNAL_AUDIO_CLASSES reflects this: 'earpiece' is intentionally excluded.
+ *
+ * ─── Permission model ─────────────────────────────────────────────────────────
+ *
+ * Before any permission: enumerateDevices() returns device kinds only — no
+ * labels, no deviceIds (empty strings).
+ *
+ * After mic permission (getUserMedia audio): Chrome and Firefox 140+ expose
+ * labels for ALL audio devices (both audioinput and audiooutput). This is a
+ * known privacy compromise — Firefox originally required a separate
+ * speaker-selection permission but aligned with Chrome in v140 for compat.
+ *
+ * navigator.permissions.query({ name: 'speaker-selection' }) is experimental
+ * and broken in most browsers — not worth relying on.
+ * Ref: https://github.com/mdn/browser-compat-data/issues/17033
+ *
+ * Video permission does NOT unlock additional audio device labels.
+ *
+ * ─── Bluetooth detection strategy ────────────────────────────────────────────
+ *
+ * After mic permission, check audioinput devices for "Bluetooth headset" label —
+ * this is the most reliable dynamic signal on Android Chrome. The label appears
+ * in audioinput (not just audiooutput) when a BT device connects, and disappears
+ * when it disconnects. We subscribe to devicechange events to react in real time.
+ *
+ * If no external audio is detected on Android, we show a SpeakerphoneWarningView
+ * before the user joins the call queue, giving them a chance to connect headphones.
+ */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import usePartySocket from 'partysocket/react';
 import { FaPhone, FaPhoneSlash, FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
@@ -222,6 +298,31 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const hasSinkId = 'setSinkId' in HTMLAudioElement.prototype;
   const hasSelectAudioOutput = 'selectAudioOutput' in navigator.mediaDevices;
 
+  const [copyLabel, setCopyLabel] = useState('copy');
+  const copyDebugInfo = () => {
+    const lines: string[] = [
+      `platform: ${platform.label}`,
+      `userAgent: ${navigator.userAgent}`,
+      `setSinkId: ${hasSinkId ? 'yes' : 'no'}`,
+      `selectAudioOutput: ${hasSelectAudioOutput ? 'yes' : 'no'}`,
+      `external audio: ${hasExternalAudio === null ? 'checking' : hasExternalAudio ? 'yes' : 'no'}`,
+      `selected sink: ${selectedSinkLabel ?? '(none)'}`,
+      '',
+      `audioinput devices (${audioInputDevices.length}):`,
+      ...audioInputDevices.map(d => `  [${classifyDevice(d.label)}] ${d.label || '(no label)'} — ${d.deviceId}`),
+      '',
+      `audiooutput devices (${audioOutputDevices.length}):`,
+      ...audioOutputDevices.map(d => `  [${classifyDevice(d.label)}] ${d.label || '(no label)'} — ${d.deviceId}`),
+    ];
+    if (experimentLog.length) {
+      lines.push('', 'experiment log:', ...experimentLog.map(l => `  ${l}`));
+    }
+    navigator.clipboard.writeText(lines.join('\n')).then(() => {
+      setCopyLabel('copied!');
+      setTimeout(() => setCopyLabel('copy'), 2000);
+    }).catch(() => setCopyLabel('failed'));
+  };
+
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -256,12 +357,19 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
 
       {/* Debug panel — bottom of screen */}
       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0 12px 8px' }}>
-        <button
-          onClick={() => setShowDebug(v => !v)}
-          style={{ background: 'none', border: 'none', color: '#444', fontSize: 11, cursor: 'pointer', padding: '4px 0' }}
-        >
-          {showDebug ? '▾' : '▸'} audio debug
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button
+            onClick={() => setShowDebug(v => !v)}
+            style={{ background: 'none', border: 'none', color: '#444', fontSize: 11, cursor: 'pointer', padding: '4px 0' }}
+          >
+            {showDebug ? '▾' : '▸'} audio debug
+          </button>
+          {showDebug && (
+            <button onClick={copyDebugInfo} style={{ background: 'none', border: '1px solid #333', color: '#555', fontSize: 10, cursor: 'pointer', padding: '2px 6px', borderRadius: 3 }}>
+              {copyLabel}
+            </button>
+          )}
+        </div>
         {showDebug && (
           <div style={{ background: '#1a1a1a', border: '1px solid #333', borderRadius: 6, padding: 10, fontSize: 11, fontFamily: 'monospace', maxHeight: '60vh', overflowY: 'auto' }}>
 
