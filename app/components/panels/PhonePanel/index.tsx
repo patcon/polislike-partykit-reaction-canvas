@@ -140,6 +140,7 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const [confirming, setConfirming] = useState(false);
   const [showDebug, setShowDebug] = useState(false);
   const [experimentLog, setExperimentLog] = useState<string[]>([]);
+  const [deviceChangeCount, setDeviceChangeCount] = useState(0);
   const callStartRef = useRef<number | null>(null);
   const durationIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -171,7 +172,10 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
     if (!localStream) return;
     enumAudioDevices().then(updateDevices).catch(() => {});
 
-    const handleDeviceChange = () => { enumAudioDevices().then(updateDevices).catch(() => {}); };
+    const handleDeviceChange = () => {
+      setDeviceChangeCount(n => n + 1);
+      enumAudioDevices().then(updateDevices).catch(() => {});
+    };
     navigator.mediaDevices.addEventListener('devicechange', handleDeviceChange);
 
     return () => {
@@ -309,6 +313,8 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
   const hasSinkId = 'setSinkId' in HTMLAudioElement.prototype;
   const hasSelectAudioOutput = 'selectAudioOutput' in navigator.mediaDevices;
 
+  const activeTrackLabel = localStream?.getAudioTracks()[0]?.label ?? null;
+
   const [copyLabel, setCopyLabel] = useState('copy');
   const copyDebugInfo = () => {
     const lines: string[] = [
@@ -318,7 +324,9 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
       `setSinkId: ${hasSinkId ? 'yes' : 'no'}`,
       `selectAudioOutput: ${hasSelectAudioOutput ? 'yes' : 'no'}`,
       `external audio: ${hasExternalAudio === null ? 'checking' : hasExternalAudio ? 'yes' : 'no'}`,
+      `devicechange events: ${deviceChangeCount}`,
       `selected sink: ${selectedSinkLabel ?? '(none)'}`,
+      `active mic track: ${activeTrackLabel ?? '(none)'}`,
       '',
       `audioinput devices (${audioInputDevices.length}):`,
       ...audioInputDevices.map(d => `  [${classifyDevice(d.label)}] ${d.label || '(no label)'} — ${d.deviceId}`),
@@ -399,8 +407,14 @@ export default function PhonePanel({ room, userId }: PhonePanelProps) {
                 color: hasExternalAudio === null ? '#888' : hasExternalAudio ? '#4c4' : '#fa4'
               }}>{hasExternalAudio === null ? 'checking…' : hasExternalAudio ? 'yes (BT/wired)' : 'no — phone only'}</span>
             </div>
-            <div style={{ color: '#666', marginBottom: 12 }}>
+            <div style={{ color: '#666', marginBottom: 4 }}>
               selected sink: <span style={{ color: '#aaa' }}>{selectedSinkLabel ?? '(none yet)'}</span>
+            </div>
+            <div style={{ color: '#666', marginBottom: 4 }}>
+              active mic track: <span style={{ color: '#aaa' }}>{activeTrackLabel ?? '(none)'}</span>
+            </div>
+            <div style={{ color: '#666', marginBottom: 12 }}>
+              devicechange events: <span style={{ color: '#aaa' }}>{deviceChangeCount}</span>
             </div>
 
             {/* Section B — Devices */}
