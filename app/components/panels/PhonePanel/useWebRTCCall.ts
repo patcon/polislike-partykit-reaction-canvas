@@ -1,6 +1,6 @@
 import { useRef, useState, useCallback } from 'react';
 
-export type CallState = 'idle' | 'queued' | 'connecting' | 'connected';
+export type CallState = 'idle' | 'queued' | 'connecting' | 'connected' | 'reconnecting';
 
 const RTC_CONFIG: RTCConfiguration = {
   iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
@@ -14,6 +14,8 @@ export function useWebRTCCall(
   const [peerId, setPeerId] = useState<string | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [rtcConnectionState, setRtcConnectionState] = useState<string>('—');
+  const [iceConnectionState, setIceConnectionState] = useState<string>('—');
 
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const peerIdRef = useRef<string | null>(null);
@@ -29,6 +31,8 @@ export function useWebRTCCall(
     setPeerId(null);
     peerIdRef.current = null;
     setCallState('idle');
+    setRtcConnectionState('—');
+    setIceConnectionState('—');
   }, []);
 
   const createPc = useCallback((peer: string) => {
@@ -62,11 +66,16 @@ export function useWebRTCCall(
     };
 
     pc.onconnectionstatechange = () => {
+      setRtcConnectionState(pc.connectionState);
       if (pc.connectionState === 'connected') {
         setCallState('connected');
       } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
         closePc();
       }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      setIceConnectionState(pc.iceConnectionState);
     };
 
     return pc;
@@ -126,10 +135,24 @@ export function useWebRTCCall(
       if (pcRef.current && data.candidate) {
         await pcRef.current.addIceCandidate(new RTCIceCandidate(data.candidate as RTCIceCandidateInit));
       }
+    } else if (data.type === 'peerReconnecting') {
+      setCallState('reconnecting');
+    } else if (data.type === 'callResumed') {
+      const peer = data.peerId as string;
+      if (pcRef.current) {
+        // PC still exists — WebRTC survived (may be 'disconnected' transiently, not yet 'failed').
+        // Restore UI state; onconnectionstatechange will call closePc() if it truly fails.
+        peerIdRef.current = peer;
+        setPeerId(peer);
+        setCallState('connected');
+      } else {
+        // closePc() already ran (connection went 'failed') — inform server and stay idle
+        sendRef.current({ type: 'hangUp', targetUserId: peer });
+      }
     } else if (data.type === 'hangUp') {
       closePc();
     }
   }, [createPc, sendRef, closePc]);
 
-  return { callState, peerId, remoteStream, isMuted, joinQueue, cancelQueue, hangUp, toggleMute, handleServerMessage };
+  return { callState, peerId, remoteStream, isMuted, rtcConnectionState, iceConnectionState, joinQueue, cancelQueue, hangUp, toggleMute, handleServerMessage };
 }

@@ -348,6 +348,12 @@ export default class Server implements Party.Server {
   private callQueue: string[] = [];
   private callPairs: Map<string, string> = new Map();
   private callAlgorithm: string = 'first-available';
+  // Grace period timers: when a paired user's WebSocket drops, we wait before notifying
+  // their peer. Android Chrome kills the WebSocket when the screen turns off but the
+  // WebRTC connection often survives. If the user reconnects within the window, we
+  // cancel the timer and send callResumed instead.
+  private callReconnectTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private readonly CALL_RECONNECT_GRACE_MS = 15_000;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -482,6 +488,28 @@ export default class Server implements Party.Server {
 
     const userId = url.searchParams.get('userId') ?? conn.id;
     this.connectionUserMap.set(conn.id, userId);
+
+    // If this user's PhonePanel reconnected within the grace period after a drop, cancel
+    // the hangup timer and restore both sides of the call. We check isPhonePanel because
+    // the Canvas socket (same userId, different connection) reconnects independently and
+    // must not trigger the resume — it fires first and would cancel the timer prematurely.
+    const isPhonePanel = url.searchParams.get('isPhonePanel') === 'true';
+    const reconnectTimer = this.callReconnectTimers.get(userId);
+    if (isPhonePanel && reconnectTimer !== undefined) {
+      clearTimeout(reconnectTimer);
+      this.callReconnectTimers.delete(userId);
+      const peerId = this.callPairs.get(userId);
+      if (peerId) {
+        console.log(`[call] ${userId} reconnected within grace period — resuming call with ${peerId}`);
+        conn.send(JSON.stringify({ type: 'callResumed', peerId }));
+        for (const peerConn of this.getTargetConnections(peerId)) {
+          peerConn.send(JSON.stringify({ type: 'callResumed', peerId: userId }));
+        }
+      } else {
+        console.log(`[call] ${userId} reconnected within grace period but call pair already gone`);
+      }
+    }
+
     if (isViewer) {
       this.viewerConnectionIds.add(conn.id);
     }
@@ -571,16 +599,38 @@ export default class Server implements Party.Server {
         this.stenoLockUserId = null;
         this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId }));
       }
-      // Call queue cleanup
+      // Call queue cleanup (immediate — nothing to preserve)
       const qIdx = this.callQueue.indexOf(userId);
       if (qIdx !== -1) this.callQueue.splice(qIdx, 1);
+      // Call pair cleanup — deferred to allow brief reconnects (e.g. Android kills the
+      // WebSocket when the screen turns off, but the WebRTC connection often survives).
+      // Notify the peer they're waiting, then give the disconnected user time to come back.
       const peerId = this.callPairs.get(userId);
       if (peerId) {
-        this.callPairs.delete(userId);
-        this.callPairs.delete(peerId);
-        for (const conn of this.getTargetConnections(peerId)) {
-          conn.send(JSON.stringify({ type: 'hangUp', fromUserId: userId }));
+        // Cancel any existing timer for this userId — both Canvas and PhonePanel share
+        // the same userId, and both drop when the screen turns off. Without this, the
+        // first timer keeps running even after the map entry is overwritten, causing a
+        // double expiry that sends hangUp twice.
+        const existing = this.callReconnectTimers.get(userId);
+        if (existing !== undefined) {
+          clearTimeout(existing);
+          console.log(`[call] ${userId} another connection dropped — resetting grace period`);
+        } else {
+          console.log(`[call] ${userId} dropped — notifying peer ${peerId}, grace period ${this.CALL_RECONNECT_GRACE_MS}ms`);
+          for (const conn of this.getTargetConnections(peerId)) {
+            conn.send(JSON.stringify({ type: 'peerReconnecting', fromUserId: userId }));
+          }
         }
+        const timer = setTimeout(() => {
+          this.callReconnectTimers.delete(userId);
+          this.callPairs.delete(userId);
+          this.callPairs.delete(peerId);
+          console.log(`[call] grace period expired for ${userId} — hanging up peer ${peerId}`);
+          for (const conn of this.getTargetConnections(peerId)) {
+            conn.send(JSON.stringify({ type: 'hangUp', fromUserId: userId }));
+          }
+        }, this.CALL_RECONNECT_GRACE_MS);
+        this.callReconnectTimers.set(userId, timer);
       }
     }
 

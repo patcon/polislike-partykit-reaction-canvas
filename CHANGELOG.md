@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 26 (2026-05-18)
 
 ### Added
+- **PhonePanel: reconnection grace period** — when a caller's WebSocket drops briefly (e.g. Android screen-off kills the connection), the server waits 15 s before hanging up the other party. The waiting side sees "Reconnecting…" instead of an abrupt disconnect. Call duration timer pauses and resumes across the gap.
 - **PhonePanel: wake lock during calls** — screen stays on as soon as a user joins the queue and releases on hang up. A small "screen on" indicator appears while active.
 - **PhonePanel: Media Session API** — lock-screen call card with title and hang-up action on iOS 15+; hardware buttons (headphone remote, AirPods, Bluetooth) can hang up the call. Android notification not yet working ([#112](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/112)).
 - **Refactor: `useWakeLock` hook** — extracted into `app/utils/useWakeLock.ts`; `StenoPanel` and `ReactionCanvasAppV4` now use it instead of inline acquire/release logic.
