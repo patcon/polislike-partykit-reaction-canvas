@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 26 (2026-05-18)
 
+### Fixed
+- **Greeter: guild event URL survives server restarts** — `greeterConfig` (including the event URL) is now included in `PersistedState` and written to PartyKit durable storage alongside other room config; previously it was lost on every restart.
+
 ### Added
 - **PhonePanel: wake lock during calls** — screen stays on as soon as a user joins the queue and releases on hang up. A small "screen on" indicator appears while active.
 - **PhonePanel: Media Session API** — lock-screen call card with title and hang-up action on iOS 15+; hardware buttons (headphone remote, AirPods, Bluetooth) can hang up the call. Android notification not yet working ([#112](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/112)).

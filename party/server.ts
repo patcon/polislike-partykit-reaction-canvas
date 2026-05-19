@@ -250,6 +250,7 @@ interface PersistedState {
   stenoVtt: string;
   storyTracerPoints?: StoryTracerPoint[] | null;
   storyTracerMeta?: StoryTracerMeta | null;
+  greeterConfig?: { eventUrl: string } | null;
 }
 
 interface StenoStartRecordingEvent { type: 'stenoStartRecording'; userId: string }
@@ -392,6 +393,7 @@ export default class Server implements Party.Server {
       stenoVtt: this.stenoVtt,
       storyTracerPoints: this.storyTracerPoints,
       storyTracerMeta: this.storyTracerMeta,
+      greeterConfig: this.greeterConfig,
     };
   }
 
@@ -400,6 +402,7 @@ export default class Server implements Party.Server {
     if (saved.stenoVtt !== undefined) this.stenoVtt = saved.stenoVtt;
     if (saved.storyTracerPoints !== undefined) this.storyTracerPoints = saved.storyTracerPoints ?? null;
     if (saved.storyTracerMeta !== undefined) this.storyTracerMeta = saved.storyTracerMeta ?? null;
+    if (saved.greeterConfig !== undefined) this.greeterConfig = saved.greeterConfig ?? null;
   }
 
   private async persistState(): Promise<void> {
