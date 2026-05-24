@@ -3,6 +3,7 @@ import usePartySocket from 'partysocket/react';
 import { imputeColumnMeans, defaultParamsFor, REDUCER_PARAM_DEFS } from 'reddwarf-ts';
 import type { ReducerAlgorithm } from 'reddwarf-ts';
 import { getPartySocketConfig } from '../../../utils/partyHost';
+import { idbGet } from '../../../utils/idbStorage';
 import type { MomentSnapshot } from '../AdminPanelNoDB/types';
 import type { MapProjection } from '../../../types';
 import type { DruidWorkerEvent } from '../../../workers/druidWorker.types';
@@ -54,10 +55,9 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
   const participantIdsRef = useRef<string[]>([]);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(`v4-moments-${room}`);
-      if (raw) setMoments(JSON.parse(raw));
-    } catch { /* ignore */ }
+    idbGet<MomentSnapshot[]>(`v4-moments-${room}`).then(stored => {
+      if (stored) setMoments(stored);
+    });
   }, [room]);
 
   const socket = usePartySocket({
