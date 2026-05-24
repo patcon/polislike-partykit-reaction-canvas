@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
-import { imputeColumnMeans, defaultParamsFor } from 'reddwarf-ts';
+import { imputeColumnMeans, defaultParamsFor, REDUCER_PARAM_DEFS } from 'reddwarf-ts';
 import type { ReducerAlgorithm } from 'reddwarf-ts';
 import { getPartySocketConfig } from '../../../utils/partyHost';
 import type { MomentSnapshot } from '../AdminPanelNoDB/types';
@@ -45,6 +45,7 @@ function buildMatrix(moments: MomentSnapshot[]): { matrix: number[][]; participa
 
 export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
   const [algorithm, setAlgorithm] = useState<ReducerAlgorithm>('umap');
+  const [params, setParams] = useState<Record<string, number>>(() => defaultParamsFor('umap'));
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
   const [status, setStatus] = useState<RunStatus>('idle');
   const [progress, setProgress] = useState<number | null>(null);
@@ -111,8 +112,8 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
       setStatus('error');
     };
 
-    worker.postMessage({ type: 'reduce', matrix, algorithm, params: defaultParamsFor(algorithm) });
-  }, [status, moments, algorithm, socket, userId]);
+    worker.postMessage({ type: 'reduce', matrix, algorithm, params });
+  }, [status, moments, algorithm, params, socket, userId]);
 
   const handleClear = () => {
     workerRef.current?.terminate();
@@ -127,8 +128,8 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
   const canCompute = !tooFewMoments && !tooFewParticipants && status !== 'running';
 
   return (
-    <div style={{ padding: 20, overflowY: 'auto', height: '100%', boxSizing: 'border-box', color: '#ccc', fontFamily: 'sans-serif' }}>
-      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#eee' }}>Map Maker</h2>
+    <div style={{ padding: 20, overflowY: 'auto', height: '100%', boxSizing: 'border-box', background: '#0f0f0e', color: '#ccc', fontFamily: 'monospace' }}>
+      <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 16, color: '#ccc' }}>Map Maker</h2>
 
       <div style={{ marginBottom: 16 }}>
         <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>Moments loaded: {moments.length}</div>
@@ -150,7 +151,7 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
           {ALGORITHMS.map(({ id, label }) => (
             <button
               key={id}
-              onClick={() => setAlgorithm(id)}
+              onClick={() => { setAlgorithm(id); setParams(defaultParamsFor(id)); }}
               disabled={status === 'running'}
               style={{
                 padding: '6px 14px',
@@ -167,6 +168,27 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
             </button>
           ))}
         </div>
+      </div>
+
+      <div style={{ marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {Object.entries(REDUCER_PARAM_DEFS[algorithm]).map(([key, def]) => (
+          <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+            <span style={{ color: '#888', width: 100, flexShrink: 0 }}>{def.label}</span>
+            <input
+              type="range"
+              min={def.min}
+              max={def.max}
+              step={def.step}
+              value={params[key] ?? def.default}
+              disabled={status === 'running'}
+              onChange={e => setParams(p => ({ ...p, [key]: parseFloat(e.target.value) }))}
+              style={{ flex: 1, accentColor: '#4a8' }}
+            />
+            <span style={{ color: '#ccc', width: 40, textAlign: 'right', flexShrink: 0 }}>
+              {params[key] ?? def.default}
+            </span>
+          </label>
+        ))}
       </div>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
