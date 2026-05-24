@@ -2,10 +2,10 @@
   "name": "polislike-partykit-reaction-canvas",
   "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@10.18.0",
+  "packageManager": "pnpm@11.2.2",
   "scripts": {
-    "build:worker": "esbuild app/workers/embeddingWorker.ts --bundle --format=esm --platform=browser --outfile=public/embeddingWorker.js",
-    "build:worker-watch": "esbuild app/workers/embeddingWorker.ts --bundle --format=esm --platform=browser --outfile=public/embeddingWorker.js --watch=forever",
+    "build:worker": "esbuild app/workers/embeddingWorker.ts --bundle --format=esm --platform=browser --outfile=public/embeddingWorker.js && esbuild app/workers/druidWorker.ts --bundle --format=esm --platform=browser --outfile=public/druidWorker.js",
+    "build:worker-watch": "esbuild app/workers/embeddingWorker.ts --bundle --format=esm --platform=browser --outfile=public/embeddingWorker.js --watch=forever & esbuild app/workers/druidWorker.ts --bundle --format=esm --platform=browser --outfile=public/druidWorker.js --watch=forever",
     "dev": "trap 'pkill -f embeddingWorker 2>/dev/null' EXIT INT TERM; pnpm run cachebust && pnpm run build:worker-watch & partykit dev --live",
     "dev-https": "trap 'pkill -f embeddingWorker 2>/dev/null' EXIT INT TERM; pnpm run cachebust && pnpm run build:worker-watch & partykit dev --live --https",
     "deploy": "pnpm run build:worker && pnpm run cachebust && partykit deploy",
@@ -30,6 +30,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^5.6.0",
+    "reddwarf-ts": "github:patcon/polislike-human-cartography-prototype-v2#803d564&path:packages/reddwarf-ts",
     "simplex-noise": "^4.0.3",
     "three": "^0.183.2",
     "umap-js": "^1.4.0",
@@ -53,5 +54,14 @@
     "storybook": "^10.1.0",
     "typescript": "^5.5.4",
     "vitest": "^4.0.14"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "onnxruntime-node",
+      "protobufjs",
+      "sharp",
+      "workerd"
+    ]
   }
 }

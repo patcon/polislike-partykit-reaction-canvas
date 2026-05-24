@@ -169,6 +169,7 @@ dist
 .partykit
 .DS_Store
 public/embeddingWorker.js
+public/druidWorker.js
 public/index.html
 
 *storybook.log

@@ -1,5 +1,5 @@
 import type * as Party from "partykit/server";
-import type { ActivityMode, StoryTracerPoint, StoryTracerMeta } from "../app/types";
+import type { ActivityMode, StoryTracerPoint, StoryTracerMeta, MapProjection } from "../app/types";
 // Ghost cursor imports (for demo purposes - can be easily removed)
 import { createNoise2D } from 'simplex-noise';
 
@@ -251,6 +251,7 @@ interface PersistedState {
   storyTracerPoints?: StoryTracerPoint[] | null;
   storyTracerMeta?: StoryTracerMeta | null;
   greeterConfig?: { eventUrl: string } | null;
+  mapProjection?: MapProjection | null;
 }
 
 interface StenoStartRecordingEvent { type: 'stenoStartRecording'; userId: string }
@@ -261,6 +262,9 @@ interface StenoSetTextEvent        { type: 'stenoSetText';        userId: string
 interface StoryTracerSetPointsEvent  { type: 'storyTracerSetPoints';  userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta }
 interface StoryTracerClearPointsEvent { type: 'storyTracerClearPoints'; userId: string }
 
+interface MapProjectionSetEvent   { type: 'mapProjectionSet';   userId: string; projection: MapProjection }
+interface MapProjectionClearEvent { type: 'mapProjectionClear'; userId: string }
+
 interface JoinCallQueueEvent   { type: 'joinCallQueue' }
 interface LeaveCallQueueEvent  { type: 'leaveCallQueue' }
 interface WebRTCOfferEvent     { type: 'webrtcOffer';   targetUserId: string; offer: unknown }
@@ -269,7 +273,7 @@ interface WebRTCIceEvent       { type: 'webrtcIce';     targetUserId: string; ca
 interface HangUpCallEvent      { type: 'hangUp';        targetUserId: string }
 interface SetCallAlgorithmEvent { type: 'setCallAlgorithm'; algorithm: string }
 
-type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent;
+type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | MapProjectionSetEvent | MapProjectionClearEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -346,6 +350,7 @@ export default class Server implements Party.Server {
   private stenoLockUserId: string | null = null;
   private storyTracerPoints: StoryTracerPoint[] | null = null;
   private storyTracerMeta: StoryTracerMeta | null = null;
+  private mapProjection: MapProjection | null = null;
   private callQueue: string[] = [];
   private callPairs: Map<string, string> = new Map();
   private callAlgorithm: string = 'first-available';
@@ -394,6 +399,7 @@ export default class Server implements Party.Server {
       storyTracerPoints: this.storyTracerPoints,
       storyTracerMeta: this.storyTracerMeta,
       greeterConfig: this.greeterConfig,
+      mapProjection: this.mapProjection,
     };
   }
 
@@ -403,6 +409,7 @@ export default class Server implements Party.Server {
     if (saved.storyTracerPoints !== undefined) this.storyTracerPoints = saved.storyTracerPoints ?? null;
     if (saved.storyTracerMeta !== undefined) this.storyTracerMeta = saved.storyTracerMeta ?? null;
     if (saved.greeterConfig !== undefined) this.greeterConfig = saved.greeterConfig ?? null;
+    if (saved.mapProjection !== undefined) this.mapProjection = saved.mapProjection ?? null;
   }
 
   private async persistState(): Promise<void> {
@@ -554,6 +561,7 @@ export default class Server implements Party.Server {
       stenoLockUserId: this.stenoLockUserId,
       storyTracerPoints: this.storyTracerPoints,
       storyTracerMeta: this.storyTracerMeta,
+      mapProjection: this.mapProjection,
       callAlgorithm: this.callAlgorithm,
     }));
   }
@@ -816,6 +824,14 @@ export default class Server implements Party.Server {
         this.storyTracerMeta = null;
         void this.persistState();
         this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: null, meta: null }));
+      } else if (event.type === 'mapProjectionSet') {
+        this.mapProjection = event.projection;
+        void this.persistState();
+        this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: event.projection }));
+      } else if (event.type === 'mapProjectionClear') {
+        this.mapProjection = null;
+        void this.persistState();
+        this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: null }));
       } else if (event.type === 'joinCallQueue') {
         const senderId = this.connectionUserMap.get(sender.id);
         if (!senderId) return;

@@ -28,7 +28,13 @@ export interface Statement {
   text: string;
 }
 
-export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social' | 'mood-tones' | 'treevites' | 'greeter' | 'signature' | 'steno' | 'story-tracer' | 'voice-call';
+export type ActivityMode = 'canvas' | 'soccer' | 'image-canvas' | 'social' | 'mood-tones' | 'treevites' | 'greeter' | 'signature' | 'steno' | 'story-tracer' | 'voice-call' | 'map-maker' | 'map-viewer';
+
+export interface MapProjection {
+  coords: [string, [number, number]][];
+  algorithm: string;
+  computedAt: string;
+}
 
 export interface StoryTracerPoint {
   x: number

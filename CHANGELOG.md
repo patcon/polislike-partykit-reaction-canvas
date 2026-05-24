@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
+## Week 27 (2026-05-25)
+
+### Added
+- **MapMakerPanel** — new emcee-facing interface that reads moment data (including Polis CSV imports), builds a sparse participant × moment vote matrix, mean-imputes missing values, and reduces it to 2D using UMAP, PaCMAP, or LocalMAP (via reddwarf-ts). The reduction runs in a dedicated esbuild Web Worker (`druidWorker.ts`) to keep the UI responsive. Progress bar updates every 10 iterations. On completion, the 2D projection is broadcast to all connected clients via server state.
+- **MapViewerPanel** — participant-facing interface that receives the computed projection from server state and renders a minimal D3 scatter plot (zoom/pan supported). Shows a placeholder when no projection has been computed yet. Both panels appear in the Interfaces tab and OfferInterfaceModal.
+
 ## Week 26 (2026-05-18)
 
 ### Fixed

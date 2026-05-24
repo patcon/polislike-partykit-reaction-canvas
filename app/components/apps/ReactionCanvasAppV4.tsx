@@ -31,6 +31,8 @@ import TreevitesPanel from "../panels/TreevitesPanel";
 import StenoPanel from "../panels/StenoPanel";
 import StoryTracerPanel from "../panels/StoryTracerPanel";
 import VoiceCallPanel from "../panels/VoiceCallPanel";
+import MapMakerPanel from "../panels/MapMakerPanel";
+import MapViewerPanel from "../panels/MapViewerPanel";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -353,7 +355,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones', treevites: 'Leaderboard', greeter: 'Greeter', steno: 'Steno', 'story-tracer': 'Story Tracer', 'voice-call': 'Voice Call' };
+  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones', treevites: 'Leaderboard', greeter: 'Greeter', steno: 'Steno', 'story-tracer': 'Story Tracer', 'voice-call': 'Voice Call', 'map-maker': 'Map Maker', 'map-viewer': 'Map Viewer' };
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
@@ -384,6 +386,10 @@ export default function ReactionCanvasAppV4() {
         <StoryTracerPanel room={room} userId={userId} />
       ) : activeInterface === 'voice-call' ? (
         <VoiceCallPanel room={room} userId={userId} />
+      ) : activeInterface === 'map-maker' ? (
+        <MapMakerPanel room={room} userId={userId} />
+      ) : activeInterface === 'map-viewer' ? (
+        <MapViewerPanel room={room} userId={userId} />
       ) : null}
       {/* When activity is 'social', show SocialMediaPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).
@@ -409,8 +415,14 @@ export default function ReactionCanvasAppV4() {
       {activeInterface === 'canvas' && activity === 'voice-call' && (
         <VoiceCallPanel room={room} userId={userId} />
       )}
+      {activeInterface === 'canvas' && activity === 'map-maker' && (
+        <MapMakerPanel room={room} userId={userId} />
+      )}
+      {activeInterface === 'canvas' && activity === 'map-viewer' && (
+        <MapViewerPanel room={room} userId={userId} />
+      )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter' && activity !== 'steno' && activity !== 'story-tracer' && activity !== 'voice-call') ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter' && activity !== 'steno' && activity !== 'story-tracer' && activity !== 'voice-call' && activity !== 'map-maker' && activity !== 'map-viewer') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
