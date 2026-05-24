@@ -9,7 +9,7 @@ interface MapViewerPanelProps {
   userId: string;
 }
 
-function ScatterPlot({ data }: { data: [string, [number, number]][] }) {
+function ScatterPlot({ data, selfId }: { data: [string, [number, number]][]; selfId: string }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
 
@@ -23,9 +23,13 @@ function ScatterPlot({ data }: { data: [string, [number, number]][] }) {
     const xScale = d3.scaleLinear().domain([Math.min(...xs), Math.max(...xs)]).range([20, width - 20]);
     const yScale = d3.scaleLinear().domain([Math.min(...ys), Math.max(...ys)]).range([20, height - 20]);
 
-    g.selectAll('circle')
-      .data(data)
+    const others = data.filter(([id]) => id !== selfId);
+    const self = data.find(([id]) => id === selfId);
+
+    g.selectAll<SVGCircleElement, [string, [number, number]]>('circle.peer')
+      .data(others, ([id]) => id)
       .join('circle')
+      .attr('class', 'peer')
       .attr('cx', ([, [x]]) => xScale(x))
       .attr('cy', ([, [, y]]) => yScale(y))
       .attr('r', 5)
@@ -33,6 +37,36 @@ function ScatterPlot({ data }: { data: [string, [number, number]][] }) {
       .attr('fill-opacity', 0.7)
       .attr('stroke', '#2a6')
       .attr('stroke-width', 0.5);
+
+    // GPS dot: pulsing halo + solid blue dot
+    if (self) {
+      const [, [sx, sy]] = self;
+      const cx = xScale(sx);
+      const cy = yScale(sy);
+
+      g.selectAll('circle.self-halo').data([null]).join('circle')
+        .attr('class', 'self-halo')
+        .attr('cx', cx).attr('cy', cy)
+        .attr('r', 12)
+        .attr('fill', '#4a90e2')
+        .attr('fill-opacity', 0.2)
+        .attr('stroke', 'none');
+
+      g.selectAll('circle.self-ring').data([null]).join('circle')
+        .attr('class', 'self-ring')
+        .attr('cx', cx).attr('cy', cy)
+        .attr('r', 8)
+        .attr('fill', 'none')
+        .attr('stroke', 'white')
+        .attr('stroke-width', 2);
+
+      g.selectAll('circle.self-dot').data([null]).join('circle')
+        .attr('class', 'self-dot')
+        .attr('cx', cx).attr('cy', cy)
+        .attr('r', 6)
+        .attr('fill', '#4a90e2')
+        .attr('stroke', 'none');
+    }
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.5, 20])
@@ -42,7 +76,7 @@ function ScatterPlot({ data }: { data: [string, [number, number]][] }) {
     svg.call(zoom);
 
     return () => { svg.on('.zoom', null); };
-  }, [data]);
+  }, [data, selfId]);
 
   return (
     <svg
@@ -87,7 +121,7 @@ export default function MapViewerPanel({ room, userId }: MapViewerPanelProps) {
         {mapProjection.algorithm.toUpperCase()} · {mapProjection.coords.length} participants · {new Date(mapProjection.computedAt).toLocaleString()}
       </div>
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        <ScatterPlot data={mapProjection.coords} />
+        <ScatterPlot data={mapProjection.coords} selfId={userId} />
       </div>
     </div>
   );
