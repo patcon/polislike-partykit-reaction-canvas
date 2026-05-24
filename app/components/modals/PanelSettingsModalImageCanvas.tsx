@@ -18,13 +18,13 @@ function saveImageUrlToHistory(url: string): void {
   localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
 }
 
-interface ImageConfigModalProps {
+interface PanelSettingsModalImageCanvasProps {
   onSubmit: (url: string) => void;
   onClose: () => void;
   currentUrl?: string;
 }
 
-export default function ImageConfigModal({ onSubmit, onClose, currentUrl }: ImageConfigModalProps) {
+export default function PanelSettingsModalImageCanvas({ onSubmit, onClose, currentUrl }: PanelSettingsModalImageCanvasProps) {
   const [urlInput, setUrlInput] = useState(currentUrl ?? '');
   const [history] = useState<string[]>(getImageUrlHistory);
   const thumbnails = [

@@ -1,13 +1,13 @@
 import { useState } from "react";
 import type { SocialConfig } from "../../types";
 
-interface SocialConfigModalProps {
+interface PanelSettingsModalSocialMediaProps {
   onSubmit: (config: SocialConfig) => void;
   onClose: () => void;
   current?: SocialConfig | null;
 }
 
-export default function SocialConfigModal({ onSubmit, onClose, current }: SocialConfigModalProps) {
+export default function PanelSettingsModalSocialMedia({ onSubmit, onClose, current }: PanelSettingsModalSocialMediaProps) {
   const [defaultText, setDefaultText] = useState(current?.default ?? '');
   const [twitter, setTwitter] = useState(current?.twitter ?? '');
   const [bluesky, setBluesky] = useState(current?.bluesky ?? '');

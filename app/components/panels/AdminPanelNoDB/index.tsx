@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../../../utils/partyHost";
-import ImageConfigModal from "../../modals/ImageConfigModal";
-import SocialConfigModal from "../../modals/SocialConfigModal";
-import GreeterConfigModal from "../../modals/GreeterConfigModal";
+import PanelSettingsModalImageCanvas from "../../modals/PanelSettingsModalImageCanvas";
+import PanelSettingsModalSocialMedia from "../../modals/PanelSettingsModalSocialMedia";
+import PanelSettingsModalGreeter from "../../modals/PanelSettingsModalGreeter";
 import { useAnchors } from "./hooks/useAnchors";
 import { useLabels } from "./hooks/useLabels";
 import { useRoomConfig } from "./hooks/useRoomConfig";
@@ -13,8 +13,8 @@ import { useParticipants } from "./hooks/useParticipants";
 import OfferInterfaceModal from "./OfferInterfaceModal";
 import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
-import CanvasSettingsModal from "./CanvasSettingsModal";
-import VoiceCallsConfigModal from "./VoiceCallsConfigModal";
+import PanelSettingsModalReactionCanvas from "./PanelSettingsModalReactionCanvas";
+import PanelSettingsModalVoiceCalls from "./PanelSettingsModalVoiceCalls";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -443,14 +443,14 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
         />
       )}
       {roomConfig.imageConfigOpen && (
-        <ImageConfigModal
+        <PanelSettingsModalImageCanvas
           currentUrl={roomConfig.roomImageUrl}
           onSubmit={roomConfig.sendImageUrl}
           onClose={() => roomConfig.setImageConfigOpen(false)}
         />
       )}
       {roomConfig.canvasSettingsOpen && (
-        <CanvasSettingsModal
+        <PanelSettingsModalReactionCanvas
           showNowLabel={roomConfig.showNowLabelOnCanvas}
           onChangeShowNowLabel={(v) => {
             roomConfig.setShowNowLabelOnCanvas(v);
@@ -464,21 +464,21 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
         />
       )}
       {roomConfig.socialConfigOpen && (
-        <SocialConfigModal
+        <PanelSettingsModalSocialMedia
           current={roomConfig.roomSocialConfig}
           onSubmit={roomConfig.sendSocialConfig}
           onClose={() => roomConfig.setSocialConfigOpen(false)}
         />
       )}
       {roomConfig.greeterConfigOpen && (
-        <GreeterConfigModal
+        <PanelSettingsModalGreeter
           current={roomConfig.greeterConfig}
           onSubmit={roomConfig.sendGreeterConfig}
           onClose={() => roomConfig.setGreeterConfigOpen(false)}
         />
       )}
       {roomConfig.voiceCallsConfigOpen && (
-        <VoiceCallsConfigModal
+        <PanelSettingsModalVoiceCalls
           currentAlgorithm={roomConfig.callAlgorithm}
           onSubmit={roomConfig.sendCallAlgorithm}
           onClose={() => roomConfig.setVoiceCallsConfigOpen(false)}
