@@ -11,7 +11,7 @@ import { countEvents, clearEvents } from "../../../lib/supabase";
 // Rooms whose recordings are protected from deletion via the admin UI.
 const PROTECTED_ROOMS = ['irc6creOFGs'];
 
-interface AdminPanelV5Props {
+interface AdminPanelWithDBProps {
   room: string;
 }
 
@@ -26,7 +26,7 @@ function anchorToLocal(anchors: ReactionAnchors) {
   };
 }
 
-export default function AdminPanelV5({ room }: AdminPanelV5Props) {
+export default function AdminPanelWithDB({ room }: AdminPanelWithDBProps) {
   const [mainTab, setMainTab] = useState<'admin' | 'peek'>('admin');
   const tabBarRef = useRef<HTMLDivElement>(null);
   const [tabBarHeight, setTabBarHeight] = useState(46);

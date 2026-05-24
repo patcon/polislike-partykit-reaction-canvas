@@ -3,9 +3,9 @@ import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
 import SignatureLayer from "../canvas/SignatureLayer";
 import SignatureCanvas from "../canvas/SignatureCanvas";
-import AdminPanelV4 from "../panels/AdminPanelV4";
+import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import InterfaceChipBar from "../shared/InterfaceChipBar";
-import SocialPanel from "../panels/SocialPanel";
+import SocialMediaPanel from "../panels/SocialMediaPanel";
 import MoodTonesPanel from "../panels/MoodTonesPanel";
 import GreeterPanel from "../panels/GreeterPanel";
 import type { ActivityMode, GreeterConfig, SocialConfig, ValenceInputMode } from "../../types";
@@ -27,7 +27,7 @@ import HapticIndicatorButton from "../shared/HapticIndicatorButton";
 import { useHapticPriming } from "../../hooks/useHapticPriming";
 import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
 import { useWakeLock } from "../../utils/useWakeLock";
-import Treevites from "../panels/Treevites";
+import TreevitesPanel from "../panels/TreevitesPanel";
 import StenoPanel from "../panels/StenoPanel";
 import StoryTracerPanel from "../panels/StoryTracerPanel";
 import PhonePanel from "../panels/PhonePanel";
@@ -370,13 +370,13 @@ export default function ReactionCanvasAppV4() {
         />
       )}
       {activeInterface === 'emcee' ? (
-        <AdminPanelV4 room={room} selfUserId={userId} selfChain={selfChain} />
+        <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} />
       ) : activeInterface === 'social' ? (
-        <SocialPanel socialConfig={serverSocialConfig} />
+        <SocialMediaPanel socialConfig={serverSocialConfig} />
       ) : activeInterface === 'mood-tones' ? (
         <MoodTonesPanel room={room} />
       ) : activeInterface === 'treevites' ? (
-        <Treevites selfId={userId} inviteEdges={inviteEdges} />
+        <TreevitesPanel userId={userId} inviteEdges={inviteEdges} />
       ) : activeInterface === 'greeter' ? (
         <GreeterPanel greeterConfig={serverGreeterConfig} />
       ) : activeInterface === 'steno' ? (
@@ -386,17 +386,17 @@ export default function ReactionCanvasAppV4() {
       ) : activeInterface === 'phone' ? (
         <PhonePanel room={room} userId={userId} />
       ) : null}
-      {/* When activity is 'social', show SocialPanel as a flex sibling (fills the
+      {/* When activity is 'social', show SocialMediaPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).
           Canvas container is hidden but stays mounted to keep the socket alive. */}
       {activeInterface === 'canvas' && activity === 'social' && (
-        <SocialPanel socialConfig={serverSocialConfig} />
+        <SocialMediaPanel socialConfig={serverSocialConfig} />
       )}
       {activeInterface === 'canvas' && activity === 'mood-tones' && (
         <MoodTonesPanel room={room} />
       )}
       {activeInterface === 'canvas' && activity === 'treevites' && (
-        <Treevites selfId={userId} inviteEdges={inviteEdges} />
+        <TreevitesPanel userId={userId} inviteEdges={inviteEdges} />
       )}
       {activeInterface === 'canvas' && activity === 'greeter' && (
         <GreeterPanel greeterConfig={serverGreeterConfig} />
@@ -438,7 +438,7 @@ export default function ReactionCanvasAppV4() {
           </div>
           <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
           <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
-          <ShareQRButton selfId={userId} selfChain={selfChain} />
+          <ShareQRButton userId={userId} selfChain={selfChain} />
           {activity !== 'signature' && (
             <div onPointerDown={hapticOnPointerDown}>
               <HapticIndicatorButton

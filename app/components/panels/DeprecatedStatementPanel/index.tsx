@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react";
-import CountdownTimer from "../shared/CountdownTimer";
-import type { PolisStatement, QueueItem, Statement } from "../../types";
+import CountdownTimer from "../../shared/CountdownTimer";
+import type { PolisStatement, QueueItem, Statement } from "../../../types";
 
-interface StatementPanelProps {
+interface DeprecatedStatementPanelProps {
   activeStatementId: number | null;
   queue?: QueueItem[];
   currentTime?: number;
   statementsPool?: PolisStatement[];
 }
 
-export default function StatementPanel({ activeStatementId, queue = [], currentTime = Date.now(), statementsPool = [] }: StatementPanelProps) {
+export default function DeprecatedStatementPanel({ activeStatementId, queue = [], currentTime = Date.now(), statementsPool = [] }: DeprecatedStatementPanelProps) {
   const [statements, setStatements] = useState<Statement[]>([]);
   const [activeStatement, setActiveStatement] = useState<Statement | null>(null);
 

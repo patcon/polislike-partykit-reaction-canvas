@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
-import AdminPanelV5 from "../panels/AdminPanelV5";
+import AdminPanelWithDB from "../panels/AdminPanelWithDB";
 import ReplayCanvas from "../canvas/ReplayCanvas";
 import { getReactionLabelSet } from "../../voteLabels";
 import type { ReactionLabelSet } from "../../voteLabels";
@@ -201,7 +201,7 @@ export default function ReactionCanvasAppV5() {
   };
 
   if (isAdminMode()) {
-    return <AdminPanelV5 room={room} />;
+    return <AdminPanelWithDB room={room} />;
   }
 
   if (!isTouchDevice() && !isMobileForced()) {

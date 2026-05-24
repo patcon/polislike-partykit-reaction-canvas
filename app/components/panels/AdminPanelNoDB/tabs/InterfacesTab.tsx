@@ -16,7 +16,7 @@ interface InterfacesTabProps {
   setCanvasSettingsOpen: (v: boolean) => void;
   setVoiceCallsConfigOpen: (v: boolean) => void;
   onClearRoleAssignments: () => void;
-  selfId?: string;
+  userId?: string;
   selfChain?: string[];
 }
 
@@ -27,14 +27,14 @@ const QR_ICON = (
   </svg>
 );
 
-function getPatchUrl(interfaceName: string, selfId?: string, selfChain?: string[]): string {
+function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[]): string {
   const p = new URLSearchParams(window.location.search);
   p.delete('forceView');
   p.delete('admin');
   p.delete('interface');
   p.set('addInterface', interfaceName);
-  if (selfId && selfChain !== undefined) {
-    p.set('inviteChain', appendSelfToChain(selfChain, selfId).join(','));
+  if (userId && selfChain !== undefined) {
+    p.set('inviteChain', appendSelfToChain(selfChain, userId).join(','));
   }
   const qs = p.toString();
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
@@ -59,10 +59,10 @@ export default function InterfacesTab({
   activity, soccerScore,
   sendActivity, resetSoccerScore,
   setImageConfigOpen, setSocialConfigOpen, setGreeterConfigOpen, setCanvasSettingsOpen, setVoiceCallsConfigOpen,
-  onClearRoleAssignments, selfId, selfChain,
+  onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
-  const patchUrl = patchInterface ? getPatchUrl(patchInterface, selfId, selfChain) : '';
+  const patchUrl = patchInterface ? getPatchUrl(patchInterface, userId, selfChain) : '';
 
   return (
     <div>

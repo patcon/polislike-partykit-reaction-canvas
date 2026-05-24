@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import AdminPanel from '../app/components/panels/AdminPanel';
+import DeprecatedAdminPanel from '../app/components/panels/DeprecatedAdminPanel';
 
-// AdminPanel is heavily socket-driven: it starts in a loading state and
+// DeprecatedAdminPanel is heavily socket-driven: it starts in a loading state and
 // populates once the PartyKit server sends back the statements pool and queue
 // via WebSocket.  In Storybook the socket is mocked (no real connection),
 // so the panel stays in its initial loading state.  This story is useful for
@@ -9,8 +9,8 @@ import AdminPanel from '../app/components/panels/AdminPanel';
 // a live PartyKit server (run `npm run dev`).
 
 const meta = {
-  title: 'App/AdminPanel',
-  component: AdminPanel,
+  title: 'App/DeprecatedAdminPanel',
+  component: DeprecatedAdminPanel,
   parameters: {
     layout: 'fullscreen',
     docs: {
@@ -20,7 +20,7 @@ const meta = {
     },
   },
   tags: ['autodocs'],
-} satisfies Meta<typeof AdminPanel>;
+} satisfies Meta<typeof DeprecatedAdminPanel>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

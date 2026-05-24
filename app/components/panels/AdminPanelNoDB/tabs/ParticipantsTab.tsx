@@ -32,7 +32,7 @@ interface ParticipantsTabProps {
   activeLabels: ReactionLabelSet;
   activeAnchors: ReactionAnchors;
   room: string;
-  selfUserId?: string;
+  userId?: string;
 }
 
 function ParticipantsTabInner({
@@ -44,7 +44,7 @@ function ParticipantsTabInner({
   openMenuGroupKey, setOpenMenuGroupKey,
   setPushTarget, setPendingInterfaceName, onSendHaptic, onSendPopup,
   feedbackStars, setFeedbackStars,
-  interfaceAcceptances, activeLabels, activeAnchors, room, selfUserId,
+  interfaceAcceptances, activeLabels, activeAnchors, room, userId: selfUserId,
 }: ParticipantsTabProps) {
   const offerInterface = (target: PushTarget) => {
     setPushTarget(target);

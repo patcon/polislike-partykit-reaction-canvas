@@ -29,13 +29,13 @@ import type { ReactionLabelSet } from "../../../voteLabels";
 
 const ALL_TABS: AdminTab[] = ['record', 'labels', 'anchors', 'avatars', 'interfaces', 'events', 'participants', 'moments'];
 
-interface AdminPanelV4Props {
+interface AdminPanelNoDBProps {
   room: string;
-  selfUserId?: string;
+  userId?: string;
   selfChain?: string[];
 }
 
-export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanelV4Props) {
+export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNoDBProps) {
   const tabStorageKey = `v4-admin-tab-${room}`;
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     const saved = localStorage.getItem(tabStorageKey);
@@ -300,7 +300,7 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             setVoiceCallsConfigOpen={roomConfig.setVoiceCallsConfigOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
-            selfId={selfUserId}
+            userId={userId}
             selfChain={selfChain}
           />
         )}
@@ -338,7 +338,7 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
             activeLabels={labels.activeLabels}
             activeAnchors={anchors.activeAnchors}
             room={room}
-            selfUserId={selfUserId}
+            userId={userId}
           />
         )}
         {activeTab === 'moments' && (

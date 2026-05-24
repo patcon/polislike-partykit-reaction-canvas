@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js'
-import type { StoryTracerPoint } from '../../types'
+import type { StoryTracerPoint } from '../../../types'
 
 interface Props {
   points: StoryTracerPoint[]

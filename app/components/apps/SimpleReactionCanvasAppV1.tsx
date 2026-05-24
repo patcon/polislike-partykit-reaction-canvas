@@ -3,8 +3,8 @@ import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../../utils/partyHost";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
-import StatementPanel from "../panels/StatementPanel";
-import AdminPanel from "../panels/AdminPanel";
+import DeprecatedStatementPanel from "../panels/DeprecatedStatementPanel";
+import DeprecatedAdminPanel from "../panels/DeprecatedAdminPanel";
 import type { PolisStatement, QueueItem } from "../../types";
 import { getReactionLabelSet } from "../../voteLabels";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../../utils/voteRegion";
@@ -245,7 +245,7 @@ export default function SimpleReactionCanvasAppV1() {
   if (adminMode) {
     return (
       <div>
-        <AdminPanel room={room} />
+        <DeprecatedAdminPanel room={room} />
       </div>
     );
   }
@@ -254,7 +254,7 @@ export default function SimpleReactionCanvasAppV1() {
 
   return (
     <div className="app-container">
-      <StatementPanel
+      <DeprecatedStatementPanel
         activeStatementId={activeStatementId}
         queue={getQueuedStatements()}
         currentTime={currentTime}

@@ -11,11 +11,11 @@ interface Vote {
   timestamp: number;
 }
 
-interface AdminPanelProps {
+interface DeprecatedAdminPanelProps {
   room: string;
 }
 
-export default function AdminPanel({ room }: AdminPanelProps) {
+export default function DeprecatedAdminPanel({ room }: DeprecatedAdminPanelProps) {
   const [statements, setStatements] = useState<Statement[]>([]);
   const [statementsPool, setStatementsPool] = useState<PolisStatement[]>([]);
   const [allSelectedStatements, setAllSelectedStatements] = useState<QueueItem[]>([]);

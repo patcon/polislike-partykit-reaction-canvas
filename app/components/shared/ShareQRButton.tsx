@@ -5,31 +5,31 @@ import { useWebHaptics } from "web-haptics/react";
 import { appendSelfToChain } from "../../utils/inviteChain";
 import QRWithCopy from "./QRWithCopy";
 
-function getShareUrl(selfId?: string, selfChain?: string[]): string {
+function getShareUrl(userId?: string, selfChain?: string[]): string {
   const p = new URLSearchParams(window.location.search);
   p.delete('forceView');
   p.delete('interface');
   p.delete('admin');
-  if (selfId && selfChain !== undefined) {
-    p.set('inviteChain', appendSelfToChain(selfChain, selfId).join(','));
+  if (userId && selfChain !== undefined) {
+    p.set('inviteChain', appendSelfToChain(selfChain, userId).join(','));
   }
   const qs = p.toString();
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
 }
 
 interface ShareQRButtonProps {
-  selfId?: string;
+  userId?: string;
   selfChain?: string[];
 }
 
-export default function ShareQRButton({ selfId, selfChain }: ShareQRButtonProps = {}) {
+export default function ShareQRButton({ userId, selfChain }: ShareQRButtonProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'share' | 'scan'>('share');
   const [cameraState, setCameraState] = useState<'idle' | 'active' | 'error'>('idle');
   const [foreignDomain, setForeignDomain] = useState<string | null>(null);
   // Enable audio fallback on desktop (no touch) and Apple devices (no navigator.vibrate API)
   const { trigger: triggerHaptic } = useWebHaptics({ debug: navigator.maxTouchPoints === 0 || !WebHaptics.isSupported });
-  const url = getShareUrl(selfId, selfChain);
+  const url = getShareUrl(userId, selfChain);
 
   const handleTabChange = (tab: 'share' | 'scan') => {
     setActiveTab(tab);

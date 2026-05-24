@@ -1,6 +1,6 @@
 import { csvParse } from 'd3';
 import { generateUUID } from './userId';
-import type { MomentSnapshot } from '../components/panels/AdminPanelV4/types';
+import type { MomentSnapshot } from '../components/panels/AdminPanelNoDB/types';
 
 interface PolisVoteRow {
   'comment-id': string;
