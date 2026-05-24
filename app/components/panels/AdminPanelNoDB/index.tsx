@@ -14,7 +14,7 @@ import OfferInterfaceModal from "./OfferInterfaceModal";
 import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
 import PanelSettingsModalReactionCanvas from "./PanelSettingsModalReactionCanvas";
-import PanelSettingsModalVoiceCalls from "./PanelSettingsModalVoiceCalls";
+import PanelSettingsModalVoiceCall from "./PanelSettingsModalVoiceCall";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -298,7 +298,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
             setGreeterConfigOpen={roomConfig.setGreeterConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
-            setVoiceCallsConfigOpen={roomConfig.setVoiceCallsConfigOpen}
+            setVoiceCallConfigOpen={roomConfig.setVoiceCallConfigOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
             userId={userId}
             selfChain={selfChain}
@@ -477,11 +477,11 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
           onClose={() => roomConfig.setGreeterConfigOpen(false)}
         />
       )}
-      {roomConfig.voiceCallsConfigOpen && (
-        <PanelSettingsModalVoiceCalls
+      {roomConfig.voiceCallConfigOpen && (
+        <PanelSettingsModalVoiceCall
           currentAlgorithm={roomConfig.callAlgorithm}
           onSubmit={roomConfig.sendCallAlgorithm}
-          onClose={() => roomConfig.setVoiceCallsConfigOpen(false)}
+          onClose={() => roomConfig.setVoiceCallConfigOpen(false)}
         />
       )}
     </div>

@@ -14,7 +14,7 @@ interface InterfacesTabProps {
   setSocialConfigOpen: (v: boolean) => void;
   setGreeterConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
-  setVoiceCallsConfigOpen: (v: boolean) => void;
+  setVoiceCallConfigOpen: (v: boolean) => void;
   onClearRoleAssignments: () => void;
   userId?: string;
   selfChain?: string[];
@@ -52,13 +52,13 @@ const ROWS: { id: string; label: string; desc: string; patchable: boolean; activ
   { id: 'greeter',      label: 'Greeter',         desc: 'Guild event attendee welcome list',              patchable: true,  activityMode: true  },
   { id: 'steno',        label: 'Steno',           desc: 'Live shared speech-to-text transcript',          patchable: true,  activityMode: true  },
   { id: 'story-tracer', label: 'Story Tracer',   desc: 'Semantic 3D narrative path from VTT transcript',  patchable: true,  activityMode: true  },
-  { id: 'phone',        label: 'Voice calls',    desc: 'Peer-to-peer voice calls via WebRTC',               patchable: true,  activityMode: true  },
+  { id: 'voice-call',        label: 'Voice calls',    desc: 'Peer-to-peer voice calls via WebRTC',               patchable: true,  activityMode: true  },
 ];
 
 export default function InterfacesTab({
   activity, soccerScore,
   sendActivity, resetSoccerScore,
-  setImageConfigOpen, setSocialConfigOpen, setGreeterConfigOpen, setCanvasSettingsOpen, setVoiceCallsConfigOpen,
+  setImageConfigOpen, setSocialConfigOpen, setGreeterConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
   onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
@@ -99,8 +99,8 @@ export default function InterfacesTab({
                   {id === 'greeter' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setGreeterConfigOpen(true); }}><IoMdSettings /></button>
                   )}
-                  {id === 'phone' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setVoiceCallsConfigOpen(true); }}><IoMdSettings /></button>
+                  {id === 'voice-call' && (
+                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setVoiceCallConfigOpen(true); }}><IoMdSettings /></button>
                   )}
                 </td>
                 {/* Solo */}

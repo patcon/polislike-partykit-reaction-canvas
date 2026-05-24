@@ -2,13 +2,13 @@ const ALGORITHM_OPTIONS: { value: string; label: string; description: string }[]
   { value: 'first-available', label: 'First Available', description: 'Paired instantly with the longest-waiting participant (FIFO)' },
 ];
 
-interface PanelSettingsModalVoiceCallsProps {
+interface PanelSettingsModalVoiceCallProps {
   currentAlgorithm: string;
   onSubmit: (algorithm: string) => void;
   onClose: () => void;
 }
 
-export default function PanelSettingsModalVoiceCalls({ currentAlgorithm, onSubmit, onClose }: PanelSettingsModalVoiceCallsProps) {
+export default function PanelSettingsModalVoiceCall({ currentAlgorithm, onSubmit, onClose }: PanelSettingsModalVoiceCallProps) {
   return (
     <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="github-modal">
