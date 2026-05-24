@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
-import { getPartySocketConfig } from '../../utils/partyHost';
-import { useEmbeddingWorker, EMBEDDING_MODELS, REDUCERS, REDUCER_PARAM_DEFS, defaultReducerParams, type EmbeddingModelId, type ReducerAlgorithmId, type ReducerParams } from '../../utils/useEmbeddingWorker';
-import { parseVttCues, computeChunks, getTimestampForWordIndex } from '../../utils/storyTracerUtils';
-import type { StoryTracerMeta, StoryTracerPoint } from '../../types';
+import { getPartySocketConfig } from '../../../utils/partyHost';
+import { useEmbeddingWorker, EMBEDDING_MODELS, REDUCERS, REDUCER_PARAM_DEFS, defaultReducerParams, type EmbeddingModelId, type ReducerAlgorithmId, type ReducerParams } from '../../../utils/useEmbeddingWorker';
+import { parseVttCues, computeChunks, getTimestampForWordIndex } from '../../../utils/storyTracerUtils';
+import type { StoryTracerMeta, StoryTracerPoint } from '../../../types';
 import NarrativePath3D from './NarrativePath3D';
 
 interface StoryTracerPanelProps {

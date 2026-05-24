@@ -1,7 +1,7 @@
 import { useState } from "react";
 import type { ValenceInputMode } from "../../../types";
 
-interface CanvasSettingsModalProps {
+interface PanelSettingsModalReactionCanvasProps {
   showNowLabel: boolean;
   onChangeShowNowLabel: (v: boolean) => void;
   ownValenceDisplay: 'background' | 'labels' | 'none';
@@ -24,7 +24,7 @@ const VALENCE_INPUT_OPTIONS: { value: ValenceInputMode; label: string; descripti
   { value: 'orientation-rotation', label: 'Orientation (Rotation)', description: 'Steering wheel — landscape = pass, rotate right toward portrait = agree, rotate left toward upside-down = disagree' },
 ];
 
-export default function CanvasSettingsModal({ showNowLabel, onChangeShowNowLabel, ownValenceDisplay, onChangeOwnValenceDisplay, valenceInputMode, onChangeValenceInputMode, onClose }: CanvasSettingsModalProps) {
+export default function PanelSettingsModalReactionCanvas({ showNowLabel, onChangeShowNowLabel, ownValenceDisplay, onChangeOwnValenceDisplay, valenceInputMode, onChangeValenceInputMode, onClose }: PanelSettingsModalReactionCanvasProps) {
   const [activeTab, setActiveTab] = useState<'display' | 'input'>('display');
 
   return (

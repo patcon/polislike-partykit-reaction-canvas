@@ -1,8 +1,8 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 
-interface TreevitesProps {
-  selfId: string;
+interface TreevitesPanelProps {
+  userId: string;
   inviteEdges: Record<string, string>; // inviteeId -> inviterId
 }
 
@@ -35,8 +35,8 @@ function countDescendants(node: TreeNode): number {
   return node.children.reduce((sum, child) => sum + 1 + countDescendants(child), 0);
 }
 
-function TreeNodeRow({ node, selfId, depth, showIndent }: { node: TreeNode; selfId: string; depth: number; showIndent: boolean }): ReactNode {
-  const isSelf = node.id === selfId;
+function TreeNodeRow({ node, userId, depth, showIndent }: { node: TreeNode; userId: string; depth: number; showIndent: boolean }): ReactNode {
+  const isSelf = node.id === userId;
   const score = countDescendants(node);
   return (
     <li>
@@ -51,7 +51,7 @@ function TreeNodeRow({ node, selfId, depth, showIndent }: { node: TreeNode; self
       {node.children.length > 0 && (
         <ul className="treevites-children">
           {node.children.map(child => (
-            <TreeNodeRow key={child.id} node={child} selfId={selfId} depth={depth + 1} showIndent={showIndent} />
+            <TreeNodeRow key={child.id} node={child} userId={userId} depth={depth + 1} showIndent={showIndent} />
           ))}
         </ul>
       )}
@@ -59,7 +59,7 @@ function TreeNodeRow({ node, selfId, depth, showIndent }: { node: TreeNode; self
   );
 }
 
-export default function Treevites({ selfId, inviteEdges }: TreevitesProps) {
+export default function TreevitesPanel({ userId, inviteEdges }: TreevitesPanelProps) {
   const [showIndent, setShowIndent] = useState(false);
   const roots = buildTree(inviteEdges);
   const isEmpty = Object.keys(inviteEdges).length === 0;
@@ -83,7 +83,7 @@ export default function Treevites({ selfId, inviteEdges }: TreevitesProps) {
       ) : (
         <ul className="treevites-tree">
           {roots.map(root => (
-            <TreeNodeRow key={root.id} node={root} selfId={selfId} depth={0} showIndent={showIndent} />
+            <TreeNodeRow key={root.id} node={root} userId={userId} depth={0} showIndent={showIndent} />
           ))}
         </ul>
       )}

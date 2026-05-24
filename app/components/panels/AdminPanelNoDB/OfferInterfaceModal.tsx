@@ -58,7 +58,7 @@ export default function OfferInterfaceModal({
           <option value="emcee">emcee</option>
           <option value="steno">steno</option>
           <option value="story-tracer">story-tracer</option>
-          <option value="phone">phone</option>
+          <option value="voice-call">voice-call</option>
         </select>
         <div style={{ display: 'flex', gap: 8 }}>
           <button

@@ -1,10 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import usePartySocket from "partysocket/react";
-import { getPartySocketConfig } from "../../utils/partyHost";
+import { getPartySocketConfig } from "../../../utils/partyHost";
 import { MdKeyboard, MdStopCircle } from "react-icons/md";
-import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
-import { extractPlainText } from "../../utils/vttUtils";
-import { useWakeLock } from "../../utils/useWakeLock";
+import WakeLockIndicatorButton from "../../shared/WakeLockIndicatorButton";
+import { extractPlainText } from "../../../utils/vttUtils";
+import { useWakeLock } from "../../../utils/useWakeLock";
 
 interface StenoPanelProps {
   room: string;

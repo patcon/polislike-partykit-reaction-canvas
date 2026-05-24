@@ -1,14 +1,14 @@
 import React from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import StatementPanel from '../app/components/panels/StatementPanel';
+import DeprecatedStatementPanel from '../app/components/panels/DeprecatedStatementPanel';
 import type { PolisStatement } from '../app/types';
 
 const meta = {
-  title: 'App/StatementPanel',
-  component: StatementPanel,
+  title: 'App/DeprecatedStatementPanel',
+  component: DeprecatedStatementPanel,
   parameters: { layout: 'fullscreen' },
   tags: ['autodocs'],
-} satisfies Meta<typeof StatementPanel>;
+} satisfies Meta<typeof DeprecatedStatementPanel>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -45,7 +45,7 @@ export const WithCountdown: Story = {
   render: () => {
     const now = Date.now();
     return (
-      <StatementPanel
+      <DeprecatedStatementPanel
         activeStatementId={1}
         statementsPool={sampleStatements}
         queue={[{ statementId: 2, displayTimestamp: now + 8000 }]}

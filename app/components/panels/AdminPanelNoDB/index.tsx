@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../../../utils/partyHost";
-import ImageConfigModal from "../../modals/ImageConfigModal";
-import SocialConfigModal from "../../modals/SocialConfigModal";
-import GreeterConfigModal from "../../modals/GreeterConfigModal";
+import PanelSettingsModalImageCanvas from "../../modals/PanelSettingsModalImageCanvas";
+import PanelSettingsModalSocialMedia from "../../modals/PanelSettingsModalSocialMedia";
+import PanelSettingsModalGreeter from "../../modals/PanelSettingsModalGreeter";
 import { useAnchors } from "./hooks/useAnchors";
 import { useLabels } from "./hooks/useLabels";
 import { useRoomConfig } from "./hooks/useRoomConfig";
@@ -13,8 +13,8 @@ import { useParticipants } from "./hooks/useParticipants";
 import OfferInterfaceModal from "./OfferInterfaceModal";
 import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
-import CanvasSettingsModal from "./CanvasSettingsModal";
-import VoiceCallsConfigModal from "./VoiceCallsConfigModal";
+import PanelSettingsModalReactionCanvas from "./PanelSettingsModalReactionCanvas";
+import PanelSettingsModalVoiceCall from "./PanelSettingsModalVoiceCall";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -29,13 +29,13 @@ import type { ReactionLabelSet } from "../../../voteLabels";
 
 const ALL_TABS: AdminTab[] = ['record', 'labels', 'anchors', 'avatars', 'interfaces', 'events', 'participants', 'moments'];
 
-interface AdminPanelV4Props {
+interface AdminPanelNoDBProps {
   room: string;
-  selfUserId?: string;
+  userId?: string;
   selfChain?: string[];
 }
 
-export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanelV4Props) {
+export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNoDBProps) {
   const tabStorageKey = `v4-admin-tab-${room}`;
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     const saved = localStorage.getItem(tabStorageKey);
@@ -298,9 +298,9 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
             setGreeterConfigOpen={roomConfig.setGreeterConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
-            setVoiceCallsConfigOpen={roomConfig.setVoiceCallsConfigOpen}
+            setVoiceCallConfigOpen={roomConfig.setVoiceCallConfigOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
-            selfId={selfUserId}
+            userId={userId}
             selfChain={selfChain}
           />
         )}
@@ -338,7 +338,7 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
             activeLabels={labels.activeLabels}
             activeAnchors={anchors.activeAnchors}
             room={room}
-            selfUserId={selfUserId}
+            userId={userId}
           />
         )}
         {activeTab === 'moments' && (
@@ -443,14 +443,14 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
         />
       )}
       {roomConfig.imageConfigOpen && (
-        <ImageConfigModal
+        <PanelSettingsModalImageCanvas
           currentUrl={roomConfig.roomImageUrl}
           onSubmit={roomConfig.sendImageUrl}
           onClose={() => roomConfig.setImageConfigOpen(false)}
         />
       )}
       {roomConfig.canvasSettingsOpen && (
-        <CanvasSettingsModal
+        <PanelSettingsModalReactionCanvas
           showNowLabel={roomConfig.showNowLabelOnCanvas}
           onChangeShowNowLabel={(v) => {
             roomConfig.setShowNowLabelOnCanvas(v);
@@ -464,24 +464,24 @@ export default function AdminPanelV4({ room, selfUserId, selfChain }: AdminPanel
         />
       )}
       {roomConfig.socialConfigOpen && (
-        <SocialConfigModal
+        <PanelSettingsModalSocialMedia
           current={roomConfig.roomSocialConfig}
           onSubmit={roomConfig.sendSocialConfig}
           onClose={() => roomConfig.setSocialConfigOpen(false)}
         />
       )}
       {roomConfig.greeterConfigOpen && (
-        <GreeterConfigModal
+        <PanelSettingsModalGreeter
           current={roomConfig.greeterConfig}
           onSubmit={roomConfig.sendGreeterConfig}
           onClose={() => roomConfig.setGreeterConfigOpen(false)}
         />
       )}
-      {roomConfig.voiceCallsConfigOpen && (
-        <VoiceCallsConfigModal
+      {roomConfig.voiceCallConfigOpen && (
+        <PanelSettingsModalVoiceCall
           currentAlgorithm={roomConfig.callAlgorithm}
           onSubmit={roomConfig.sendCallAlgorithm}
-          onClose={() => roomConfig.setVoiceCallsConfigOpen(false)}
+          onClose={() => roomConfig.setVoiceCallConfigOpen(false)}
         />
       )}
     </div>

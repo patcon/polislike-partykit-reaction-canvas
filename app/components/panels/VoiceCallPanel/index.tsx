@@ -1,5 +1,5 @@
 /**
- * PhonePanel — WebRTC P2P voice calls via PartyKit signaling
+ * VoiceCallPanel — WebRTC P2P voice calls via PartyKit signaling
  *
  * ─── Audio routing — platform summary ────────────────────────────────────────
  *
@@ -91,7 +91,7 @@ import { getPartySocketConfig } from '../../../utils/partyHost';
 import { useWebRTCCall } from './useWebRTCCall';
 import { useWakeLock } from '../../../utils/useWakeLock';
 
-interface PhonePanelProps {
+interface VoiceCallPanelProps {
   room: string;
   userId: string;
 }
@@ -132,7 +132,7 @@ function enumAudioDevices(): Promise<{ inputs: MediaDeviceInfo[]; outputs: Media
   }));
 }
 
-export default function PhonePanel({ room, userId }: PhonePanelProps) {
+export default function VoiceCallPanel({ room, userId }: VoiceCallPanelProps) {
   const platform = useMemo(() => detectPlatform(), []);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);

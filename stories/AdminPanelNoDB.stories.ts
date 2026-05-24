@@ -1,16 +1,16 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within } from 'storybook/test';
-import AdminPanelV4 from '../app/components/panels/AdminPanelV4';
+import AdminPanelNoDB from '../app/components/panels/AdminPanelNoDB';
 
-// AdminPanelV4 is socket-driven: the PartyKit socket is mocked in Storybook
+// AdminPanelNoDB is socket-driven: the PartyKit socket is mocked in Storybook
 // (no-op, readyState: CLOSED), so server-pushed state (cursors, connected users,
 // room config) never arrives. Stories render the static shell and initial local
 // state only; play functions test local state transitions that don't require
 // server messages.
 
 const meta = {
-  title: 'App/AdminPanelV4',
-  component: AdminPanelV4,
+  title: 'App/AdminPanelNoDB',
+  component: AdminPanelNoDB,
   parameters: {
     layout: 'fullscreen',
     docs: {
@@ -22,7 +22,7 @@ const meta = {
   },
   tags: ['autodocs'],
   args: { room: 'storybook' },
-} satisfies Meta<typeof AdminPanelV4>;
+} satisfies Meta<typeof AdminPanelNoDB>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;

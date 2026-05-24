@@ -14,9 +14,9 @@ interface InterfacesTabProps {
   setSocialConfigOpen: (v: boolean) => void;
   setGreeterConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
-  setVoiceCallsConfigOpen: (v: boolean) => void;
+  setVoiceCallConfigOpen: (v: boolean) => void;
   onClearRoleAssignments: () => void;
-  selfId?: string;
+  userId?: string;
   selfChain?: string[];
 }
 
@@ -27,14 +27,14 @@ const QR_ICON = (
   </svg>
 );
 
-function getPatchUrl(interfaceName: string, selfId?: string, selfChain?: string[]): string {
+function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[]): string {
   const p = new URLSearchParams(window.location.search);
   p.delete('forceView');
   p.delete('admin');
   p.delete('interface');
   p.set('addInterface', interfaceName);
-  if (selfId && selfChain !== undefined) {
-    p.set('inviteChain', appendSelfToChain(selfChain, selfId).join(','));
+  if (userId && selfChain !== undefined) {
+    p.set('inviteChain', appendSelfToChain(selfChain, userId).join(','));
   }
   const qs = p.toString();
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
@@ -52,17 +52,17 @@ const ROWS: { id: string; label: string; desc: string; patchable: boolean; activ
   { id: 'greeter',      label: 'Greeter',         desc: 'Guild event attendee welcome list',              patchable: true,  activityMode: true  },
   { id: 'steno',        label: 'Steno',           desc: 'Live shared speech-to-text transcript',          patchable: true,  activityMode: true  },
   { id: 'story-tracer', label: 'Story Tracer',   desc: 'Semantic 3D narrative path from VTT transcript',  patchable: true,  activityMode: true  },
-  { id: 'phone',        label: 'Voice calls',    desc: 'Peer-to-peer voice calls via WebRTC',               patchable: true,  activityMode: true  },
+  { id: 'voice-call',        label: 'Voice calls',    desc: 'Peer-to-peer voice calls via WebRTC',               patchable: true,  activityMode: true  },
 ];
 
 export default function InterfacesTab({
   activity, soccerScore,
   sendActivity, resetSoccerScore,
-  setImageConfigOpen, setSocialConfigOpen, setGreeterConfigOpen, setCanvasSettingsOpen, setVoiceCallsConfigOpen,
-  onClearRoleAssignments, selfId, selfChain,
+  setImageConfigOpen, setSocialConfigOpen, setGreeterConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
+  onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
-  const patchUrl = patchInterface ? getPatchUrl(patchInterface, selfId, selfChain) : '';
+  const patchUrl = patchInterface ? getPatchUrl(patchInterface, userId, selfChain) : '';
 
   return (
     <div>
@@ -99,8 +99,8 @@ export default function InterfacesTab({
                   {id === 'greeter' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setGreeterConfigOpen(true); }}><IoMdSettings /></button>
                   )}
-                  {id === 'phone' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setVoiceCallsConfigOpen(true); }}><IoMdSettings /></button>
+                  {id === 'voice-call' && (
+                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setVoiceCallConfigOpen(true); }}><IoMdSettings /></button>
                   )}
                 </td>
                 {/* Solo */}

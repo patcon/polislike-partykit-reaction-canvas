@@ -22,7 +22,7 @@ export function useRoomConfig(socket: PartySocket) {
   const [greeterConfigOpen, setGreeterConfigOpen] = useState(false);
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
-  const [voiceCallsConfigOpen, setVoiceCallsConfigOpen] = useState(false);
+  const [voiceCallConfigOpen, setVoiceCallConfigOpen] = useState(false);
   const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available');
 
   const sendAvatarStyle = (style: string | null) => {
@@ -161,7 +161,7 @@ export function useRoomConfig(socket: PartySocket) {
     sendOwnValenceDisplay,
     valenceInputMode, setValenceInputMode,
     sendValenceInputMode,
-    voiceCallsConfigOpen, setVoiceCallsConfigOpen,
+    voiceCallConfigOpen, setVoiceCallConfigOpen,
     callAlgorithm,
     sendCallAlgorithm,
   };

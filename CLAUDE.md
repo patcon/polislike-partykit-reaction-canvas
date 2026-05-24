@@ -90,7 +90,6 @@ When adding a new interface panel (e.g. `my-panel`), always apply all of these b
 2. **`ActivityMode` union** (`app/types.ts`) — add `'my-panel'` so the Solo radio button works.
 3. **`OfferInterfaceModal.tsx`** — add `<option value="my-panel">my-panel</option>` so emcee can push it to participants.
 4. **`ReactionCanvasAppV4.tsx`** — three places:
-   - URL param unlock: `if (p.get('interface') === 'my-panel') interfaces.push('my-panel')`
    - `KNOWN_CHIPS`: `'my-panel': 'My Panel'`
    - Interface chip render: `} : activeInterface === 'my-panel' ? (<MyPanel ... />) : null}`
    - Canvas activity overlay: `{activeInterface === 'canvas' && activity === 'my-panel' && (<MyPanel ... />)}`

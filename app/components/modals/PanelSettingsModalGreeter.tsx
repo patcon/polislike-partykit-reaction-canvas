@@ -1,13 +1,13 @@
 import { useState } from "react";
 import type { GreeterConfig } from "../../types";
 
-interface GreeterConfigModalProps {
+interface PanelSettingsModalGreeterProps {
   onSubmit: (config: GreeterConfig) => void;
   onClose: () => void;
   current?: GreeterConfig | null;
 }
 
-export default function GreeterConfigModal({ onSubmit, onClose, current }: GreeterConfigModalProps) {
+export default function PanelSettingsModalGreeter({ onSubmit, onClose, current }: PanelSettingsModalGreeterProps) {
   const [eventUrl, setEventUrl] = useState(current?.eventUrl ?? 'https://guild.host/civic-tech-toronto');
 
   const handleSave = () => {

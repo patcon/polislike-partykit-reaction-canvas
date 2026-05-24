@@ -2,7 +2,7 @@ import { useState } from "react";
 import { FaXTwitter, FaBluesky, FaMastodon, FaInstagram } from "react-icons/fa6";
 import type { SocialConfig } from "../../../types";
 
-interface SocialPanelProps {
+interface SocialMediaPanelProps {
   socialConfig: SocialConfig | null;
 }
 
@@ -68,7 +68,7 @@ const COPY_BTN: React.CSSProperties = {
   color: '#888',
 };
 
-export default function SocialPanel({ socialConfig }: SocialPanelProps) {
+export default function SocialMediaPanel({ socialConfig }: SocialMediaPanelProps) {
   const [copiedKey, setCopiedKey] = useState<PlatformKey | null>(null);
 
   const visiblePlatforms = socialConfig
