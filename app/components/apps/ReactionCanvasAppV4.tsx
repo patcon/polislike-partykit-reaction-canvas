@@ -80,9 +80,8 @@ const PUSHED_INTERFACES_KEY = 'v4-pushed-interfaces';
 function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
   const interfaces = ['canvas'];
-  // Only emcee is URL-privileged; all other patchable interfaces are localStorage-only
+  // Only emcee is URL-privileged; all other patchable interfaces unlock via ?addInterface= (localStorage-backed)
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
-  if (p.get('interface') === 'voice-call') interfaces.push('voice-call');
   try {
     const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
     if (Array.isArray(stored)) {
