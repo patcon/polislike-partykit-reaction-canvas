@@ -2,9 +2,9 @@ import { runReducer } from 'reddwarf-ts';
 import type { DruidWorkerCommand } from './druidWorker.types';
 
 self.onmessage = (evt: MessageEvent<DruidWorkerCommand>) => {
-  const { matrix, algorithm, params } = evt.data;
+  const { matrix, algorithm, params, knnBackend, knnParams } = evt.data;
   try {
-    for (const event of runReducer({ type: 'reduce', matrix, algorithm, params })) {
+    for (const event of runReducer({ type: 'reduce', matrix, algorithm, params, knnBackend, knnParams })) {
       self.postMessage(event);
       if (event.type === 'done' || event.type === 'error') break;
     }

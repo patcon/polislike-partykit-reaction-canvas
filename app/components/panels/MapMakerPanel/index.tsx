@@ -1,7 +1,17 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
-import { imputeColumnMeans, defaultParamsFor, REDUCER_PARAM_DEFS } from 'reddwarf-ts';
-import type { ReducerAlgorithm } from 'reddwarf-ts';
+import {
+  imputeColumnMeans,
+  defaultParamsFor,
+  defaultAdvancedParamsFor,
+  defaultKnnParamsFor,
+  REDUCER_PARAM_DEFS,
+  REDUCER_ADVANCED_PARAM_DEFS,
+  KNN_BACKENDS,
+  KNN_BACKEND_ALGORITHMS,
+  KNN_PARAM_DEFS,
+} from 'reddwarf-ts';
+import type { KnnBackend, ReducerAlgorithm } from 'reddwarf-ts';
 import { getPartySocketConfig } from '../../../utils/partyHost';
 import { idbGet } from '../../../utils/idbStorage';
 import type { MomentSnapshot } from '../AdminPanelNoDB/types';
@@ -47,6 +57,12 @@ function buildMatrix(moments: MomentSnapshot[]): { matrix: number[][]; participa
 export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
   const [algorithm, setAlgorithm] = useState<ReducerAlgorithm>('umap');
   const [params, setParams] = useState<Record<string, number>>(() => defaultParamsFor('umap'));
+  const [advancedParams, setAdvancedParams] = useState<Record<string, number>>(() => defaultAdvancedParamsFor('umap'));
+  const [knnBackend, setKnnBackend] = useState<KnnBackend>('annoy');
+  const [knnParamsByBackend, setKnnParamsByBackend] = useState<Record<KnnBackend, Record<string, number>>>(() => ({
+    annoy: defaultKnnParamsFor('annoy'),
+    hnsw: defaultKnnParamsFor('hnsw'),
+  }));
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
   const [status, setStatus] = useState<RunStatus>('idle');
   const [progress, setProgress] = useState<number | null>(null);
@@ -112,8 +128,17 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
       setStatus('error');
     };
 
-    worker.postMessage({ type: 'reduce', matrix, algorithm, params });
-  }, [status, moments, algorithm, params, socket, userId]);
+    const hasKnn = KNN_BACKEND_ALGORITHMS.includes(algorithm);
+    const allParams = { ...params, ...advancedParams };
+    worker.postMessage({
+      type: 'reduce',
+      matrix,
+      algorithm,
+      params: allParams,
+      knnBackend: hasKnn ? knnBackend : undefined,
+      knnParams: hasKnn ? knnParamsByBackend[knnBackend] : undefined,
+    });
+  }, [status, moments, algorithm, params, advancedParams, knnBackend, knnParamsByBackend, socket, userId]);
 
   const handleClear = () => {
     workerRef.current?.terminate();
@@ -151,7 +176,7 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
           {ALGORITHMS.map(({ id, label }) => (
             <button
               key={id}
-              onClick={() => { setAlgorithm(id); setParams(defaultParamsFor(id)); }}
+              onClick={() => { setAlgorithm(id); setParams(defaultParamsFor(id)); setAdvancedParams(defaultAdvancedParamsFor(id)); }}
               disabled={status === 'running'}
               style={{
                 padding: '6px 14px',
@@ -190,6 +215,84 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
           </label>
         ))}
       </div>
+
+      <details style={{ marginBottom: 16 }}>
+        <summary style={{ fontSize: 12, color: '#888', cursor: 'pointer', userSelect: 'none', marginBottom: 8, listStyle: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+          <span style={{ fontSize: 10, display: 'inline-block', transition: 'transform 0.15s' }}>›</span>
+          Advanced
+        </summary>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 8 }}>
+          {Object.entries(REDUCER_ADVANCED_PARAM_DEFS[algorithm]).map(([key, def]) => (
+            <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+              <span style={{ color: '#888', width: 120, flexShrink: 0 }}>{def.label}</span>
+              <input
+                type="range"
+                min={def.min}
+                max={def.max}
+                step={def.step}
+                value={advancedParams[key] ?? def.default}
+                disabled={status === 'running'}
+                onChange={e => setAdvancedParams(p => ({ ...p, [key]: parseFloat(e.target.value) }))}
+                style={{ flex: 1, accentColor: '#4a8' }}
+              />
+              <span style={{ color: '#ccc', width: 48, textAlign: 'right', flexShrink: 0 }}>
+                {advancedParams[key] ?? def.default}
+              </span>
+            </label>
+          ))}
+
+          {KNN_BACKEND_ALGORITHMS.includes(algorithm) && (
+            <>
+              <div style={{ marginTop: 4 }}>
+                <div style={{ fontSize: 12, color: '#888', marginBottom: 6 }}>KNN backend</div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {KNN_BACKENDS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      onClick={() => setKnnBackend(value)}
+                      disabled={status === 'running'}
+                      style={{
+                        padding: '4px 12px',
+                        borderRadius: 6,
+                        border: '1px solid',
+                        borderColor: knnBackend === value ? '#4a8' : '#444',
+                        background: knnBackend === value ? '#1a3a28' : 'none',
+                        color: knnBackend === value ? '#8c8' : '#888',
+                        fontSize: 12,
+                        cursor: status === 'running' ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {Object.entries(KNN_PARAM_DEFS[knnBackend]).map(([key, def]) => (
+                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 12 }}>
+                  <span style={{ color: '#888', width: 120, flexShrink: 0 }}>{def.label}</span>
+                  <input
+                    type="range"
+                    min={def.min}
+                    max={def.max}
+                    step={def.step}
+                    value={knnParamsByBackend[knnBackend][key] ?? def.default}
+                    disabled={status === 'running'}
+                    onChange={e => setKnnParamsByBackend(prev => ({
+                      ...prev,
+                      [knnBackend]: { ...prev[knnBackend], [key]: parseFloat(e.target.value) },
+                    }))}
+                    style={{ flex: 1, accentColor: '#4a8' }}
+                  />
+                  <span style={{ color: '#ccc', width: 48, textAlign: 'right', flexShrink: 0 }}>
+                    {knnParamsByBackend[knnBackend][key] ?? def.default}
+                  </span>
+                </label>
+              ))}
+            </>
+          )}
+        </div>
+      </details>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
         <button

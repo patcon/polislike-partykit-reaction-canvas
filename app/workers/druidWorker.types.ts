@@ -1,12 +1,14 @@
-import type { ReducerAlgorithm } from 'reddwarf-ts';
+import type { KnnBackend, ReducerAlgorithm } from 'reddwarf-ts';
 
-export type { ReducerAlgorithm };
+export type { KnnBackend, ReducerAlgorithm };
 
 export type DruidWorkerCommand = {
   type: 'reduce';
   matrix: number[][];
   algorithm: ReducerAlgorithm;
   params: Record<string, number>;
+  knnBackend?: KnnBackend;
+  knnParams?: Record<string, number>;
 };
 
 export type DruidWorkerEvent =

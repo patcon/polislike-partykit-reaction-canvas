@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Moments: migrate storage from localStorage to IndexedDB** — importing large Polis CSVs no longer throws `QuotaExceededError`; moments are now stored in IndexedDB (no practical size limit) via a new `app/utils/idbStorage.ts` helper.
 
 ### Added
+- **MapMakerPanel: advanced settings** — collapsible Advanced section exposes algorithm-specific tuning params (epochs, seed, learning rate, repulsion strength, etc.) and KNN backend options (Annoy / HNSW with their own param sliders) for PaCMAP and LocalMAP algorithms; backend selection and params are wired through to the reduction worker.
 - **MapMakerPanel** — new emcee-facing interface that reads moment data (including Polis CSV imports), builds a sparse participant × moment vote matrix, mean-imputes missing values, and reduces it to 2D using UMAP, PaCMAP, or LocalMAP (via reddwarf-ts). The reduction runs in a dedicated esbuild Web Worker (`druidWorker.ts`) to keep the UI responsive. Progress bar updates every 10 iterations. On completion, the 2D projection is broadcast to all connected clients via server state.
 - **MapViewerPanel** — participant-facing interface that receives the computed projection from server state and renders a minimal D3 scatter plot (zoom/pan supported). Shows a placeholder when no projection has been computed yet. Both panels appear in the Interfaces tab and OfferInterfaceModal.
 
