@@ -2,14 +2,25 @@ import { useState, useEffect, useRef } from 'react';
 import usePartySocket from 'partysocket/react';
 import * as d3 from 'd3';
 import { getPartySocketConfig } from '../../../utils/partyHost';
-import type { MapProjection } from '../../../types';
+import { idbGet } from '../../../utils/idbStorage';
+import type { MapProjection, MapViewerConfig } from '../../../types';
+import type { MomentSnapshot } from '../AdminPanelNoDB/types';
+
+const VOTE_COLORS: Record<string, string> = {
+  positive: '#2ecc71',
+  negative: '#e74c3c',
+  neutral:  '#f1c40f',
+};
+const MISSING_COLOR = '#b0b0b0';
+const DEFAULT_COLOR = '#4a8';
 
 interface MapViewerPanelProps {
   room: string;
   userId: string;
+  config?: MapViewerConfig | null;
 }
 
-function ScatterPlot({ data, selfId }: { data: [string, [number, number]][]; selfId: string }) {
+function ScatterPlot({ data, selfId, colorById }: { data: [string, [number, number]][]; selfId: string; colorById?: Record<string, string> }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
 
@@ -33,9 +44,12 @@ function ScatterPlot({ data, selfId }: { data: [string, [number, number]][]; sel
       .attr('cx', ([, [x]]) => xScale(x))
       .attr('cy', ([, [, y]]) => yScale(y))
       .attr('r', 5)
-      .attr('fill', '#4a8')
+      .attr('fill', ([id]) => colorById ? (colorById[id] ?? MISSING_COLOR) : DEFAULT_COLOR)
       .attr('fill-opacity', 0.7)
-      .attr('stroke', '#2a6')
+      .attr('stroke', ([id]) => {
+        const c = colorById ? (colorById[id] ?? MISSING_COLOR) : DEFAULT_COLOR;
+        return d3.color(c)?.darker(0.5)?.toString() ?? c;
+      })
       .attr('stroke-width', 0.5);
 
     // GPS dot: pulsing halo + solid blue dot
@@ -76,7 +90,7 @@ function ScatterPlot({ data, selfId }: { data: [string, [number, number]][]; sel
     svg.call(zoom);
 
     return () => { svg.on('.zoom', null); };
-  }, [data, selfId]);
+  }, [data, selfId, colorById]);
 
   return (
     <svg
@@ -88,8 +102,26 @@ function ScatterPlot({ data, selfId }: { data: [string, [number, number]][]; sel
   );
 }
 
-export default function MapViewerPanel({ room, userId }: MapViewerPanelProps) {
+export default function MapViewerPanel({ room, userId, config }: MapViewerPanelProps) {
   const [mapProjection, setMapProjection] = useState<MapProjection | null>(null);
+  const [moments, setMoments] = useState<MomentSnapshot[]>([]);
+
+  useEffect(() => {
+    idbGet<MomentSnapshot[]>(`v4-moments-${room}`).then(stored => {
+      if (stored) setMoments(stored);
+    });
+  }, [room]);
+
+  const colorById: Record<string, string> | undefined = (() => {
+    if (!config || config.colorMode !== 'moment' || !config.momentId) return undefined;
+    const moment = moments.find(m => m.id === config.momentId);
+    if (!moment) return undefined;
+    const map: Record<string, string> = {};
+    for (const [uid, region] of Object.entries(moment.regions)) {
+      map[uid] = region ? (VOTE_COLORS[region] ?? MISSING_COLOR) : MISSING_COLOR;
+    }
+    return map;
+  })();
 
   usePartySocket({
     ...getPartySocketConfig(),
@@ -115,13 +147,28 @@ export default function MapViewerPanel({ room, userId }: MapViewerPanelProps) {
     );
   }
 
+  const activeMoment = config?.colorMode === 'moment' && config.momentId
+    ? moments.find(m => m.id === config.momentId)
+    : null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <div style={{ padding: '8px 16px', fontSize: 11, color: '#555', background: '#111', flexShrink: 0 }}>
-        {mapProjection.algorithm.toUpperCase()} · {mapProjection.coords.length} participants · {new Date(mapProjection.computedAt).toLocaleString()}
+      <div style={{ padding: '8px 16px', fontSize: 11, color: '#555', background: '#111', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span>{mapProjection.algorithm.toUpperCase()} · {mapProjection.coords.length} participants · {new Date(mapProjection.computedAt).toLocaleString()}</span>
+        {activeMoment && (
+          <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <span style={{ color: '#777' }}>{activeMoment.label || 'moment'}</span>
+            {([['positive', '#2ecc71', 'agree'], ['negative', '#e74c3c', 'disagree'], ['neutral', '#f1c40f', 'pass'], ['missing', '#b0b0b0', 'missing']] as [string, string, string][]).map(([, color, label]) => (
+              <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                <span>{label}</span>
+              </span>
+            ))}
+          </span>
+        )}
       </div>
       <div style={{ flex: 1, overflow: 'hidden' }}>
-        <ScatterPlot data={mapProjection.coords} selfId={userId} />
+        <ScatterPlot data={mapProjection.coords} selfId={userId} colorById={colorById} />
       </div>
     </div>
   );

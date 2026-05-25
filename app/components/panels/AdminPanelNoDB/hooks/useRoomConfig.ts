@@ -23,6 +23,7 @@ export function useRoomConfig(socket: PartySocket) {
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
   const [voiceCallConfigOpen, setVoiceCallConfigOpen] = useState(false);
+  const [mapViewerConfigOpen, setMapViewerConfigOpen] = useState(false);
   const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available');
 
   const sendAvatarStyle = (style: string | null) => {
@@ -164,5 +165,6 @@ export function useRoomConfig(socket: PartySocket) {
     voiceCallConfigOpen, setVoiceCallConfigOpen,
     callAlgorithm,
     sendCallAlgorithm,
+    mapViewerConfigOpen, setMapViewerConfigOpen,
   };
 }

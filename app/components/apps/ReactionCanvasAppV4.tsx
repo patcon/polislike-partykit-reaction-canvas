@@ -8,7 +8,7 @@ import InterfaceChipBar from "../shared/InterfaceChipBar";
 import SocialMediaPanel from "../panels/SocialMediaPanel";
 import MoodTonesPanel from "../panels/MoodTonesPanel";
 import GreeterPanel from "../panels/GreeterPanel";
-import type { ActivityMode, GreeterConfig, SocialConfig, ValenceInputMode } from "../../types";
+import type { ActivityMode, GreeterConfig, MapViewerConfig, SocialConfig, ValenceInputMode } from "../../types";
 import GithubUsernameModal from "../modals/GithubUsernameModal";
 import FeedbackStarsModal from "../modals/FeedbackStarsModal";
 import InterfacePushModal from "../modals/InterfacePushModal";
@@ -164,6 +164,7 @@ export default function ReactionCanvasAppV4() {
   const [serverImageUrl, setServerImageUrl] = useState('');
   const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
   const [serverGreeterConfig, setServerGreeterConfig] = useState<GreeterConfig | null>(null);
+  const [mapViewerConfig, setMapViewerConfig] = useState<MapViewerConfig | null>(null);
   const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
@@ -371,7 +372,7 @@ export default function ReactionCanvasAppV4() {
         />
       )}
       {activeInterface === 'emcee' ? (
-        <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} />
+        <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} onMapViewerConfigChange={setMapViewerConfig} />
       ) : activeInterface === 'social' ? (
         <SocialMediaPanel socialConfig={serverSocialConfig} />
       ) : activeInterface === 'mood-tones' ? (
@@ -389,7 +390,7 @@ export default function ReactionCanvasAppV4() {
       ) : activeInterface === 'map-maker' ? (
         <MapMakerPanel room={room} userId={userId} />
       ) : activeInterface === 'map-viewer' ? (
-        <MapViewerPanel room={room} userId={userId} />
+        <MapViewerPanel room={room} userId={userId} config={mapViewerConfig} />
       ) : null}
       {/* When activity is 'social', show SocialMediaPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).
@@ -419,7 +420,7 @@ export default function ReactionCanvasAppV4() {
         <MapMakerPanel room={room} userId={userId} />
       )}
       {activeInterface === 'canvas' && activity === 'map-viewer' && (
-        <MapViewerPanel room={room} userId={userId} />
+        <MapViewerPanel room={room} userId={userId} config={mapViewerConfig} />
       )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
       <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter' && activity !== 'steno' && activity !== 'story-tracer' && activity !== 'voice-call' && activity !== 'map-maker' && activity !== 'map-viewer') ? undefined : 'none' }}>

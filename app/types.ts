@@ -59,6 +59,11 @@ export interface GreeterConfig {
   eventUrl: string;
 }
 
+export interface MapViewerConfig {
+  colorMode: 'none' | 'moment';
+  momentId: string | null;
+}
+
 export interface SocialConfig {
   default: string;
   twitter: string;
