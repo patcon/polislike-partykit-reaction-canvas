@@ -154,7 +154,7 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
       for (const [id] of mapProjection.coords) {
         const cursor = liveCursors.get(id);
         if (cursor) {
-          const region = computeReactionRegion(cursor.x / 100, cursor.y / 100, effectiveAnchors);
+          const region = computeReactionRegion(cursor.x, cursor.y, effectiveAnchors);
           map[id] = region ? (VOTE_COLORS[region] ?? CONNECTED_IDLE_COLOR) : CONNECTED_IDLE_COLOR;
         } else if (connectedUserIds.includes(id)) {
           map[id] = CONNECTED_IDLE_COLOR;
