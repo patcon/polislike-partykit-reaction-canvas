@@ -47,6 +47,16 @@ export function valenceToPosition(valence: number, anchors: ReactionAnchors): { 
   }
 }
 
+/**
+ * Returns the reaction region ('positive', 'negative', 'neutral') that a cursor
+ * position falls closest to, using barycentric coordinates relative to the three
+ * anchor points. Returns null only if the barycentric weights are all equal (exact
+ * centroid with degenerate anchors).
+ *
+ * @param normalizedX - X position in 0–100 canvas space (divided by 100 internally)
+ * @param normalizedY - Y position in 0–100 canvas space (divided by 100 internally)
+ * @param anchors - Anchor positions in 0–100 canvas space; defaults to DEFAULT_ANCHORS
+ */
 export function computeReactionRegion(normalizedX: number, normalizedY: number, anchors: ReactionAnchors = DEFAULT_ANCHORS): ReactionRegion {
   const x = normalizedX / 100;
   const y = normalizedY / 100;
