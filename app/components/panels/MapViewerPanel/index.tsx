@@ -38,7 +38,17 @@ function ScatterPlot({ data, selfId, colorById }: { data: [string, [number, numb
     const xScale = d3.scaleLinear().domain([Math.min(...xs), Math.max(...xs)]).range([20, width - 20]);
     const yScale = d3.scaleLinear().domain([Math.min(...ys), Math.max(...ys)]).range([20, height - 20]);
 
-    const others = data.filter(([id]) => id !== selfId);
+    const others = data
+      .filter(([id]) => id !== selfId)
+      .sort(([a], [b]) => {
+        const priority = (id: string) => {
+          const c = colorById?.[id];
+          if (!c || c === DISCONNECTED_COLOR) return 0;
+          if (c === CONNECTED_IDLE_COLOR) return 1;
+          return 2;
+        };
+        return priority(a) - priority(b);
+      });
     const self = data.find(([id]) => id === selfId);
 
     g.selectAll<SVGCircleElement, [string, [number, number]]>('circle.peer')
