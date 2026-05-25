@@ -3,6 +3,8 @@ import usePartySocket from 'partysocket/react';
 import * as d3 from 'd3';
 import { getPartySocketConfig } from '../../../utils/partyHost';
 import { idbGet } from '../../../utils/idbStorage';
+import { computeReactionRegion, DEFAULT_ANCHORS } from '../../../utils/voteRegion';
+import type { ReactionAnchors } from '../../../utils/voteRegion';
 import type { MapProjection, MapViewerConfig } from '../../../types';
 import type { MomentSnapshot } from '../AdminPanelNoDB/types';
 
@@ -13,6 +15,8 @@ const VOTE_COLORS: Record<string, string> = {
 };
 const MISSING_COLOR = '#b0b0b0';
 const DEFAULT_COLOR = '#4a8';
+const CONNECTED_IDLE_COLOR = '#888';
+const DISCONNECTED_COLOR = '#333';
 
 interface MapViewerPanelProps {
   room: string;
@@ -105,6 +109,16 @@ function ScatterPlot({ data, selfId, colorById }: { data: [string, [number, numb
 export default function MapViewerPanel({ room, userId, config }: MapViewerPanelProps) {
   const [mapProjection, setMapProjection] = useState<MapProjection | null>(null);
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
+  const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
+  const [liveCursors, setLiveCursors] = useState<Map<string, { x: number; y: number }>>(new Map());
+  const [anchors, setAnchors] = useState<ReactionAnchors | null>(null);
+  const cursorTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  useEffect(() => {
+    return () => {
+      cursorTimers.current.forEach(t => clearTimeout(t));
+    };
+  }, []);
 
   useEffect(() => {
     idbGet<MomentSnapshot[]>(`v4-moments-${room}`).then(stored => {
@@ -113,14 +127,34 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
   }, [room]);
 
   const colorById: Record<string, string> | undefined = (() => {
-    if (!config || config.colorMode !== 'moment' || !config.momentId) return undefined;
-    const moment = moments.find(m => m.id === config.momentId);
-    if (!moment) return undefined;
-    const map: Record<string, string> = {};
-    for (const [uid, region] of Object.entries(moment.regions)) {
-      map[uid] = region ? (VOTE_COLORS[region] ?? MISSING_COLOR) : MISSING_COLOR;
+    if (!config) return undefined;
+    if (config.colorMode === 'moment') {
+      if (!config.momentId) return undefined;
+      const moment = moments.find(m => m.id === config.momentId);
+      if (!moment) return undefined;
+      const map: Record<string, string> = {};
+      for (const [uid, region] of Object.entries(moment.regions)) {
+        map[uid] = region ? (VOTE_COLORS[region] ?? MISSING_COLOR) : MISSING_COLOR;
+      }
+      return map;
     }
-    return map;
+    if (config.colorMode === 'now' && mapProjection) {
+      const effectiveAnchors = anchors ?? DEFAULT_ANCHORS;
+      const map: Record<string, string> = {};
+      for (const [id] of mapProjection.coords) {
+        const cursor = liveCursors.get(id);
+        if (cursor) {
+          const region = computeReactionRegion(cursor.x / 100, cursor.y / 100, effectiveAnchors);
+          map[id] = region ? (VOTE_COLORS[region] ?? CONNECTED_IDLE_COLOR) : CONNECTED_IDLE_COLOR;
+        } else if (connectedUserIds.includes(id)) {
+          map[id] = CONNECTED_IDLE_COLOR;
+        } else {
+          map[id] = DISCONNECTED_COLOR;
+        }
+      }
+      return map;
+    }
+    return undefined;
   })();
 
   usePartySocket({
@@ -131,10 +165,45 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
       const data = JSON.parse(evt.data);
       if (data.type === 'connected') {
         setMapProjection(data.mapProjection ?? null);
+        if (data.connectedUserIds) setConnectedUserIds(data.connectedUserIds);
+        if (data.roomAnchors) setAnchors(data.roomAnchors);
         return;
       }
       if (data.type === 'mapProjectionChanged') {
         setMapProjection(data.projection ?? null);
+        return;
+      }
+      if (data.type === 'roomAnchorsChanged') {
+        setAnchors(data.anchors ?? null);
+        return;
+      }
+      if (data.type === 'userJoined') {
+        setConnectedUserIds(prev => prev.includes(data.userId) ? prev : [...prev, data.userId]);
+        return;
+      }
+      if (data.type === 'userLeft') {
+        setConnectedUserIds(prev => prev.filter(id => id !== data.userId));
+        setLiveCursors(prev => { const next = new Map(prev); next.delete(data.userId); return next; });
+        return;
+      }
+      if (data.type === 'move' || data.type === 'touch') {
+        const { userId: uid, x, y } = data.position;
+        setLiveCursors(prev => new Map(prev).set(uid, { x, y }));
+        const existing = cursorTimers.current.get(uid);
+        if (existing) clearTimeout(existing);
+        cursorTimers.current.set(uid, setTimeout(() => {
+          setLiveCursors(prev => { const next = new Map(prev); next.delete(uid); return next; });
+          cursorTimers.current.delete(uid);
+        }, 3000));
+        return;
+      }
+      if (data.type === 'remove') {
+        const uid = data.position?.userId;
+        if (uid) {
+          setLiveCursors(prev => { const next = new Map(prev); next.delete(uid); return next; });
+          const t = cursorTimers.current.get(uid);
+          if (t) { clearTimeout(t); cursorTimers.current.delete(uid); }
+        }
       }
     },
   });
@@ -150,6 +219,7 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
   const activeMoment = config?.colorMode === 'moment' && config.momentId
     ? moments.find(m => m.id === config.momentId)
     : null;
+  const showNowLegend = config?.colorMode === 'now';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
@@ -158,7 +228,18 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
         {activeMoment && (
           <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <span style={{ color: '#777' }}>{activeMoment.label || 'moment'}</span>
-            {([['positive', '#2ecc71', 'agree'], ['negative', '#e74c3c', 'disagree'], ['neutral', '#f1c40f', 'pass'], ['missing', '#b0b0b0', 'missing']] as [string, string, string][]).map(([, color, label]) => (
+            {([['#2ecc71', 'agree'], ['#e74c3c', 'disagree'], ['#f1c40f', 'pass'], ['#b0b0b0', 'missing']] as [string, string][]).map(([color, label]) => (
+              <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
+                <span>{label}</span>
+              </span>
+            ))}
+          </span>
+        )}
+        {showNowLegend && (
+          <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+            <span style={{ color: '#777' }}>live</span>
+            {([['#2ecc71', 'agree'], ['#e74c3c', 'disagree'], ['#f1c40f', 'pass'], ['#888', 'idle'], ['#444', 'offline']] as [string, string][]).map(([color, label]) => (
               <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
                 <span>{label}</span>

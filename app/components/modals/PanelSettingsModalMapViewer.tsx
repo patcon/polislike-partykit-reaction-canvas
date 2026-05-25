@@ -11,7 +11,7 @@ interface PanelSettingsModalMapViewerProps {
 }
 
 export default function PanelSettingsModalMapViewer({ room, current, onSubmit, onClose }: PanelSettingsModalMapViewerProps) {
-  const [colorMode, setColorMode] = useState<'none' | 'moment'>(current?.colorMode ?? 'none');
+  const [colorMode, setColorMode] = useState<'none' | 'moment' | 'now'>(current?.colorMode ?? 'none');
   const [momentId, setMomentId] = useState<string | null>(current?.momentId ?? null);
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
 
@@ -26,6 +26,8 @@ export default function PanelSettingsModalMapViewer({ room, current, onSubmit, o
     onClose();
   };
 
+  const showVoteLegend = colorMode === 'moment' || colorMode === 'now';
+
   return (
     <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="github-modal">
@@ -37,11 +39,12 @@ export default function PanelSettingsModalMapViewer({ room, current, onSubmit, o
             <select
               className="github-modal-input"
               value={colorMode}
-              onChange={e => setColorMode(e.target.value as 'none' | 'moment')}
+              onChange={e => setColorMode(e.target.value as 'none' | 'moment' | 'now')}
               style={{ cursor: 'pointer' }}
             >
               <option value="none">None (uniform color)</option>
-              <option value="moment">Moment (agree/disagree/pass)</option>
+              <option value="moment">Valence: Moments</option>
+              <option value="now">Valence: Now</option>
             </select>
           </label>
 
@@ -66,8 +69,8 @@ export default function PanelSettingsModalMapViewer({ room, current, onSubmit, o
             </label>
           )}
 
-          {colorMode === 'moment' && (
-            <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888', alignItems: 'center' }}>
+          {showVoteLegend && (
+            <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888', alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2ecc71', display: 'inline-block' }} /> agree
               </span>
@@ -77,9 +80,21 @@ export default function PanelSettingsModalMapViewer({ room, current, onSubmit, o
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                 <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f1c40f', display: 'inline-block' }} /> pass
               </span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#b0b0b0', display: 'inline-block' }} /> missing
-              </span>
+              {colorMode === 'moment' && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#b0b0b0', display: 'inline-block' }} /> missing
+                </span>
+              )}
+              {colorMode === 'now' && (
+                <>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#888', display: 'inline-block' }} /> idle
+                  </span>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#444', display: 'inline-block' }} /> offline
+                  </span>
+                </>
+              )}
             </div>
           )}
         </div>

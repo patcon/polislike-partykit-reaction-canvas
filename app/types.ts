@@ -60,7 +60,7 @@ export interface GreeterConfig {
 }
 
 export interface MapViewerConfig {
-  colorMode: 'none' | 'moment';
+  colorMode: 'none' | 'moment' | 'now';
   momentId: string | null;
 }
 
