@@ -574,9 +574,15 @@ export default class Server implements Party.Server {
     this.adminConnectionIds.delete(conn.id);
     this.viewerConnectionIds.delete(conn.id);
     this.connectionUserMap.delete(conn.id);
-    if (userId) this.cursorPositions.delete(userId);
 
-    if (!isAdmin && userId) {
+    // Only treat the user as gone if this was their last connection
+    const userStillConnected = userId
+      ? [...this.connectionUserMap.values()].some(uid => uid === userId)
+      : false;
+
+    if (userId && !userStillConnected) this.cursorPositions.delete(userId);
+
+    if (!isAdmin && userId && !userStillConnected) {
       this.room.broadcast(JSON.stringify({ type: 'userLeft', userId, wasViewer }));
       if (this.stenoLockUserId === userId) {
         this.stenoLockUserId = null;
