@@ -35,10 +35,11 @@ interface AdminPanelNoDBProps {
   room: string;
   userId?: string;
   selfChain?: string[];
+  mapViewerConfig?: MapViewerConfig | null;
   onMapViewerConfigChange?: (config: MapViewerConfig) => void;
 }
 
-export default function AdminPanelNoDB({ room, userId, selfChain, onMapViewerConfigChange }: AdminPanelNoDBProps) {
+export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfig, onMapViewerConfigChange }: AdminPanelNoDBProps) {
   const tabStorageKey = `v4-admin-tab-${room}`;
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     const saved = localStorage.getItem(tabStorageKey);
@@ -491,7 +492,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain, onMapViewerCon
       {roomConfig.mapViewerConfigOpen && (
         <PanelSettingsModalMapViewer
           room={room}
-          current={null}
+          current={mapViewerConfig ?? null}
           onSubmit={(config) => { onMapViewerConfigChange?.(config); }}
           onClose={() => roomConfig.setMapViewerConfigOpen(false)}
         />

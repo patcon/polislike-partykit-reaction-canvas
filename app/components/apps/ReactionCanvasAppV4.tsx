@@ -372,7 +372,7 @@ export default function ReactionCanvasAppV4() {
         />
       )}
       {activeInterface === 'emcee' ? (
-        <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} onMapViewerConfigChange={setMapViewerConfig} />
+        <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} mapViewerConfig={mapViewerConfig} onMapViewerConfigChange={setMapViewerConfig} />
       ) : activeInterface === 'social' ? (
         <SocialMediaPanel socialConfig={serverSocialConfig} />
       ) : activeInterface === 'mood-tones' ? (
