@@ -187,6 +187,10 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
     history[prev.idx] = { ...history[prev.idx], flipY: !history[prev.idx].flipY };
     return { ...prev, history };
   });
+  const clearHistory = () => setProjState(prev => {
+    if (prev.idx < 0) return prev;
+    return { history: [prev.history[prev.idx]], idx: 0 };
+  });
 
   useEffect(() => {
     return () => {
@@ -346,6 +350,7 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
           {projState.idx + 1}/{projState.history.length}
         </span>
         <button onClick={goForward} disabled={!canGoForward} title="Next projection" style={btnStyle(false, !canGoForward)}>›</button>
+        <button onClick={clearHistory} disabled={projState.history.length <= 1} title="Clear history" style={btnStyle(false, projState.history.length <= 1)}>×</button>
         <span style={{ width: 6 }} />
         <button onClick={toggleFlipX} title="Flip horizontal" style={btnStyle(flipX)}>↔</button>
         <button onClick={toggleFlipY} title="Flip vertical" style={btnStyle(flipY)}>↕</button>
