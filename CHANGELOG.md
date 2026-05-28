@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Moments: migrate storage from localStorage to IndexedDB** — importing large Polis CSVs no longer throws `QuotaExceededError`; moments are now stored in IndexedDB (no practical size limit) via a new `app/utils/idbStorage.ts` helper.
 
 ### Added
+- **MapViewerPanel: animate dot positions** — scatter plot dots now smoothly transition to their new coordinates (400 ms) when a new projection is pushed; entering dots snap into position immediately.
 - **MapViewerPanel: Valence: Now color mode** — new live coloring option in the Map Viewer config modal; colors each participant dot by their current reaction in real time (green=agree, red=disagree, yellow=pass, gray=idle/not touching, dark gray=offline). Dots return to idle after 3 s with no cursor activity. Existing "Moment" mode renamed to "Valence: Moments".
 - **MapViewerPanel: color-by-moment** — gear icon in Interfaces tab opens a config modal; choose "None" (uniform dots) or "Valence: Moments" (select a moment to color participants by their vote: green=agree, red=disagree, yellow=pass, gray=missing). Active moment name and color legend shown in the panel header.
 - **MapMakerPanel: advanced settings** — collapsible Advanced section exposes algorithm-specific tuning params (epochs, seed, learning rate, repulsion strength, etc.) and KNN backend options (Annoy / HNSW with their own param sliders) for PaCMAP and LocalMAP algorithms; backend selection and params are wired through to the reduction worker.

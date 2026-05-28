@@ -38,6 +38,8 @@ function ScatterPlot({ data, selfId, colorById }: { data: [string, [number, numb
     const xScale = d3.scaleLinear().domain([Math.min(...xs), Math.max(...xs)]).range([20, width - 20]);
     const yScale = d3.scaleLinear().domain([Math.min(...ys), Math.max(...ys)]).range([20, height - 20]);
 
+    const TRANSITION_MS = 400;
+
     const others = data
       .filter(([id]) => id !== selfId)
       .sort(([a], [b]) => {
@@ -51,20 +53,35 @@ function ScatterPlot({ data, selfId, colorById }: { data: [string, [number, numb
       });
     const self = data.find(([id]) => id === selfId);
 
+    const peerColor = ([id]: [string, [number, number]]) =>
+      colorById ? (colorById[id] ?? MISSING_COLOR) : DEFAULT_COLOR;
+    const peerStroke = (d: [string, [number, number]]) => {
+      const c = peerColor(d);
+      return d3.color(c)?.darker(0.5)?.toString() ?? c;
+    };
+
     g.selectAll<SVGCircleElement, [string, [number, number]]>('circle.peer')
       .data(others, ([id]) => id)
-      .join('circle')
-      .attr('class', 'peer')
-      .attr('cx', ([, [x]]) => xScale(x))
-      .attr('cy', ([, [, y]]) => yScale(y))
-      .attr('r', 5)
-      .attr('fill', ([id]) => colorById ? (colorById[id] ?? MISSING_COLOR) : DEFAULT_COLOR)
-      .attr('fill-opacity', 0.7)
-      .attr('stroke', ([id]) => {
-        const c = colorById ? (colorById[id] ?? MISSING_COLOR) : DEFAULT_COLOR;
-        return d3.color(c)?.darker(0.5)?.toString() ?? c;
-      })
-      .attr('stroke-width', 0.5);
+      .join(
+        enter => enter.append('circle')
+          .attr('class', 'peer')
+          .attr('cx', ([, [x]]) => xScale(x))
+          .attr('cy', ([, [, y]]) => yScale(y))
+          .attr('r', 5)
+          .attr('fill', peerColor)
+          .attr('fill-opacity', 0.7)
+          .attr('stroke', peerStroke)
+          .attr('stroke-width', 0.5),
+        update => {
+          update
+            .attr('fill', peerColor)
+            .attr('stroke', peerStroke);
+          update.transition().duration(TRANSITION_MS)
+            .attr('cx', ([, [x]]) => xScale(x))
+            .attr('cy', ([, [, y]]) => yScale(y));
+          return update;
+        }
+      );
 
     // GPS dot: pulsing halo + solid blue dot
     if (self) {
@@ -72,28 +89,34 @@ function ScatterPlot({ data, selfId, colorById }: { data: [string, [number, numb
       const cx = xScale(sx);
       const cy = yScale(sy);
 
-      g.selectAll('circle.self-halo').data([null]).join('circle')
+      const halo = g.selectAll('circle.self-halo').data([null]);
+      halo.enter().append('circle')
         .attr('class', 'self-halo')
         .attr('cx', cx).attr('cy', cy)
         .attr('r', 12)
         .attr('fill', '#4a90e2')
         .attr('fill-opacity', 0.2)
         .attr('stroke', 'none');
+      halo.transition().duration(TRANSITION_MS).attr('cx', cx).attr('cy', cy);
 
-      g.selectAll('circle.self-ring').data([null]).join('circle')
+      const ring = g.selectAll('circle.self-ring').data([null]);
+      ring.enter().append('circle')
         .attr('class', 'self-ring')
         .attr('cx', cx).attr('cy', cy)
         .attr('r', 8)
         .attr('fill', 'none')
         .attr('stroke', 'white')
         .attr('stroke-width', 2);
+      ring.transition().duration(TRANSITION_MS).attr('cx', cx).attr('cy', cy);
 
-      g.selectAll('circle.self-dot').data([null]).join('circle')
+      const dot = g.selectAll('circle.self-dot').data([null]);
+      dot.enter().append('circle')
         .attr('class', 'self-dot')
         .attr('cx', cx).attr('cy', cy)
         .attr('r', 6)
         .attr('fill', '#4a90e2')
         .attr('stroke', 'none');
+      dot.transition().duration(TRANSITION_MS).attr('cx', cx).attr('cy', cy);
     }
 
     const zoom = d3.zoom<SVGSVGElement, unknown>()
