@@ -8,6 +8,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Moments: migrate storage from localStorage to IndexedDB** — importing large Polis CSVs no longer throws `QuotaExceededError`; moments are now stored in IndexedDB (no practical size limit) via a new `app/utils/idbStorage.ts` helper.
 
 ### Added
+- **MapViewerPanel: moment pagination** — ‹ › arrows and an x/y counter appear beside the moment label in the header when colour mode is "Valence: Moments", letting you step through all stored moments without opening settings; resets to the configured moment when the settings change.
 - **MapViewerPanel: clear history button** — × button beside the nav arrows discards older projections, keeping only the current one; disabled when history has only one entry.
 - **MapViewerPanel: projection history navigation** — ‹ › buttons in the bottom-left let you step back and forward through the last 5 projections received; each entry remembers its own flip state, and navigating between them animates the dots smoothly.
 - **MapViewerPanel: flip H/V buttons** — two toggle buttons in the bottom-left corner of the scatter plot let you mirror the map horizontally (↔) or vertically (↕); active state is highlighted in green; flips reset and animate smoothly when a new projection arrives (flip is encoded in D3 scale ranges so transitions stay continuous). — two toggle buttons in the bottom-left corner of the scatter plot let you mirror the map horizontally (↔) or vertically (↕); active state is highlighted in green.

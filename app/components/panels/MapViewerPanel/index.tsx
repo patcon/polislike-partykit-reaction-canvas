@@ -146,12 +146,28 @@ type ProjState = { history: HistoryEntry[]; idx: number };
 
 const MAX_HISTORY = 5;
 
+const btnStyle = (active: boolean, disabled?: boolean): React.CSSProperties => ({
+  background: active ? '#2a4a3a' : '#1a1a1a',
+  border: `1px solid ${active ? '#2ecc71' : '#333'}`,
+  color: disabled ? '#333' : active ? '#2ecc71' : '#666',
+  borderRadius: 4,
+  width: 26,
+  height: 26,
+  fontSize: 14,
+  cursor: disabled ? 'default' : 'pointer',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  lineHeight: 1,
+});
+
 export default function MapViewerPanel({ room, userId, config }: MapViewerPanelProps) {
   const [projState, setProjState] = useState<ProjState>({ history: [], idx: -1 });
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [liveCursors, setLiveCursors] = useState<Map<string, { x: number; y: number }>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors | null>(null);
+  const [momentPageIdx, setMomentPageIdx] = useState<number | null>(null);
   const cursorTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const mapProjection = projState.history[projState.idx]?.projection ?? null;
@@ -204,14 +220,21 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
     });
   }, [room]);
 
+  useEffect(() => {
+    setMomentPageIdx(null);
+  }, [config?.momentId, config?.colorMode]);
+
+  const activeMomentIdx = config?.colorMode === 'moment' && moments.length > 0
+    ? (momentPageIdx !== null ? momentPageIdx : Math.max(0, moments.findIndex(m => m.id === config.momentId)))
+    : -1;
+  const activeMoment = activeMomentIdx >= 0 ? (moments[activeMomentIdx] ?? null) : null;
+
   const colorById: Record<string, string> | undefined = (() => {
     if (!config) return undefined;
     if (config.colorMode === 'moment') {
-      if (!config.momentId) return undefined;
-      const moment = moments.find(m => m.id === config.momentId);
-      if (!moment) return undefined;
+      if (!activeMoment) return undefined;
       const map: Record<string, string> = {};
-      for (const [uid, region] of Object.entries(moment.regions)) {
+      for (const [uid, region] of Object.entries(activeMoment.regions)) {
         map[uid] = region ? (VOTE_COLORS[region] ?? MISSING_COLOR) : MISSING_COLOR;
       }
       return map;
@@ -294,33 +317,18 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
     );
   }
 
-  const activeMoment = config?.colorMode === 'moment' && config.momentId
-    ? moments.find(m => m.id === config.momentId)
-    : null;
   const showNowLegend = config?.colorMode === 'now';
-
-  const btnStyle = (active: boolean, disabled?: boolean): React.CSSProperties => ({
-    background: active ? '#2a4a3a' : '#1a1a1a',
-    border: `1px solid ${active ? '#2ecc71' : '#333'}`,
-    color: disabled ? '#333' : active ? '#2ecc71' : '#666',
-    borderRadius: 4,
-    width: 26,
-    height: 26,
-    fontSize: 14,
-    cursor: disabled ? 'default' : 'pointer',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    lineHeight: 1,
-  });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       <div style={{ padding: '8px 16px', fontSize: 11, color: '#555', background: '#111', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>{mapProjection.algorithm.toUpperCase()} · {mapProjection.coords.length} participants · {new Date(mapProjection.computedAt).toLocaleString()}</span>
         {activeMoment && (
-          <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <span style={{ color: '#777' }}>{activeMoment.label || 'moment'}</span>
+            <span style={{ fontSize: 10, color: '#555', minWidth: 28, textAlign: 'center' }}>{activeMomentIdx + 1}/{moments.length}</span>
+            <button onClick={() => setMomentPageIdx(Math.max(0, activeMomentIdx - 1))} disabled={activeMomentIdx <= 0} title="Previous moment" style={btnStyle(false, activeMomentIdx <= 0)}>‹</button>
+            <button onClick={() => setMomentPageIdx(Math.min(moments.length - 1, activeMomentIdx + 1))} disabled={activeMomentIdx >= moments.length - 1} title="Next moment" style={btnStyle(false, activeMomentIdx >= moments.length - 1)}>›</button>
             {([['#2ecc71', 'agree'], ['#e74c3c', 'disagree'], ['#f1c40f', 'pass'], ['#b0b0b0', 'missing']] as [string, string][]).map(([color, label]) => (
               <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
