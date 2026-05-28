@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import usePartySocket from 'partysocket/react';
 import {
   imputeColumnMeans,
@@ -87,9 +87,10 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
     return () => { workerRef.current?.terminate(); };
   }, []);
 
+  const { matrix, participantIds } = useMemo(() => buildMatrix(moments), [moments]);
+
   const handleCompute = useCallback(() => {
     if (status === 'running') return;
-    const { matrix, participantIds } = buildMatrix(moments);
     if (participantIds.length < 3) return;
 
     workerRef.current?.terminate();
@@ -138,7 +139,7 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
       knnBackend: hasKnn ? knnBackend : undefined,
       knnParams: hasKnn ? knnParamsByBackend[knnBackend] : undefined,
     });
-  }, [status, moments, algorithm, params, advancedParams, knnBackend, knnParamsByBackend, socket, userId]);
+  }, [status, matrix, participantIds, algorithm, params, advancedParams, knnBackend, knnParamsByBackend, socket, userId]);
 
   const handleClear = () => {
     workerRef.current?.terminate();
@@ -149,7 +150,7 @@ export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
   };
 
   const tooFewMoments = moments.length < 1;
-  const tooFewParticipants = !tooFewMoments && buildMatrix(moments).participantIds.length < 3;
+  const tooFewParticipants = !tooFewMoments && participantIds.length < 3;
   const canCompute = !tooFewMoments && !tooFewParticipants && status !== 'running';
 
   return (
