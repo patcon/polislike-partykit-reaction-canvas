@@ -4,7 +4,7 @@ import { FaCheckCircle, FaCircle } from "react-icons/fa";
 import QRWithCopy from '../../../shared/QRWithCopy';
 import type { ActivityMode } from "../../../../types";
 import { appendSelfToChain } from "../../../../utils/inviteChain";
-import { PANEL_REGISTRY } from "../../../../panelRegistry";
+import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../../../panelRegistry";
 
 interface InterfacesTabProps {
   activity: ActivityMode;
@@ -62,7 +62,7 @@ export default function InterfacesTab({
         <thead>
           <tr>
             <th style={{ textAlign: 'left', color: '#666', fontWeight: 500, padding: '0 8px 8px 0', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Interface</th>
-            <th style={{ color: '#666', fontWeight: 500, padding: '0 8px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', width: 48, textAlign: 'center' }}>Solo</th>
+            <th style={{ color: '#666', fontWeight: 500, padding: '0 8px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', width: 48, textAlign: 'center' }}>{SOLO_SCREEN_LABEL}</th>
             <th style={{ color: '#444', fontWeight: 500, padding: '0 8px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', width: 64, textAlign: 'center' }}>Commons</th>
             <th style={{ color: '#666', fontWeight: 500, padding: '0 0 8px 8px', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', width: 48, textAlign: 'center' }}>Share</th>
           </tr>

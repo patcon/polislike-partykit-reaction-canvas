@@ -9,7 +9,7 @@ import SocialMediaPanel from "../panels/SocialMediaPanel";
 import MoodTonesPanel from "../panels/MoodTonesPanel";
 import GreeterPanel from "../panels/GreeterPanel";
 import type { ActivityMode, GreeterConfig, MapViewerConfig, SocialConfig, ValenceInputMode } from "../../types";
-import { PANEL_REGISTRY } from "../../panelRegistry";
+import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
 import GithubUsernameModal from "../modals/GithubUsernameModal";
 import FeedbackStarsModal from "../modals/FeedbackStarsModal";
 import InterfacePushModal from "../modals/InterfacePushModal";
@@ -357,7 +357,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS = Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.label]));
+  const KNOWN_CHIPS = Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.id === 'canvas' ? SOLO_SCREEN_LABEL : p.label]));
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),

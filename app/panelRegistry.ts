@@ -1,3 +1,5 @@
+export const SOLO_SCREEN_LABEL = 'Canvas';
+
 export interface PanelMeta {
   id: string;
   label: string;
