@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { generateUUID } from "../../../../utils/userId";
 import { computeReactionRegion } from "../../../../utils/voteRegion";
 import { parsePolisComments, parsePolisVotes, assemblePolisImport } from "../../../../utils/polisImport";
+import { idbGet, idbSet } from "../../../../utils/idbStorage";
 import type { ReactionAnchors } from "../../../../utils/voteRegion";
 import type { MomentSnapshot, PushTarget } from "../types";
 import type PartySocket from "partysocket";
@@ -16,11 +17,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
   });
   const [liveCursors, setLiveCursors]         = useState<Map<string, { x: number; y: number }>>(new Map());
   const [participantGrouping, setParticipantGrouping] = useState<'none' | 'valence' | 'feedbackStars'>('valence');
-  const [moments, setMoments]                 = useState<MomentSnapshot[]>(() => {
-    try {
-      return JSON.parse(localStorage.getItem(`v4-moments-${room}`) ?? '[]');
-    } catch { return []; }
-  });
+  const [moments, setMoments]                 = useState<MomentSnapshot[]>([]);
   const [momentLabelInput, setMomentLabelInput]   = useState(() =>
     localStorage.getItem(`v4-moment-label-${room}`) ?? ''
   );
@@ -40,9 +37,23 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     } catch { return {}; }
   });
 
+  const momentsLoadedRef  = useRef(false);
   const staleTimersRef    = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const activeAnchorsRef  = useRef<ReactionAnchors>(activeAnchors);
   activeAnchorsRef.current = activeAnchors;
+
+  useEffect(() => {
+    momentsLoadedRef.current = false;
+    idbGet<MomentSnapshot[]>(`v4-moments-${room}`).then(stored => {
+      if (stored) setMoments(stored);
+      momentsLoadedRef.current = true;
+    });
+  }, [room]);
+
+  useEffect(() => {
+    if (!momentsLoadedRef.current) return;
+    idbSet(`v4-moments-${room}`, moments);
+  }, [moments, room]);
 
   useEffect(() => {
     if (!openMenuUserId && !openMenuGroupKey) return;
@@ -75,9 +86,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     setMoments(prev => {
       const importedLabels = new Set(newMoments.map(m => m.label));
       const kept = prev.filter(m => !importedLabels.has(m.label));
-      const merged = [...newMoments, ...kept];
-      localStorage.setItem(`v4-moments-${room}`, JSON.stringify(merged));
-      return merged;
+      return [...newMoments, ...kept];
     });
   };
 
@@ -95,7 +104,6 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     };
     const updated = [newMoment, ...moments];
     setMoments(updated);
-    localStorage.setItem(`v4-moments-${room}`, JSON.stringify(updated));
     setMomentLabelInput('');
     localStorage.removeItem(`v4-moment-label-${room}`);
     setEditingMomentId(null);

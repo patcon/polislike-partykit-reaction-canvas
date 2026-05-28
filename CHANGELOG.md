@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
+## Week 27 (2026-05-25)
+
+### Fixed
+- **Moments: migrate storage from localStorage to IndexedDB** — importing large Polis CSVs no longer throws `QuotaExceededError`; moments are now stored in IndexedDB (no practical size limit) via a new `app/utils/idbStorage.ts` helper.
+
+### Added
+- **MapViewerPanel: moment pagination** — ‹ › arrows and an x/y counter appear beside the moment label in the header when colour mode is "Valence: Moments", letting you step through all stored moments without opening settings; resets to the configured moment when the settings change.
+- **MapViewerPanel: clear history button** — × button beside the nav arrows discards older projections, keeping only the current one; disabled when history has only one entry.
+- **MapViewerPanel: projection history navigation** — ‹ › buttons in the bottom-left let you step back and forward through the last 5 projections received; each entry remembers its own flip state, and navigating between them animates the dots smoothly.
+- **MapViewerPanel: flip H/V buttons** — two toggle buttons in the bottom-left corner of the scatter plot let you mirror the map horizontally (↔) or vertically (↕); active state is highlighted in green; flips reset and animate smoothly when a new projection arrives (flip is encoded in D3 scale ranges so transitions stay continuous). — two toggle buttons in the bottom-left corner of the scatter plot let you mirror the map horizontally (↔) or vertically (↕); active state is highlighted in green.
+- **MapViewerPanel: animate dot positions** — scatter plot dots now smoothly transition to their new coordinates (400 ms) when a new projection is pushed; entering dots snap into position immediately.
+- **MapViewerPanel: Valence: Now color mode** — new live coloring option in the Map Viewer config modal; colors each participant dot by their current reaction in real time (green=agree, red=disagree, yellow=pass, gray=idle/not touching, dark gray=offline). Dots return to idle after 3 s with no cursor activity. Existing "Moment" mode renamed to "Valence: Moments".
+- **MapViewerPanel: color-by-moment** — gear icon in Interfaces tab opens a config modal; choose "None" (uniform dots) or "Valence: Moments" (select a moment to color participants by their vote: green=agree, red=disagree, yellow=pass, gray=missing). Active moment name and color legend shown in the panel header.
+- **MapMakerPanel: advanced settings** — collapsible Advanced section exposes algorithm-specific tuning params (epochs, seed, learning rate, repulsion strength, etc.) and KNN backend options (Annoy / HNSW with their own param sliders) for PaCMAP and LocalMAP algorithms; backend selection and params are wired through to the reduction worker.
+- **MapMakerPanel** — new emcee-facing interface that reads moment data (including Polis CSV imports), builds a sparse participant × moment vote matrix, mean-imputes missing values, and reduces it to 2D using UMAP, PaCMAP, or LocalMAP (via reddwarf-ts). The reduction runs in a dedicated esbuild Web Worker (`druidWorker.ts`) to keep the UI responsive. Progress bar updates every 10 iterations. On completion, the 2D projection is broadcast to all connected clients via server state.
+- **MapViewerPanel** — participant-facing interface that receives the computed projection from server state and renders a minimal D3 scatter plot (zoom/pan supported). Shows a placeholder when no projection has been computed yet. Both panels appear in the Interfaces tab and OfferInterfaceModal.
+
 ## Week 26 (2026-05-18)
 
 ### Fixed

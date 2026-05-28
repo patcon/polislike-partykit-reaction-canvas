@@ -229,7 +229,6 @@ function MomentsTabInner({
             onClick={() => {
               if (window.confirm('Clear all moments?')) {
                 setMoments([]);
-                localStorage.setItem(`v4-moments-${room}`, JSON.stringify([]));
               }
             }}
             style={{ opacity: moments.length === 0 ? 0.4 : 1 }}
@@ -269,7 +268,6 @@ function MomentsTabInner({
                         if (e.key === 'Enter') {
                           const updated = moments.map(m => m.id === moment.id ? { ...m, label: editingMomentLabel.trim() || m.label } : m);
                           setMoments(updated);
-                          localStorage.setItem(`v4-moments-${room}`, JSON.stringify(updated));
                           setEditingMomentId(null);
                         } else if (e.key === 'Escape') {
                           setEditingMomentId(null);
@@ -303,7 +301,6 @@ function MomentsTabInner({
                       if (window.confirm(`Delete "${moment.label}"?`)) {
                         const updated = moments.filter(m => m.id !== moment.id);
                         setMoments(updated);
-                        localStorage.setItem(`v4-moments-${room}`, JSON.stringify(updated));
                       }
                     }}
                     style={{ background: 'none', border: 'none', color: '#633', cursor: 'pointer', fontSize: 11, padding: '0 4px', flexShrink: 0 }}
