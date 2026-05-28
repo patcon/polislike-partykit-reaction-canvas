@@ -161,6 +161,11 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
     });
   }, [room]);
 
+  useEffect(() => {
+    setFlipX(false);
+    setFlipY(false);
+  }, [mapProjection?.computedAt]);
+
   const colorById: Record<string, string> | undefined = (() => {
     if (!config) return undefined;
     if (config.colorMode === 'moment') {
