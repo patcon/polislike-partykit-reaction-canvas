@@ -27,7 +27,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
   const [selectedMomentId, setSelectedMomentId]   = useState<string | null>(null);
   const [collapsedGroups, setCollapsedGroups]     = useState<Set<string>>(new Set());
   const [pushTarget, setPushTarget]               = useState<PushTarget | null>(null);
-  const [pendingInterfaceName, setPendingInterfaceName] = useState('social');
+  const [pendingInterfaceName, setPendingInterfaceName] = useState('social-media');
   const [interfaceAcceptances, setInterfaceAcceptances] = useState<{ userId: string; interfaceName: string }[]>([]);
   const [openMenuUserId, setOpenMenuUserId]       = useState<string | null>(null);
   const [openMenuGroupKey, setOpenMenuGroupKey]   = useState<string | null>(null);

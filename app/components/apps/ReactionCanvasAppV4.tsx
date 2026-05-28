@@ -9,6 +9,7 @@ import SocialMediaPanel from "../panels/SocialMediaPanel";
 import MoodTonesPanel from "../panels/MoodTonesPanel";
 import GreeterPanel from "../panels/GreeterPanel";
 import type { ActivityMode, GreeterConfig, MapViewerConfig, SocialConfig, ValenceInputMode } from "../../types";
+import { PANEL_REGISTRY } from "../../panelRegistry";
 import GithubUsernameModal from "../modals/GithubUsernameModal";
 import FeedbackStarsModal from "../modals/FeedbackStarsModal";
 import InterfacePushModal from "../modals/InterfacePushModal";
@@ -356,7 +357,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { canvas: 'Canvas', emcee: 'Emcee', social: 'Social', 'mood-tones': 'Mood Tones', treevites: 'Leaderboard', greeter: 'Greeter', steno: 'Steno', 'story-tracer': 'Story Tracer', 'voice-call': 'Voice Call', 'map-maker': 'Map Maker', 'map-viewer': 'Map Viewer' };
+  const KNOWN_CHIPS = Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.label]));
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
@@ -373,7 +374,7 @@ export default function ReactionCanvasAppV4() {
       )}
       {activeInterface === 'emcee' ? (
         <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} mapViewerConfig={mapViewerConfig} onMapViewerConfigChange={setMapViewerConfig} />
-      ) : activeInterface === 'social' ? (
+      ) : activeInterface === 'social-media' ? (
         <SocialMediaPanel socialConfig={serverSocialConfig} />
       ) : activeInterface === 'mood-tones' ? (
         <MoodTonesPanel room={room} />
@@ -392,10 +393,10 @@ export default function ReactionCanvasAppV4() {
       ) : activeInterface === 'map-viewer' ? (
         <MapViewerPanel room={room} userId={userId} config={mapViewerConfig} />
       ) : null}
-      {/* When activity is 'social', show SocialMediaPanel as a flex sibling (fills the
+      {/* When activity is 'social-media', show SocialMediaPanel as a flex sibling (fills the
           remaining height below the chip bar, same as the chip-based case).
           Canvas container is hidden but stays mounted to keep the socket alive. */}
-      {activeInterface === 'canvas' && activity === 'social' && (
+      {activeInterface === 'canvas' && activity === 'social-media' && (
         <SocialMediaPanel socialConfig={serverSocialConfig} />
       )}
       {activeInterface === 'canvas' && activity === 'mood-tones' && (
@@ -423,7 +424,7 @@ export default function ReactionCanvasAppV4() {
         <MapViewerPanel room={room} userId={userId} config={mapViewerConfig} />
       )}
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter' && activity !== 'steno' && activity !== 'story-tracer' && activity !== 'voice-call' && activity !== 'map-maker' && activity !== 'map-viewer') ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social-media' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter' && activity !== 'steno' && activity !== 'story-tracer' && activity !== 'voice-call' && activity !== 'map-maker' && activity !== 'map-viewer') ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}
@@ -579,7 +580,7 @@ export default function ReactionCanvasAppV4() {
                 : 'Orientation permission denied — switch back to Touch mode to react.'}
             </div>
           )}
-          {!isViewer && activity !== 'social' && activity !== 'greeter' && activity !== 'signature' && (
+          {!isViewer && activity !== 'social-media' && activity !== 'greeter' && activity !== 'signature' && (
             <TouchLayer
               room={room}
               userId={userId}

@@ -4,6 +4,7 @@ import { FaCheckCircle, FaCircle } from "react-icons/fa";
 import QRWithCopy from '../../../shared/QRWithCopy';
 import type { ActivityMode } from "../../../../types";
 import { appendSelfToChain } from "../../../../utils/inviteChain";
+import { PANEL_REGISTRY } from "../../../../panelRegistry";
 
 interface InterfacesTabProps {
   activity: ActivityMode;
@@ -41,22 +42,6 @@ function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
 }
 
-const ROWS: { id: string; label: string; desc: string; patchable: boolean; activityMode: boolean }[] = [
-  { id: 'emcee',        label: 'Emcee',            desc: 'Event host controls and tools',                  patchable: true,  activityMode: false },
-  { id: 'canvas',       label: 'Reaction Canvas',  desc: 'Standard reaction canvas',                       patchable: false, activityMode: true  },
-  { id: 'image-canvas', label: 'Image Canvas',    desc: 'React over a shared background image',           patchable: false, activityMode: true  },
-  { id: 'signature',    label: 'Signature Canvas', desc: 'Collect participant signatures live',            patchable: false, activityMode: true  },
-  { id: 'soccer',       label: 'Soccer',          desc: 'Top-down physics ball — kick with your cursor',  patchable: false, activityMode: true  },
-  { id: 'social',       label: 'Social Sharing',  desc: 'Bluesky · Twitter / X · Mastodon',              patchable: true,  activityMode: true  },
-  { id: 'mood-tones',   label: 'Mood Tones',      desc: 'Generative audio keyed to audience reactions',  patchable: true,  activityMode: true  },
-  { id: 'treevites',    label: 'Leaderboard',     desc: 'Invite stats — who invited whom',                patchable: true,  activityMode: true  },
-  { id: 'greeter',      label: 'Greeter',         desc: 'Guild event attendee welcome list',              patchable: true,  activityMode: true  },
-  { id: 'steno',        label: 'Steno',           desc: 'Live shared speech-to-text transcript',          patchable: true,  activityMode: true  },
-  { id: 'story-tracer', label: 'Story Tracer',   desc: 'Semantic 3D narrative path from VTT transcript',  patchable: true,  activityMode: true  },
-  { id: 'voice-call',        label: 'Voice calls',    desc: 'Peer-to-peer voice calls via WebRTC',               patchable: true,  activityMode: true  },
-  { id: 'map-maker',         label: 'Map Maker',      desc: 'Compute UMAP/PaCMAP/LocalMAP projection from moments', patchable: true, activityMode: true  },
-  { id: 'map-viewer',        label: 'Map Viewer',     desc: 'View the computed participant map',                  patchable: true,  activityMode: true  },
-];
 
 export default function InterfacesTab({
   activity, soccerScore,
@@ -83,21 +68,21 @@ export default function InterfacesTab({
           </tr>
         </thead>
         <tbody>
-          {ROWS.map(({ id, label, desc, patchable, activityMode }) => {
+          {PANEL_REGISTRY.map(({ id, label, description, patchable, activityMode }) => {
             const isActive = activity === id;
             return (
               <tr key={id} style={{ borderTop: '1px solid #2a2a2a' }}>
                 {/* Description */}
                 <td style={{ padding: '10px 8px 10px 0' }}>
                   <span style={{ fontWeight: isActive ? 600 : 400, color: isActive ? '#eee' : '#bbb' }}>{label}</span>
-                  <span style={{ color: '#666', marginLeft: 8 }}>{desc}</span>
+                  <span style={{ color: '#666', marginLeft: 8 }}>{description}</span>
                   {id === 'canvas' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setCanvasSettingsOpen(true); }}><IoMdSettings /></button>
                   )}
                   {id === 'image-canvas' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}><IoMdSettings /></button>
                   )}
-                  {id === 'social' && (
+                  {id === 'social-media' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>
                   )}
                   {id === 'greeter' && (
@@ -178,7 +163,7 @@ export default function InterfacesTab({
       {patchInterface && (
         <div className="share-qr-modal" onClick={() => setPatchInterface(null)}>
           <div className="share-qr-modal-card" onClick={e => e.stopPropagation()}>
-            <p className="share-qr-modal-title">{ROWS.find(r => r.id === patchInterface)?.label} — add without push</p>
+            <p className="share-qr-modal-title">{PANEL_REGISTRY.find(r => r.id === patchInterface)?.label} — add without push</p>
             <QRWithCopy url={patchUrl} />
             <button className="share-qr-modal-close" onClick={() => setPatchInterface(null)}>Close</button>
           </div>

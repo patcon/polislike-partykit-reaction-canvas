@@ -429,7 +429,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
           setPendingInterfaceName={participants.setPendingInterfaceName}
           activeLabels={labels.activeLabels}
           onSend={msg => socket.send(JSON.stringify(msg))}
-          onClose={() => { participants.setPushTarget(null); participants.setPendingInterfaceName('social'); }}
+          onClose={() => { participants.setPushTarget(null); participants.setPendingInterfaceName('social-media'); }}
         />
       )}
       {pendingPopupTarget && (

@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 27 (2026-05-25)
 
+### Changed
+- **Panel registry** — introduced `app/panelRegistry.ts` as a single source of truth for all panel metadata (id, label, description, patchable, activityMode); `KNOWN_CHIPS` in `ReactionCanvasAppV4`, `ROWS` in `InterfacesTab`, and the hardcoded `<option>` list in `OfferInterfaceModal` now all derive from this registry. Adding a new panel no longer requires edits in three separate files.
+- **Social sharing panel id renamed** — activity/interface key changed from `'social'` to `'social-media'` to match the component name and naming conventions used elsewhere. Affects URL `addInterface` param, localStorage interface lists, and emcee push messages. Old `'social'` values stored in localStorage will silently fall back to the canvas interface on next load.
+
 ### Fixed
 - **VoiceCallPanel: fix WSOD on HTTP LAN** — guard `navigator.mediaDevices` before using the `in` operator; `mediaDevices` is `undefined` in insecure contexts (HTTP non-localhost), which caused a crash on render.
 - **InterfacesTab: warn when mic unavailable** — Voice calls and Steno rows now show an ⚠ SSL required badge when `navigator.mediaDevices` is unavailable (HTTP non-localhost), so emcees know those interfaces won't work without HTTPS.
