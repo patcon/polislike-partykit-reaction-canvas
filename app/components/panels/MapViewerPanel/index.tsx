@@ -141,15 +141,52 @@ function ScatterPlot({ data, selfId, colorById, flipX, flipY }: { data: [string,
   );
 }
 
+type HistoryEntry = { projection: MapProjection; flipX: boolean; flipY: boolean };
+type ProjState = { history: HistoryEntry[]; idx: number };
+
+const MAX_HISTORY = 5;
+
 export default function MapViewerPanel({ room, userId, config }: MapViewerPanelProps) {
-  const [mapProjection, setMapProjection] = useState<MapProjection | null>(null);
+  const [projState, setProjState] = useState<ProjState>({ history: [], idx: -1 });
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [liveCursors, setLiveCursors] = useState<Map<string, { x: number; y: number }>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors | null>(null);
-  const [flipX, setFlipX] = useState(false);
-  const [flipY, setFlipY] = useState(false);
   const cursorTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+
+  const mapProjection = projState.history[projState.idx]?.projection ?? null;
+  const flipX = projState.history[projState.idx]?.flipX ?? false;
+  const flipY = projState.history[projState.idx]?.flipY ?? false;
+  const canGoBack = projState.idx > 0;
+  const canGoForward = projState.idx < projState.history.length - 1;
+
+  const pushProjection = (proj: MapProjection) => {
+    setProjState(prev => {
+      // Skip duplicate (e.g. reconnect with same projection still active)
+      if (prev.history[prev.history.length - 1]?.projection.computedAt === proj.computedAt) return prev;
+      const history = [...prev.history, { projection: proj, flipX: false, flipY: false }].slice(-MAX_HISTORY);
+      return { history, idx: history.length - 1 };
+    });
+  };
+
+  const goBack = () => setProjState(prev =>
+    prev.idx > 0 ? { ...prev, idx: prev.idx - 1 } : prev
+  );
+  const goForward = () => setProjState(prev =>
+    prev.idx < prev.history.length - 1 ? { ...prev, idx: prev.idx + 1 } : prev
+  );
+  const toggleFlipX = () => setProjState(prev => {
+    if (prev.idx < 0) return prev;
+    const history = [...prev.history];
+    history[prev.idx] = { ...history[prev.idx], flipX: !history[prev.idx].flipX };
+    return { ...prev, history };
+  });
+  const toggleFlipY = () => setProjState(prev => {
+    if (prev.idx < 0) return prev;
+    const history = [...prev.history];
+    history[prev.idx] = { ...history[prev.idx], flipY: !history[prev.idx].flipY };
+    return { ...prev, history };
+  });
 
   useEffect(() => {
     return () => {
@@ -162,7 +199,6 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
       if (stored) setMoments(stored);
     });
   }, [room]);
-
 
   const colorById: Record<string, string> | undefined = (() => {
     if (!config) return undefined;
@@ -202,16 +238,13 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
     onMessage(evt) {
       const data = JSON.parse(evt.data);
       if (data.type === 'connected') {
-        setMapProjection(data.mapProjection ?? null);
-        if (data.mapProjection) { setFlipX(false); setFlipY(false); }
+        if (data.mapProjection) pushProjection(data.mapProjection);
         if (data.connectedUserIds) setConnectedUserIds(data.connectedUserIds);
         if (data.roomAnchors) setAnchors(data.roomAnchors);
         return;
       }
       if (data.type === 'mapProjectionChanged') {
-        setMapProjection(data.projection ?? null);
-        setFlipX(false);
-        setFlipY(false);
+        if (data.projection) pushProjection(data.projection);
         return;
       }
       if (data.type === 'roomAnchorsChanged') {
@@ -262,6 +295,21 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
     : null;
   const showNowLegend = config?.colorMode === 'now';
 
+  const btnStyle = (active: boolean, disabled?: boolean): React.CSSProperties => ({
+    background: active ? '#2a4a3a' : '#1a1a1a',
+    border: `1px solid ${active ? '#2ecc71' : '#333'}`,
+    color: disabled ? '#333' : active ? '#2ecc71' : '#666',
+    borderRadius: 4,
+    width: 26,
+    height: 26,
+    fontSize: 14,
+    cursor: disabled ? 'default' : 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    lineHeight: 1,
+  });
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       <div style={{ padding: '8px 16px', fontSize: 11, color: '#555', background: '#111', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -292,30 +340,15 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
       <div style={{ flex: 1, overflow: 'hidden' }}>
         <ScatterPlot data={mapProjection.coords} selfId={userId} colorById={colorById} flipX={flipX} flipY={flipY} />
       </div>
-      <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', gap: 4 }}>
-        {([['↔', 'H', flipX, () => setFlipX(v => !v)], ['↕', 'V', flipY, () => setFlipY(v => !v)]] as [string, string, boolean, () => void][]).map(([icon, label, active, toggle]) => (
-          <button
-            key={label}
-            onClick={toggle}
-            title={`Flip ${label === 'H' ? 'horizontal' : 'vertical'}`}
-            style={{
-              background: active ? '#2a4a3a' : '#1a1a1a',
-              border: `1px solid ${active ? '#2ecc71' : '#333'}`,
-              color: active ? '#2ecc71' : '#666',
-              borderRadius: 4,
-              width: 26,
-              height: 26,
-              fontSize: 14,
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              lineHeight: 1,
-            }}
-          >
-            {icon}
-          </button>
-        ))}
+      <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', gap: 4, alignItems: 'center' }}>
+        <button onClick={goBack} disabled={!canGoBack} title="Previous projection" style={btnStyle(false, !canGoBack)}>‹</button>
+        <span style={{ fontSize: 10, color: '#444', minWidth: 28, textAlign: 'center' }}>
+          {projState.idx + 1}/{projState.history.length}
+        </span>
+        <button onClick={goForward} disabled={!canGoForward} title="Next projection" style={btnStyle(false, !canGoForward)}>›</button>
+        <span style={{ width: 6 }} />
+        <button onClick={toggleFlipX} title="Flip horizontal" style={btnStyle(flipX)}>↔</button>
+        <button onClick={toggleFlipY} title="Flip vertical" style={btnStyle(flipY)}>↕</button>
       </div>
     </div>
   );
