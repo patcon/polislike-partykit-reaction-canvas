@@ -5,17 +5,14 @@ import { MdKeyboard, MdStopCircle } from "react-icons/md";
 import WakeLockIndicatorButton from "../../shared/WakeLockIndicatorButton";
 import { extractPlainText } from "../../../utils/vttUtils";
 import { useWakeLock } from "../../../utils/useWakeLock";
-
-interface StenoPanelProps {
-  room: string;
-  userId: string;
-}
+import { usePanelContext } from "../../../context/PanelContext";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const SpeechRecognitionCtor: (new () => any) | null =
   (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-export default function StenoPanel({ room, userId }: StenoPanelProps) {
+export default function StenoPanel() {
+  const { room, userId } = usePanelContext();
   const [stenoVtt, setStenoVtt] = useState('WEBVTT\n');
   const [interimText, setInterimText] = useState('');
   const [lockHolder, setLockHolder] = useState<string | null>(null);

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import usePartySocket from 'partysocket/react';
 import * as d3 from 'd3';
 import { getPartySocketConfig } from '../../../utils/partyHost';
+import { usePanelContext } from '../../../context/PanelContext';
 import { idbGet } from '../../../utils/idbStorage';
 import { computeReactionRegion, DEFAULT_ANCHORS } from '../../../utils/voteRegion';
 import type { ReactionAnchors } from '../../../utils/voteRegion';
@@ -161,7 +162,8 @@ const btnStyle = (active: boolean, disabled?: boolean): React.CSSProperties => (
   lineHeight: 1,
 });
 
-export default function MapViewerPanel({ room, userId, config }: MapViewerPanelProps) {
+export default function MapViewerPanel({ config }: Pick<MapViewerPanelProps, 'config'>) {
+  const { room, userId } = usePanelContext();
   const [projState, setProjState] = useState<ProjState>({ history: [], idx: -1 });
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
