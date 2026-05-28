@@ -103,6 +103,9 @@ export default function InterfacesTab({
                   {id === 'greeter' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setGreeterConfigOpen(true); }}><IoMdSettings /></button>
                   )}
+                  {(id === 'voice-call' || id === 'steno') && !navigator.mediaDevices && (
+                    <span title="SSL required — microphone unavailable on HTTP" style={{ marginLeft: 6, color: '#f90', fontSize: 12, cursor: 'default' }}>⚠ SSL required</span>
+                  )}
                   {id === 'voice-call' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setVoiceCallConfigOpen(true); }}><IoMdSettings /></button>
                   )}

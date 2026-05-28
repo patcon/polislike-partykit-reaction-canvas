@@ -348,7 +348,7 @@ export default function VoiceCallPanel({ room, userId }: VoiceCallPanelProps) {
   };
 
   const hasSinkId = 'setSinkId' in HTMLAudioElement.prototype;
-  const hasSelectAudioOutput = 'selectAudioOutput' in navigator.mediaDevices;
+  const hasSelectAudioOutput = !!navigator.mediaDevices && 'selectAudioOutput' in navigator.mediaDevices;
 
   const activeTrackLabel = localStream?.getAudioTracks()[0]?.label ?? null;
 

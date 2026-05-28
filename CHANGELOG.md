@@ -5,6 +5,8 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 27 (2026-05-25)
 
 ### Fixed
+- **VoiceCallPanel: fix WSOD on HTTP LAN** — guard `navigator.mediaDevices` before using the `in` operator; `mediaDevices` is `undefined` in insecure contexts (HTTP non-localhost), which caused a crash on render.
+- **InterfacesTab: warn when mic unavailable** — Voice calls and Steno rows now show an ⚠ SSL required badge when `navigator.mediaDevices` is unavailable (HTTP non-localhost), so emcees know those interfaces won't work without HTTPS.
 - **Moments: migrate storage from localStorage to IndexedDB** — importing large Polis CSVs no longer throws `QuotaExceededError`; moments are now stored in IndexedDB (no practical size limit) via a new `app/utils/idbStorage.ts` helper.
 
 ### Added
