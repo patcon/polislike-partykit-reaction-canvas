@@ -24,7 +24,7 @@ interface MapViewerPanelProps {
   config?: MapViewerConfig | null;
 }
 
-function ScatterPlot({ data, selfId, colorById }: { data: [string, [number, number]][]; selfId: string; colorById?: Record<string, string> }) {
+function ScatterPlot({ data, selfId, colorById, flipX, flipY }: { data: [string, [number, number]][]; selfId: string; colorById?: Record<string, string>; flipX?: boolean; flipY?: boolean }) {
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
 
@@ -35,8 +35,10 @@ function ScatterPlot({ data, selfId, colorById }: { data: [string, [number, numb
 
     const xs = data.map(([, [x]]) => x);
     const ys = data.map(([, [, y]]) => y);
-    const xScale = d3.scaleLinear().domain([Math.min(...xs), Math.max(...xs)]).range([20, width - 20]);
-    const yScale = d3.scaleLinear().domain([Math.min(...ys), Math.max(...ys)]).range([20, height - 20]);
+    const xRange: [number, number] = flipX ? [width - 20, 20] : [20, width - 20];
+    const yRange: [number, number] = flipY ? [height - 20, 20] : [20, height - 20];
+    const xScale = d3.scaleLinear().domain([Math.min(...xs), Math.max(...xs)]).range(xRange);
+    const yScale = d3.scaleLinear().domain([Math.min(...ys), Math.max(...ys)]).range(yRange);
 
     const TRANSITION_MS = 400;
 
@@ -127,7 +129,7 @@ function ScatterPlot({ data, selfId, colorById }: { data: [string, [number, numb
     svg.call(zoom);
 
     return () => { svg.on('.zoom', null); };
-  }, [data, selfId, colorById]);
+  }, [data, selfId, colorById, flipX, flipY]);
 
   return (
     <svg
@@ -161,10 +163,6 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
     });
   }, [room]);
 
-  useEffect(() => {
-    setFlipX(false);
-    setFlipY(false);
-  }, [mapProjection?.computedAt]);
 
   const colorById: Record<string, string> | undefined = (() => {
     if (!config) return undefined;
@@ -205,12 +203,15 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
       const data = JSON.parse(evt.data);
       if (data.type === 'connected') {
         setMapProjection(data.mapProjection ?? null);
+        if (data.mapProjection) { setFlipX(false); setFlipY(false); }
         if (data.connectedUserIds) setConnectedUserIds(data.connectedUserIds);
         if (data.roomAnchors) setAnchors(data.roomAnchors);
         return;
       }
       if (data.type === 'mapProjectionChanged') {
         setMapProjection(data.projection ?? null);
+        setFlipX(false);
+        setFlipY(false);
         return;
       }
       if (data.type === 'roomAnchorsChanged') {
@@ -261,8 +262,6 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
     : null;
   const showNowLegend = config?.colorMode === 'now';
 
-  const flipTransform = [flipX ? 'scaleX(-1)' : '', flipY ? 'scaleY(-1)' : ''].filter(Boolean).join(' ') || undefined;
-
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       <div style={{ padding: '8px 16px', fontSize: 11, color: '#555', background: '#111', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -290,8 +289,8 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
           </span>
         )}
       </div>
-      <div style={{ flex: 1, overflow: 'hidden', transform: flipTransform }}>
-        <ScatterPlot data={mapProjection.coords} selfId={userId} colorById={colorById} />
+      <div style={{ flex: 1, overflow: 'hidden' }}>
+        <ScatterPlot data={mapProjection.coords} selfId={userId} colorById={colorById} flipX={flipX} flipY={flipY} />
       </div>
       <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', gap: 4 }}>
         {([['↔', 'H', flipX, () => setFlipX(v => !v)], ['↕', 'V', flipY, () => setFlipY(v => !v)]] as [string, string, boolean, () => void][]).map(([icon, label, active, toggle]) => (
