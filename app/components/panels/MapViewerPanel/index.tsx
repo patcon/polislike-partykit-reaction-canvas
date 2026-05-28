@@ -145,6 +145,8 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [liveCursors, setLiveCursors] = useState<Map<string, { x: number; y: number }>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors | null>(null);
+  const [flipX, setFlipX] = useState(false);
+  const [flipY, setFlipY] = useState(false);
   const cursorTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   useEffect(() => {
@@ -254,8 +256,10 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
     : null;
   const showNowLegend = config?.colorMode === 'now';
 
+  const flipTransform = [flipX ? 'scaleX(-1)' : '', flipY ? 'scaleY(-1)' : ''].filter(Boolean).join(' ') || undefined;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
       <div style={{ padding: '8px 16px', fontSize: 11, color: '#555', background: '#111', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <span>{mapProjection.algorithm.toUpperCase()} · {mapProjection.coords.length} participants · {new Date(mapProjection.computedAt).toLocaleString()}</span>
         {activeMoment && (
@@ -281,8 +285,33 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
           </span>
         )}
       </div>
-      <div style={{ flex: 1, overflow: 'hidden' }}>
+      <div style={{ flex: 1, overflow: 'hidden', transform: flipTransform }}>
         <ScatterPlot data={mapProjection.coords} selfId={userId} colorById={colorById} />
+      </div>
+      <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', gap: 4 }}>
+        {([['↔', 'H', flipX, () => setFlipX(v => !v)], ['↕', 'V', flipY, () => setFlipY(v => !v)]] as [string, string, boolean, () => void][]).map(([icon, label, active, toggle]) => (
+          <button
+            key={label}
+            onClick={toggle}
+            title={`Flip ${label === 'H' ? 'horizontal' : 'vertical'}`}
+            style={{
+              background: active ? '#2a4a3a' : '#1a1a1a',
+              border: `1px solid ${active ? '#2ecc71' : '#333'}`,
+              color: active ? '#2ecc71' : '#666',
+              borderRadius: 4,
+              width: 26,
+              height: 26,
+              fontSize: 14,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              lineHeight: 1,
+            }}
+          >
+            {icon}
+          </button>
+        ))}
       </div>
     </div>
   );
