@@ -345,12 +345,12 @@ export default function MapViewerPanel({ room, userId, config }: MapViewerPanelP
         <ScatterPlot data={mapProjection.coords} selfId={userId} colorById={colorById} flipX={flipX} flipY={flipY} />
       </div>
       <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', gap: 4, alignItems: 'center' }}>
-        <button onClick={goBack} disabled={!canGoBack} title="Previous projection" style={btnStyle(false, !canGoBack)}>‹</button>
+        <button onClick={clearHistory} disabled={projState.history.length <= 1} title="Clear history" style={btnStyle(false, projState.history.length <= 1)}>×</button>
         <span style={{ fontSize: 10, color: '#444', minWidth: 28, textAlign: 'center' }}>
           {projState.idx + 1}/{projState.history.length}
         </span>
+        <button onClick={goBack} disabled={!canGoBack} title="Previous projection" style={btnStyle(false, !canGoBack)}>‹</button>
         <button onClick={goForward} disabled={!canGoForward} title="Next projection" style={btnStyle(false, !canGoForward)}>›</button>
-        <button onClick={clearHistory} disabled={projState.history.length <= 1} title="Clear history" style={btnStyle(false, projState.history.length <= 1)}>×</button>
         <span style={{ width: 6 }} />
         <button onClick={toggleFlipX} title="Flip horizontal" style={btnStyle(flipX)}>↔</button>
         <button onClick={toggleFlipY} title="Flip vertical" style={btnStyle(flipY)}>↕</button>
