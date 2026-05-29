@@ -3,6 +3,7 @@ import usePartySocket from 'partysocket/react';
 import * as d3 from 'd3';
 import { getPartySocketConfig } from '../../../utils/partyHost';
 import { usePanelContext } from '../../../context/PanelContext';
+import { useMapViewerConfig } from '../../../context/PanelConfigs';
 import { idbGet } from '../../../utils/idbStorage';
 import { computeReactionRegion, DEFAULT_ANCHORS } from '../../../utils/voteRegion';
 import type { ReactionAnchors } from '../../../utils/voteRegion';
@@ -19,11 +20,6 @@ const DEFAULT_COLOR = '#4a8';
 const CONNECTED_IDLE_COLOR = '#888';
 const DISCONNECTED_COLOR = '#333';
 
-interface MapViewerPanelProps {
-  room: string;
-  userId: string;
-  config?: MapViewerConfig | null;
-}
 
 function ScatterPlot({ data, selfId, colorById, flipX, flipY }: { data: [string, [number, number]][]; selfId: string; colorById?: Record<string, string>; flipX?: boolean; flipY?: boolean }) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -162,8 +158,9 @@ const btnStyle = (active: boolean, disabled?: boolean): React.CSSProperties => (
   lineHeight: 1,
 });
 
-export default function MapViewerPanel({ config }: Pick<MapViewerPanelProps, 'config'>) {
+export default function MapViewerPanel() {
   const { room, userId } = usePanelContext();
+  const { config } = useMapViewerConfig();
   const [projState, setProjState] = useState<ProjState>({ history: [], idx: -1 });
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);

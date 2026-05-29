@@ -11,6 +11,7 @@ import GreeterPanel from "../panels/GreeterPanel";
 import type { ActivityMode, GreeterConfig, MapViewerConfig, SocialConfig, ValenceInputMode } from "../../types";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
 import { PanelContextProvider } from "../../context/PanelContext";
+import { GreeterConfigProvider, SocialMediaConfigProvider, MapViewerConfigProvider } from "../../context/PanelConfigs";
 import GithubUsernameModal from "../modals/GithubUsernameModal";
 import FeedbackStarsModal from "../modals/FeedbackStarsModal";
 import InterfacePushModal from "../modals/InterfacePushModal";
@@ -375,57 +376,45 @@ export default function ReactionCanvasAppV4() {
         />
       )}
       <PanelContextProvider value={panelContextValue}>
-        {activeInterface === 'emcee' ? (
-          <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} mapViewerConfig={mapViewerConfig} onMapViewerConfigChange={setMapViewerConfig} />
-        ) : activeInterface === 'social-media' ? (
-          <SocialMediaPanel socialConfig={serverSocialConfig} />
-        ) : activeInterface === 'mood-tones' ? (
-          <MoodTonesPanel />
-        ) : activeInterface === 'treevites' ? (
-          <TreevitesPanel userId={userId} inviteEdges={inviteEdges} />
-        ) : activeInterface === 'greeter' ? (
-          <GreeterPanel greeterConfig={serverGreeterConfig} />
-        ) : activeInterface === 'steno' ? (
-          <StenoPanel />
-        ) : activeInterface === 'story-tracer' ? (
-          <StoryTracerPanel />
-        ) : activeInterface === 'voice-call' ? (
-          <VoiceCallPanel />
-        ) : activeInterface === 'map-maker' ? (
-          <MapMakerPanel />
-        ) : activeInterface === 'map-viewer' ? (
-          <MapViewerPanel config={mapViewerConfig} />
-        ) : null}
-        {/* When activity is 'social-media', show SocialMediaPanel as a flex sibling (fills the
-            remaining height below the chip bar, same as the chip-based case).
-            Canvas container is hidden but stays mounted to keep the socket alive. */}
-        {activeInterface === 'canvas' && activity === 'social-media' && (
-          <SocialMediaPanel socialConfig={serverSocialConfig} />
-        )}
-        {activeInterface === 'canvas' && activity === 'mood-tones' && (
-          <MoodTonesPanel />
-        )}
-        {activeInterface === 'canvas' && activity === 'treevites' && (
-          <TreevitesPanel userId={userId} inviteEdges={inviteEdges} />
-        )}
-        {activeInterface === 'canvas' && activity === 'greeter' && (
-          <GreeterPanel greeterConfig={serverGreeterConfig} />
-        )}
-        {activeInterface === 'canvas' && activity === 'steno' && (
-          <StenoPanel />
-        )}
-        {activeInterface === 'canvas' && activity === 'story-tracer' && (
-          <StoryTracerPanel />
-        )}
-        {activeInterface === 'canvas' && activity === 'voice-call' && (
-          <VoiceCallPanel />
-        )}
-        {activeInterface === 'canvas' && activity === 'map-maker' && (
-          <MapMakerPanel />
-        )}
-        {activeInterface === 'canvas' && activity === 'map-viewer' && (
-          <MapViewerPanel config={mapViewerConfig} />
-        )}
+        <SocialMediaConfigProvider value={{ socialMediaConfig: serverSocialConfig }}>
+        <GreeterConfigProvider value={{ greeterConfig: serverGreeterConfig }}>
+        <MapViewerConfigProvider value={{ config: mapViewerConfig }}>
+          {activeInterface === 'emcee' ? (
+            <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} mapViewerConfig={mapViewerConfig} onMapViewerConfigChange={setMapViewerConfig} />
+          ) : activeInterface === 'social-media' ? (
+            <SocialMediaPanel />
+          ) : activeInterface === 'mood-tones' ? (
+            <MoodTonesPanel />
+          ) : activeInterface === 'treevites' ? (
+            <TreevitesPanel userId={userId} inviteEdges={inviteEdges} />
+          ) : activeInterface === 'greeter' ? (
+            <GreeterPanel />
+          ) : activeInterface === 'steno' ? (
+            <StenoPanel />
+          ) : activeInterface === 'story-tracer' ? (
+            <StoryTracerPanel />
+          ) : activeInterface === 'voice-call' ? (
+            <VoiceCallPanel />
+          ) : activeInterface === 'map-maker' ? (
+            <MapMakerPanel />
+          ) : activeInterface === 'map-viewer' ? (
+            <MapViewerPanel />
+          ) : null}
+          {/* When activity is 'social-media', show SocialMediaPanel as a flex sibling (fills the
+              remaining height below the chip bar, same as the chip-based case).
+              Canvas container is hidden but stays mounted to keep the socket alive. */}
+          {activeInterface === 'canvas' && activity === 'social-media' && <SocialMediaPanel />}
+          {activeInterface === 'canvas' && activity === 'mood-tones' && <MoodTonesPanel />}
+          {activeInterface === 'canvas' && activity === 'treevites' && <TreevitesPanel userId={userId} inviteEdges={inviteEdges} />}
+          {activeInterface === 'canvas' && activity === 'greeter' && <GreeterPanel />}
+          {activeInterface === 'canvas' && activity === 'steno' && <StenoPanel />}
+          {activeInterface === 'canvas' && activity === 'story-tracer' && <StoryTracerPanel />}
+          {activeInterface === 'canvas' && activity === 'voice-call' && <VoiceCallPanel />}
+          {activeInterface === 'canvas' && activity === 'map-maker' && <MapMakerPanel />}
+          {activeInterface === 'canvas' && activity === 'map-viewer' && <MapViewerPanel />}
+        </MapViewerConfigProvider>
+        </GreeterConfigProvider>
+        </SocialMediaConfigProvider>
       </PanelContextProvider>
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
       <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social-media' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter' && activity !== 'steno' && activity !== 'story-tracer' && activity !== 'voice-call' && activity !== 'map-maker' && activity !== 'map-viewer') ? undefined : 'none' }}>

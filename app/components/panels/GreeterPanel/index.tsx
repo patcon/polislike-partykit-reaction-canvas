@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
-import type { GreeterConfig } from "../../../types";
 import GreeterQuizMode, { type QuizMode } from "./GreeterQuizMode";
 import QRWithCopy from "../../shared/QRWithCopy";
+import { useGreeterConfig } from "../../../context/PanelConfigs";
 
 interface Attendee {
   slugId: string;
@@ -21,9 +21,6 @@ interface EventInfo {
   url: string | null;
 }
 
-interface GreeterPanelProps {
-  greeterConfig: GreeterConfig | null;
-}
 
 const GRAPHQL_SLUG_URL = 'https://guild.host/graphql/ab910738acdb79ffade614553f55523137c6968924e004a2e789faef52c0c081';
 const GRAPHQL_IN_PERSON_URL = 'https://guild.host/graphql/f0f0595e0c3bc689857cd75b6e3d1e32de52fa6aeeb3671a69aa1b9e0986c5e0';
@@ -140,7 +137,8 @@ function formatDate(iso: string): string {
   }
 }
 
-export default function GreeterPanel({ greeterConfig }: GreeterPanelProps) {
+export default function GreeterPanel() {
+  const { greeterConfig } = useGreeterConfig();
   const [events, setEvents] = useState<EventInfo[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [hasMorePast, setHasMorePast] = useState(false);
