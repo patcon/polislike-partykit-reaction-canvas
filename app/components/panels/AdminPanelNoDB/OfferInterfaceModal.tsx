@@ -53,7 +53,7 @@ export default function OfferInterfaceModal({
           style={{ background: '#333', border: '1px solid #555', color: '#eee', borderRadius: 6, padding: '8px 10px', fontSize: 13 }}
         >
           {PATCHABLE_PANELS.map(p => (
-            <option key={p.id} value={p.id}>{p.id}</option>
+            <option key={p.id} value={p.id}>{p.label}</option>
           ))}
         </select>
         <div style={{ display: 'flex', gap: 8 }}>
