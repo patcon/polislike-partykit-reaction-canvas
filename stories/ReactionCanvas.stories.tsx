@@ -138,11 +138,9 @@ export const Recorder: Story = {
       if ((e.target as HTMLElement).tagName === 'BUTTON') return;
 
       if (!isRecording) {
-        // Start recording — also kick off replay for any paths completed since last start
+        // Start recording — reset ALL replay start times to now so every path starts at t=0
         const now = Date.now();
-        while (replayStartTimesRef.current.length < userCountRef.current) {
-          replayStartTimesRef.current.push(now);
-        }
+        replayStartTimesRef.current = Array.from({ length: userCountRef.current }, () => now);
         startTimeRef.current = now;
         currentEventsRef.current = [];
         setCurrentEventsDisplay([]);
