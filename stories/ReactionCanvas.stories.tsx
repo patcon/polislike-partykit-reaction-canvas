@@ -137,8 +137,12 @@ export const Recorder: Story = {
       if ((e.target as HTMLElement).tagName === 'BUTTON') return;
 
       if (!isRecording) {
-        // Start recording
-        startTimeRef.current = Date.now();
+        // Start recording — also kick off replay for any paths completed since last start
+        const now = Date.now();
+        while (replayStartTimesRef.current.length < userCountRef.current) {
+          replayStartTimesRef.current.push(now);
+        }
+        startTimeRef.current = now;
         currentEventsRef.current = [];
         setCurrentEventsDisplay([]);
         setIsRecording(true);
@@ -151,7 +155,6 @@ export const Recorder: Story = {
         const finalEvents = [...currentEventsRef.current, removeEvent];
         const newPath: UserPath = { userId: `user-${userCountRef.current + 1}`, events: finalEvents };
 
-        replayStartTimesRef.current.push(Date.now());
         userCountRef.current += 1;
 
         setCompletedPaths(prev => [...prev, newPath]);
