@@ -1,5 +1,6 @@
 import type { ReactionLabelSet } from "../../../voteLabels";
 import type { PushTarget } from "./types";
+import { PATCHABLE_PANELS } from "../../../panelRegistry";
 
 interface OfferInterfaceModalProps {
   pushTarget: PushTarget;
@@ -51,16 +52,9 @@ export default function OfferInterfaceModal({
           autoFocus
           style={{ background: '#333', border: '1px solid #555', color: '#eee', borderRadius: 6, padding: '8px 10px', fontSize: 13 }}
         >
-          <option value="social">social</option>
-          <option value="mood-tones">mood-tones</option>
-          <option value="treevites">treevites</option>
-          <option value="greeter">greeter</option>
-          <option value="emcee">emcee</option>
-          <option value="steno">steno</option>
-          <option value="story-tracer">story-tracer</option>
-          <option value="voice-call">voice-call</option>
-          <option value="map-maker">map-maker</option>
-          <option value="map-viewer">map-viewer</option>
+          {PATCHABLE_PANELS.map(p => (
+            <option key={p.id} value={p.id}>{p.label}</option>
+          ))}
         </select>
         <div style={{ display: 'flex', gap: 8 }}>
           <button

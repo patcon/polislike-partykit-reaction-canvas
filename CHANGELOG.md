@@ -4,7 +4,16 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 27 (2026-05-25)
 
+### Changed
+- **Unified panel rendering** — the 18-branch conditional render in `ReactionCanvasAppV4` replaced by a `PANEL_COMPONENTS` map; chip-based and activity-based paths unified into a single derived `activePanelId`; canvas visibility check simplified from a long `activity !== X` chain to `!PANEL_COMPONENTS[activity]`.
+- **PanelDefinition type** — `app/panelRegistry.ts` now exports `PanelDefinition` extending `PanelMeta` with a `component: React.ComponentType` field; `inviteEdges` added to `PanelContextValue` and `TreevitesPanel` migrated to context, making all nine non-emcee panels fully prop-free and typeable as `PanelDefinition`.
+- **PanelConfigs contexts** — `greeterConfig`, `socialMediaConfig`, and `mapViewerConfig` now injected via panel-specific React contexts (`app/context/PanelConfigs.tsx`); `GreeterPanel`, `SocialMediaPanel`, and `MapViewerPanel` migrated to `useGreeterConfig()`, `useSocialMediaConfig()`, and `useMapViewerConfig()` respectively. All nine non-emcee panels are now prop-free.
+- **PanelContext** — `room` and `userId` are now injected via React context (`app/context/PanelContext.tsx`) rather than props; six panels (`MoodTonesPanel`, `StenoPanel`, `StoryTracerPanel`, `VoiceCallPanel`, `MapMakerPanel`, `MapViewerPanel`) migrated to `usePanelContext()`. Foundation for panel package extraction.
+- **Panel registry** — introduced `app/panelRegistry.ts` as a single source of truth for all panel metadata (id, label, description, patchable, activityMode); `KNOWN_CHIPS` in `ReactionCanvasAppV4`, `ROWS` in `InterfacesTab`, and the hardcoded `<option>` list in `OfferInterfaceModal` now all derive from this registry. Adding a new panel no longer requires edits in three separate files.
+- **Social sharing panel id renamed** — activity/interface key changed from `'social'` → `'social-media'` → `'social-sharing'` to match its label. Affects URL `addInterface` param, localStorage interface lists, and emcee push messages. Old values stored in localStorage will silently fall back to the canvas interface on next load.
+
 ### Fixed
+- **OfferInterfaceModal: show panel labels in dropdown** — the interface selector now shows human-readable labels (e.g. "Social Sharing") instead of internal IDs (e.g. "social-media").
 - **VoiceCallPanel: fix WSOD on HTTP LAN** — guard `navigator.mediaDevices` before using the `in` operator; `mediaDevices` is `undefined` in insecure contexts (HTTP non-localhost), which caused a crash on render.
 - **InterfacesTab: warn when mic unavailable** — Voice calls and Steno rows now show an ⚠ SSL required badge when `navigator.mediaDevices` is unavailable (HTTP non-localhost), so emcees know those interfaces won't work without HTTPS.
 - **Moments: migrate storage from localStorage to IndexedDB** — importing large Polis CSVs no longer throws `QuotaExceededError`; moments are now stored in IndexedDB (no practical size limit) via a new `app/utils/idbStorage.ts` helper.

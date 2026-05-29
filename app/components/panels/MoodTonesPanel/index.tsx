@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import { usePanelContext } from "../../../context/PanelContext";
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -242,7 +243,8 @@ interface BarState { height: number; color: [number,number,number]; active: bool
 
 const RESET_BARS: BarState[] = [0,1,2,3].map(() => ({ height: 3, color: [42,42,64], active: false }));
 
-export default function MoodTonesPanel({ room }: { room: string }) {
+export default function MoodTonesPanel() {
+  const { room } = usePanelContext();
   const [activePreset, setActivePreset]   = useState<Preset>(PRESETS[0]);
   const [playing, setPlaying]             = useState(false);
   const [mood, setMood]                   = useState(50);

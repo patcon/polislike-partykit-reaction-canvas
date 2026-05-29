@@ -1,6 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, userEvent, within } from 'storybook/test';
 import AdminPanelNoDB from '../app/components/panels/AdminPanelNoDB';
+import { PATCHABLE_PANELS } from '../app/panelRegistry';
 
 // AdminPanelNoDB is socket-driven: the PartyKit socket is mocked in Storybook
 // (no-op, readyState: CLOSED), so server-pushed state (cursors, connected users,
@@ -67,6 +68,19 @@ export const InterfacesTab: Story = {
     const canvas = within(canvasElement);
     await userEvent.click(canvas.getByText('Interfaces'));
     await expect(canvas.getByText('Social Sharing')).toBeInTheDocument();
+  },
+};
+
+// Verifies that every patchable panel from PANEL_REGISTRY appears in the
+// Interfaces tab — locks the registry → UI contract so adding/removing a
+// registry entry forces a visible UI change.
+export const InterfacesTabShowsAllPatchablePanels: Story = {
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await userEvent.click(canvas.getByText('Interfaces'));
+    for (const panel of PATCHABLE_PANELS) {
+      await expect(canvas.getByText(panel.label)).toBeInTheDocument();
+    }
   },
 };
 

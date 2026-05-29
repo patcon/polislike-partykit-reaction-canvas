@@ -5,18 +5,15 @@ import { useEmbeddingWorker, EMBEDDING_MODELS, REDUCERS, REDUCER_PARAM_DEFS, def
 import { parseVttCues, computeChunks, getTimestampForWordIndex } from '../../../utils/storyTracerUtils';
 import type { StoryTracerMeta, StoryTracerPoint } from '../../../types';
 import NarrativePath3D from './NarrativePath3D';
-
-interface StoryTracerPanelProps {
-  room: string;
-  userId: string;
-}
+import { usePanelContext } from '../../../context/PanelContext';
 
 const LS_MODEL = 'story-tracer-model';
 const LS_ALGO = 'story-tracer-algo';
 const LS_WINDOW = 'story-tracer-window';
 const LS_OVERLAP = 'story-tracer-overlap';
 
-export default function StoryTracerPanel({ room, userId }: StoryTracerPanelProps) {
+export default function StoryTracerPanel() {
+  const { room, userId } = usePanelContext();
   const [stenoVtt, setStenoVtt] = useState('WEBVTT\n');
   const [storedMeta, setStoredMeta] = useState<StoryTracerMeta | null>(null);
   const [storedPoints, setStoredPoints] = useState<StoryTracerPoint[] | null>(null);

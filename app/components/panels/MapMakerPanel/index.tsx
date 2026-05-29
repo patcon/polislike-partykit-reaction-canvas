@@ -17,11 +17,7 @@ import { idbGet } from '../../../utils/idbStorage';
 import type { MomentSnapshot } from '../AdminPanelNoDB/types';
 import type { MapProjection } from '../../../types';
 import type { DruidWorkerEvent } from '../../../workers/druidWorker.types';
-
-interface MapMakerPanelProps {
-  room: string;
-  userId: string;
-}
+import { usePanelContext } from '../../../context/PanelContext';
 
 type RunStatus = 'idle' | 'running' | 'done' | 'error';
 
@@ -54,7 +50,8 @@ function buildMatrix(moments: MomentSnapshot[]): { matrix: number[][]; participa
   return { matrix, participantIds };
 }
 
-export default function MapMakerPanel({ room, userId }: MapMakerPanelProps) {
+export default function MapMakerPanel() {
+  const { room, userId } = usePanelContext();
   const [algorithm, setAlgorithm] = useState<ReducerAlgorithm>('umap');
   const [params, setParams] = useState<Record<string, number>>(() => defaultParamsFor('umap'));
   const [advancedParams, setAdvancedParams] = useState<Record<string, number>>(() => defaultAdvancedParamsFor('umap'));

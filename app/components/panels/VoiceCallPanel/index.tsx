@@ -90,11 +90,7 @@ import { MdScreenLockPortrait } from 'react-icons/md';
 import { getPartySocketConfig } from '../../../utils/partyHost';
 import { useWebRTCCall } from './useWebRTCCall';
 import { useWakeLock } from '../../../utils/useWakeLock';
-
-interface VoiceCallPanelProps {
-  room: string;
-  userId: string;
-}
+import { usePanelContext } from '../../../context/PanelContext';
 
 function detectPlatform() {
   const ua = navigator.userAgent;
@@ -132,7 +128,8 @@ function enumAudioDevices(): Promise<{ inputs: MediaDeviceInfo[]; outputs: Media
   }));
 }
 
-export default function VoiceCallPanel({ room, userId }: VoiceCallPanelProps) {
+export default function VoiceCallPanel() {
+  const { room, userId } = usePanelContext();
   const platform = useMemo(() => detectPlatform(), []);
 
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);

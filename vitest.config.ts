@@ -15,6 +15,13 @@ export default defineConfig({
   test: {
     projects: [
       {
+        test: {
+          name: 'unit',
+          include: ['tests/**/*.test.ts'],
+          environment: 'node',
+        },
+      },
+      {
         extends: true,
         plugins: [
           // The plugin will run tests for the stories defined in your Storybook config
@@ -29,7 +36,7 @@ export default defineConfig({
             provider: playwright({}),
             instances: [{ browser: 'chromium' }],
           },
-          setupFiles: ['.storybook/vitest.setup.ts'],
+          setupFiles: [],
         },
       },
     ],

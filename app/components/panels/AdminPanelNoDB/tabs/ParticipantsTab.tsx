@@ -48,7 +48,7 @@ function ParticipantsTabInner({
 }: ParticipantsTabProps) {
   const offerInterface = (target: PushTarget) => {
     setPushTarget(target);
-    setPendingInterfaceName('social');
+    setPendingInterfaceName('social-sharing');
   };
 
   const toggleGroupCollapse = (key: string) => {
