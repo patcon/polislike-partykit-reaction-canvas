@@ -39,7 +39,7 @@ import MapMakerPanel from "../panels/MapMakerPanel";
 import MapViewerPanel from "../panels/MapViewerPanel";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
-  'social-media':  SocialMediaPanel,
+  'social-sharing': SocialMediaPanel,
   'mood-tones':    MoodTonesPanel,
   treevites:       TreevitesPanel,
   greeter:         GreeterPanel,
@@ -565,7 +565,7 @@ export default function ReactionCanvasAppV4() {
                 : 'Orientation permission denied — switch back to Touch mode to react.'}
             </div>
           )}
-          {!isViewer && activity !== 'social-media' && activity !== 'greeter' && activity !== 'signature' && (
+          {!isViewer && activity !== 'social-sharing' && activity !== 'greeter' && activity !== 'signature' && (
             <TouchLayer
               room={room}
               userId={userId}

@@ -16,7 +16,7 @@ export const PANEL_REGISTRY: PanelMeta[] = [
   { id: 'image-canvas', label: 'Image Canvas',    description: 'React over a shared background image',                  patchable: false, activityMode: true  },
   { id: 'signature',    label: 'Signature Canvas',description: 'Collect participant signatures live',                   patchable: false, activityMode: true  },
   { id: 'soccer',       label: 'Soccer',          description: 'Top-down physics ball — kick with your cursor',         patchable: false, activityMode: true  },
-  { id: 'social-media', label: 'Social Sharing',  description: 'Bluesky · Twitter / X · Mastodon',                     patchable: true,  activityMode: true  },
+  { id: 'social-sharing', label: 'Social Sharing',  description: 'Bluesky · Twitter / X · Mastodon',                     patchable: true,  activityMode: true  },
   { id: 'mood-tones',   label: 'Mood Tones',      description: 'Generative audio keyed to audience reactions',          patchable: true,  activityMode: true  },
   { id: 'treevites',    label: 'Leaderboard',     description: 'Invite stats — who invited whom',                       patchable: true,  activityMode: true  },
   { id: 'greeter',      label: 'Greeter',         description: 'Guild event attendee welcome list',                     patchable: true,  activityMode: true  },

@@ -82,7 +82,7 @@ export default function InterfacesTab({
                   {id === 'image-canvas' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}><IoMdSettings /></button>
                   )}
-                  {id === 'social-media' && (
+                  {id === 'social-sharing' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>
                   )}
                   {id === 'greeter' && (
