@@ -5,6 +5,7 @@ import MapViewerPanel from '../app/components/panels/MapViewerPanel';
 import { PanelContextProvider } from '../app/context/PanelContext';
 import { MapViewerConfigProvider } from '../app/context/PanelConfigs';
 import type { MapViewerConfig, MapProjection } from '../app/types';
+import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 
 // Seeded LCG so the blob is deterministic across renders
 function makeSeededRand(seed: number) {
@@ -66,8 +67,8 @@ export const NoProjection: Story = {
 };
 
 export const WithGaussianBlob: Story = {
-  args: { initialProjection: GAUSSIAN_PROJECTION },
   play: async ({ canvasElement }) => {
+    emitToRoom('storybook', { type: 'connected', mapProjection: GAUSSIAN_PROJECTION, connectedUserIds: [], roomAnchors: null });
     const canvas = within(canvasElement);
     await expect(canvas.getByText(/UMAP/)).toBeInTheDocument();
   },
