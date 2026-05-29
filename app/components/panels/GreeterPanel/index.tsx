@@ -145,7 +145,7 @@ export default function GreeterPanel() {
   const [pastEndCursor, setPastEndCursor] = useState<string | null>(null);
   const [groupSlug, setGroupSlug] = useState<string | null>(null);
   const [attendees, setAttendees] = useState<Attendee[]>([]);
-  const [listStatus, setListStatus] = useState<'idle' | 'loading' | 'no-event' | 'error'>('idle');
+  const [listStatus, setListStatus] = useState<'idle' | 'loading' | 'no-event' | 'error' | 'invalid-url'>('idle');
   const [attendeeStatus, setAttendeeStatus] = useState<'idle' | 'loading' | 'error'>('idle');
 
   const eventUrl = greeterConfig?.eventUrl ?? null;
@@ -158,7 +158,7 @@ export default function GreeterPanel() {
     }
     const parsed = parseGuildUrl(eventUrl);
     if (!parsed) {
-      setEvents([]); setCurrentIndex(0); setGroupSlug(null); setListStatus('idle');
+      setEvents([]); setCurrentIndex(0); setGroupSlug(null); setListStatus('invalid-url');
       return;
     }
 
@@ -379,7 +379,9 @@ export default function GreeterPanel() {
       ) : (
         <div style={{ flex: 1, overflowY: 'auto', padding: '8px 0' }}>
           {!greeterConfig || !eventUrl ? (
-            <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No URL configured yet.</p>
+            <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>No URL configured yet. Contact the app admin.</p>
+          ) : listStatus === 'invalid-url' ? (
+            <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>Unrecognized URL — must be a guild.host event or group link. Contact the app admin.</p>
           ) : listStatus === 'loading' ? (
             <p style={{ color: '#555', fontSize: 13, padding: '16px 20px' }}>Loading…</p>
           ) : listStatus === 'no-event' ? (

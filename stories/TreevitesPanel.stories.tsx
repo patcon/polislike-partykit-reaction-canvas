@@ -11,9 +11,11 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story, ctx) => (
-      <PanelContextProvider value={ctx.args as never}>
-        <Story />
-      </PanelContextProvider>
+      <div className="v2-app-container" style={{ height: '100vh' }}>
+        <PanelContextProvider value={ctx.args as never}>
+          <Story />
+        </PanelContextProvider>
+      </div>
     ),
   ],
   args: {
