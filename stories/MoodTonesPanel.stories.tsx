@@ -48,8 +48,9 @@ export const OscillatingAudienceMood: Story = {
       const t = tick++ / 20; // ~0-1 over 5 seconds at 250ms
       USERS.forEach((userId, i) => {
         const phase = (i / USERS.length) * Math.PI * 2;
-        const x = 0.5 + 0.4 * Math.sin(t * Math.PI * 2 + phase);
-        const y = 0.5 + 0.2 * Math.cos(t * Math.PI * 2 + phase);
+        // Coordinates in 0-100 scale (computeRegion/cursorMoodValue divide by 100 internally)
+        const x = 50 + 40 * Math.sin(t * Math.PI * 2 + phase);
+        const y = 50 + 20 * Math.cos(t * Math.PI * 2 + phase);
         emitToRoom('storybook', { type: 'move', position: { userId, x, y } });
       });
       if (tick % 4 === 0) {

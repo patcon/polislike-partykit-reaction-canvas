@@ -70,6 +70,7 @@ export const WithGaussianBlob: Story = {
   play: async ({ canvasElement }) => {
     emitToRoom('storybook', { type: 'connected', mapProjection: GAUSSIAN_PROJECTION, connectedUserIds: [], roomAnchors: null });
     const canvas = within(canvasElement);
-    await expect(canvas.getByText(/UMAP/)).toBeInTheDocument();
+    // findByText waits for the async state update triggered by emitToRoom to flush
+    await expect(canvas.findByText(/UMAP/)).resolves.toBeInTheDocument();
   },
 };
