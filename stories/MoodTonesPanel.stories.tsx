@@ -45,18 +45,25 @@ export const OscillatingAudienceMood: Story = {
     // phases, cursorMoodValue's linearity makes the average always equal cursorMoodValue(50,50).
     // audienceSync is on by default so the mood slider follows the cursor.
     emitToRoom('storybook', { type: 'presenceCount', count: 1 });
-    let tick = 0;
-    const interval = setInterval(() => {
-      const t = tick++ / 20; // completes one cycle per 5 seconds at 250ms
-      // Coordinates in 0-100 scale (computeRegion/cursorMoodValue divide by 100 internally)
-      const x = 50 + 45 * Math.sin(t * Math.PI * 2);
-      const y = 50 + 40 * Math.cos(t * Math.PI * 2);
-      emitToRoom('storybook', { type: 'move', position: { userId: 'ghost-1', x, y } });
-    }, 250);
-
-    // Run for 10 seconds then clean up
-    await new Promise(resolve => setTimeout(resolve, 10000));
-    clearInterval(interval);
-    emitToRoom('storybook', { type: 'remove', position: { userId: 'ghost-1', x: 0, y: 0 } });
+    const DURATION = 10000;
+    const CYCLE = 5000; // one full mood cycle in ms
+    const start = performance.now();
+    await new Promise<void>(resolve => {
+      const frame = (now: number) => {
+        const elapsed = now - start;
+        if (elapsed >= DURATION) {
+          emitToRoom('storybook', { type: 'remove', position: { userId: 'ghost-1', x: 0, y: 0 } });
+          resolve();
+          return;
+        }
+        const t = elapsed / CYCLE;
+        // Coordinates in 0-100 scale (computeRegion/cursorMoodValue divide by 100 internally)
+        const x = 50 + 45 * Math.sin(t * Math.PI * 2);
+        const y = 50 + 40 * Math.cos(t * Math.PI * 2);
+        emitToRoom('storybook', { type: 'move', position: { userId: 'ghost-1', x, y } });
+        requestAnimationFrame(frame);
+      };
+      requestAnimationFrame(frame);
+    });
   },
 };
