@@ -47,7 +47,7 @@ function CanvasComposition({ room, userId, labels, onCursorEvent }: CanvasCompos
   const effectiveLabels = labels ?? REACTION_LABEL_PRESETS['default'];
 
   return (
-    <div className="v2-app-container" style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
+    <div className="v2-app-container" style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
       <LabelOverlay labels={effectiveLabels} />
       <Canvas
         room={room}
@@ -221,65 +221,74 @@ export const Recorder: Story = {
       : `Click to record ${nextUser}`;
     const totalEvents = completedPaths.reduce((s, p) => s + p.events.length, 0) + currentEventsDisplay.length;
 
+    const BAR_HEIGHT = 40;
+
     return (
       <div
-        style={{ position: 'relative', width: '100%', height: '100vh' }}
+        style={{ position: 'relative', width: '100%', height: '100vh', display: 'flex', flexDirection: 'column' }}
         onClick={handleCanvasClick}
         onMouseLeave={handleMouseLeave}
         onMouseEnter={handleMouseEnter}
       >
-        <CanvasComposition {...args} onCursorEvent={isRecording ? handleCursorEvent : undefined} />
+        {/* Canvas area — fills everything above the bar */}
+        <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
+          <CanvasComposition {...args} onCursorEvent={isRecording ? handleCursorEvent : undefined} />
 
-        {/* Replay cursor dots for completed paths */}
-        {completedPaths.map((path, i) => {
-          const cursor = replayCursors[i];
-          if (!cursor) return null;
-          return (
-            <div key={path.userId} style={{
+          {/* Replay cursor dots — positioned relative to canvas area */}
+          {completedPaths.map((path, i) => {
+            const cursor = replayCursors[i];
+            if (!cursor) return null;
+            return (
+              <div key={path.userId} style={{
+                position: 'absolute',
+                left: `${cursor.x}%`,
+                top: `${cursor.y}%`,
+                width: 14,
+                height: 14,
+                borderRadius: '50%',
+                background: replayCursorColor(i),
+                border: '2px solid rgba(0,0,0,0.5)',
+                transform: 'translate(-50%, -50%)',
+                pointerEvents: 'none',
+                zIndex: 15,
+              }} />
+            );
+          })}
+        </div>
+
+        {/* Spacer: always BAR_HEIGHT in flow so canvas stops here.
+            The inner bar div expands upward as an overlay on hover. */}
+        <div style={{ flexShrink: 0, position: 'relative', height: BAR_HEIGHT }}>
+          <div
+            onMouseEnter={() => setHovered(true)}
+            onMouseLeave={() => setHovered(false)}
+            style={{
               position: 'absolute',
-              left: `${cursor.x}%`,
-              top: `${cursor.y}%`,
-              width: 14,
-              height: 14,
-              borderRadius: '50%',
-              background: replayCursorColor(i),
-              border: '2px solid rgba(0,0,0,0.5)',
-              transform: 'translate(-50%, -50%)',
-              pointerEvents: 'none',
-              zIndex: 15,
-            }} />
-          );
-        })}
-
-        <div
-          onMouseEnter={() => setHovered(true)}
-          onMouseLeave={() => setHovered(false)}
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            background: 'rgba(0,0,0,0.88)',
-            color: '#ccc',
-            fontFamily: 'monospace',
-            fontSize: '11px',
-            padding: '8px 12px',
-            height: hovered ? '220px' : 'auto',
-            overflowY: 'auto',
-            zIndex: 100,
-            borderTop: '1px solid #444',
-          }}
-        >
-          <div style={{ display: 'flex', gap: '8px', marginBottom: hovered ? '6px' : 0, alignItems: 'center' }}>
-            <span style={{ flex: 1, color: isRecording ? '#f4a460' : '#888' }}>
-              {statusMsg}{totalEvents > 0 ? ` · ${totalEvents} events` : ''}
-            </span>
-            <button style={btnStyle} onClick={(e) => { e.stopPropagation(); handleClear(); }}>Clear</button>
-            <button style={{ ...btnStyle, color: copied ? '#7fc97f' : '#ccc' }} onClick={(e) => { e.stopPropagation(); handleCopy(); }}>
-              {copied ? 'Copied!' : 'Copy JSON'}
-            </button>
+              bottom: 0,
+              left: 0,
+              right: 0,
+              background: 'rgba(0,0,0,0.88)',
+              color: '#ccc',
+              fontFamily: 'monospace',
+              fontSize: '11px',
+              padding: '8px 12px',
+              height: hovered ? '220px' : BAR_HEIGHT,
+              overflowY: 'auto',
+              zIndex: 100,
+              borderTop: '1px solid #444',
+            }}
+          >
+            <div style={{ display: 'flex', gap: '8px', marginBottom: hovered ? '6px' : 0, alignItems: 'center' }}>
+              <span style={{ flex: 1, color: isRecording ? '#f4a460' : '#888' }}>
+                {statusMsg}{totalEvents > 0 ? ` · ${totalEvents} events` : ''}
+              </span>
+              <button style={btnStyle} onClick={(e) => { e.stopPropagation(); handleClear(); }}>Clear</button>
+              <button style={{ ...btnStyle, color: copied ? '#7fc97f' : '#ccc' }} onClick={(e) => { e.stopPropagation(); handleCopy(); }}>
+                {copied ? 'Copied!' : 'Copy JSON'}
+              </button>
+            </div>
+            {hovered && <pre style={{ margin: 0, overflowX: 'auto', color: '#aaa' }}>{JSON.stringify(completedPaths, null, 2)}</pre>}
           </div>
-          {hovered && <pre style={{ margin: 0, overflowX: 'auto', color: '#aaa' }}>{JSON.stringify(completedPaths, null, 2)}</pre>}
         </div>
       </div>
     );
