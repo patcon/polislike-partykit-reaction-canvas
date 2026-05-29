@@ -40,29 +40,23 @@ export const Default: Story = {
 export const OscillatingAudienceMood: Story = {
   name: 'Oscillating Audience Mood',
   play: async () => {
-    // Emit a few fake cursors moving in a slow sine wave across the canvas.
-    // audienceSync is on by default so the mood slider follows the aggregate position.
+    // Single cursor sweeps across the canvas in a wide ellipse.
+    // Using one cursor avoids the phase-cancellation problem: with N equally-spaced
+    // phases, cursorMoodValue's linearity makes the average always equal cursorMoodValue(50,50).
+    // audienceSync is on by default so the mood slider follows the cursor.
+    emitToRoom('storybook', { type: 'presenceCount', count: 1 });
     let tick = 0;
-    const USERS = ['ghost-1', 'ghost-2', 'ghost-3'];
     const interval = setInterval(() => {
-      const t = tick++ / 20; // ~0-1 over 5 seconds at 250ms
-      USERS.forEach((userId, i) => {
-        const phase = (i / USERS.length) * Math.PI * 2;
-        // Coordinates in 0-100 scale (computeRegion/cursorMoodValue divide by 100 internally)
-        const x = 50 + 40 * Math.sin(t * Math.PI * 2 + phase);
-        const y = 50 + 20 * Math.cos(t * Math.PI * 2 + phase);
-        emitToRoom('storybook', { type: 'move', position: { userId, x, y } });
-      });
-      if (tick % 4 === 0) {
-        emitToRoom('storybook', { type: 'presenceCount', count: USERS.length });
-      }
+      const t = tick++ / 20; // completes one cycle per 5 seconds at 250ms
+      // Coordinates in 0-100 scale (computeRegion/cursorMoodValue divide by 100 internally)
+      const x = 50 + 45 * Math.sin(t * Math.PI * 2);
+      const y = 50 + 40 * Math.cos(t * Math.PI * 2);
+      emitToRoom('storybook', { type: 'move', position: { userId: 'ghost-1', x, y } });
     }, 250);
 
     // Run for 10 seconds then clean up
     await new Promise(resolve => setTimeout(resolve, 10000));
     clearInterval(interval);
-    USERS.forEach(userId =>
-      emitToRoom('storybook', { type: 'remove', position: { userId, x: 0, y: 0 } })
-    );
+    emitToRoom('storybook', { type: 'remove', position: { userId: 'ghost-1', x: 0, y: 0 } });
   },
 };
