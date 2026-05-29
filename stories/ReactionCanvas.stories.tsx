@@ -112,6 +112,7 @@ export const Recorder: Story = {
     const [replayCursors, setReplayCursors] = useState<Array<{ x: number; y: number } | null>>([]);
     const [hovered, setHovered] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [isPreviewing, setIsPreviewing] = useState(false);
 
     // Use a ref for the in-progress buffer so the end-click handler reads current data
     const currentEventsRef = useRef<RecordedEvent[]>([]);
@@ -166,9 +167,9 @@ export const Recorder: Story = {
       }
     };
 
-    // Animate replay cursors at ~20fps — only while a recording is active
+    // Animate replay cursors at ~20fps — while recording or previewing (mouse-out)
     useEffect(() => {
-      if (completedPaths.length === 0 || !isRecording) return;
+      if (completedPaths.length === 0 || (!isRecording && !isPreviewing)) return;
       const interval = setInterval(() => {
         const now = Date.now();
         setReplayCursors(completedPaths.map((path, i) => {
@@ -183,12 +184,26 @@ export const Recorder: Story = {
         }));
       }, 50);
       return () => clearInterval(interval);
-    }, [completedPaths, isRecording]);
+    }, [completedPaths, isRecording, isPreviewing]);
+
+    const handleMouseLeave = () => {
+      if (isRecording || completedPaths.length === 0) return;
+      const now = Date.now();
+      replayStartTimesRef.current = completedPaths.map(() => now);
+      setIsPreviewing(true);
+    };
+
+    const handleMouseEnter = () => {
+      if (!isPreviewing) return;
+      setIsPreviewing(false);
+      setReplayCursors([]);
+    };
 
     const handleClear = () => {
       setCompletedPaths([]);
       setReplayCursors([]);
       setCurrentEventsDisplay([]);
+      setIsPreviewing(false);
       currentEventsRef.current = [];
       replayStartTimesRef.current = [];
       userCountRef.current = 0;
@@ -209,7 +224,12 @@ export const Recorder: Story = {
     const totalEvents = completedPaths.reduce((s, p) => s + p.events.length, 0) + currentEventsDisplay.length;
 
     return (
-      <div style={{ position: 'relative', width: '100%', height: '100vh' }} onClick={handleCanvasClick}>
+      <div
+        style={{ position: 'relative', width: '100%', height: '100vh' }}
+        onClick={handleCanvasClick}
+        onMouseLeave={handleMouseLeave}
+        onMouseEnter={handleMouseEnter}
+      >
         <CanvasComposition {...args} onCursorEvent={isRecording ? handleCursorEvent : undefined} />
 
         {/* Replay cursor dots for completed paths */}
