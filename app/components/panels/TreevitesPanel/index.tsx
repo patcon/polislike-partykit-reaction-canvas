@@ -1,10 +1,6 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
-
-interface TreevitesPanelProps {
-  userId: string;
-  inviteEdges: Record<string, string>; // inviteeId -> inviterId
-}
+import { usePanelContext } from "../../../context/PanelContext";
 
 interface TreeNode {
   id: string;
@@ -59,7 +55,8 @@ function TreeNodeRow({ node, userId, depth, showIndent }: { node: TreeNode; user
   );
 }
 
-export default function TreevitesPanel({ userId, inviteEdges }: TreevitesPanelProps) {
+export default function TreevitesPanel() {
+  const { userId, inviteEdges } = usePanelContext();
   const [showIndent, setShowIndent] = useState(false);
   const roots = buildTree(inviteEdges);
   const isEmpty = Object.keys(inviteEdges).length === 0;

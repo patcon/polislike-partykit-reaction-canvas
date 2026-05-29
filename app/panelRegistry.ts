@@ -1,3 +1,5 @@
+import type React from 'react';
+
 export const SOLO_SCREEN_LABEL = 'Canvas';
 
 export interface PanelMeta {
@@ -26,3 +28,12 @@ export const PANEL_REGISTRY: PanelMeta[] = [
 ];
 
 export const PATCHABLE_PANELS = PANEL_REGISTRY.filter(p => p.patchable);
+
+/**
+ * A fully registered panel: metadata + a prop-free component.
+ * All dependencies are provided via PanelContext and the panel-specific
+ * config contexts in app/context/PanelConfigs.tsx.
+ */
+export interface PanelDefinition extends PanelMeta {
+  component: React.ComponentType;
+}

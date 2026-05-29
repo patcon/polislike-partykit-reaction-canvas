@@ -3,6 +3,7 @@ import { createContext, useContext } from "react";
 export interface PanelContextValue {
   room: string;
   userId: string;
+  inviteEdges: Record<string, string>;
 }
 
 const PanelContext = createContext<PanelContextValue | null>(null);

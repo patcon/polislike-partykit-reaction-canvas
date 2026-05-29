@@ -360,7 +360,7 @@ export default function ReactionCanvasAppV4() {
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
   const KNOWN_CHIPS = Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.id === 'canvas' ? SOLO_SCREEN_LABEL : p.label]));
-  const panelContextValue = useMemo(() => ({ room, userId }), [room, userId]);
+  const panelContextValue = useMemo(() => ({ room, userId, inviteEdges }), [room, userId, inviteEdges]);
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
     label: KNOWN_CHIPS[key] ?? (key.charAt(0).toUpperCase() + key.slice(1)),
@@ -386,7 +386,7 @@ export default function ReactionCanvasAppV4() {
           ) : activeInterface === 'mood-tones' ? (
             <MoodTonesPanel />
           ) : activeInterface === 'treevites' ? (
-            <TreevitesPanel userId={userId} inviteEdges={inviteEdges} />
+            <TreevitesPanel />
           ) : activeInterface === 'greeter' ? (
             <GreeterPanel />
           ) : activeInterface === 'steno' ? (
@@ -405,7 +405,7 @@ export default function ReactionCanvasAppV4() {
               Canvas container is hidden but stays mounted to keep the socket alive. */}
           {activeInterface === 'canvas' && activity === 'social-media' && <SocialMediaPanel />}
           {activeInterface === 'canvas' && activity === 'mood-tones' && <MoodTonesPanel />}
-          {activeInterface === 'canvas' && activity === 'treevites' && <TreevitesPanel userId={userId} inviteEdges={inviteEdges} />}
+          {activeInterface === 'canvas' && activity === 'treevites' && <TreevitesPanel />}
           {activeInterface === 'canvas' && activity === 'greeter' && <GreeterPanel />}
           {activeInterface === 'canvas' && activity === 'steno' && <StenoPanel />}
           {activeInterface === 'canvas' && activity === 'story-tracer' && <StoryTracerPanel />}
