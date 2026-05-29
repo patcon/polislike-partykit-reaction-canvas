@@ -101,6 +101,7 @@ export const Recorder: Story = {
   render: (args) => {
     const [events, setEvents] = useState<RecordedEvent[]>([]);
     const [copied, setCopied] = useState(false);
+    const [hovered, setHovered] = useState(false);
     const startTimeRef = useRef<number | null>(null);
 
     const handleCursorEvent = useCallback((type: CursorEventType, pos: { x: number; y: number }) => {
@@ -132,7 +133,10 @@ export const Recorder: Story = {
     return (
       <div style={{ position: 'relative', width: '100%', height: '100vh' }}>
         <CanvasComposition {...args} onCursorEvent={handleCursorEvent} />
-        <div style={{
+        <div
+          onMouseEnter={() => setHovered(true)}
+          onMouseLeave={() => setHovered(false)}
+          style={{
           position: 'absolute',
           bottom: 0,
           left: 0,
@@ -142,19 +146,19 @@ export const Recorder: Story = {
           fontFamily: 'monospace',
           fontSize: '11px',
           padding: '8px 12px',
-          height: '220px',
+          height: hovered ? '220px' : 'auto',
           overflowY: 'auto',
           zIndex: 100,
           borderTop: '1px solid #444',
         }}>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '6px', alignItems: 'center' }}>
-            <span style={{ flex: 1, color: '#888' }}>{events.length} events recorded — move or touch the canvas above</span>
+            <span style={{ flex: 1, color: '#888' }}>{events.length} events recorded</span>
             <button style={btnStyle} onClick={handleClear}>Clear</button>
             <button style={{ ...btnStyle, color: copied ? '#7fc97f' : '#ccc' }} onClick={handleCopy}>
               {copied ? 'Copied!' : 'Copy JSON'}
             </button>
           </div>
-          <pre style={{ margin: 0, overflowX: 'auto', color: '#aaa' }}>{fixture}</pre>
+          {hovered && <pre style={{ margin: 0, overflowX: 'auto', color: '#aaa' }}>{fixture}</pre>}
         </div>
       </div>
     );
