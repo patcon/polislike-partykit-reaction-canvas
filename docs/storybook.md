@@ -6,7 +6,7 @@ Stories that include a countdown timer use a `render` function (not static `args
 
 Components that are socket-driven (`AdminPanel`, `Counter`) will show their loading/initial state in Storybook since no real data arrives.
 
-Tests run via `npx vitest`, which uses `@storybook/addon-vitest` to execute stories as browser tests in headless Chromium via Playwright (1280×720 viewport).
+Tests run via `pnpm vitest`, which runs two projects in parallel: Storybook stories as browser tests in headless Chromium via Playwright (1280×720 viewport), and plain unit tests from `tests/` in Node.
 
 ## What the current test setup covers well
 
@@ -18,3 +18,7 @@ Tests run via `npx vitest`, which uses `@storybook/addon-vitest` to execute stor
 - **Socket-driven state** — `activity`, remote cursors, server-pushed config — never arrives in Storybook because the socket is a no-op mock. Tests that need `activity !== 'canvas'` cannot be written against the current component interfaces.
 
 **Rule of thumb:** if the behavior-under-test requires knowing the viewport size or depends on socket messages, extract it to a pure function and write a plain vitest unit test instead. If it's purely a UI state machine, a `play` function story is the right home.
+
+## Unit tests
+
+Plain unit tests live in `tests/` as `*.test.ts` files and run in Node (no browser). Use these for pure logic: data integrity checks, utility functions, anything that doesn't need React or the DOM. See `tests/panelRegistry.test.ts` for an example.

@@ -27,7 +27,7 @@ pnpm run storybook    # Storybook on localhost:6006
 pnpm run deploy       # Deploy to PartyKit — see rules below
 pnpm run deploy:staging  # Deploy to staging preview environment
 pnpm run cachebust    # Production build with cache-busting
-pnpm vitest           # Run Storybook-based tests via Playwright/Chromium (headless)
+pnpm vitest           # Run all tests: Storybook stories (headless Chromium) + unit tests in tests/
 ```
 
 `pnpm run dev` runs both the frontend and `party/server.ts` locally on port 1999. The app is accessible at `localhost:1999` or any local network IP on port 1999 (e.g. `10.x.x.x:1999`). The WebSocket host is detected by port — if you're on port 1999, sockets connect to the local server; otherwise they connect to the deployed server.
