@@ -10,6 +10,7 @@ import MoodTonesPanel from "../panels/MoodTonesPanel";
 import GreeterPanel from "../panels/GreeterPanel";
 import type { ActivityMode, GreeterConfig, MapViewerConfig, SocialConfig, ValenceInputMode } from "../../types";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
+import type { PanelDefinition } from "../../panelRegistry";
 import { PanelContextProvider } from "../../context/PanelContext";
 import { GreeterConfigProvider, SocialMediaConfigProvider, MapViewerConfigProvider } from "../../context/PanelConfigs";
 import GithubUsernameModal from "../modals/GithubUsernameModal";
@@ -36,6 +37,18 @@ import StoryTracerPanel from "../panels/StoryTracerPanel";
 import VoiceCallPanel from "../panels/VoiceCallPanel";
 import MapMakerPanel from "../panels/MapMakerPanel";
 import MapViewerPanel from "../panels/MapViewerPanel";
+
+const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
+  'social-media':  SocialMediaPanel,
+  'mood-tones':    MoodTonesPanel,
+  treevites:       TreevitesPanel,
+  greeter:         GreeterPanel,
+  steno:           StenoPanel,
+  'story-tracer':  StoryTracerPanel,
+  'voice-call':    VoiceCallPanel,
+  'map-maker':     MapMakerPanel,
+  'map-viewer':    MapViewerPanel,
+};
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
@@ -379,45 +392,24 @@ export default function ReactionCanvasAppV4() {
         <SocialMediaConfigProvider value={{ socialMediaConfig: serverSocialConfig }}>
         <GreeterConfigProvider value={{ greeterConfig: serverGreeterConfig }}>
         <MapViewerConfigProvider value={{ config: mapViewerConfig }}>
-          {activeInterface === 'emcee' ? (
+          {activeInterface === 'emcee' && (
             <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} mapViewerConfig={mapViewerConfig} onMapViewerConfigChange={setMapViewerConfig} />
-          ) : activeInterface === 'social-media' ? (
-            <SocialMediaPanel />
-          ) : activeInterface === 'mood-tones' ? (
-            <MoodTonesPanel />
-          ) : activeInterface === 'treevites' ? (
-            <TreevitesPanel />
-          ) : activeInterface === 'greeter' ? (
-            <GreeterPanel />
-          ) : activeInterface === 'steno' ? (
-            <StenoPanel />
-          ) : activeInterface === 'story-tracer' ? (
-            <StoryTracerPanel />
-          ) : activeInterface === 'voice-call' ? (
-            <VoiceCallPanel />
-          ) : activeInterface === 'map-maker' ? (
-            <MapMakerPanel />
-          ) : activeInterface === 'map-viewer' ? (
-            <MapViewerPanel />
-          ) : null}
-          {/* When activity is 'social-media', show SocialMediaPanel as a flex sibling (fills the
-              remaining height below the chip bar, same as the chip-based case).
-              Canvas container is hidden but stays mounted to keep the socket alive. */}
-          {activeInterface === 'canvas' && activity === 'social-media' && <SocialMediaPanel />}
-          {activeInterface === 'canvas' && activity === 'mood-tones' && <MoodTonesPanel />}
-          {activeInterface === 'canvas' && activity === 'treevites' && <TreevitesPanel />}
-          {activeInterface === 'canvas' && activity === 'greeter' && <GreeterPanel />}
-          {activeInterface === 'canvas' && activity === 'steno' && <StenoPanel />}
-          {activeInterface === 'canvas' && activity === 'story-tracer' && <StoryTracerPanel />}
-          {activeInterface === 'canvas' && activity === 'voice-call' && <VoiceCallPanel />}
-          {activeInterface === 'canvas' && activity === 'map-maker' && <MapMakerPanel />}
-          {activeInterface === 'canvas' && activity === 'map-viewer' && <MapViewerPanel />}
+          )}
+          {(() => {
+            const panelId = activeInterface !== 'canvas' && activeInterface !== 'emcee'
+              ? activeInterface
+              : activeInterface === 'canvas' ? activity : null;
+            const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
+            // When a panel activity is active, show it as a flex sibling; the canvas
+            // container stays mounted below to keep the WebSocket alive.
+            return ActivePanel ? <ActivePanel /> : null;
+          })()}
         </MapViewerConfigProvider>
         </GreeterConfigProvider>
         </SocialMediaConfigProvider>
       </PanelContextProvider>
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && activity !== 'social-media' && activity !== 'mood-tones' && activity !== 'treevites' && activity !== 'greeter' && activity !== 'steno' && activity !== 'story-tracer' && activity !== 'voice-call' && activity !== 'map-maker' && activity !== 'map-viewer') ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && !PANEL_COMPONENTS[activity]) ? undefined : 'none' }}>
           {activity === 'image-canvas' && serverImageUrl && (
             <img
               src={serverImageUrl}

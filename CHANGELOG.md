@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 27 (2026-05-25)
 
 ### Changed
+- **Unified panel rendering** — the 18-branch conditional render in `ReactionCanvasAppV4` replaced by a `PANEL_COMPONENTS` map; chip-based and activity-based paths unified into a single derived `activePanelId`; canvas visibility check simplified from a long `activity !== X` chain to `!PANEL_COMPONENTS[activity]`.
 - **PanelDefinition type** — `app/panelRegistry.ts` now exports `PanelDefinition` extending `PanelMeta` with a `component: React.ComponentType` field; `inviteEdges` added to `PanelContextValue` and `TreevitesPanel` migrated to context, making all nine non-emcee panels fully prop-free and typeable as `PanelDefinition`.
 - **PanelConfigs contexts** — `greeterConfig`, `socialMediaConfig`, and `mapViewerConfig` now injected via panel-specific React contexts (`app/context/PanelConfigs.tsx`); `GreeterPanel`, `SocialMediaPanel`, and `MapViewerPanel` migrated to `useGreeterConfig()`, `useSocialMediaConfig()`, and `useMapViewerConfig()` respectively. All nine non-emcee panels are now prop-free.
 - **PanelContext** — `room` and `userId` are now injected via React context (`app/context/PanelContext.tsx`) rather than props; six panels (`MoodTonesPanel`, `StenoPanel`, `StoryTracerPanel`, `VoiceCallPanel`, `MapMakerPanel`, `MapViewerPanel`) migrated to `usePanelContext()`. Foundation for panel package extraction.
