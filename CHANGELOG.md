@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Social sharing panel id renamed** — activity/interface key changed from `'social'` → `'social-media'` → `'social-sharing'` to match its label. Affects URL `addInterface` param, localStorage interface lists, and emcee push messages. Old values stored in localStorage will silently fall back to the canvas interface on next load.
 
 ### Fixed
+- **CI: preview-cleanup workflow node-version bumped to 22** — `pnpm` now requires Node ≥22.13; the delete-preview job was pinned to Node 18, causing it to fail silently after every PR merge. ([57cdd01](https://github.com/patcon/polislike-partykit-reaction-canvas/commit/57cdd01))
 - **OfferInterfaceModal: show panel labels in dropdown** — the interface selector now shows human-readable labels (e.g. "Social Sharing") instead of internal IDs (e.g. "social-media").
 - **VoiceCallPanel: fix WSOD on HTTP LAN** — guard `navigator.mediaDevices` before using the `in` operator; `mediaDevices` is `undefined` in insecure contexts (HTTP non-localhost), which caused a crash on render.
 - **InterfacesTab: warn when mic unavailable** — Voice calls and Steno rows now show an ⚠ SSL required badge when `navigator.mediaDevices` is unavailable (HTTP non-localhost), so emcees know those interfaces won't work without HTTPS.
