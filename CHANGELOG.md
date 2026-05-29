@@ -12,6 +12,9 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Panel registry** — introduced `app/panelRegistry.ts` as a single source of truth for all panel metadata (id, label, description, patchable, activityMode); `KNOWN_CHIPS` in `ReactionCanvasAppV4`, `ROWS` in `InterfacesTab`, and the hardcoded `<option>` list in `OfferInterfaceModal` now all derive from this registry. Adding a new panel no longer requires edits in three separate files.
 - **Social sharing panel id renamed** — activity/interface key changed from `'social'` → `'social-media'` → `'social-sharing'` to match its label. Affects URL `addInterface` param, localStorage interface lists, and emcee push messages. Old values stored in localStorage will silently fall back to the canvas interface on next load.
 
+### Added
+- **ReactionCanvas Storybook stories** — two stories (`Interactive`, `Recorder`) under `Canvas/ReactionCanvas` let you try the voting canvas outside the full app; `Recorder` captures cursor events via `onCursorEvent` and displays copyable JSON fixture data for use in future stories.
+
 ### Fixed
 - **CI: preview-cleanup workflow node-version bumped to 22** — `pnpm` now requires Node ≥22.13; the delete-preview job was pinned to Node 18, causing it to fail silently after every PR merge. ([57cdd01](https://github.com/patcon/polislike-partykit-reaction-canvas/commit/57cdd01))
 - **OfferInterfaceModal: show panel labels in dropdown** — the interface selector now shows human-readable labels (e.g. "Social Sharing") instead of internal IDs (e.g. "social-media").
