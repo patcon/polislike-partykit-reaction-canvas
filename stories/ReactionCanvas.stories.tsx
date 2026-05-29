@@ -158,6 +158,7 @@ export const Recorder: Story = {
         userCountRef.current += 1;
 
         setCompletedPaths(prev => [...prev, newPath]);
+        setReplayCursors([]);
         currentEventsRef.current = [];
         setCurrentEventsDisplay([]);
         startTimeRef.current = null;
@@ -165,9 +166,9 @@ export const Recorder: Story = {
       }
     };
 
-    // Animate replay cursors at ~20fps
+    // Animate replay cursors at ~20fps — only while a recording is active
     useEffect(() => {
-      if (completedPaths.length === 0) return;
+      if (completedPaths.length === 0 || !isRecording) return;
       const interval = setInterval(() => {
         const now = Date.now();
         setReplayCursors(completedPaths.map((path, i) => {
@@ -182,7 +183,7 @@ export const Recorder: Story = {
         }));
       }, 50);
       return () => clearInterval(interval);
-    }, [completedPaths]);
+    }, [completedPaths, isRecording]);
 
     const handleClear = () => {
       setCompletedPaths([]);
