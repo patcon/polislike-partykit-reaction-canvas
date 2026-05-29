@@ -142,7 +142,7 @@ export const Recorder: Story = {
           fontFamily: 'monospace',
           fontSize: '11px',
           padding: '8px 12px',
-          maxHeight: '220px',
+          height: '220px',
           overflowY: 'auto',
           zIndex: 100,
           borderTop: '1px solid #444',
