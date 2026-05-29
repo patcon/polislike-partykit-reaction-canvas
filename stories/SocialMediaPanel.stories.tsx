@@ -21,9 +21,11 @@ const meta = {
   tags: ['autodocs'],
   decorators: [
     (Story, ctx) => (
-      <SocialMediaConfigProvider value={{ socialMediaConfig: (ctx.args as { socialMediaConfig: SocialConfig | null }).socialMediaConfig }}>
-        <Story />
-      </SocialMediaConfigProvider>
+      <div className="v2-app-container" style={{ height: '100vh' }}>
+        <SocialMediaConfigProvider value={{ socialMediaConfig: (ctx.args as { socialMediaConfig: SocialConfig | null }).socialMediaConfig }}>
+          <Story />
+        </SocialMediaConfigProvider>
+      </div>
     ),
   ],
   args: {

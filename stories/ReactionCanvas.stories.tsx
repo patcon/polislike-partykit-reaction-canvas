@@ -47,7 +47,7 @@ function CanvasComposition({ room, userId, labels, onCursorEvent }: CanvasCompos
   const effectiveLabels = labels ?? REACTION_LABEL_PRESETS['default'];
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100vh', overflow: 'hidden', background: '#1a1a2e' }}>
+    <div className="v2-app-container" style={{ position: 'relative', height: '100vh', overflow: 'hidden' }}>
       <LabelOverlay labels={effectiveLabels} />
       <Canvas
         room={room}
