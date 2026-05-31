@@ -1,5 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
+import usePartySocket from 'partysocket/react';
 import { usePanelContext } from "../../../context/PanelContext";
+import { getPartySocketConfig } from '../../../utils/partyHost';
+import { generateUUID } from '../../../utils/userId';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -226,17 +229,6 @@ function interpolateWaypoints(preset: Preset, t: number): WaypointInterp {
 // ── Audio gain per oscillator type ────────────────────────────────
 const OSC_GAIN: Record<string, number> = { sawtooth: 0.10, square: 0.15, triangle: 0.32, sine: 0.55 };
 
-// ── WebSocket URL ─────────────────────────────────────────────────
-function makeWsUrl(room: string): string {
-  const isLocal = window.location.port === '1999';
-  const host = isLocal ? `${window.location.hostname}:1999` : window.location.host;
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
-  const uid = typeof crypto !== 'undefined' && (crypto as { randomUUID?: () => string }).randomUUID
-    ? (crypto as { randomUUID: () => string }).randomUUID()
-    : Math.random().toString(36).slice(2);
-  return `${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${uid}`;
-}
-
 // ── Component ─────────────────────────────────────────────────────
 
 interface BarState { height: number; color: [number,number,number]; active: boolean; }
@@ -275,7 +267,7 @@ export default function MoodTonesPanel() {
   const currentChordRef = useRef<number[]>([]);
 
   // WS refs
-  const wsRef           = useRef<WebSocket|null>(null);
+  const socketUserId    = useRef(generateUUID());
   const cursorsRef      = useRef<Map<string,{x:number;y:number;region:string}>>(new Map());
   const cursorRegionsRef= useRef<Map<string,string>>(new Map());
   const audienceSyncRef = useRef(true);
@@ -329,58 +321,35 @@ export default function MoodTonesPanel() {
   }, [audienceSync, valenceMode, applyAudienceMood]);
 
   // ── WebSocket ──────────────────────────────────────────────────
-  useEffect(() => {
-    let reconnectTimer: ReturnType<typeof setTimeout>|null = null;
-    let dead = false;
-
-    function connect() {
-      if (dead) return;
-      setWsStatus('connecting');
-      const socket = new WebSocket(makeWsUrl(room));
-      wsRef.current = socket;
-
-      socket.onopen = () => { if (!dead) setWsStatus('connected'); };
-
-      socket.onmessage = (evt) => {
-        if (dead) return;
-        let data: { type: string; count?: number; position?: { userId: string; x: number; y: number } };
-        try { data = JSON.parse(evt.data as string); } catch { return; }
-        if (data.type === 'presenceCount') {
-          setAudienceCount(data.count ?? 0);
-        } else if (data.type === 'move' || data.type === 'touch') {
-          const { userId, x, y } = data.position!;
-          const region = computeRegion(x, y);
-          const prevRegion = cursorRegionsRef.current.get(userId);
-          cursorsRef.current.set(userId, { x, y, region });
-          if (valenceModeRef.current === 'continuous' || region !== prevRegion) {
-            cursorRegionsRef.current.set(userId, region);
-            applyAudienceMood();
-          }
-        } else if (data.type === 'remove') {
-          const { userId } = data.position!;
-          cursorsRef.current.delete(userId);
-          cursorRegionsRef.current.delete(userId);
+  usePartySocket({
+    ...getPartySocketConfig(),
+    room,
+    query: { isAdmin: 'true', userId: socketUserId.current },
+    onOpen:  () => setWsStatus('connected'),
+    onClose: () => setWsStatus('disconnected'),
+    onError: () => setWsStatus('disconnected'),
+    onMessage(evt) {
+      let data: { type: string; count?: number; position?: { userId: string; x: number; y: number } };
+      try { data = JSON.parse(evt.data as string); } catch { return; }
+      if (data.type === 'presenceCount') {
+        setAudienceCount(data.count ?? 0);
+      } else if (data.type === 'move' || data.type === 'touch') {
+        const { userId, x, y } = data.position!;
+        const region = computeRegion(x, y);
+        const prevRegion = cursorRegionsRef.current.get(userId);
+        cursorsRef.current.set(userId, { x, y, region });
+        if (valenceModeRef.current === 'continuous' || region !== prevRegion) {
+          cursorRegionsRef.current.set(userId, region);
           applyAudienceMood();
         }
-      };
-
-      socket.onerror = () => { if (!dead) setWsStatus('disconnected'); };
-
-      socket.onclose = () => {
-        if (dead) return;
-        setWsStatus('disconnected');
-        reconnectTimer = setTimeout(connect, 3000);
-      };
-    }
-
-    connect();
-
-    return () => {
-      dead = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (wsRef.current) { wsRef.current.onclose = null; wsRef.current.close(); wsRef.current = null; }
-    };
-  }, [room, applyAudienceMood]);
+      } else if (data.type === 'remove') {
+        const { userId } = data.position!;
+        cursorsRef.current.delete(userId);
+        cursorRegionsRef.current.delete(userId);
+        applyAudienceMood();
+      }
+    },
+  });
 
   // ── Audio helpers ──────────────────────────────────────────────
   function makeSawFilter(freq: number, vel: number): BiquadFilterNode {

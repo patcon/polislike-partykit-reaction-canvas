@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 27 (2026-05-25)
 
+### Added
+- **Fakeable Storybook socket mock** — `.storybook/mocks/partysocket-react.ts` now subscribes to a shared message bus; stories can call `emitToRoom(room, data)` from their `play` functions to push fake socket messages into components. `MoodTonesPanel` migrated from a hand-rolled `WebSocket` to `usePartySocket` so it benefits from the same mock. `MapViewerPanel`'s `initialProjection` prop (a Storybook-only hack) removed; its `WithGaussianBlob` story now drives projection via `emitToRoom`. New `OscillatingAudienceMood` story for `MoodTonesPanel` shows the mood slider animating from simulated audience cursor positions. Closes [#123](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/123).
+
+---
+
+
 ### Changed
 - **Unified panel rendering** — the 18-branch conditional render in `ReactionCanvasAppV4` replaced by a `PANEL_COMPONENTS` map; chip-based and activity-based paths unified into a single derived `activePanelId`; canvas visibility check simplified from a long `activity !== X` chain to `!PANEL_COMPONENTS[activity]`.
 - **PanelDefinition type** — `app/panelRegistry.ts` now exports `PanelDefinition` extending `PanelMeta` with a `component: React.ComponentType` field; `inviteEdges` added to `PanelContextValue` and `TreevitesPanel` migrated to context, making all nine non-emcee panels fully prop-free and typeable as `PanelDefinition`.

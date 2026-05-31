@@ -158,16 +158,10 @@ const btnStyle = (active: boolean, disabled?: boolean): React.CSSProperties => (
   lineHeight: 1,
 });
 
-// TODO: remove initialProjection once Storybook has a proper socket mock that can emit fake messages.
-// See: https://github.com/patcon/polislike-partykit-reaction-canvas/issues/123
-export default function MapViewerPanel({ initialProjection }: { initialProjection?: MapProjection } = {}) {
+export default function MapViewerPanel() {
   const { room, userId } = usePanelContext();
   const { config } = useMapViewerConfig();
-  const [projState, setProjState] = useState<ProjState>(
-    initialProjection
-      ? { history: [{ projection: initialProjection, flipX: false, flipY: false }], idx: 0 }
-      : { history: [], idx: -1 }
-  );
+  const [projState, setProjState] = useState<ProjState>({ history: [], idx: -1 });
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [liveCursors, setLiveCursors] = useState<Map<string, { x: number; y: number }>>(new Map());
