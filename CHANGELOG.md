@@ -2,17 +2,11 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
-## Week 28 (2026-06-01)
+## Week 27 (2026-05-25)
 
 ### Added
 - **ValenceBeatPadPanel** — new V4 interface panel: a 4×4 musical pad whose valence (scale/timbre/reverb) is driven by audience cursor positions when audience sync is on. Supports keyboard play (`7890 / uiop / jkl; / m,./`), auto-oscillating valence, chord detection (up to 6 diatonic chords from anchor pad), a chord-chip strip above the grid for touch-based chord activation, and manual chord saving via multi-touch. No instructional text on mobile — chips are the sole chord affordance.
 - **`shortLabel` on `PanelMeta`** — optional field used in the interface chip bar when a shorter display name is desired; `ValenceBeatPadPanel` uses `shortLabel: 'Beat Pad'`.
-
----
-
-## Week 27 (2026-05-25)
-
-### Added
 - **Fakeable Storybook socket mock** — `.storybook/mocks/partysocket-react.ts` now subscribes to a shared message bus; stories can call `emitToRoom(room, data)` from their `play` functions to push fake socket messages into components. `MoodTonesPanel` migrated from a hand-rolled `WebSocket` to `usePartySocket` so it benefits from the same mock. `MapViewerPanel`'s `initialProjection` prop (a Storybook-only hack) removed; its `WithGaussianBlob` story now drives projection via `emitToRoom`. New `OscillatingAudienceMood` story for `MoodTonesPanel` shows the mood slider animating from simulated audience cursor positions. Closes [#123](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/123).
 
 ---
