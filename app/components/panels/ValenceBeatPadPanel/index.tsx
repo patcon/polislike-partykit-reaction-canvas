@@ -324,7 +324,14 @@ export default function ValenceBeatPadPanel() {
   }, []);
 
   useEffect(() => {
-    if (audienceSync) applyAudienceMood();
+    if (audienceSync) {
+      applyAudienceMood();
+      if (oscActiveRef.current) {
+        oscActiveRef.current = false;
+        setOscActive(false);
+        if (oscRafRef.current) cancelAnimationFrame(oscRafRef.current);
+      }
+    }
   }, [audienceSync, applyAudienceMood]);
 
   // ── WebSocket ────────────────────────────────────────────────────
@@ -605,8 +612,8 @@ export default function ValenceBeatPadPanel() {
           <span style={s.modeBadge}>{getScaleLabel(t)}</span>
         </div>
 
-        {/* Oscillator */}
-        <div style={s.controlRow}>
+        {/* Oscillator — disabled when audience sync is on */}
+        <div style={{ ...s.controlRow, opacity: audienceSync ? 0.4 : 1, pointerEvents: audienceSync ? 'none' : 'auto' }}>
           <button style={s.oscBtn(oscActive)} onClick={toggleOsc}>oscillate</button>
           <span style={s.lbl}>speed</span>
           <input

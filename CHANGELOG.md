@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 27 (2026-05-25)
 
+### Fixed
+- **ValenceBeatPadPanel: disable oscillate controls when audience sync is on** — the oscillate row is now dimmed and non-interactive while audience sync is enabled; enabling audience sync also stops any active oscillation.
+
 ### Added
 - **ValenceBeatPadPanel** — new V4 interface panel: a 4×4 musical pad whose valence (scale/timbre/reverb) is driven by audience cursor positions when audience sync is on. Supports keyboard play (`7890 / uiop / jkl; / m,./`), auto-oscillating valence, chord detection (up to 6 diatonic chords from anchor pad), a chord-chip strip above the grid for touch-based chord activation, and manual chord saving via multi-touch. No instructional text on mobile — chips are the sole chord affordance.
 - **`shortLabel` on `PanelMeta`** — optional field used in the interface chip bar when a shorter display name is desired; `ValenceBeatPadPanel` uses `shortLabel: 'Beat Pad'`.
