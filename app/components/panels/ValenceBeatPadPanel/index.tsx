@@ -609,7 +609,6 @@ export default function ValenceBeatPadPanel() {
             }}
           />
           <span style={s.lbl}>Pos</span>
-          <span style={s.modeBadge}>{getScaleLabel(t)}</span>
         </div>
 
         {/* Oscillator — disabled when audience sync is on */}
