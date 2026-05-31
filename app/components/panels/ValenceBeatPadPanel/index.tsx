@@ -361,6 +361,25 @@ export default function ValenceBeatPadPanel() {
 
   // ── Pad interaction ──────────────────────────────────────────────
 
+  const syncChordHighlight = useCallback(() => {
+    const held = new Set(heldOrderRef.current);
+    for (let i = 0; i < frozenChordsRef.current.length; i++) {
+      const { padIdxs } = frozenChordsRef.current[i];
+      if (padIdxs.length >= 2 && padIdxs.every(pi => held.has(pi))) {
+        if (activeChordNumRef.current !== i + 1) {
+          activeChordNumRef.current = i + 1;
+          setActiveChordNum(i + 1);
+        }
+        return;
+      }
+    }
+    // No chord matched — only clear if no chip was explicitly tapped (chip tap sets activeChordPads)
+    if (activeChordPadsRef.current.size === 0) {
+      activeChordNumRef.current = null;
+      setActiveChordNum(null);
+    }
+  }, []);
+
   const padDown = useCallback((idx: number) => {
     if (heldOrderRef.current.includes(idx)) return;
     heldOrderRef.current.push(idx);
@@ -378,8 +397,9 @@ export default function ValenceBeatPadPanel() {
       setActiveChordPads(new Set());
     }
     setHeldPads(new Set(heldOrderRef.current));
+    syncChordHighlight();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [syncChordHighlight]);
 
   const padUp = useCallback((idx: number) => {
     const i = heldOrderRef.current.indexOf(idx);
@@ -411,8 +431,9 @@ export default function ValenceBeatPadPanel() {
       setActiveChordPads(new Set());
     }
     setHeldPads(new Set(heldOrderRef.current));
+    syncChordHighlight();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [syncChordHighlight]);
 
   const selectChord = useCallback((num: number) => {
     if (anchorIdxRef.current === null) return;
