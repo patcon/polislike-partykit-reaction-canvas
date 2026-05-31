@@ -509,11 +509,6 @@ export default function ValenceBeatPadPanel() {
       color: active ? '#111' : '#777', cursor: 'pointer', borderRadius: 100,
     }),
     slider: { flex: 1, accentColor: '#999', cursor: 'pointer' } as React.CSSProperties,
-    modeBadge: {
-      fontSize: 11, padding: '2px 10px', borderRadius: 100,
-      border: '0.5px solid rgba(255,255,255,0.22)', color: '#999',
-      marginLeft: 'auto', whiteSpace: 'nowrap' as const,
-    },
     audienceCount: { fontSize: 11, color: '#555', marginLeft: 'auto' },
     oscBtn: (active: boolean): React.CSSProperties => ({
       fontSize: 11, letterSpacing: '.06em', padding: '4px 12px', borderRadius: 100,
@@ -572,7 +567,7 @@ export default function ValenceBeatPadPanel() {
     statsRow: { display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6, marginBottom: 8 },
     stat: { background: '#242424', borderRadius: 7, padding: '6px 8px', border: '0.5px solid rgba(255,255,255,0.1)' },
     statLbl: { fontSize: 9, textTransform: 'uppercase' as const, letterSpacing: '.05em', color: '#555', marginBottom: 2 },
-    statVal: { fontSize: 12, fontWeight: 500, color: '#ddd' },
+    statVal: { fontSize: 12, fontWeight: 500, color: '#ddd', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' },
     wsStatus: { fontSize: 10, color: wsStatus === 'connected' ? '#40a060' : '#505060', marginBottom: 6 },
   };
 
