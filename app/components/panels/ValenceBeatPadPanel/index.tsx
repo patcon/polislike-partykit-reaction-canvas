@@ -515,8 +515,8 @@ export default function ValenceBeatPadPanel() {
       color: active ? '#111' : '#999', cursor: 'pointer', whiteSpace: 'nowrap',
     }),
     chordStrip: {
-      display: 'flex', gap: 5, minHeight: 30, overflowX: 'auto' as const,
-      padding: '2px 0', marginBottom: 8, alignItems: 'center',
+      display: 'flex', gap: 5, height: 34, overflowX: 'auto' as const, flexWrap: 'nowrap' as const,
+      padding: '2px 0', marginBottom: 8, alignItems: 'center', flexShrink: 0,
     },
     chordChip: (active: boolean, chord: ChordResult): React.CSSProperties => {
       const cc = CHORD_COLORS[chord.type] || { bg: '#444', tx: '#fff' };
@@ -628,25 +628,23 @@ export default function ValenceBeatPadPanel() {
           ))}
         </div>
 
-        {/* Chord chips strip */}
-        {frozenChords.length > 0 && (
-          <div style={s.chordStrip}>
-            {frozenChords.map((chord, i) => (
-              <button
-                key={i}
-                style={s.chordChip(activeChordNum === i + 1, chord)}
-                onPointerDown={e => { e.stopPropagation(); selectChord(i + 1); }}
-              >
-                {i + 1}·{chord.name}
-              </button>
-            ))}
-            {heldOrderRef.current.length >= 2 && frozenChords.length < 6 && (
-              <button style={s.savePlusBtn} onPointerDown={e => { e.stopPropagation(); saveManualChord(); }}>
-                + save
-              </button>
-            )}
-          </div>
-        )}
+        {/* Chord chips strip — always rendered at fixed height to prevent layout jump */}
+        <div style={s.chordStrip}>
+          {frozenChords.map((chord, i) => (
+            <button
+              key={i}
+              style={s.chordChip(activeChordNum === i + 1, chord)}
+              onPointerDown={e => { e.stopPropagation(); selectChord(i + 1); }}
+            >
+              {i + 1}·{chord.name}
+            </button>
+          ))}
+          {heldOrderRef.current.length >= 2 && frozenChords.length < 6 && (
+            <button style={s.savePlusBtn} onPointerDown={e => { e.stopPropagation(); saveManualChord(); }}>
+              + save
+            </button>
+          )}
+        </div>
 
         {/* Pad grid */}
         <div style={s.grid}>
