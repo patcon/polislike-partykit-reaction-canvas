@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
+## Week 28 (2026-06-01)
+
+### Added
+- **ValenceBeatPadPanel** — new V4 interface panel: a 4×4 musical pad whose valence (scale/timbre/reverb) is driven by audience cursor positions when audience sync is on. Supports keyboard play (`7890 / uiop / jkl; / m,./`), auto-oscillating valence, chord detection (up to 6 diatonic chords from anchor pad), a chord-chip strip above the grid for touch-based chord activation, and manual chord saving via multi-touch. No instructional text on mobile — chips are the sole chord affordance.
+- **`shortLabel` on `PanelMeta`** — optional field used in the interface chip bar when a shorter display name is desired; `ValenceBeatPadPanel` uses `shortLabel: 'Beat Pad'`.
+
+---
+
 ## Week 27 (2026-05-25)
 
 ### Added

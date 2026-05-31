@@ -37,6 +37,7 @@ import StoryTracerPanel from "../panels/StoryTracerPanel";
 import VoiceCallPanel from "../panels/VoiceCallPanel";
 import MapMakerPanel from "../panels/MapMakerPanel";
 import MapViewerPanel from "../panels/MapViewerPanel";
+import ValenceBeatPadPanel from "../panels/ValenceBeatPadPanel";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
   'social-sharing': SocialMediaPanel,
@@ -47,7 +48,8 @@ const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = 
   'story-tracer':  StoryTracerPanel,
   'voice-call':    VoiceCallPanel,
   'map-maker':     MapMakerPanel,
-  'map-viewer':    MapViewerPanel,
+  'map-viewer':      MapViewerPanel,
+  'valence-beat-pad': ValenceBeatPadPanel,
 };
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
@@ -372,7 +374,7 @@ export default function ReactionCanvasAppV4() {
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS = Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.id === 'canvas' ? SOLO_SCREEN_LABEL : p.label]));
+  const KNOWN_CHIPS = Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.id === 'canvas' ? SOLO_SCREEN_LABEL : (p.shortLabel ?? p.label)]));
   const panelContextValue = useMemo(() => ({ room, userId, inviteEdges }), [room, userId, inviteEdges]);
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
