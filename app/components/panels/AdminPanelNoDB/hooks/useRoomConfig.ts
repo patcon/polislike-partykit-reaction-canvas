@@ -25,6 +25,8 @@ export function useRoomConfig(socket: PartySocket) {
   const [voiceCallConfigOpen, setVoiceCallConfigOpen] = useState(false);
   const [mapViewerConfigOpen, setMapViewerConfigOpen] = useState(false);
   const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available');
+  const [arrivalCapacity, setArrivalCapacity] = useState<number>(50);
+  const [arrivalConfigOpen, setArrivalConfigOpen] = useState(false);
 
   const sendAvatarStyle = (style: string | null) => {
     setAvatarStyle(style);
@@ -76,6 +78,11 @@ export function useRoomConfig(socket: PartySocket) {
     socket.send(JSON.stringify({ type: 'setCallAlgorithm', algorithm }));
   };
 
+  const sendArrivalCapacity = (capacity: number) => {
+    setArrivalCapacity(capacity);
+    socket.send(JSON.stringify({ type: 'setArrivalCapacity', capacity }));
+  };
+
   const resetSoccerScore = () => {
     socket.send(JSON.stringify({ type: 'resetSoccerScore' }));
   };
@@ -97,6 +104,7 @@ export function useRoomConfig(socket: PartySocket) {
     if ('roomSocialConfig' in data) setRoomSocialConfig((data.roomSocialConfig as SocialConfig | null) ?? null);
     if ('greeterConfig' in data) setGreeterConfig((data.greeterConfig as GreeterConfig | null) ?? null);
     if ('callAlgorithm' in data && data.callAlgorithm) setCallAlgorithm(data.callAlgorithm as string);
+    if ('arrivalCapacity' in data && typeof data.arrivalCapacity === 'number') setArrivalCapacity(data.arrivalCapacity as number);
     if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore as { left: number; right: number });
     if (data.userCap !== undefined) {
       setUserCap(data.userCap as number | null);
@@ -128,6 +136,8 @@ export function useRoomConfig(socket: PartySocket) {
       setOwnValenceDisplay(data.ownValenceDisplay as 'background' | 'labels' | 'none');
     } else if (data.type === 'valenceInputModeChanged') {
       setValenceInputMode(data.valenceInputMode as ValenceInputMode);
+    } else if (data.type === 'arrivalCapacityChanged') {
+      setArrivalCapacity(data.capacity as number);
     }
   };
 
@@ -166,5 +176,8 @@ export function useRoomConfig(socket: PartySocket) {
     callAlgorithm,
     sendCallAlgorithm,
     mapViewerConfigOpen, setMapViewerConfigOpen,
+    arrivalCapacity, setArrivalCapacity,
+    arrivalConfigOpen, setArrivalConfigOpen,
+    sendArrivalCapacity,
   };
 }

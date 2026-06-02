@@ -17,6 +17,7 @@ interface InterfacesTabProps {
   setCanvasSettingsOpen: (v: boolean) => void;
   setVoiceCallConfigOpen: (v: boolean) => void;
   setMapViewerConfigOpen: (v: boolean) => void;
+  setArrivalConfigOpen: (v: boolean) => void;
   onClearRoleAssignments: () => void;
   userId?: string;
   selfChain?: string[];
@@ -47,7 +48,7 @@ export default function InterfacesTab({
   activity, soccerScore,
   sendActivity, resetSoccerScore,
   setImageConfigOpen, setSocialConfigOpen, setGreeterConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
-  setMapViewerConfigOpen,
+  setMapViewerConfigOpen, setArrivalConfigOpen,
   onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
@@ -96,6 +97,9 @@ export default function InterfacesTab({
                   )}
                   {id === 'map-viewer' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setMapViewerConfigOpen(true); }}><IoMdSettings /></button>
+                  )}
+                  {id === 'arrival-canvas' && (
+                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setArrivalConfigOpen(true); }}><IoMdSettings /></button>
                   )}
                 </td>
                 {/* Solo */}
