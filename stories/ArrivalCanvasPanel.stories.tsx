@@ -29,11 +29,25 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+function CapacityDriver({ room, capacity }: { room: string; capacity: number }) {
+  useEffect(() => {
+    emitToRoom(room, { type: 'arrivalCapacityChanged', capacity });
+    emitToRoom(room, { type: 'presenceCount', count: 0 });
+  }, [room, capacity]);
+  return null;
+}
+
 export const Default: Story = {
+  render: (args) => (
+    <>
+      <CapacityDriver room={(args as any).room ?? 'storybook'} capacity={20} />
+      <ArrivalCanvasPanel />
+    </>
+  ),
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('0')).toBeInTheDocument();
-    await expect(canvas.getByText('/ 50')).toBeInTheDocument();
+    await expect(canvas.getByText('/ 20')).toBeInTheDocument();
   },
 };
 
