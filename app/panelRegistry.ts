@@ -5,6 +5,7 @@ export const SOLO_SCREEN_LABEL = 'Canvas';
 export interface PanelMeta {
   id: string;
   label: string;
+  shortLabel?: string;
   description: string;
   patchable: boolean;
   activityMode: boolean;
@@ -24,7 +25,8 @@ export const PANEL_REGISTRY: PanelMeta[] = [
   { id: 'story-tracer', label: 'Story Tracer',    description: 'Semantic 3D narrative path from VTT transcript',        patchable: true,  activityMode: true  },
   { id: 'voice-call',   label: 'Voice Calls',     description: 'Peer-to-peer voice calls via WebRTC',                   patchable: true,  activityMode: true  },
   { id: 'map-maker',    label: 'Map Maker',       description: 'Compute UMAP/PaCMAP/LocalMAP projection from moments',  patchable: true,  activityMode: true  },
-  { id: 'map-viewer',   label: 'Map Viewer',      description: 'View the computed participant map',                     patchable: true,  activityMode: true  },
+  { id: 'map-viewer',      label: 'Map Viewer',      description: 'View the computed participant map',                     patchable: true,  activityMode: true  },
+  { id: 'valence-beat-pad', label: 'Valence Beat Pad', shortLabel: 'Beat Pad', description: 'Interactive musical pad driven by audience valence', patchable: true, activityMode: true },
 ];
 
 export const PATCHABLE_PANELS = PANEL_REGISTRY.filter(p => p.patchable);

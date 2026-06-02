@@ -57,6 +57,37 @@ export function valenceToPosition(valence: number, anchors: ReactionAnchors): { 
  * @param normalizedY - Y position in 0–100 canvas space (divided by 100 internally)
  * @param anchors - Anchor positions in 0–100 canvas space; defaults to DEFAULT_ANCHORS
  */
+/**
+ * Maps a cursor position to a 0–100 valence value using barycentric coordinates
+ * relative to three anchor points: positive=100, negative=0, neutral=50.
+ *
+ * @param normalizedX - X position in 0–100 canvas space
+ * @param normalizedY - Y position in 0–100 canvas space
+ * @param anchors - Anchor positions in 0–100 canvas space; defaults to DEFAULT_ANCHORS
+ */
+export function computeCursorValence(normalizedX: number, normalizedY: number, anchors: ReactionAnchors = DEFAULT_ANCHORS): number {
+  const x = normalizedX / 100;
+  const y = normalizedY / 100;
+  const pos = { x: anchors.positive.x / 100, y: anchors.positive.y / 100 };
+  const neg = { x: anchors.negative.x / 100, y: anchors.negative.y / 100 };
+  const neu = { x: anchors.neutral.x  / 100, y: anchors.neutral.y  / 100 };
+  const denom = (neg.y - neu.y) * (pos.x - neu.x) + (neu.x - neg.x) * (pos.y - neu.y);
+  if (Math.abs(denom) < 1e-10) {
+    const dp = Math.hypot(x - pos.x, y - pos.y) || 1e-9;
+    const dn = Math.hypot(x - neg.x, y - neg.y) || 1e-9;
+    const dz = Math.hypot(x - neu.x, y - neu.y) || 1e-9;
+    const invSum = 1/dp + 1/dn + 1/dz;
+    const wPos = (1/dp) / invSum;
+    const wNeg = (1/dn) / invSum;
+    const wNeu = 1 - wPos - wNeg;
+    return Math.max(0, Math.min(100, wPos * 100 + wNeg * 0 + wNeu * 50));
+  }
+  const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
+  const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
+  const wNeu = 1 - wPos - wNeg;
+  return Math.max(0, Math.min(100, wPos * 100 + wNeg * 0 + wNeu * 50));
+}
+
 export function computeReactionRegion(normalizedX: number, normalizedY: number, anchors: ReactionAnchors = DEFAULT_ANCHORS): ReactionRegion {
   const x = normalizedX / 100;
   const y = normalizedY / 100;
