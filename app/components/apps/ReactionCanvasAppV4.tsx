@@ -38,6 +38,7 @@ import VoiceCallPanel from "../panels/VoiceCallPanel";
 import MapMakerPanel from "../panels/MapMakerPanel";
 import MapViewerPanel from "../panels/MapViewerPanel";
 import ValenceBeatPadPanel from "../panels/ValenceBeatPadPanel";
+import ArrivalCanvasPanel from "../panels/ArrivalCanvasPanel";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
   'social-sharing': SocialMediaPanel,
@@ -50,6 +51,7 @@ const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = 
   'map-maker':     MapMakerPanel,
   'map-viewer':      MapViewerPanel,
   'valence-beat-pad': ValenceBeatPadPanel,
+  'arrival-canvas':   ArrivalCanvasPanel,
 };
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;

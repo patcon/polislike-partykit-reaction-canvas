@@ -272,8 +272,9 @@ interface WebRTCAnswerEvent    { type: 'webrtcAnswer';  targetUserId: string; an
 interface WebRTCIceEvent       { type: 'webrtcIce';     targetUserId: string; candidate: unknown }
 interface HangUpCallEvent      { type: 'hangUp';        targetUserId: string }
 interface SetCallAlgorithmEvent { type: 'setCallAlgorithm'; algorithm: string }
+interface SetArrivalCapacityEvent { type: 'setArrivalCapacity'; capacity: number }
 
-type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | MapProjectionSetEvent | MapProjectionClearEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent;
+type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | MapProjectionSetEvent | MapProjectionClearEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent | SetArrivalCapacityEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -354,6 +355,7 @@ export default class Server implements Party.Server {
   private callQueue: string[] = [];
   private callPairs: Map<string, string> = new Map();
   private callAlgorithm: string = 'first-available';
+  private arrivalCapacity: number = 50;
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -563,6 +565,7 @@ export default class Server implements Party.Server {
       storyTracerMeta: this.storyTracerMeta,
       mapProjection: this.mapProjection,
       callAlgorithm: this.callAlgorithm,
+      arrivalCapacity: this.arrivalCapacity,
     }));
   }
 
@@ -879,6 +882,10 @@ export default class Server implements Party.Server {
         if (this.adminConnectionIds.has(sender.id)) {
           this.callAlgorithm = event.algorithm;
         }
+      } else if (event.type === 'setArrivalCapacity') {
+        if (!this.adminConnectionIds.has(sender.id)) return;
+        this.arrivalCapacity = event.capacity;
+        this.room.broadcast(JSON.stringify({ type: 'arrivalCapacityChanged', capacity: this.arrivalCapacity }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);

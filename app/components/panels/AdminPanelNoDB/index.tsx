@@ -16,6 +16,7 @@ import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
 import PanelSettingsModalReactionCanvas from "./PanelSettingsModalReactionCanvas";
 import PanelSettingsModalVoiceCall from "./PanelSettingsModalVoiceCall";
+import PanelSettingsModalArrivalCanvas from "./PanelSettingsModalArrivalCanvas";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -304,6 +305,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             setVoiceCallConfigOpen={roomConfig.setVoiceCallConfigOpen}
             setMapViewerConfigOpen={roomConfig.setMapViewerConfigOpen}
+            setArrivalConfigOpen={roomConfig.setArrivalConfigOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
             userId={userId}
             selfChain={selfChain}
@@ -487,6 +489,13 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
           currentAlgorithm={roomConfig.callAlgorithm}
           onSubmit={roomConfig.sendCallAlgorithm}
           onClose={() => roomConfig.setVoiceCallConfigOpen(false)}
+        />
+      )}
+      {roomConfig.arrivalConfigOpen && (
+        <PanelSettingsModalArrivalCanvas
+          currentCapacity={roomConfig.arrivalCapacity}
+          onSubmit={roomConfig.sendArrivalCapacity}
+          onClose={() => roomConfig.setArrivalConfigOpen(false)}
         />
       )}
       {roomConfig.mapViewerConfigOpen && (
