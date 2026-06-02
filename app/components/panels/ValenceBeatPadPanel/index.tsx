@@ -208,6 +208,11 @@ export default function ValenceBeatPadPanel() {
   useEffect(() => { oscActiveRef.current = oscActive; }, [oscActive]);
   useEffect(() => { oscSpeedRef.current = oscSpeed; }, [oscSpeed]);
 
+  // ── Valence lock ─────────────────────────────────────────────────
+  // Returns the locked valence when pads are held, live valence otherwise.
+  // To disable locking, change this to always return valenceRef.current.
+  function getPlayValence() { return lockedValenceRef.current ?? valenceRef.current; }
+
   // ── Audio ────────────────────────────────────────────────────────
 
   function ensureCtx() {
@@ -232,7 +237,7 @@ export default function ValenceBeatPadPanel() {
     const ctx = audioCtxRef.current!;
     if (ctx.state === 'suspended') void ctx.resume();
     if (sustainedRef.current.has(idx)) return;
-    const t = valenceRef.current / 100;
+    const t = getPlayValence() / 100;
     const sc = getScale(t);
     const freq = 261.63 * Math.pow(2, SCALES[sc][idx] / 12);
     const neg = 1 - t;
@@ -388,7 +393,7 @@ export default function ValenceBeatPadPanel() {
     if (heldOrderRef.current.length === 1) {
       lockedValenceRef.current = valenceRef.current;
       anchorIdxRef.current = idx;
-      const chords = findChordsForAnchor(idx, valenceRef.current / 100);
+      const chords = findChordsForAnchor(idx, lockedValenceRef.current / 100);
       frozenChordsRef.current = chords;
       activeChordPadsRef.current.forEach(pi => { if (!heldOrderRef.current.includes(pi)) stopNote(pi); });
       activeChordPadsRef.current = new Set();
@@ -423,7 +428,7 @@ export default function ValenceBeatPadPanel() {
     } else if (idx === anchorIdxRef.current) {
       const newAnchor = heldOrderRef.current[0];
       anchorIdxRef.current = newAnchor;
-      const chords = findChordsForAnchor(newAnchor, valenceRef.current / 100);
+      const chords = findChordsForAnchor(newAnchor, getPlayValence() / 100);
       frozenChordsRef.current = chords;
       activeChordPadsRef.current.forEach(pi => { if (!heldOrderRef.current.includes(pi)) stopNote(pi); });
       activeChordPadsRef.current = new Set();
@@ -465,7 +470,7 @@ export default function ValenceBeatPadPanel() {
     if (heldOrderRef.current.length < 2) return;
     if (frozenChordsRef.current.length >= 6) return;
     const padIdxs = [...heldOrderRef.current];
-    const newChord: ChordResult = { name: padIdxs.map(i => NAMES[getScale(valenceRef.current / 100)][i]).join('+'), type: 'maj', chordPcs: [], padIdxs };
+    const newChord: ChordResult = { name: padIdxs.map(i => NAMES[getScale(getPlayValence() / 100)][i]).join('+'), type: 'maj', chordPcs: [], padIdxs };
     const updated = [...frozenChordsRef.current, newChord];
     frozenChordsRef.current = updated;
     setFrozenChords(updated);
