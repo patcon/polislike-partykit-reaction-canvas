@@ -118,7 +118,7 @@ export default function ArrivalCanvasPanel() {
 
   return (
     <div style={{
-      position: 'absolute', inset: 0, background: bgColor,
+      flex: 1, background: bgColor,
       display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
       transition: 'background 0.8s ease',
     }}>
