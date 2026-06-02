@@ -98,6 +98,23 @@ export default function ArrivalCanvasPanel() {
     master.gain.setTargetAtTime(fill * 0.75, ctx.currentTime, 0.5);
   }, [presenceCount, capacity]);
 
+  usePartySocket({
+    ...getPartySocketConfig(),
+    room,
+    query: { isAdmin: 'true', userId: socketUserId.current },
+    onMessage(evt) {
+      let data: { type: string; count?: number; capacity?: number; arrivalCapacity?: number };
+      try { data = JSON.parse(evt.data as string); } catch { return; }
+      if (data.type === 'presenceCount' && data.count !== undefined) {
+        setPresenceCount(data.count);
+      } else if (data.type === 'arrivalCapacityChanged' && data.capacity !== undefined) {
+        setCapacity(data.capacity);
+      } else if (data.type === 'connected' && data.arrivalCapacity !== undefined) {
+        setCapacity(data.arrivalCapacity);
+      }
+    },
+  });
+
   // Trigger fade-out once capacity is reached
   useEffect(() => {
     if (presenceCount < capacity || capacity === 0 || fadingOutRef.current) return;
