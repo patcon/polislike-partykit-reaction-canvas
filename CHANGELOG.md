@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 27 (2026-05-25)
 
 ### Fixed
+- **ValenceBeatPadPanel: ghost tick on valence slider when pads held** — a small white marker overlays the slider track at the locked valence position while any pad is pressed.
 - **ValenceBeatPadPanel: freeze audio/chord to valence at first press** — note frequency, timbre, reverb, and chord detection all lock to the valence captured when the anchor pad is pressed; `getPlayValence()` is the single toggle point.
 - **ValenceBeatPadPanel: freeze pad colour/scale to valence at first press** — pad background, text colour, and note names now lock to the valence value captured when the anchor pad is pressed and release when all pads are lifted.
 - **ValenceBeatPadPanel: highlight chord chip when manually holding all its notes** — assembling a chord by holding its pads one by one now auto-highlights the matching chip; releasing a note un-highlights it.

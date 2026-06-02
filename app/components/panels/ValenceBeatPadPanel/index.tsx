@@ -622,17 +622,30 @@ export default function ValenceBeatPadPanel() {
 
         <div style={s.controlRow}>
           <span style={s.lbl}>Neg</span>
-          <input
-            type="range" min={0} max={100} value={valence} step={1}
-            disabled={audienceSync || oscActive}
-            style={{ ...s.slider, opacity: (audienceSync || oscActive) ? 0.5 : 1, cursor: (audienceSync || oscActive) ? 'not-allowed' : 'pointer' }}
-            onChange={e => {
-              if (audienceSync || oscActive) return;
-              const v = parseInt(e.target.value);
-              valenceRef.current = v;
-              setValence(v);
-            }}
-          />
+          <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
+            <input
+              type="range" min={0} max={100} value={valence} step={1}
+              disabled={audienceSync || oscActive}
+              style={{ ...s.slider, flex: 1, opacity: (audienceSync || oscActive) ? 0.5 : 1, cursor: (audienceSync || oscActive) ? 'not-allowed' : 'pointer' }}
+              onChange={e => {
+                if (audienceSync || oscActive) return;
+                const v = parseInt(e.target.value);
+                valenceRef.current = v;
+                setValence(v);
+              }}
+            />
+            {anchorIdx !== null && lockedValenceRef.current !== null && (
+              <div style={{
+                position: 'absolute',
+                left: `${lockedValenceRef.current}%`,
+                transform: 'translateX(-50%)',
+                width: 3, height: 14,
+                background: 'rgba(255,255,255,0.5)',
+                borderRadius: 2,
+                pointerEvents: 'none',
+              }} />
+            )}
+          </div>
           <span style={s.lbl}>Pos</span>
         </div>
 
