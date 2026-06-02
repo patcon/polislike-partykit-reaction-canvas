@@ -197,6 +197,7 @@ export default function ValenceBeatPadPanel() {
   const frozenChordsRef   = useRef<ChordResult[]>([]);
   const activeChordNumRef = useRef<number | null>(null);
   const activeChordPadsRef= useRef<Set<number>>(new Set());
+  const lockedValenceRef  = useRef<number | null>(null);
 
   const socketUserId = useRef(generateUUID());
   const cursorsRef   = useRef<Map<string, { x: number; y: number }>>(new Map());
@@ -385,6 +386,7 @@ export default function ValenceBeatPadPanel() {
     heldOrderRef.current.push(idx);
     startNote(idx);
     if (heldOrderRef.current.length === 1) {
+      lockedValenceRef.current = valenceRef.current;
       anchorIdxRef.current = idx;
       const chords = findChordsForAnchor(idx, valenceRef.current / 100);
       frozenChordsRef.current = chords;
@@ -413,6 +415,7 @@ export default function ValenceBeatPadPanel() {
       activeChordNumRef.current = null;
       anchorIdxRef.current = null;
       frozenChordsRef.current = [];
+      lockedValenceRef.current = null;
       setAnchorIdx(null);
       setFrozenChords([]);
       setActiveChordNum(null);
@@ -505,9 +508,10 @@ export default function ValenceBeatPadPanel() {
   // ── Derived display ───────────────────────────────────────────────
 
   const t = valence / 100;
-  const sc = getScale(t);
-  const padBg = getPadBg(t);
-  const padTx = getPadText(t);
+  const padT = (lockedValenceRef.current ?? valence) / 100;
+  const sc = getScale(padT);
+  const padBg = getPadBg(padT);
+  const padTx = getPadText(padT);
 
   // Build a map of padIdx → first chord number (for badge display)
   const padChordMap = new Map<number, { num: number; chord: ChordResult }>();

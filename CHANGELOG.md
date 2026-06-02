@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 27 (2026-05-25)
 
 ### Fixed
+- **ValenceBeatPadPanel: freeze pad colour/scale to valence at first press** — pad background, text colour, and note names now lock to the valence value captured when the anchor pad is pressed and release when all pads are lifted.
 - **ValenceBeatPadPanel: highlight chord chip when manually holding all its notes** — assembling a chord by holding its pads one by one now auto-highlights the matching chip; releasing a note un-highlights it.
 - **ValenceBeatPadPanel: stable stat box height** — stat labels (scale/timbre/reverb) now use `white-space: nowrap` + ellipsis so boxes never resize when text changes as valence shifts.
 - **ValenceBeatPadPanel: disable oscillate controls when audience sync is on** — the oscillate row is now dimmed and non-interactive while audience sync is enabled; enabling audience sync also stops any active oscillation.
