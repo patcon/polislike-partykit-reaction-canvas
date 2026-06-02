@@ -31,8 +31,12 @@ type Story = StoryObj<typeof meta>;
 
 function CapacityDriver({ room, capacity }: { room: string; capacity: number }) {
   useEffect(() => {
-    emitToRoom(room, { type: 'arrivalCapacityChanged', capacity });
-    emitToRoom(room, { type: 'presenceCount', count: 0 });
+    // defer so ArrivalCanvasPanel's useEffect (subscription) runs first
+    const raf = requestAnimationFrame(() => {
+      emitToRoom(room, { type: 'arrivalCapacityChanged', capacity });
+      emitToRoom(room, { type: 'presenceCount', count: 0 });
+    });
+    return () => cancelAnimationFrame(raf);
   }, [room, capacity]);
   return null;
 }
@@ -53,19 +57,26 @@ export const Default: Story = {
 
 function ArrivalsDriver({ room, capacity }: { room: string; capacity: number }) {
   useEffect(() => {
-    emitToRoom(room, { type: 'arrivalCapacityChanged', capacity });
-    emitToRoom(room, { type: 'presenceCount', count: 0 });
+    let intervalId: ReturnType<typeof setInterval>;
+    // defer so ArrivalCanvasPanel's useEffect (subscription) runs first
+    const raf = requestAnimationFrame(() => {
+      emitToRoom(room, { type: 'arrivalCapacityChanged', capacity });
+      emitToRoom(room, { type: 'presenceCount', count: 0 });
 
-    const STEPS = 20;
-    let step = 0;
-    const id = setInterval(() => {
-      step++;
-      const count = Math.min(Math.round((step / STEPS) * capacity), capacity);
-      emitToRoom(room, { type: 'presenceCount', count });
-      if (step >= STEPS) clearInterval(id);
-    }, 500);
+      const STEPS = 20;
+      let step = 0;
+      intervalId = setInterval(() => {
+        step++;
+        const count = Math.min(Math.round((step / STEPS) * capacity), capacity);
+        emitToRoom(room, { type: 'presenceCount', count });
+        if (step >= STEPS) clearInterval(intervalId);
+      }, 500);
+    });
 
-    return () => clearInterval(id);
+    return () => {
+      cancelAnimationFrame(raf);
+      clearInterval(intervalId);
+    };
   }, [room, capacity]);
   return null;
 }
