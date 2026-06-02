@@ -3,6 +3,7 @@ import usePartySocket from 'partysocket/react';
 import { usePanelContext } from "../../../context/PanelContext";
 import { getPartySocketConfig } from '../../../utils/partyHost';
 import { generateUUID } from '../../../utils/userId';
+import { computeCursorValence, computeReactionRegion } from '../../../utils/voteRegion';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -142,58 +143,6 @@ function midiToFreq(note: number, bendSemitones: number): number {
   return 440 * Math.pow(2, (note - 69 + bendSemitones) / 12);
 }
 
-const ANCHORS = {
-  positive: { x: 95, y: 5  },
-  negative: { x: 5,  y: 95 },
-  neutral:  { x: 95, y: 95 },
-};
-
-function computeRegion(nx: number, ny: number): string {
-  const x = nx / 100, y = ny / 100;
-  const pos = { x: ANCHORS.positive.x / 100, y: ANCHORS.positive.y / 100 };
-  const neg = { x: ANCHORS.negative.x / 100, y: ANCHORS.negative.y / 100 };
-  const neu = { x: ANCHORS.neutral.x  / 100, y: ANCHORS.neutral.y  / 100 };
-  const denom = (neg.y - neu.y) * (pos.x - neu.x) + (neu.x - neg.x) * (pos.y - neu.y);
-  if (Math.abs(denom) < 1e-10) {
-    const dp = Math.hypot(x - pos.x, y - pos.y);
-    const dn = Math.hypot(x - neg.x, y - neg.y);
-    const dz = Math.hypot(x - neu.x, y - neu.y);
-    const m  = Math.min(dp, dn, dz);
-    if (m === dp) return 'positive';
-    if (m === dn) return 'negative';
-    return 'neutral';
-  }
-  const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
-  const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
-  const wNeu = 1 - wPos - wNeg;
-  const mx = Math.max(wPos, wNeg, wNeu);
-  if (mx === wPos) return 'positive';
-  if (mx === wNeg) return 'negative';
-  return 'neutral';
-}
-
-function cursorMoodValue(nx: number, ny: number): number {
-  const x = nx / 100, y = ny / 100;
-  const pos = { x: ANCHORS.positive.x / 100, y: ANCHORS.positive.y / 100 };
-  const neg = { x: ANCHORS.negative.x / 100, y: ANCHORS.negative.y / 100 };
-  const neu = { x: ANCHORS.neutral.x  / 100, y: ANCHORS.neutral.y  / 100 };
-  const denom = (neg.y - neu.y) * (pos.x - neu.x) + (neu.x - neg.x) * (pos.y - neu.y);
-  if (Math.abs(denom) < 1e-10) {
-    const dp = Math.hypot(x - pos.x, y - pos.y) || 1e-9;
-    const dn = Math.hypot(x - neg.x, y - neg.y) || 1e-9;
-    const dz = Math.hypot(x - neu.x, y - neu.y) || 1e-9;
-    const invSum = 1/dp + 1/dn + 1/dz;
-    const wPos = (1/dp) / invSum;
-    const wNeg = (1/dn) / invSum;
-    const wNeu = 1 - wPos - wNeg;
-    return clamp(wPos * 100 + wNeg * 0 + wNeu * 50, 0, 100);
-  }
-  const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
-  const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
-  const wNeu = 1 - wPos - wNeg;
-  return clamp(wPos * 100 + wNeg * 0 + wNeu * 50, 0, 100);
-}
-
 function interpolateWaypoints(preset: Preset, t: number): WaypointInterp {
   const wps = preset.waypoints;
   let lo = wps[0], hi = wps[wps.length - 1];
@@ -303,7 +252,7 @@ export default function MoodTonesPanel() {
     let val: number;
     if (valenceModeRef.current === 'continuous') {
       let sum = 0;
-      for (const [, c] of cursors) sum += cursorMoodValue(c.x, c.y);
+      for (const [, c] of cursors) sum += computeCursorValence(c.x, c.y);
       val = sum / cursors.size;
     } else {
       let sum = 0;
@@ -335,7 +284,7 @@ export default function MoodTonesPanel() {
         setAudienceCount(data.count ?? 0);
       } else if (data.type === 'move' || data.type === 'touch') {
         const { userId, x, y } = data.position!;
-        const region = computeRegion(x, y);
+        const region = computeReactionRegion(x, y) ?? 'neutral';
         const prevRegion = cursorRegionsRef.current.get(userId);
         cursorsRef.current.set(userId, { x, y, region });
         if (valenceModeRef.current === 'continuous' || region !== prevRegion) {

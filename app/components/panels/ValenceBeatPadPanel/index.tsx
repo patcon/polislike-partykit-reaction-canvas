@@ -3,6 +3,7 @@ import usePartySocket from 'partysocket/react';
 import { usePanelContext } from "../../../context/PanelContext";
 import { getPartySocketConfig } from '../../../utils/partyHost';
 import { generateUUID } from '../../../utils/userId';
+import { computeCursorValence } from '../../../utils/voteRegion';
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -54,7 +55,6 @@ const ROLES = ['root','2nd','3rd','tritone','5th','6th','7th','oct','9th','10th'
 const PAD_POS = '#5DCAA5', PAD_MID = '#AFA9EC', PAD_NEG = '#D85A30';
 const TEXT_POS = '#04342C', TEXT_MID = '#26215C', TEXT_NEG = '#4A1B0C';
 
-const ANCHORS = { positive: { x: 95, y: 5 }, negative: { x: 5, y: 95 }, neutral: { x: 95, y: 95 } };
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -119,23 +119,6 @@ function formatPeriod(ms: number): string {
 }
 
 function clamp(v: number, lo: number, hi: number): number { return Math.max(lo, Math.min(hi, v)); }
-
-function cursorMoodValue(nx: number, ny: number): number {
-  const x = nx / 100, y = ny / 100;
-  const pos = { x: ANCHORS.positive.x / 100, y: ANCHORS.positive.y / 100 };
-  const neg = { x: ANCHORS.negative.x / 100, y: ANCHORS.negative.y / 100 };
-  const neu = { x: ANCHORS.neutral.x  / 100, y: ANCHORS.neutral.y  / 100 };
-  const denom = (neg.y - neu.y) * (pos.x - neu.x) + (neu.x - neg.x) * (pos.y - neu.y);
-  if (Math.abs(denom) < 1e-10) {
-    const dp = Math.hypot(x - pos.x, y - pos.y) || 1e-9;
-    const dn = Math.hypot(x - neg.x, y - neg.y) || 1e-9;
-    const dz = Math.hypot(x - neu.x, y - neu.y) || 1e-9;
-    const invSum = 1/dp + 1/dn + 1/dz;
-    return clamp((1/dp) / invSum * 100, 0, 100);
-  }
-  const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
-  return clamp(wPos * 100, 0, 100);
-}
 
 function findChordsForAnchor(idx: number, t: number): ChordResult[] {
   const sc = getScale(t);
@@ -323,7 +306,7 @@ export default function ValenceBeatPadPanel() {
     const cursors = cursorsRef.current;
     if (cursors.size === 0) { valenceRef.current = 50; setValence(50); return; }
     let sum = 0;
-    for (const [, c] of cursors) sum += cursorMoodValue(c.x, c.y);
+    for (const [, c] of cursors) sum += computeCursorValence(c.x, c.y);
     const val = Math.round(clamp(sum / cursors.size, 0, 100));
     valenceRef.current = val;
     setValence(val);
@@ -664,7 +647,7 @@ export default function ValenceBeatPadPanel() {
 
         {/* Stats */}
         <div style={s.statsRow}>
-          {[['scale', getScaleLabel(t)], ['timbre', getTimbreLabel(t)], ['reverb', getReverbLabel(t)]].map(([lbl, val]) => (
+          {[['scale', getScaleLabel(padT)], ['timbre', getTimbreLabel(padT)], ['reverb', getReverbLabel(padT)]].map(([lbl, val]) => (
             <div key={lbl} style={s.stat}>
               <div style={s.statLbl}>{lbl}</div>
               <div style={s.statVal}>{val}</div>
