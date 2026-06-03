@@ -89,29 +89,29 @@ export function useRecording(socket: PartySocket, room: string) {
     }
 
     if (data.type === 'move' || data.type === 'touch') {
-      const { userId: connectionId, x, y } = data.position as { userId: string; x: number; y: number };
+      const { userId: connectionId, x, y, timestamp: senderTs } = data.position as { userId: string; x: number; y: number; timestamp: number };
       if (modeRef.current === 'positions') {
-        pushEvent({ connectionId, type: data.type, x, y, timestamp: now });
+        pushEvent({ connectionId, type: data.type, x, y, timestamp: senderTs });
       } else {
         const newRegion = computeReactionRegion(x, y);
         const prevRegion = prevRegionsRef.current.get(connectionId) ?? null;
         if (newRegion !== prevRegion) {
-          pushEvent({ connectionId, from: prevRegion, to: newRegion, timestamp: now });
+          pushEvent({ connectionId, from: prevRegion, to: newRegion, timestamp: senderTs });
           prevRegionsRef.current.set(connectionId, newRegion);
         }
       }
     }
 
     if (data.type === 'remove') {
-      const { userId: connectionId } = data.position as { userId: string };
+      const { userId: connectionId, timestamp: senderTs } = data.position as { userId: string; timestamp: number };
       if (modeRef.current === 'transitions') {
         const prevRegion = prevRegionsRef.current.get(connectionId) ?? null;
         if (prevRegion !== null) {
-          pushEvent({ connectionId, from: prevRegion, to: null, timestamp: now });
+          pushEvent({ connectionId, from: prevRegion, to: null, timestamp: senderTs });
         }
         prevRegionsRef.current.set(connectionId, null);
       } else {
-        pushEvent({ connectionId, type: 'remove', x: 0, y: 0, timestamp: now });
+        pushEvent({ connectionId, type: 'remove', x: 0, y: 0, timestamp: senderTs });
       }
     }
   };
