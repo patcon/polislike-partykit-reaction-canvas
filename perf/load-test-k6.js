@@ -26,8 +26,8 @@
  *   http_req_failed      — connection failure rate
  *
  * Target environments:
- *   Local:   ws://localhost:1999/party/default
- *   Staging: wss://whispering-gallery-staging.patcon.partykit.dev/party/perf-test
+ *   Local: ws://localhost:1999/parties/perf/perf-default
+ *   Perf:  wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default
  */
 
 import ws from "k6/ws";
@@ -40,7 +40,7 @@ const cursorsReceived = new Counter("cursors_received");
 const connectLatency  = new Trend("connect_latency_ms", true);
 
 // --- Config ---
-const WS_URL = __ENV.WS_URL || "ws://localhost:1999/party/default";
+const WS_URL = __ENV.WS_URL || "ws://localhost:1999/parties/perf/perf-default";
 
 // Adaptive throttle — mirrors PerfCanvasApp/TouchLayer logic.
 // Each VU tracks the server-broadcast presenceCount and scales its send
