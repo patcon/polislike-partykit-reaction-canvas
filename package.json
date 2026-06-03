@@ -17,7 +17,7 @@
     "build-storybook": "storybook build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "perf": "echo 'Observe at: http://localhost:1999/parties/perf/perf-default#perf' && k6 run perf/load-test-k6.js",
+    "perf": "echo 'Observe at: http://localhost:1999/#perf' && k6 run perf/load-test-k6.js",
     "perf:remote": "echo 'Observe at: https://perf.whispering-gallery.patcon.partykit.dev/#perf' && k6 run --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default perf/load-test-k6.js"
   },
   "dependencies": {
