@@ -1,0 +1,84 @@
+name: Perf Test
+
+on:
+  workflow_dispatch:
+    inputs:
+      vus:
+        description: "Number of virtual users"
+        default: "100"
+      duration:
+        description: "Test duration (e.g. 30s, 2m)"
+        default: "30s"
+      skip_deploy:
+        description: "Skip deploy (use when you've already deployed a specific commit from your workstation)"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "0 4 * * *"
+
+concurrency:
+  group: perf-test
+  cancel-in-progress: true
+
+jobs:
+  check-commits:
+    runs-on: ubuntu-latest
+    outputs:
+      has_commits: ${{ steps.check.outputs.has_commits }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - id: check
+        name: Check for commits in last 24 hours
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "has_commits=true" >> "$GITHUB_OUTPUT"
+          elif git log --since="24 hours ago" origin/main --oneline | grep -q .; then
+            echo "has_commits=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_commits=false" >> "$GITHUB_OUTPUT"
+            echo "No commits in the last 24 hours — skipping perf test run."
+          fi
+
+  deploy-perf:
+    needs: check-commits
+    if: needs.check-commits.outputs.has_commits == 'true' && inputs.skip_deploy != true
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run deploy:perf
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+          PARTYKIT_LOGIN: patcon
+      - name: Print perf environment URL
+        run: |
+          echo "Perf environment: https://perf.whispering-gallery.patcon.partykit.dev/#perf"
+          echo "## Perf Environment" >> "$GITHUB_STEP_SUMMARY"
+          echo "[https://perf.whispering-gallery.patcon.partykit.dev/#perf](https://perf.whispering-gallery.patcon.partykit.dev/#perf)" >> "$GITHUB_STEP_SUMMARY"
+
+  k6-test:
+    needs: [check-commits, deploy-perf]
+    if: |
+      always() &&
+      needs.check-commits.outputs.has_commits == 'true' &&
+      (needs.deploy-perf.result == 'success' || needs.deploy-perf.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Run k6 load test
+        uses: grafana/run-k6-action@v1
+        with:
+          path: perf/load-test-k6.js
+          flags: >-
+            --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default
+            --vus ${{ inputs.vus || 100 }}
+            --duration ${{ inputs.duration || '30s' }}

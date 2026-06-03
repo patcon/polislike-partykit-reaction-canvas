@@ -11,6 +11,7 @@
     "deploy": "pnpm run build:worker && pnpm run cachebust && partykit deploy",
     "deploy:preview": "pnpm run build:worker && pnpm run cachebust && partykit deploy --preview $PREVIEW_NAME",
     "deploy:staging": "PREVIEW_NAME=staging pnpm run deploy:preview",
+    "deploy:perf": "PREVIEW_NAME=perf pnpm run deploy:preview",
     "cachebust": "node scripts/build-with-cachebust.js",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",

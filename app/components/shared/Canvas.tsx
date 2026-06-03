@@ -62,6 +62,15 @@ interface CanvasProps {
   onConnectedUsers?: (ids: string[]) => void;
   onUserJoined?: (userId: string) => void;
   onUserLeft?: (userId: string) => void;
+  party?: string;
+  springConfig?: SpringConfig;
+}
+
+interface SpringConfig {
+  stiffness: number;
+  damping: number;
+  mass: number;
+  showSpring: boolean;
 }
 
 // Clip an infinite line (defined by two points) to the rectangle [0,w]×[0,h].
@@ -85,8 +94,9 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, party = "main", debug = false, springConfig }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
+  const springLayerRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
   const [anchors, setAnchors] = useState<ReactionAnchors>(DEFAULT_ANCHORS);
   const [avatarStyle, setAvatarStyle] = useState<string | null>(null);
@@ -107,6 +117,82 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
     onSimulatedCursorCountChange?.(simulatedCount);
   }, [cursors.size]);
 
+  // Keep a ref-copy of cursors for the spring RAF loop (avoids RAF closure over stale state)
+  const cursorTargetRef = useRef<Map<string, CursorPosition>>(new Map());
+  useEffect(() => { cursorTargetRef.current = cursors; }, [cursors]);
+
+  const springStateRef = useRef<Map<string, { x: number; y: number; vx: number; vy: number }>>(new Map());
+  const dimensionsRef = useRef({ width: window.innerWidth, height: window.innerHeight });
+
+  // Spring cursor RAF loop — runs only when springConfig is provided
+  useEffect(() => {
+    if (!springConfig) {
+      // Clear overlay when disabled
+      if (springLayerRef.current) d3.select(springLayerRef.current).selectAll('*').remove();
+      return;
+    }
+    let rafId: number;
+    const tick = () => {
+      const layer = springLayerRef.current;
+      if (!layer) { rafId = requestAnimationFrame(tick); return; }
+
+      const { stiffness, damping, mass, showSpring } = springConfig;
+      const targets = cursorTargetRef.current;
+      const state = springStateRef.current;
+
+      // Remove spring state for cursors that have left
+      for (const id of state.keys()) {
+        if (!targets.has(id)) state.delete(id);
+      }
+
+      // Step physics for each target cursor
+      for (const [id, cursor] of targets) {
+        const tx = (cursor.x / 100) * dimensionsRef.current.width;
+        const ty = (cursor.y / 100) * dimensionsRef.current.height;
+        let s = state.get(id);
+        if (!s) {
+          s = { x: tx, y: ty, vx: 0, vy: 0 };
+          state.set(id, s);
+        }
+        const dx = tx - s.x;
+        const dy = ty - s.y;
+        s.vx = s.vx * damping + (dx * stiffness) / mass;
+        s.vy = s.vy * damping + (dy * stiffness) / mass;
+        s.x += s.vx;
+        s.y += s.vy;
+      }
+
+      // D3 data join for enter/exit
+      const layerSel = d3.select(layer);
+      const data = [...state.entries()].map(([id, s]) => ({ id, x: s.x, y: s.y }));
+      const groups = layerSel
+        .selectAll<SVGGElement, { id: string; x: number; y: number }>('.spring-cursor')
+        .data(data, d => d.id);
+
+      groups.enter()
+        .append('g')
+        .attr('class', 'spring-cursor')
+        .append('circle')
+        .attr('r', 10)
+        .attr('fill', 'none')
+        .attr('stroke', 'rgba(100,200,255,0.85)')
+        .attr('stroke-width', 2)
+        .attr('stroke-dasharray', '4 3');
+
+      groups.exit().remove();
+
+      // Update positions for all spring cursors
+      layerSel.selectAll<SVGGElement, { id: string; x: number; y: number }>('.spring-cursor')
+        .attr('transform', d => `translate(${d.x},${d.y})`);
+
+      layer.style.visibility = showSpring ? 'visible' : 'hidden';
+
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafId);
+  }, [springConfig]);
+
   useEffect(() => {
     if (!imageUrl) { setImageNaturalSize(null); return; }
     const img = new Image();
@@ -119,9 +205,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
     width: window.innerWidth,
     height: window.innerHeight - (heightOffset ?? 140)
   });
+  useEffect(() => { dimensionsRef.current = dimensions; }, [dimensions]);
 
   const socket = usePartySocket({
     ...getPartySocketConfig(),
+    party,
     room: room,
     query: readOnly ? { isAdmin: 'true' } : { userId },
     onMessage(evt) {
@@ -347,6 +435,37 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
         if (data.type === 'userLeft') {
           onUserLeft?.(data.userId);
+          return;
+        }
+
+        // Handle batched cursor events from perf-server
+        if (data.type === 'cursorBatch' && Array.isArray(data.cursors)) {
+          const events: CursorEvent[] = data.cursors;
+          setCursors(prev => {
+            const newCursors = new Map(prev);
+            for (const event of events) {
+              if (!event.position || event.position.userId === userId) continue;
+              if (event.type === 'remove') {
+                newCursors.delete(event.position.userId);
+              } else {
+                newCursors.set(event.position.userId, event.position);
+              }
+            }
+            return newCursors;
+          });
+          for (const event of events) {
+            if (event.type !== 'remove' && event.position && event.position.userId !== userId) {
+              const { userId: cursorUserId, timestamp } = event.position;
+              setTimeout(() => {
+                setCursors(prev => {
+                  const newCursors = new Map(prev);
+                  const cursor = newCursors.get(cursorUserId);
+                  if (cursor && cursor.timestamp === timestamp) newCursors.delete(cursorUserId);
+                  return newCursors;
+                });
+              }, 3000);
+            }
+          }
           return;
         }
 
@@ -749,19 +868,33 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   }, [heightOffset]);
 
   return (
-    <svg
-      ref={svgRef}
-      width={dimensions.width}
-      height={dimensions.height}
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        zIndex: 1,
-        pointerEvents: 'none'
-      }}
-    />
+    <>
+      <svg
+        ref={svgRef}
+        width={dimensions.width}
+        height={dimensions.height}
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 1,
+          pointerEvents: 'none'
+        }}
+      />
+      <svg
+        ref={springLayerRef}
+        style={{
+          position: 'absolute',
+          inset: 0,
+          width: '100%',
+          height: '100%',
+          zIndex: 2,
+          pointerEvents: 'none',
+          visibility: 'hidden',
+        }}
+      />
+    </>
   );
 }
