@@ -2,6 +2,9 @@
   "$schema": "https://www.partykit.io/schema.json",
   "name": "whispering-gallery",
   "main": "party/server.ts",
+  "parties": {
+    "perf": "party/perf-server.ts"
+  },
   "compatibilityDate": "2025-11-20",
   "serve": {
     "path": "public",

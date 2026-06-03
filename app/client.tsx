@@ -9,6 +9,7 @@ import ReactionCanvasAppV2 from "./components/apps/ReactionCanvasAppV2";
 import ReactionCanvasAppV4 from "./components/apps/ReactionCanvasAppV4";
 import ReactionCanvasAppV5 from "./components/apps/ReactionCanvasAppV5";
 import ValenceViz from "./components/viz/ValenceViz";
+import PerfCanvasApp from "./components/apps/PerfCanvasApp";
 
 function IndexApp() {
   const pageUrl = window.location.origin + window.location.pathname;
@@ -103,6 +104,13 @@ function IndexApp() {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
+        <a href="#perf" className="app-card">
+          <div className="app-card-content">
+            <h2 className="app-card-title">Perf Test Canvas</h2>
+            <p className="app-card-description">Minimal cursor-only canvas wired to a stripped-down server. Use with the load test scripts to assess peak broadcast performance.</p>
+          </div>
+          <span className="app-card-arrow">→</span>
+        </a>
         <a href="?room=3ntrtcehas&admin=true#v1" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V1 Admin: Statement Queue</h2>
@@ -118,6 +126,7 @@ function IndexApp() {
 const TITLES: Record<string, (admin: boolean) => string> = {
   '#v1': (admin) => admin ? 'Statement Admin — Polislike' : 'Statement Voting — Polislike',
   '#v2': ()      => 'YouTube Reaction (Sync) — Polislike',
+  '#perf': () => 'Perf Test Canvas — Polislike',
   '#v4': (admin) => admin ? 'Live Event Admin — Polislike' : 'Live Reaction Canvas — Polislike',
   '#v5': (admin) => admin ? 'YouTube Reaction Admin — Polislike' : 'YouTube Reaction (Async) — Polislike',
   '#valence-viz': () => 'Valence Viz — Polislike',
@@ -156,6 +165,7 @@ function App() {
   else if (hash === '#v4') page = <ReactionCanvasAppV4 />;
   else if (hash === '#v5') page = <ReactionCanvasAppV5 />;
   else if (hash === '#valence-viz') page = <ValenceViz />;
+  else if (hash === '#perf') page = <PerfCanvasApp />;
   else page = <IndexApp />;
 
   return <>{page}{!PARTYKIT_EVENT_BUILD && <GithubCorner />}</>;

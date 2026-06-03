@@ -39,6 +39,7 @@ interface TouchLayerProps {
   onCursorEvent?: (type: 'move' | 'touch' | 'remove', pos: { x: number; y: number }) => void;
   imageUrl?: string; // When set, normalize coordinates relative to displayed image bounds
   disabled?: boolean; // When true, keeps socket alive but ignores all pointer events
+  party?: string;
 }
 
 export default function TouchLayer({
@@ -55,6 +56,7 @@ export default function TouchLayer({
   onCursorEvent,
   imageUrl,
   disabled = false,
+  party = "main",
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const [userReactionState, setUserReactionState] = useState<ReactionState>(null);
@@ -79,6 +81,7 @@ export default function TouchLayer({
 
   const socket = usePartySocket({
     ...getPartySocketConfig(),
+    party,
     room: room,
     query: { userId },
     onMessage(evt) {
