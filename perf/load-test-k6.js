@@ -9,6 +9,15 @@
  *   k6 run --env WS_URL=wss://whispering-gallery-staging.patcon.partykit.dev/party/perf-test perf/load-test-k6.js
  *   k6 run --vus 200 --duration 60s perf/load-test-k6.js
  *
+ * Adaptive throttle (mirrors PerfCanvasApp logic):
+ *   k6 run --env ADAPTIVE_THROTTLE=true perf/load-test-k6.js
+ *   k6 run --env ADAPTIVE_THROTTLE=true \
+ *          --env THROTTLE_BASE=50 \
+ *          --env THROTTLE_SCALE_START=300 \
+ *          --env THROTTLE_SCALE_END=400 \
+ *          --env THROTTLE_MAX=250 \
+ *          perf/load-test-k6.js
+ *
  * k6 produces structured metrics automatically:
  *   ws_connecting        — connection handshake time (p50/p95/p99)
  *   ws_msgs_sent         — total messages sent
@@ -32,6 +41,24 @@ const connectLatency  = new Trend("connect_latency_ms", true);
 
 // --- Config ---
 const WS_URL = __ENV.WS_URL || "ws://localhost:1999/party/default";
+
+// Adaptive throttle — mirrors PerfCanvasApp/TouchLayer logic.
+// Each VU tracks the server-broadcast presenceCount and scales its send
+// interval using the same quadratic ease-in curve as the real client.
+const ADAPTIVE_THROTTLE  = (__ENV.ADAPTIVE_THROTTLE || "false") === "true";
+const THROTTLE_BASE       = parseInt(__ENV.THROTTLE_BASE        || "50",  10); // ms at low counts
+const THROTTLE_SCALE_START= parseInt(__ENV.THROTTLE_SCALE_START || "300", 10); // connections
+const THROTTLE_SCALE_END  = parseInt(__ENV.THROTTLE_SCALE_END   || "400", 10); // connections
+const THROTTLE_MAX        = parseInt(__ENV.THROTTLE_MAX         || "250", 10); // ms at high counts
+
+// Quadratic ease-in: cheap at low counts, accelerating near capacity.
+function computeThrottleMs(count) {
+  if (!ADAPTIVE_THROTTLE)              return 33; // default ~30 fps
+  if (count <= THROTTLE_SCALE_START)   return THROTTLE_BASE;
+  if (count >= THROTTLE_SCALE_END)     return THROTTLE_MAX;
+  const t = (count - THROTTLE_SCALE_START) / (THROTTLE_SCALE_END - THROTTLE_SCALE_START);
+  return Math.round(THROTTLE_BASE + (THROTTLE_MAX - THROTTLE_BASE) * t * t);
+}
 
 // Load profile: ramp to 50 VUs over 10s, hold 30s, ramp down 10s.
 // Override with --vus and --duration flags for a flat run.
@@ -83,20 +110,28 @@ export default function () {
   const res = ws.connect(WS_URL, {}, function (socket) {
     connectLatency.add(Date.now() - t0);
 
+    let presenceCount = 0;
+    let lastSent = 0;
+
     socket.on("open", () => {
-      // Send cursor updates at ~30fps (33ms interval) following a circular orbit
+      // Poll at 10ms; actual send rate is governed by computeThrottleMs(presenceCount).
+      // When adaptive throttle is off, computeThrottleMs returns 33ms (~30 fps).
       socket.setInterval(() => {
-        const tSec = (Date.now() - t0) / 1000;
+        const now = Date.now();
+        if (now - lastSent < computeThrottleMs(presenceCount)) return;
+        lastSent = now;
+
+        const tSec = (now - t0) / 1000;
         const { x, y } = orbitPosition(orbit, tSec);
         const eventType = Math.random() < 0.1 ? "touch" : "move";
         socket.send(
           JSON.stringify({
             type: eventType,
-            position: { x, y, timestamp: Date.now(), userId },
+            position: { x, y, timestamp: now, userId },
           })
         );
         cursorsSent.add(1);
-      }, 33);
+      }, 10);
 
       // Close after 20s per VU iteration (k6 will re-invoke for the stage duration)
       socket.setTimeout(() => {
@@ -110,8 +145,12 @@ export default function () {
       }, 20000);
     });
 
-    socket.on("message", () => {
+    socket.on("message", (data) => {
       cursorsReceived.add(1);
+      try {
+        const msg = JSON.parse(data);
+        if (msg.type === "presenceCount") presenceCount = msg.count;
+      } catch (_) {}
     });
 
     socket.on("error", (e) => {

@@ -44,8 +44,8 @@ export default function PerfCanvasApp() {
 
   const [throttleEnabled, setThrottleEnabled] = useState(false);
   const [throttleBase, setThrottleBase] = useState(50);
-  const [throttleScaleStart, setThrottleScaleStart] = useState(100);
-  const [throttleScaleEnd, setThrottleScaleEnd] = useState(600);
+  const [throttleScaleStart, setThrottleScaleStart] = useState(300);
+  const [throttleScaleEnd, setThrottleScaleEnd] = useState(400);
   const [throttleMax, setThrottleMax] = useState(250);
 
   const throttleMs = throttleEnabled
