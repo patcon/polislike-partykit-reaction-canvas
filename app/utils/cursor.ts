@@ -9,6 +9,6 @@ export const CURSOR_THROTTLE_MS = 33;
 export const SMOOTH_CURSOR_ENABLED = true;
 export const SMOOTH_CURSOR_CONFIG = {
   stiffness: 0.12,
-  damping: 0.75,
+  damping: 0.5,
   mass: 1,
 };
