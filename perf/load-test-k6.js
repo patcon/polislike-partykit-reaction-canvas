@@ -6,7 +6,7 @@
  *
  * Usage:
  *   k6 run perf/load-test-k6.js
- *   k6 run --env WS_URL=wss://whispering-gallery-staging.patcon.partykit.dev/party/perf-test perf/load-test-k6.js
+ *   k6 run --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default perf/load-test-k6.js
  *   k6 run --vus 200 --duration 60s perf/load-test-k6.js
  *
  * Adaptive throttle (mirrors PerfCanvasApp logic):
@@ -30,14 +30,17 @@
  *   Perf:  wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default
  */
 
-import ws from "k6/ws";
 import { check, sleep } from "k6";
-import { Counter, Trend } from "k6/metrics";
+import ws from "k6/ws";
+import { Counter, Rate, Trend } from "k6/metrics";
+import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
 // --- Custom metrics ---
-const cursorsSent     = new Counter("cursors_sent");
-const cursorsReceived = new Counter("cursors_received");
-const connectLatency  = new Trend("connect_latency_ms", true);
+const cursorsSent       = new Counter("cursors_sent");
+const cursorsReceived   = new Counter("cursors_received");  // cursor events only, not presenceCount
+const connectLatency    = new Trend("connect_latency_ms", true);
+const deliveryLatency   = new Trend("cursor_delivery_ms", true);  // sender → server batch → back to sender
+const connectionSuccess = new Rate("connection_success");
 
 // --- Config ---
 const WS_URL = __ENV.WS_URL || "ws://localhost:1999/parties/perf/perf-default";
@@ -45,7 +48,7 @@ const WS_URL = __ENV.WS_URL || "ws://localhost:1999/parties/perf/perf-default";
 // Adaptive throttle — mirrors PerfCanvasApp/TouchLayer logic.
 // Each VU tracks the server-broadcast presenceCount and scales its send
 // interval using the same quadratic ease-in curve as the real client.
-const ADAPTIVE_THROTTLE  = (__ENV.ADAPTIVE_THROTTLE || "false") === "true";
+const ADAPTIVE_THROTTLE   = (__ENV.ADAPTIVE_THROTTLE || "false") === "true";
 const THROTTLE_BASE       = parseInt(__ENV.THROTTLE_BASE        || "50",  10); // ms at low counts
 const THROTTLE_SCALE_START= parseInt(__ENV.THROTTLE_SCALE_START || "300", 10); // connections
 const THROTTLE_SCALE_END  = parseInt(__ENV.THROTTLE_SCALE_END   || "400", 10); // connections
@@ -69,10 +72,13 @@ export const options = {
     { duration: "10s", target: 0  },
   ],
   thresholds: {
-    // Fail the test if >5% of connections fail
-    "ws_sessions":      ["count>0"],
+    // At least 95% of connections must succeed
+    "connection_success":  ["rate>0.95"],
     // Flag if p95 connect time exceeds 2s
-    "connect_latency_ms": ["p(95)<2000"],
+    "connect_latency_ms":  ["p(95)<2000"],
+    // Flag if p95 end-to-end cursor delivery exceeds 500ms
+    // (sender → 50ms server batch → broadcast → back to sender; one-way ≈ half this)
+    "cursor_delivery_ms":  ["p(95)<500"],
   },
 };
 
@@ -107,6 +113,9 @@ export default function () {
   const orbit  = makeOrbit();
   const t0     = Date.now();
 
+  // Stagger close time 18–22s to avoid synchronized reconnect storms across VUs
+  const closeAfterMs = 18000 + Math.random() * 4000;
+
   const res = ws.connect(WS_URL, {}, function (socket) {
     connectLatency.add(Date.now() - t0);
 
@@ -133,7 +142,6 @@ export default function () {
         cursorsSent.add(1);
       }, 10);
 
-      // Close after 20s per VU iteration (k6 will re-invoke for the stage duration)
       socket.setTimeout(() => {
         socket.send(
           JSON.stringify({
@@ -142,14 +150,25 @@ export default function () {
           })
         );
         socket.close();
-      }, 20000);
+      }, closeAfterMs);
     });
 
     socket.on("message", (data) => {
-      cursorsReceived.add(1);
       try {
         const msg = JSON.parse(data);
-        if (msg.type === "presenceCount") presenceCount = msg.count;
+        if (msg.type === "presenceCount") {
+          presenceCount = msg.count;
+        } else if (msg.type === "cursorBatch" && Array.isArray(msg.cursors)) {
+          // Count only cursor events, not presenceCount broadcasts
+          cursorsReceived.add(msg.cursors.length);
+          // Measure end-to-end delivery latency for our own cursor echoed back
+          const now = Date.now();
+          for (const event of msg.cursors) {
+            if (event.position?.userId === userId && event.position?.timestamp) {
+              deliveryLatency.add(now - event.position.timestamp);
+            }
+          }
+        }
       } catch (_) {}
     });
 
@@ -158,8 +177,20 @@ export default function () {
     });
   });
 
-  check(res, { "connected successfully": (r) => r && r.status === 101 });
+  const connected = check(res, { "connected successfully": (r) => r && r.status === 101 });
+  connectionSuccess.add(connected);
 
   // Brief pause between VU iterations so k6 pacing stays smooth
   sleep(1);
+}
+
+export function handleSummary(data) {
+  const sent     = data.metrics.cursors_sent?.values?.count     || 0;
+  const received = data.metrics.cursors_received?.values?.count || 0;
+  const fanout   = sent > 0 ? (received / sent).toFixed(2) : "N/A";
+
+  const summary = textSummary(data, { indent: " ", enableColors: true });
+  return {
+    stdout: summary + `\n Cursor fanout ratio: ${fanout}x (cursors_received / cursors_sent — expected ≈ VU count)\n`,
+  };
 }
