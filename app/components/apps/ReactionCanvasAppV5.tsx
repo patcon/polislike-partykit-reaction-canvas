@@ -250,7 +250,7 @@ export default function ReactionCanvasAppV5() {
           room={room}
           userId={userId}
           colorCursorsByVote={false}
-          hideCursors={true}
+          hideActualCursors={true}
           currentReactionState={canvasBackgroundReactionState}
           heightOffset={youtubeHeight}
           onRoomLabelsChange={setServerLabels}

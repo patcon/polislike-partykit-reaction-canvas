@@ -4,10 +4,10 @@
 // reflect real client behaviour.
 export const CURSOR_THROTTLE_MS = 33;
 
-// Spring cursor smoothing — applied in the main app and perf app.
+// Smooth cursor config — applied in the main app and perf app.
 // Tune these values in PerfCanvasApp's debug UI, then update here.
-export const SPRING_CURSOR_ENABLED = true;
-export const SPRING_CONFIG = {
+export const SMOOTH_CURSOR_ENABLED = true;
+export const SMOOTH_CURSOR_CONFIG = {
   stiffness: 0.12,
   damping: 0.75,
   mass: 1,

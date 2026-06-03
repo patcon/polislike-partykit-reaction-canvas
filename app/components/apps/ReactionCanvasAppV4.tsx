@@ -39,7 +39,7 @@ import MapMakerPanel from "../panels/MapMakerPanel";
 import MapViewerPanel from "../panels/MapViewerPanel";
 import ValenceBeatPadPanel from "../panels/ValenceBeatPadPanel";
 import ArrivalCanvasPanel from "../panels/ArrivalCanvasPanel";
-import { SPRING_CURSOR_ENABLED, SPRING_CONFIG } from "../../utils/cursor";
+import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
   'social-sharing': SocialMediaPanel,
@@ -470,7 +470,8 @@ export default function ReactionCanvasAppV4() {
             room={room}
             userId={userId}
             colorCursorsByVote={true}
-            springConfig={SPRING_CURSOR_ENABLED ? { ...SPRING_CONFIG, showSpring: true } : undefined}
+            cursorSmoothingConfig={SMOOTH_CURSOR_ENABLED ? { ...SMOOTH_CURSOR_CONFIG, showSmoothCursor: true } : undefined}
+            hideActualCursors={SMOOTH_CURSOR_ENABLED}
             disableCursorValence={activity === 'image-canvas'}
             disableBackgroundValence={activity === 'image-canvas'}
             onOwnValenceDisplayChange={setOwnValenceDisplay}
