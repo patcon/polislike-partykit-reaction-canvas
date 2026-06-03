@@ -124,7 +124,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   const smoothCursorStateRef = useRef<Map<string, { x: number; y: number; vx: number; vy: number }>>(new Map());
   const dimensionsRef = useRef({ width: window.innerWidth, height: window.innerHeight });
 
-  const smoothCursorStyleRef = useRef<Map<string, { color: string; radius: number }>>(new Map());
+  const smoothCursorStyleRef = useRef<Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string }>>(new Map());
 
   // Smooth cursor RAF loop — runs only when cursorSmoothingConfig is provided
   useEffect(() => {
@@ -184,7 +184,12 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .select('circle')
         .each(function(d) {
           const style = smoothCursorStyleRef.current.get(d.id);
-          if (style) d3.select(this).attr('r', style.radius).attr('fill', style.color);
+          if (style) d3.select(this)
+            .attr('r', style.radius)
+            .attr('fill', style.color)
+            .attr('stroke', style.stroke)
+            .attr('stroke-width', 2)
+            .attr('stroke-dasharray', style.strokeDasharray);
         });
 
       layer.style.visibility = showSmoothCursor ? 'visible' : 'hidden';
@@ -213,10 +218,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   useEffect(() => {
     const smallerDim = Math.min(dimensions.width, dimensions.height);
     const radius = avatarStyle ? smallerDim * 0.03 : smallerDim * 0.01;
-    const styleMap = new Map<string, { color: string; radius: number }>();
+    const styleMap = new Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string }>();
     for (const [cursorUserId, cursor] of cursors) {
+      const isPlayback = cursorUserId.startsWith('replay_');
       let color: string;
-      if (cursorUserId.startsWith('replay_')) {
+      if (isPlayback) {
         color = 'hsl(270, 70%, 65%)';
       } else if (colorCursorsByVote && !disableCursorValence) {
         switch (computeReactionRegion(cursor.x, cursor.y, anchors)) {
@@ -231,7 +237,9 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         const hue = cursorUserId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
         color = `hsl(${hue}, 70%, 50%)`;
       }
-      styleMap.set(cursorUserId, { color, radius });
+      const stroke = isPlayback ? 'hsl(270, 70%, 80%)' : '#000000';
+      const strokeDasharray = isPlayback ? `${radius * 0.8} ${radius * 0.5}` : 'none';
+      styleMap.set(cursorUserId, { color, radius, stroke, strokeDasharray });
     }
     smoothCursorStyleRef.current = styleMap;
   }, [cursors, dimensions, anchors, colorCursorsByVote, disableCursorValence, defaultCursorColor, avatarStyle]);

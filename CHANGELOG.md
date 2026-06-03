@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 29 (2026-06-02)
 
 ### Fixed
+- **Smooth cursor: add black stroke for contrast** — smooth cursors now render with `stroke: #000000 / stroke-width: 2` matching actual cursors; playback cursors get the same lighter dashed stroke.
 - **Smooth cursor styling and terminology** — renames `spring*` → `smooth*` / `hideCursors` → `hideActualCursors` throughout Canvas, PerfCanvasApp, V4, V5, and `cursor.ts`; smooth cursors now render with the same color and radius as actual cursors (vote-based coloring, default color, avatar radius); actual cursors are hidden in V4 when smooth cursor is enabled.
 - **Spring cursor in main app** — `SPRING_CURSOR_ENABLED` and `SPRING_CONFIG` constants added to `app/utils/cursor.ts`; V4 canvas now uses spring smoothing by default; PerfCanvasApp slider defaults updated to match.
 - **Add `DEBUG=true` msg-rate logging to server** — when `DEBUG=true` is set in `.env`, the server logs incoming message rate every second as both msg/s and avg ms between messages; adds `.env.example` documenting all local env vars.
