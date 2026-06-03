@@ -53,12 +53,40 @@ def generate_uuid() -> str:
     return str(uuid.uuid4())
 
 
-def make_cursor_event(user_id: str, event_type: str = "move") -> str:
+@dataclass
+class CircleOrbit:
+    """Deterministic circular path for one virtual user."""
+    cx: float      # center x (0–100)
+    cy: float      # center y (0–100)
+    r: float       # radius (canvas %)
+    omega: float   # angular velocity (radians/second)
+    phase: float   # starting angle (radians)
+
+    @classmethod
+    def random(cls) -> "CircleOrbit":
+        r = random.uniform(5, 30)
+        # keep center far enough from edges that the circle stays on canvas
+        cx = random.uniform(r, 100 - r)
+        cy = random.uniform(r, 100 - r)
+        # speed: 0.5–3 full rotations per second
+        omega = random.uniform(0.5, 3.0) * 2 * math.pi
+        return cls(cx=cx, cy=cy, r=r, omega=omega, phase=random.uniform(0, 2 * math.pi))
+
+    def position(self, t: float) -> tuple[float, float]:
+        angle = self.omega * t + self.phase
+        return (
+            round(self.cx + self.r * math.cos(angle), 2),
+            round(self.cy + self.r * math.sin(angle), 2),
+        )
+
+
+def make_cursor_event(user_id: str, orbit: CircleOrbit, t: float, event_type: str = "move") -> str:
+    x, y = orbit.position(t)
     return json.dumps({
         "type": event_type,
         "position": {
-            "x": round(random.uniform(0, 100), 2),
-            "y": round(random.uniform(0, 100), 2),
+            "x": x,
+            "y": y,
             "timestamp": int(time.time() * 1000),
             "userId": user_id,
         }
@@ -78,6 +106,7 @@ def make_remove_event(user_id: str) -> str:
 
 
 async def run_user(url: str, duration: float, stats: UserStats) -> None:
+    orbit = CircleOrbit.random()
     t0 = time.perf_counter()
     try:
         async with websockets.connect(url, open_timeout=10) as ws:
@@ -97,8 +126,9 @@ async def run_user(url: str, duration: float, stats: UserStats) -> None:
             # sender loop — emit cursor events until duration expires
             deadline = t0 + duration
             while time.perf_counter() < deadline:
+                t = time.perf_counter() - t0
                 event_type = "touch" if random.random() < 0.1 else "move"
-                await ws.send(make_cursor_event(stats.user_id, event_type))
+                await ws.send(make_cursor_event(stats.user_id, orbit, t, event_type))
                 stats.messages_sent += 1
                 await asyncio.sleep(MOVE_INTERVAL)
 

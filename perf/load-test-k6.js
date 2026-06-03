@@ -49,9 +49,22 @@ export const options = {
   },
 };
 
-// Seeded random walk so cursors drift naturally rather than teleporting
-function randomWalk(prev, step = 5) {
-  return Math.max(0, Math.min(100, prev + (Math.random() * step * 2 - step)));
+// Circular orbit — deterministic position given elapsed time
+function makeOrbit() {
+  const r  = 5 + Math.random() * 25;           // radius 5–30% of canvas
+  const cx = r + Math.random() * (100 - 2 * r); // center stays on canvas
+  const cy = r + Math.random() * (100 - 2 * r);
+  const omega = (0.5 + Math.random() * 2.5) * 2 * Math.PI; // 0.5–3 rps
+  const phase = Math.random() * 2 * Math.PI;
+  return { cx, cy, r, omega, phase };
+}
+
+function orbitPosition(orbit, tSec) {
+  const angle = orbit.omega * tSec + orbit.phase;
+  return {
+    x: Math.round((orbit.cx + orbit.r * Math.cos(angle)) * 100) / 100,
+    y: Math.round((orbit.cy + orbit.r * Math.sin(angle)) * 100) / 100,
+  };
 }
 
 function generateUserId() {
@@ -64,29 +77,22 @@ function generateUserId() {
 
 export default function () {
   const userId = generateUserId();
-  let x = Math.random() * 100;
-  let y = Math.random() * 100;
-
-  const t0 = Date.now();
+  const orbit  = makeOrbit();
+  const t0     = Date.now();
 
   const res = ws.connect(WS_URL, {}, function (socket) {
     connectLatency.add(Date.now() - t0);
 
     socket.on("open", () => {
-      // Send cursor updates at ~30fps (33ms interval) for the duration of this VU iteration
+      // Send cursor updates at ~30fps (33ms interval) following a circular orbit
       socket.setInterval(() => {
-        x = randomWalk(x);
-        y = randomWalk(y);
+        const tSec = (Date.now() - t0) / 1000;
+        const { x, y } = orbitPosition(orbit, tSec);
         const eventType = Math.random() < 0.1 ? "touch" : "move";
         socket.send(
           JSON.stringify({
             type: eventType,
-            position: {
-              x: Math.round(x * 100) / 100,
-              y: Math.round(y * 100) / 100,
-              timestamp: Date.now(),
-              userId,
-            },
+            position: { x, y, timestamp: Date.now(), userId },
           })
         );
         cursorsSent.add(1);
