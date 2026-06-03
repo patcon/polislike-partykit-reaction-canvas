@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 29 (2026-06-02)
 
 ### Added
-- **Smooth cursor: avatar support** — smooth cursors now render DiceBear and custom photo avatars when an avatar style is selected in the emcee Avatars tab; uses circular clip paths in the RAF loop; falls back to a plain dot when no style is set.
+- **Smooth cursor: avatar support** — smooth cursors now render DiceBear and custom photo avatars when an avatar style is selected in the emcee Avatars tab; DiceBear uses `?radius=50` for native circular rendering (no SVG clip paths); custom photos still use clip paths; falls back to a plain dot when no style is set.
 
 ### Fixed
 - **Smooth cursor: tune damping to 0.5** — reduces trailing lag while keeping motion smooth.

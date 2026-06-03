@@ -126,7 +126,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   const smoothCursorStateRef = useRef<Map<string, { x: number; y: number; vx: number; vy: number }>>(new Map());
   const dimensionsRef = useRef({ width: window.innerWidth, height: window.innerHeight });
 
-  const smoothCursorStyleRef = useRef<Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string; avatarUrl: string | null }>>(new Map());
+  const smoothCursorStyleRef = useRef<Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string; avatarUrl: string | null; needsClip: boolean }>>(new Map());
   const avatarStyleRef = useRef<string | null>(null);
   const customAvatarsRef = useRef<Record<string, string>>({});
 
@@ -200,8 +200,8 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           const g = d3.select(this);
           const clipId = `sc-clip-${d.id.replace(/\W/g, '_')}`;
 
-          // Manage circular clip path in defs for avatar images
-          if (style.avatarUrl) {
+          // Clip path only needed for custom photos; DiceBear uses ?radius=50 instead
+          if (style.needsClip) {
             let clipPath = defs.select<SVGClipPathElement>(`#${clipId}`);
             if (clipPath.empty()) {
               clipPath = defs.append('clipPath').attr('id', clipId) as d3.Selection<SVGClipPathElement, unknown, null, undefined>;
@@ -231,7 +231,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
               .attr('y', -style.radius)
               .attr('width', avatarSize)
               .attr('height', avatarSize)
-              .attr('clip-path', `url(#${clipId})`);
+              .attr('clip-path', style.needsClip ? `url(#${clipId})` : null);
           } else {
             avatarSel.style('display', 'none');
           }
@@ -263,7 +263,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   useEffect(() => {
     const smallerDim = Math.min(dimensions.width, dimensions.height);
     const radius = avatarStyle ? smallerDim * 0.03 : smallerDim * 0.01;
-    const styleMap = new Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string; avatarUrl: string | null }>();
+    const styleMap = new Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string; avatarUrl: string | null; needsClip: boolean }>();
     for (const [cursorUserId, cursor] of cursors) {
       const isPlayback = cursorUserId.startsWith('replay_');
       let color: string;
@@ -286,20 +286,23 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       const strokeDasharray = isPlayback ? `${radius * 0.8} ${radius * 0.5}` : 'none';
 
       let avatarUrl: string | null = null;
+      let needsClip = false;
       if (avatarStyle && !isPlayback) {
         const isCustomMode = avatarStyle === 'custom' || avatarStyle.startsWith('custom+');
         if (isCustomMode) {
           avatarUrl = customAvatars[cursorUserId] ?? null;
-          if (!avatarUrl) {
+          if (avatarUrl) {
+            needsClip = true; // custom photos are not self-clipping
+          } else {
             const fallbackStyle = avatarStyle !== 'custom' ? avatarStyle.slice(7) : null;
-            if (fallbackStyle) avatarUrl = `https://api.dicebear.com/9.x/${fallbackStyle}/svg?seed=${encodeURIComponent(cursorUserId)}`;
+            if (fallbackStyle) avatarUrl = `https://api.dicebear.com/9.x/${fallbackStyle}/svg?seed=${encodeURIComponent(cursorUserId)}&radius=50`;
           }
         } else {
-          avatarUrl = `https://api.dicebear.com/9.x/${avatarStyle}/svg?seed=${encodeURIComponent(cursorUserId)}`;
+          avatarUrl = `https://api.dicebear.com/9.x/${avatarStyle}/svg?seed=${encodeURIComponent(cursorUserId)}&radius=50`;
         }
       }
 
-      styleMap.set(cursorUserId, { color, radius, stroke, strokeDasharray, avatarUrl });
+      styleMap.set(cursorUserId, { color, radius, stroke, strokeDasharray, avatarUrl, needsClip });
     }
     smoothCursorStyleRef.current = styleMap;
   }, [cursors, dimensions, anchors, colorCursorsByVote, disableCursorValence, defaultCursorColor, avatarStyle, customAvatars]);
@@ -834,23 +837,12 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           .attr('r', cursorRadius);
       });
       // Clip paths for fallback DiceBear (users without custom photos, when a base style is set)
-      if (customFallbackStyle) {
-        cursorData.filter(d => !customAvatars[d.cursorUserId]).forEach(d => {
-          defs.append('clipPath')
-            .attr('id', `avatar-clip-${d.cursorUserId}`)
-            .append('circle')
-            .attr('cx', d.x)
-            .attr('cy', d.y)
-            .attr('r', cursorRadius);
-        });
-      }
-
       const avatarSize = cursorRadius * 2;
       const noPhotoGroups = cursorGroups.filter((d: any) => !customAvatars[d.cursorUserId]);
       const photoGroups = cursorGroups.filter((d: any) => !!customAvatars[d.cursorUserId]);
 
       if (customFallbackStyle) {
-        // DiceBear fallback for unregistered users
+        // DiceBear fallback for unregistered users — ?radius=50 makes it circular natively
         noPhotoGroups.append('circle')
           .attr('cx', (d: any) => d.x)
           .attr('cy', (d: any) => d.y)
@@ -860,12 +852,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           .attr('stroke-width', 1.5);
 
         noPhotoGroups.append('image')
-          .attr('href', (d: any) => `https://api.dicebear.com/9.x/${customFallbackStyle}/svg?seed=${encodeURIComponent(d.cursorUserId)}`)
+          .attr('href', (d: any) => `https://api.dicebear.com/9.x/${customFallbackStyle}/svg?seed=${encodeURIComponent(d.cursorUserId)}&radius=50`)
           .attr('x', (d: any) => d.x - cursorRadius)
           .attr('y', (d: any) => d.y - cursorRadius)
           .attr('width', avatarSize)
-          .attr('height', avatarSize)
-          .attr('clip-path', (d: any) => `url(#avatar-clip-${d.cursorUserId})`);
+          .attr('height', avatarSize);
       } else {
         // Dot fallback for unregistered users
         noPhotoGroups.append('circle')
@@ -895,17 +886,6 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .attr('height', avatarSize)
         .attr('clip-path', (d: any) => `url(#avatar-clip-${d.cursorUserId})`);
     } else if (avatarStyle) {
-      // Add clip paths to defs for circular avatar masking
-      const defs = svg.append('defs');
-      cursorData.forEach(d => {
-        defs.append('clipPath')
-          .attr('id', `avatar-clip-${d.cursorUserId}`)
-          .append('circle')
-          .attr('cx', d.x)
-          .attr('cy', d.y)
-          .attr('r', cursorRadius);
-      });
-
       // Colored border ring
       cursorGroups.append('circle')
         .attr('cx', d => d.x)
@@ -915,15 +895,14 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
         .attr('stroke', '#000000')
         .attr('stroke-width', 1.5);
 
-      // DiceBear avatar image clipped to circle
+      // DiceBear avatar — ?radius=50 makes it circular natively, no clip path needed
       const avatarSize = cursorRadius * 2;
       cursorGroups.append('image')
-        .attr('href', (d: any) => `https://api.dicebear.com/9.x/${avatarStyle}/svg?seed=${encodeURIComponent(d.cursorUserId)}`)
+        .attr('href', (d: any) => `https://api.dicebear.com/9.x/${avatarStyle}/svg?seed=${encodeURIComponent(d.cursorUserId)}&radius=50`)
         .attr('x', (d: any) => d.x - cursorRadius)
         .attr('y', (d: any) => d.y - cursorRadius)
         .attr('width', avatarSize)
-        .attr('height', avatarSize)
-        .attr('clip-path', (d: any) => `url(#avatar-clip-${d.cursorUserId})`);
+        .attr('height', avatarSize);
     } else {
       cursorGroups.append('circle')
         .attr('cx', d => d.x)
