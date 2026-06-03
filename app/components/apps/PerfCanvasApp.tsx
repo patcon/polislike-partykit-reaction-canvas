@@ -2,7 +2,7 @@ import { useState, useRef } from "react";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
 import { getPersistentUserId } from "../../utils/userId";
-import { CURSOR_THROTTLE_MS } from "../../utils/cursor";
+import { CURSOR_THROTTLE_MS, SPRING_CONFIG } from "../../utils/cursor";
 
 const SLIDER_STYLE: React.CSSProperties = { width: 80 };
 const LABEL_STYLE: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.7)' };
@@ -35,9 +35,9 @@ export default function PerfCanvasApp() {
   const room = getRoomFromUrl();
 
   const [springEnabled, setSpringEnabled] = useState(false);
-  const [stiffness, setStiffness] = useState(0.12);
-  const [damping, setDamping] = useState(0.75);
-  const [mass, setMass] = useState(1);
+  const [stiffness, setStiffness] = useState(SPRING_CONFIG.stiffness);
+  const [damping, setDamping] = useState(SPRING_CONFIG.damping);
+  const [mass, setMass] = useState(SPRING_CONFIG.mass);
   const [showActual, setShowActual] = useState(false);
   const [showSpring, setShowSpring] = useState(true);
 
