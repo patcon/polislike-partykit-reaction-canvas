@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 29 (2026-06-02)
 
 ### Fixed
+- **Add `DEBUG=true` msg-rate logging to server** — when `DEBUG=true` is set in `.env`, the server logs incoming message rate every second as both msg/s and avg ms between messages; adds `.env.example` documenting all local env vars.
 - **Standardize cursor send rate to 33ms (~30fps)** — adds `CURSOR_THROTTLE_MS = 33` in `app/utils/cursor.ts` as the single source of truth; `TouchLayer` now defaults to it (was unthrottled), `PerfCanvasApp` uses it when adaptive throttle is off (was also unthrottled), adaptive throttle base slider defaults to it (was 50ms), and the k6 load test mirrors it with a comment.
 - **Perf test CI: install k6 before running** — adds `grafana/setup-k6-action@v1` step so k6 is available on the runner; previously the `run-k6-action` step failed with `spawn k6 ENOENT`.
 - **k6 load test: migrate from `k6/ws` to `k6/websockets`** — uses the modern global-event-loop module (browser-standard WebSocket API) which supports concurrent connections per VU; replaces socket-scoped `setInterval`/`setTimeout` with globals and tracks connection success via `onopen`/`onclose` instead of checking the response status.
