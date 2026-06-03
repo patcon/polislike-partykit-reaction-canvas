@@ -24,6 +24,8 @@ export default class PerfServer implements Party.Server {
 
   private cursorPositions = new Map<string, CursorPosition>();
   private connectionUserMap = new Map<string, string>();
+  private pendingCursorUpdates = new Map<string, CursorEvent>();
+  private batchTimer: ReturnType<typeof setTimeout> | null = null;
 
   onConnect(conn: Party.Connection, ctx: Party.ConnectionContext) {
     const userId = new URL(ctx.request.url).searchParams.get("userId") ?? conn.id;
@@ -55,6 +57,14 @@ export default class PerfServer implements Party.Server {
     this.room.broadcast(JSON.stringify({ type: "presenceCount", count }));
   }
 
+  private flushCursorBatch() {
+    if (this.pendingCursorUpdates.size === 0) return;
+    const cursors = [...this.pendingCursorUpdates.values()];
+    this.pendingCursorUpdates.clear();
+    this.batchTimer = null;
+    this.room.broadcast(JSON.stringify({ type: "cursorBatch", cursors }));
+  }
+
   onMessage(message: string, sender: Party.Connection) {
     try {
       const event = JSON.parse(message) as CursorEvent;
@@ -63,7 +73,10 @@ export default class PerfServer implements Party.Server {
       } else if (event.type === "remove") {
         this.cursorPositions.delete(event.position.userId);
       }
-      this.room.broadcast(message, [sender.id]);
+      this.pendingCursorUpdates.set(event.position.userId, event);
+      if (!this.batchTimer) {
+        this.batchTimer = setTimeout(() => this.flushCursorBatch(), 50);
+      }
     } catch {
       // ignore malformed messages
     }
