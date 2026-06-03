@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
 import { getPersistentUserId } from "../../utils/userId";
+import { CURSOR_THROTTLE_MS } from "../../utils/cursor";
 
 const SLIDER_STYLE: React.CSSProperties = { width: 80 };
 const LABEL_STYLE: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.7)' };
@@ -43,14 +44,14 @@ export default function PerfCanvasApp() {
   const springConfig = springEnabled ? { stiffness, damping, mass, showSpring } : undefined;
 
   const [throttleEnabled, setThrottleEnabled] = useState(false);
-  const [throttleBase, setThrottleBase] = useState(50);
+  const [throttleBase, setThrottleBase] = useState(CURSOR_THROTTLE_MS);
   const [throttleScaleStart, setThrottleScaleStart] = useState(300);
   const [throttleScaleEnd, setThrottleScaleEnd] = useState(400);
   const [throttleMax, setThrottleMax] = useState(250);
 
   const throttleMs = throttleEnabled
     ? computeThrottleMs(presenceCount, throttleBase, throttleScaleStart, throttleScaleEnd, throttleMax)
-    : 0;
+    : CURSOR_THROTTLE_MS;
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100dvh", background: "#111", overflow: "hidden" }}>

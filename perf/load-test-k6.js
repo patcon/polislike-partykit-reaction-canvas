@@ -55,8 +55,11 @@ const THROTTLE_SCALE_END  = parseInt(__ENV.THROTTLE_SCALE_END   || "400", 10); /
 const THROTTLE_MAX        = parseInt(__ENV.THROTTLE_MAX         || "250", 10); // ms at high counts
 
 // Quadratic ease-in: cheap at low counts, accelerating near capacity.
+// Mirrors CURSOR_THROTTLE_MS in app/utils/cursor.ts — keep in sync.
+const CURSOR_THROTTLE_MS = 33;
+
 function computeThrottleMs(count) {
-  if (!ADAPTIVE_THROTTLE)              return 33; // default ~30 fps
+  if (!ADAPTIVE_THROTTLE)              return CURSOR_THROTTLE_MS;
   if (count <= THROTTLE_SCALE_START)   return THROTTLE_BASE;
   if (count >= THROTTLE_SCALE_END)     return THROTTLE_MAX;
   const t = (count - THROTTLE_SCALE_START) / (THROTTLE_SCALE_END - THROTTLE_SCALE_START);

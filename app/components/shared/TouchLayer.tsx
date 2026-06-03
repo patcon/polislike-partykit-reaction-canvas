@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import usePartySocket from "partysocket/react";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
 import { getPartySocketConfig } from "../../utils/partyHost";
+import { CURSOR_THROTTLE_MS } from "../../utils/cursor";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 
 interface CursorPosition {
@@ -58,7 +59,7 @@ export default function TouchLayer({
   imageUrl,
   disabled = false,
   party = "main",
-  throttleMs = 0,
+  throttleMs = CURSOR_THROTTLE_MS,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
   const throttleMsRef = useRef(throttleMs);
