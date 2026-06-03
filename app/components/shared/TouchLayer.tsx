@@ -40,6 +40,7 @@ interface TouchLayerProps {
   imageUrl?: string; // When set, normalize coordinates relative to displayed image bounds
   disabled?: boolean; // When true, keeps socket alive but ignores all pointer events
   party?: string;
+  throttleMs?: number; // Min ms between cursor sends (0 = no throttle)
 }
 
 export default function TouchLayer({
@@ -57,8 +58,12 @@ export default function TouchLayer({
   imageUrl,
   disabled = false,
   party = "main",
+  throttleMs = 0,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
+  const throttleMsRef = useRef(throttleMs);
+  throttleMsRef.current = throttleMs;
+  const lastSentRef = useRef(0);
   const [userReactionState, setUserReactionState] = useState<ReactionState>(null);
   const [dimensions, setDimensions] = useState({
     width: window.innerWidth,
@@ -101,6 +106,11 @@ export default function TouchLayer({
   });
 
   const sendCursorEvent = (type: CursorEvent['type'], position: CursorPosition) => {
+    if (type !== 'remove' && throttleMsRef.current > 0) {
+      const now = Date.now();
+      if (now - lastSentRef.current < throttleMsRef.current) return;
+      lastSentRef.current = now;
+    }
     const event: CursorEvent = { type, position };
     socket.send(JSON.stringify(event));
   };
