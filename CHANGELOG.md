@@ -6,6 +6,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Fixed
 - **Perf test CI: install k6 before running** — adds `grafana/setup-k6-action@v1` step so k6 is available on the runner; previously the `run-k6-action` step failed with `spawn k6 ENOENT`.
+- **k6 load test: migrate from `k6/ws` to `k6/websockets`** — uses the modern global-event-loop module (browser-standard WebSocket API) which supports concurrent connections per VU; replaces socket-scoped `setInterval`/`setTimeout` with globals and tracks connection success via `onopen`/`onclose` instead of checking the response status.
 
 ### Added
 - **Perf test CI workflow** — `deploy:perf` npm script and `.github/workflows/perf-test.yml` deploy to a persistent `perf` PartyKit preview and run the k6 load test suite (200 VUs, 30s) against `wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default`; triggered manually or on a daily schedule (skipped if no commits in 24h).
