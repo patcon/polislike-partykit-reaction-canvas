@@ -120,11 +120,15 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   // Keep a ref-copy of cursors for the spring RAF loop (avoids RAF closure over stale state)
   const cursorTargetRef = useRef<Map<string, CursorPosition>>(new Map());
   useEffect(() => { cursorTargetRef.current = cursors; }, [cursors]);
+  useEffect(() => { avatarStyleRef.current = avatarStyle; }, [avatarStyle]);
+  useEffect(() => { customAvatarsRef.current = customAvatars; }, [customAvatars]);
 
   const smoothCursorStateRef = useRef<Map<string, { x: number; y: number; vx: number; vy: number }>>(new Map());
   const dimensionsRef = useRef({ width: window.innerWidth, height: window.innerHeight });
 
-  const smoothCursorStyleRef = useRef<Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string }>>(new Map());
+  const smoothCursorStyleRef = useRef<Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string; avatarUrl: string | null }>>(new Map());
+  const avatarStyleRef = useRef<string | null>(null);
+  const customAvatarsRef = useRef<Record<string, string>>({});
 
   // Smooth cursor RAF loop — runs only when cursorSmoothingConfig is provided
   useEffect(() => {
@@ -166,30 +170,71 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
       // D3 data join for enter/exit
       const layerSel = d3.select(layer);
+
+      // Ensure defs element exists for clip paths
+      let defs = layerSel.select<SVGDefsElement>('defs');
+      if (defs.empty()) defs = layerSel.insert('defs', ':first-child');
+
       const data = [...state.entries()].map(([id, s]) => ({ id, x: s.x, y: s.y }));
       const groups = layerSel
         .selectAll<SVGGElement, { id: string; x: number; y: number }>('.smooth-cursor')
         .data(data, d => d.id);
 
-      groups.enter()
+      const entered = groups.enter()
         .append('g')
-        .attr('class', 'smooth-cursor')
-        .append('circle');
+        .attr('class', 'smooth-cursor');
+      entered.append('circle');
+      entered.append('image').attr('class', 'sc-avatar').style('display', 'none');
 
-      groups.exit().remove();
+      groups.exit<{ id: string; x: number; y: number }>().each(function(d) {
+        const clipId = `sc-clip-${d.id.replace(/\W/g, '_')}`;
+        defs.select(`#${clipId}`).remove();
+      }).remove();
 
       // Update position and style for all smooth cursors
       layerSel.selectAll<SVGGElement, { id: string; x: number; y: number }>('.smooth-cursor')
         .attr('transform', d => `translate(${d.x},${d.y})`)
-        .select('circle')
         .each(function(d) {
           const style = smoothCursorStyleRef.current.get(d.id);
-          if (style) d3.select(this)
+          if (!style) return;
+          const g = d3.select(this);
+          const clipId = `sc-clip-${d.id.replace(/\W/g, '_')}`;
+
+          // Manage circular clip path in defs for avatar images
+          if (style.avatarUrl) {
+            let clipPath = defs.select<SVGClipPathElement>(`#${clipId}`);
+            if (clipPath.empty()) {
+              clipPath = defs.append('clipPath').attr('id', clipId) as d3.Selection<SVGClipPathElement, unknown, null, undefined>;
+              clipPath.append('circle');
+            }
+            clipPath.select('circle').attr('r', style.radius).attr('cx', 0).attr('cy', 0);
+          } else {
+            defs.select(`#${clipId}`).remove();
+          }
+
+          // Background/fallback circle
+          g.select('circle')
             .attr('r', style.radius)
             .attr('fill', style.color)
             .attr('stroke', style.stroke)
             .attr('stroke-width', 2)
             .attr('stroke-dasharray', style.strokeDasharray);
+
+          // Avatar image (shown only when avatarUrl is set)
+          const avatarSize = style.radius * 2;
+          const avatarSel = g.select('.sc-avatar');
+          if (style.avatarUrl) {
+            avatarSel
+              .style('display', 'block')
+              .attr('href', style.avatarUrl)
+              .attr('x', -style.radius)
+              .attr('y', -style.radius)
+              .attr('width', avatarSize)
+              .attr('height', avatarSize)
+              .attr('clip-path', `url(#${clipId})`);
+          } else {
+            avatarSel.style('display', 'none');
+          }
         });
 
       layer.style.visibility = showSmoothCursor ? 'visible' : 'hidden';
@@ -218,7 +263,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   useEffect(() => {
     const smallerDim = Math.min(dimensions.width, dimensions.height);
     const radius = avatarStyle ? smallerDim * 0.03 : smallerDim * 0.01;
-    const styleMap = new Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string }>();
+    const styleMap = new Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string; avatarUrl: string | null }>();
     for (const [cursorUserId, cursor] of cursors) {
       const isPlayback = cursorUserId.startsWith('replay_');
       let color: string;
@@ -239,10 +284,25 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       }
       const stroke = isPlayback ? 'hsl(270, 70%, 80%)' : '#000000';
       const strokeDasharray = isPlayback ? `${radius * 0.8} ${radius * 0.5}` : 'none';
-      styleMap.set(cursorUserId, { color, radius, stroke, strokeDasharray });
+
+      let avatarUrl: string | null = null;
+      if (avatarStyle && !isPlayback) {
+        const isCustomMode = avatarStyle === 'custom' || avatarStyle.startsWith('custom+');
+        if (isCustomMode) {
+          avatarUrl = customAvatars[cursorUserId] ?? null;
+          if (!avatarUrl) {
+            const fallbackStyle = avatarStyle !== 'custom' ? avatarStyle.slice(7) : null;
+            if (fallbackStyle) avatarUrl = `https://api.dicebear.com/9.x/${fallbackStyle}/svg?seed=${encodeURIComponent(cursorUserId)}`;
+          }
+        } else {
+          avatarUrl = `https://api.dicebear.com/9.x/${avatarStyle}/svg?seed=${encodeURIComponent(cursorUserId)}`;
+        }
+      }
+
+      styleMap.set(cursorUserId, { color, radius, stroke, strokeDasharray, avatarUrl });
     }
     smoothCursorStyleRef.current = styleMap;
-  }, [cursors, dimensions, anchors, colorCursorsByVote, disableCursorValence, defaultCursorColor, avatarStyle]);
+  }, [cursors, dimensions, anchors, colorCursorsByVote, disableCursorValence, defaultCursorColor, avatarStyle, customAvatars]);
 
   const socket = usePartySocket({
     ...getPartySocketConfig(),
