@@ -5,7 +5,7 @@ on:
     inputs:
       vus:
         description: "Number of virtual users"
-        default: "200"
+        default: "100"
       duration:
         description: "Test duration (e.g. 30s, 2m)"
         default: "30s"
@@ -80,5 +80,5 @@ jobs:
           path: perf/load-test-k6.js
           flags: >-
             --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default
-            --vus ${{ inputs.vus || 200 }}
+            --vus ${{ inputs.vus || 100 }}
             --duration ${{ inputs.duration || '30s' }}

@@ -63,13 +63,13 @@ function computeThrottleMs(count) {
   return Math.round(THROTTLE_BASE + (THROTTLE_MAX - THROTTLE_BASE) * t * t);
 }
 
-// Load profile: ramp to 50 VUs over 10s, hold 30s, ramp down 10s.
+// Load profile: ramp to 100 VUs over 10s, hold 30s, ramp down 10s.
 // Override with --vus and --duration flags for a flat run.
 export const options = {
   stages: [
-    { duration: "10s", target: 50 },
-    { duration: "30s", target: 50 },
-    { duration: "10s", target: 0  },
+    { duration: "10s", target: 100 },
+    { duration: "30s", target: 100 },
+    { duration: "10s", target: 0   },
   ],
   thresholds: {
     // At least 95% of connections must succeed
