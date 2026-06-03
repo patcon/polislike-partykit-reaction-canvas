@@ -54,7 +54,7 @@ function makeOrbit() {
   const r  = 5 + Math.random() * 25;           // radius 5–30% of canvas
   const cx = r + Math.random() * (100 - 2 * r); // center stays on canvas
   const cy = r + Math.random() * (100 - 2 * r);
-  const omega = (0.5 + Math.random() * 2.5) * 2 * Math.PI; // 0.5–3 rps
+  const omega = (0.3 + Math.random() * 1.2) * 2 * Math.PI; // 0.3–1.5 rps (rapid thumb on touchscreen)
   const phase = Math.random() * 2 * Math.PI;
   return { cx, cy, r, omega, phase };
 }

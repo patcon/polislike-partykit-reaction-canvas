@@ -68,8 +68,8 @@ class CircleOrbit:
         # keep center far enough from edges that the circle stays on canvas
         cx = random.uniform(r, 100 - r)
         cy = random.uniform(r, 100 - r)
-        # speed: 0.5–3 full rotations per second
-        omega = random.uniform(0.5, 3.0) * 2 * math.pi
+        # speed: 0.3–1.5 full rotations per second (rapid thumb on touchscreen)
+        omega = random.uniform(0.3, 1.5) * 2 * math.pi
         return cls(cx=cx, cy=cy, r=r, omega=omega, phase=random.uniform(0, 2 * math.pi))
 
     def position(self, t: float) -> tuple[float, float]:
