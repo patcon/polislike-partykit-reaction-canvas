@@ -12,7 +12,7 @@ interface Edge { userA: string; userB: string }
 interface D3Node extends d3.SimulationNodeDatum { id: string }
 interface D3Link extends d3.SimulationLinkDatum<D3Node> { id: string }
 
-const KEYPAD_KEYS = ['1','2','3','4','5','6','7','8','9','←','0','✓'];
+const KEYPAD_KEYS = ['1','2','3','4','5','6','7','8','9','←','0','✕'];
 const EDGE_COLOR = '#555';
 const EDGE_FLASH_COLOR = '#4ade80';
 const EDGE_FLASH_MS = 800;
@@ -145,8 +145,8 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       setDigits(d => d.slice(0, -1));
       return;
     }
-    if (key === '✓') {
-      submitCode(digits);
+    if (key === '✕') {
+      setDigits('');
       return;
     }
     if (digits.length >= 4) return;
@@ -262,7 +262,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 12px', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '16px 12px', height: '100%', position: 'relative' }}>
       <div style={{ marginBottom: 12, textAlign: 'center' }}>
         <div style={{ fontSize: 13, color: '#aaa', marginBottom: 4 }}>Your code</div>
         <div style={{ fontSize: 36, fontWeight: 700, letterSpacing: '0.15em', fontVariantNumeric: 'tabular-nums' }}>
@@ -298,11 +298,11 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
             onClick={() => handleKey(key)}
             style={{
               height: 52,
-              fontSize: key === '←' || key === '✓' ? 18 : 22,
+              fontSize: key === '←' || key === '✕' ? 18 : 22,
               fontWeight: 600,
               borderRadius: 8,
               border: '1px solid #444',
-              background: key === '✓' ? '#2563eb' : '#2a2a2a',
+              background: '#2a2a2a',
               color: '#fff',
               cursor: 'pointer',
             }}
@@ -314,9 +314,9 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
 
       <button
         onClick={openGraph}
-        style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#666', fontSize: 12, marginTop: 16, textDecoration: 'underline' }}
+        style={{ position: 'absolute', bottom: 10, right: 12, background: 'none', border: 'none', cursor: 'pointer', color: '#444', fontSize: 11, textDecoration: 'underline', opacity: 0.5 }}
       >
-        See the map →
+        map
       </button>
     </div>
   );
