@@ -111,8 +111,11 @@ function generateUserId() {
   });
 }
 
+// Stable per-VU identity across iterations — generateUserId() called at module
+// level so k6's init phase runs it once per VU, not once per iteration.
+const userId = generateUserId();
+
 export default function () {
-  const userId = generateUserId();
   const orbit  = makeOrbit();
   const t0     = Date.now();
 
