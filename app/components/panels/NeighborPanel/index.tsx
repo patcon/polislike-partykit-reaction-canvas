@@ -13,6 +13,9 @@ interface D3Node extends d3.SimulationNodeDatum { id: string }
 interface D3Link extends d3.SimulationLinkDatum<D3Node> { id: string }
 
 const KEYPAD_KEYS = ['1','2','3','4','5','6','7','8','9','←','0','✓'];
+const EDGE_COLOR = '#555';
+const EDGE_FLASH_COLOR = '#4ade80';
+const EDGE_FLASH_MS = 800;
 
 const ERROR_MESSAGES: Record<EdgeError, string> = {
   not_found: 'Code not found — try again',
@@ -30,13 +33,61 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorReason, setErrorReason] = useState<EdgeError | null>(null);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [allCodes, setAllCodes] = useState<Record<string, string>>({});
 
   const svgRef = useRef<SVGSVGElement>(null);
   const simRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
   const nodesRef = useRef<D3Node[]>([]);
   const linksRef = useRef<D3Link[]>([]);
+  const linkGroupRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
+  const nodeGroupRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
+  const paddingRef = useRef(20);
+  const sizeRef = useRef({ width: 320, height: 280 });
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const addEdgeLive = useCallback((link: D3Link) => {
+    const sim = simRef.current;
+    const linkGroup = linkGroupRef.current;
+    const nodeGroup = nodeGroupRef.current;
+    if (!sim || !linkGroup || !nodeGroup) return;
+
+    // Add any new nodes to the simulation
+    let nodesChanged = false;
+    for (const uid of [link.source as string, link.target as string]) {
+      if (!nodesRef.current.find(n => n.id === uid)) {
+        nodesRef.current = [...nodesRef.current, { id: uid }];
+        nodesChanged = true;
+      }
+    }
+    if (nodesChanged) {
+      sim.nodes(nodesRef.current);
+      nodeGroup
+        .selectAll<SVGCircleElement, D3Node>('circle')
+        .data(nodesRef.current, d => d.id)
+        .join(enter => enter.append('circle')
+          .attr('r', 8)
+          .attr('fill', d => d.id === socketUserId.current ? '#4f9cf9' : '#aaa')
+          .attr('stroke', '#fff')
+          .attr('stroke-width', 1.5)
+          .call(makeDrag(sim))
+        );
+    }
+
+    // Add the new link and flash its color
+    linksRef.current = [...linksRef.current, link];
+    (sim.force('link') as d3.ForceLink<D3Node, D3Link>).links(linksRef.current);
+
+    linkGroup
+      .selectAll<SVGLineElement, D3Link>('line')
+      .data(linksRef.current, d => d.id)
+      .join(enter => enter.append('line')
+        .attr('stroke', EDGE_FLASH_COLOR)
+        .attr('stroke-width', 1.5)
+        .transition().duration(EDGE_FLASH_MS)
+        .attr('stroke', EDGE_COLOR)
+      );
+
+    sim.alpha(0.3).restart();
+  }, []);
 
   const socket = usePartySocket({
     ...getPartySocketConfig(),
@@ -48,7 +99,6 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         if (msg.myNeighborCode) setMyCode(msg.myNeighborCode);
       } else if (msg.type === 'neighborEdgesSnapshot') {
         setEdges(msg.edges ?? []);
-        setAllCodes(msg.allCodes ?? {});
         const userIds = Object.keys(msg.allCodes ?? {});
         nodesRef.current = userIds.map(id => ({ id, ...(nodesRef.current.find(n => n.id === id) ?? {}) }));
         linksRef.current = (msg.edges ?? []).map((e: Edge) => ({
@@ -62,13 +112,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         setEdges(prev => [...prev, edge]);
         const id = `${msg.userA}|${msg.userB}`;
         if (!linksRef.current.find(l => l.id === id)) {
-          linksRef.current = [...linksRef.current, { id, source: msg.userA, target: msg.userB }];
-          for (const uid of [msg.userA, msg.userB]) {
-            if (!nodesRef.current.find(n => n.id === uid)) {
-              nodesRef.current = [...nodesRef.current, { id: uid }];
-            }
-          }
-          restartSim();
+          addEdgeLive({ id, source: msg.userA, target: msg.userB });
         }
       } else if (msg.type === 'neighborEdgesCleared') {
         setEdges([]);
@@ -117,15 +161,29 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   }
 
   // ===== D3 graph =====
+  function makeDrag(sim: d3.Simulation<D3Node, D3Link>) {
+    return d3.drag<SVGCircleElement, D3Node>()
+      .on('start', (event, d) => {
+        if (!event.active) sim.alphaTarget(0.3).restart();
+        d.fx = d.x; d.fy = d.y;
+      })
+      .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
+      .on('end', (event, d) => {
+        if (!event.active) sim.alphaTarget(0);
+        d.fx = null; d.fy = null;
+      });
+  }
+
   const restartSim = useCallback(() => {
     if (!svgRef.current) return;
     const svg = d3.select(svgRef.current);
     const width = svgRef.current.clientWidth || 320;
     const height = svgRef.current.clientHeight || 280;
+    const padding = 20;
+    sizeRef.current = { width, height };
+    paddingRef.current = padding;
 
     svg.selectAll('*').remove();
-
-    const padding = 20;
 
     const sim = d3.forceSimulation<D3Node>(nodesRef.current)
       .force('link', d3.forceLink<D3Node, D3Link>(linksRef.current).id(d => d.id).distance(60))
@@ -135,54 +193,40 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       .force('collide', d3.forceCollide(14));
     simRef.current = sim;
 
-    const linkSel = svg.append('g')
-      .selectAll<SVGLineElement, D3Link>('line')
-      .data(linksRef.current)
-      .join('line')
-      .attr('stroke', '#888')
-      .attr('stroke-width', 1.5)
-      .style('opacity', 0)
-      .transition().duration(400)
-      .style('opacity', 1);
+    linkGroupRef.current = svg.append('g');
+    nodeGroupRef.current = svg.append('g');
 
-    const nodeSel = svg.append('g')
+    linkGroupRef.current
+      .selectAll<SVGLineElement, D3Link>('line')
+      .data(linksRef.current, d => d.id)
+      .join('line')
+      .attr('stroke', EDGE_COLOR)
+      .attr('stroke-width', 1.5);
+
+    nodeGroupRef.current
       .selectAll<SVGCircleElement, D3Node>('circle')
-      .data(nodesRef.current)
+      .data(nodesRef.current, d => d.id)
       .join('circle')
       .attr('r', 8)
       .attr('fill', d => d.id === socketUserId.current ? '#4f9cf9' : '#aaa')
       .attr('stroke', '#fff')
       .attr('stroke-width', 1.5)
-      .call(
-        d3.drag<SVGCircleElement, D3Node>()
-          .on('start', (event, d) => {
-            if (!event.active) sim.alphaTarget(0.3).restart();
-            d.fx = d.x; d.fy = d.y;
-          })
-          .on('drag', (event, d) => { d.fx = event.x; d.fy = event.y; })
-          .on('end', (event, d) => {
-            if (!event.active) sim.alphaTarget(0);
-            d.fx = null; d.fy = null;
-          })
-      );
+      .call(makeDrag(sim));
 
     sim.on('tick', () => {
       for (const n of nodesRef.current) {
         n.x = Math.max(padding, Math.min(width - padding, n.x ?? width / 2));
         n.y = Math.max(padding, Math.min(height - padding, n.y ?? height / 2));
       }
-      svg.selectAll<SVGLineElement, D3Link>('line')
+      linkGroupRef.current?.selectAll<SVGLineElement, D3Link>('line')
         .attr('x1', d => (d.source as D3Node).x ?? 0)
         .attr('y1', d => (d.source as D3Node).y ?? 0)
         .attr('x2', d => (d.target as D3Node).x ?? 0)
         .attr('y2', d => (d.target as D3Node).y ?? 0);
-      svg.selectAll<SVGCircleElement, D3Node>('circle')
+      nodeGroupRef.current?.selectAll<SVGCircleElement, D3Node>('circle')
         .attr('cx', d => d.x ?? 0)
         .attr('cy', d => d.y ?? 0);
     });
-
-    // suppress unused var warnings — selections are used imperatively
-    void linkSel; void nodeSel;
   }, []);
 
   useEffect(() => {
