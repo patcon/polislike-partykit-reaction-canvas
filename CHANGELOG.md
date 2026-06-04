@@ -4,8 +4,24 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 29 (2026-06-02)
 
+### Added
+- **`pnpm perf-100` script** — shorthand for `pnpm run perf --vus 100 --duration 30s`.
+
 ### Fixed
+- **k6 load test: revert from k6/websockets back to k6/ws** — `k6/websockets` global event loop runs for the entire VU lifetime so iterations never complete and the test never terminates; `k6/ws` blocks the VU inside `ws.connect()` until the socket closes, giving clean per-iteration lifecycle; socket-scoped `socket.setInterval/setTimeout` work correctly within the connect callback so there was no reason to migrate in the first place.
+
+### Added
+- **Smooth cursor: avatar support** — smooth cursors now render DiceBear and custom photo avatars when an avatar style is selected in the emcee Avatars tab; DiceBear uses `?radius=50` for native circular rendering (no SVG clip paths); custom photos still use clip paths; falls back to a plain dot when no style is set.
+
+### Fixed
+- **Smooth cursor: tune damping to 0.5** — reduces trailing lag while keeping motion smooth.
+- **Smooth cursor: add black stroke for contrast** — smooth cursors now render with `stroke: #000000 / stroke-width: 2` matching actual cursors; playback cursors get the same lighter dashed stroke.
+- **Smooth cursor styling and terminology** — renames `spring*` → `smooth*` / `hideCursors` → `hideActualCursors` throughout Canvas, PerfCanvasApp, V4, V5, and `cursor.ts`; smooth cursors now render with the same color and radius as actual cursors (vote-based coloring, default color, avatar radius); actual cursors are hidden in V4 when smooth cursor is enabled.
+- **Spring cursor in main app** — `SPRING_CURSOR_ENABLED` and `SPRING_CONFIG` constants added to `app/utils/cursor.ts`; V4 canvas now uses spring smoothing by default; PerfCanvasApp slider defaults updated to match.
+- **Add `DEBUG=true` msg-rate logging to server** — when `DEBUG=true` is set in `.env`, the server logs incoming message rate every second as both msg/s and avg ms between messages; adds `.env.example` documenting all local env vars.
+- **Standardize cursor send rate to 33ms (~30fps)** — adds `CURSOR_THROTTLE_MS = 33` in `app/utils/cursor.ts` as the single source of truth; `TouchLayer` now defaults to it (was unthrottled), `PerfCanvasApp` uses it when adaptive throttle is off (was also unthrottled), adaptive throttle base slider defaults to it (was 50ms), and the k6 load test mirrors it with a comment.
 - **Perf test CI: install k6 before running** — adds `grafana/setup-k6-action@v1` step so k6 is available on the runner; previously the `run-k6-action` step failed with `spawn k6 ENOENT`.
+- **k6 load test: migrate from `k6/ws` to `k6/websockets`** — uses the modern global-event-loop module (browser-standard WebSocket API) which supports concurrent connections per VU; replaces socket-scoped `setInterval`/`setTimeout` with globals and tracks connection success via `onopen`/`onclose` instead of checking the response status.
 
 ### Added
 - **Perf test CI workflow** — `deploy:perf` npm script and `.github/workflows/perf-test.yml` deploy to a persistent `perf` PartyKit preview and run the k6 load test suite (200 VUs, 30s) against `wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default`; triggered manually or on a daily schedule (skipped if no commits in 24h).

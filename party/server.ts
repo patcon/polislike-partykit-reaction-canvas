@@ -334,6 +334,8 @@ export default class Server implements Party.Server {
   private greeterConfig: { eventUrl: string } | null = null;
   private ballState = { x: 50, y: 50, vx: 2, vy: 1 };
   private soccerScore = { left: 0, right: 0 };
+  private msgCount = 0;
+  private msgRateInterval?: NodeJS.Timeout;
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
   private soccerInterval?: NodeJS.Timeout;
   private cursorPositions = new Map<string, { x: number; y: number }>();
@@ -609,6 +611,19 @@ export default class Server implements Party.Server {
   }
 
   onMessage(message: string, sender: Party.Connection) {
+    // Set DEBUG=true in .env (local) or via `partykit env add` to log incoming message rate.
+    // Useful for measuring real client send rates before tuning perf thresholds.
+    if (this.room.env.DEBUG === 'true') {
+      this.msgCount++;
+      if (!this.msgRateInterval) {
+        this.msgRateInterval = setInterval(() => {
+          const avgMs = this.msgCount > 0 ? Math.round(1000 / this.msgCount) : null;
+          console.log(`[msg-rate] room=${this.room.id} ${this.msgCount} msg/s (~${avgMs ?? '∞'}ms between msgs)`);
+          this.msgCount = 0;
+        }, 1000);
+      }
+    }
+
     try {
       const event: ClientEvent = JSON.parse(message);
 

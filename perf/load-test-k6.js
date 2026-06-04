@@ -30,7 +30,7 @@
  *   Perf:  wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default
  */
 
-import { check, sleep } from "k6";
+import { sleep } from "k6";
 import ws from "k6/ws";
 import { Counter, Rate, Trend } from "k6/metrics";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
@@ -55,8 +55,11 @@ const THROTTLE_SCALE_END  = parseInt(__ENV.THROTTLE_SCALE_END   || "400", 10); /
 const THROTTLE_MAX        = parseInt(__ENV.THROTTLE_MAX         || "250", 10); // ms at high counts
 
 // Quadratic ease-in: cheap at low counts, accelerating near capacity.
+// Mirrors CURSOR_THROTTLE_MS in app/utils/cursor.ts — keep in sync.
+const CURSOR_THROTTLE_MS = 33;
+
 function computeThrottleMs(count) {
-  if (!ADAPTIVE_THROTTLE)              return 33; // default ~30 fps
+  if (!ADAPTIVE_THROTTLE)              return CURSOR_THROTTLE_MS;
   if (count <= THROTTLE_SCALE_START)   return THROTTLE_BASE;
   if (count >= THROTTLE_SCALE_END)     return THROTTLE_MAX;
   const t = (count - THROTTLE_SCALE_START) / (THROTTLE_SCALE_END - THROTTLE_SCALE_START);
@@ -116,11 +119,14 @@ export default function () {
   // Stagger close time 18–22s to avoid synchronized reconnect storms across VUs
   const closeAfterMs = 18000 + Math.random() * 4000;
 
+  let presenceCount = 0;
+  let lastSent = 0;
+
+  // ws.connect() blocks the VU until the socket closes — this is the correct
+  // pattern for k6/ws and gives clean per-iteration lifecycle management.
   const res = ws.connect(WS_URL, {}, function (socket) {
     connectLatency.add(Date.now() - t0);
-
-    let presenceCount = 0;
-    let lastSent = 0;
+    connectionSuccess.add(true);
 
     socket.on("open", () => {
       // Poll at 10ms; actual send rate is governed by computeThrottleMs(presenceCount).
@@ -142,6 +148,7 @@ export default function () {
         cursorsSent.add(1);
       }, 10);
 
+      // Stagger close time 18–22s to avoid synchronized reconnect storms
       socket.setTimeout(() => {
         socket.send(
           JSON.stringify({
@@ -177,8 +184,7 @@ export default function () {
     });
   });
 
-  const connected = check(res, { "connected successfully": (r) => r && r.status === 101 });
-  connectionSuccess.add(connected);
+  if (!res || res.status !== 101) connectionSuccess.add(false);
 
   // Brief pause between VU iterations so k6 pacing stays smooth
   sleep(1);

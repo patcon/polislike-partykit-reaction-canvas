@@ -2,6 +2,7 @@ import { useState, useRef } from "react";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
 import { getPersistentUserId } from "../../utils/userId";
+import { CURSOR_THROTTLE_MS, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 
 const SLIDER_STYLE: React.CSSProperties = { width: 80 };
 const LABEL_STYLE: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'rgba(255,255,255,0.7)' };
@@ -33,24 +34,24 @@ export default function PerfCanvasApp() {
   const reactionStateRef = useRef<'positive' | 'negative' | 'neutral' | null>(null);
   const room = getRoomFromUrl();
 
-  const [springEnabled, setSpringEnabled] = useState(false);
-  const [stiffness, setStiffness] = useState(0.12);
-  const [damping, setDamping] = useState(0.75);
-  const [mass, setMass] = useState(1);
-  const [showActual, setShowActual] = useState(false);
-  const [showSpring, setShowSpring] = useState(true);
+  const [smoothCursorEnabled, setSmoothCursorEnabled] = useState(false);
+  const [stiffness, setStiffness] = useState(SMOOTH_CURSOR_CONFIG.stiffness);
+  const [damping, setDamping] = useState(SMOOTH_CURSOR_CONFIG.damping);
+  const [mass, setMass] = useState(SMOOTH_CURSOR_CONFIG.mass);
+  const [showActualCursor, setShowActualCursor] = useState(false);
+  const [showSmoothCursor, setShowSmoothCursor] = useState(true);
 
-  const springConfig = springEnabled ? { stiffness, damping, mass, showSpring } : undefined;
+  const smoothCursorConfig = smoothCursorEnabled ? { stiffness, damping, mass, showSmoothCursor } : undefined;
 
   const [throttleEnabled, setThrottleEnabled] = useState(false);
-  const [throttleBase, setThrottleBase] = useState(50);
+  const [throttleBase, setThrottleBase] = useState(CURSOR_THROTTLE_MS);
   const [throttleScaleStart, setThrottleScaleStart] = useState(300);
   const [throttleScaleEnd, setThrottleScaleEnd] = useState(400);
   const [throttleMax, setThrottleMax] = useState(250);
 
   const throttleMs = throttleEnabled
     ? computeThrottleMs(presenceCount, throttleBase, throttleScaleStart, throttleScaleEnd, throttleMax)
-    : 0;
+    : CURSOR_THROTTLE_MS;
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100dvh", background: "#111", overflow: "hidden" }}>
@@ -60,8 +61,8 @@ export default function PerfCanvasApp() {
         userId={userId}
         onPresenceCount={setPresenceCount}
         disableBackgroundValence
-        springConfig={springConfig}
-        hideCursors={springEnabled && !showActual}
+        cursorSmoothingConfig={smoothCursorConfig}
+        hideActualCursors={smoothCursorEnabled && !showActualCursor}
       />
       <TouchLayer
         party="perf"
@@ -88,18 +89,18 @@ export default function PerfCanvasApp() {
         fontFamily: "monospace", zIndex: 10,
       }}>
         <label style={LABEL_STYLE}>
-          <input type="checkbox" checked={springEnabled} onChange={e => setSpringEnabled(e.target.checked)} />
-          spring cursors
+          <input type="checkbox" checked={smoothCursorEnabled} onChange={e => setSmoothCursorEnabled(e.target.checked)} />
+          smooth cursors
         </label>
-        {springEnabled && (
+        {smoothCursorEnabled && (
           <>
             <label style={LABEL_STYLE}>
-              <input type="checkbox" checked={showActual} onChange={e => setShowActual(e.target.checked)} />
+              <input type="checkbox" checked={showActualCursor} onChange={e => setShowActualCursor(e.target.checked)} />
               show actual
             </label>
             <label style={LABEL_STYLE}>
-              <input type="checkbox" checked={showSpring} onChange={e => setShowSpring(e.target.checked)} />
-              show spring
+              <input type="checkbox" checked={showSmoothCursor} onChange={e => setShowSmoothCursor(e.target.checked)} />
+              show smooth
             </label>
             <label style={LABEL_STYLE}>
               stiffness
