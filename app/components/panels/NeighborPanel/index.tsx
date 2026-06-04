@@ -33,11 +33,14 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [errorReason, setErrorReason] = useState<EdgeError | null>(null);
   const [edges, setEdges] = useState<Edge[]>([]);
+  const [flipH, setFlipH] = useState(false);
+  const [flipV, setFlipV] = useState(false);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const simRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
   const nodesRef = useRef<D3Node[]>([]);
   const linksRef = useRef<D3Link[]>([]);
+  const transformGroupRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
   const linkGroupRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
   const nodeGroupRef = useRef<d3.Selection<SVGGElement, unknown, null, undefined> | null>(null);
   const paddingRef = useRef(20);
@@ -193,8 +196,10 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       .force('collide', d3.forceCollide(14));
     simRef.current = sim;
 
-    linkGroupRef.current = svg.append('g');
-    nodeGroupRef.current = svg.append('g');
+    const tg = svg.append('g');
+    transformGroupRef.current = tg;
+    linkGroupRef.current = tg.append('g');
+    nodeGroupRef.current = tg.append('g');
 
     linkGroupRef.current
       .selectAll<SVGLineElement, D3Link>('line')
@@ -234,6 +239,17 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     return () => { simRef.current?.stop(); };
   }, [view, restartSim]);
 
+  useEffect(() => {
+    if (!transformGroupRef.current) return;
+    const { width, height } = sizeRef.current;
+    const cx = width / 2, cy = height / 2;
+    const scaleX = flipH ? -1 : 1;
+    const scaleY = flipV ? -1 : 1;
+    transformGroupRef.current.attr('transform',
+      `translate(${cx},${cy}) scale(${scaleX},${scaleY}) translate(${-cx},${-cy})`
+    );
+  }, [flipH, flipV]);
+
   useEffect(() => () => clearStatusTimer(), []);
 
   if (view === 'graph') {
@@ -253,7 +269,23 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
             Clear all connections
           </button>
         </div>
-        <svg ref={svgRef} style={{ flex: 1, width: '100%', background: '#1a1a1a', borderRadius: 8 }} />
+        <div style={{ flex: 1, position: 'relative' }}>
+          <svg ref={svgRef} style={{ width: '100%', height: '100%', background: '#1a1a1a', borderRadius: 8 }} />
+          <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 4 }}>
+            <button
+              onClick={() => setFlipH(f => !f)}
+              style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid #444', background: flipH ? '#2a4a7f' : 'rgba(20,20,20,0.8)', color: '#ccc', cursor: 'pointer' }}
+            >
+              ↔
+            </button>
+            <button
+              onClick={() => setFlipV(f => !f)}
+              style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid #444', background: flipV ? '#2a4a7f' : 'rgba(20,20,20,0.8)', color: '#ccc', cursor: 'pointer' }}
+            >
+              ↕
+            </button>
+          </div>
+        </div>
         <p style={{ textAlign: 'center', fontSize: 11, color: '#666', marginTop: 6 }}>
           {edges.length === 0 ? 'No connections yet' : `${edges.length} connection${edges.length === 1 ? '' : 's'}`}
         </p>
