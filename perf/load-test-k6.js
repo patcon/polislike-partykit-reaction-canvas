@@ -6,7 +6,7 @@
  *
  * Usage:
  *   k6 run perf/load-test-k6.js
- *   k6 run --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default perf/load-test-k6.js
+ *   k6 run --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/default perf/load-test-k6.js
  *   k6 run --vus 200 --duration 60s perf/load-test-k6.js
  *
  * Adaptive throttle (mirrors PerfCanvasApp logic):
@@ -26,8 +26,8 @@
  *   http_req_failed      — connection failure rate
  *
  * Target environments:
- *   Local: ws://localhost:1999/parties/perf/perf-default
- *   Perf:  wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default
+ *   Local: ws://localhost:1999/parties/perf/default
+ *   Perf:  wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/default
  */
 
 import { sleep } from "k6";
@@ -43,7 +43,7 @@ const deliveryLatency   = new Trend("cursor_delivery_ms", true);  // sender → 
 const connectionSuccess = new Rate("connection_success");
 
 // --- Config ---
-const WS_URL = __ENV.WS_URL || "ws://localhost:1999/parties/perf/perf-default";
+const WS_URL = __ENV.WS_URL || "ws://localhost:1999/parties/perf/default";
 
 // Adaptive throttle — mirrors PerfCanvasApp/TouchLayer logic.
 // Each VU tracks the server-broadcast presenceCount and scales its send

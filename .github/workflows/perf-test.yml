@@ -3,6 +3,16 @@ name: Perf Test
 on:
   workflow_dispatch:
     inputs:
+      party:
+        description: "PartyKit party to target"
+        type: choice
+        options:
+          - perf
+          - main
+        default: "perf"
+      room:
+        description: "Room name to target"
+        default: "default"
       vus:
         description: "Number of virtual users"
         default: "100"
@@ -81,6 +91,6 @@ jobs:
         with:
           path: perf/load-test-k6.js
           flags: >-
-            --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default
+            --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/${{ inputs.party || 'perf' }}/${{ inputs.room || 'default' }}
             --vus ${{ inputs.vus || 100 }}
             --duration ${{ inputs.duration || '30s' }}

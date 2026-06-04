@@ -17,7 +17,7 @@ function computeThrottleMs(count: number, base: number, scaleStart: number, scal
 }
 
 function getRoomFromUrl(): string {
-  return new URLSearchParams(window.location.search).get("room") ?? "perf-default";
+  return new URLSearchParams(window.location.search).get("room") ?? "default";
 }
 
 /**
