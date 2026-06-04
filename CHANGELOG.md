@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 29 (2026-06-02)
 
+### Added
+- **`pnpm perf-100` script** — shorthand for `pnpm run perf --vus 100 --duration 30s`.
+
 ### Fixed
 - **k6 load test: revert from k6/websockets back to k6/ws** — `k6/websockets` global event loop runs for the entire VU lifetime so iterations never complete and the test never terminates; `k6/ws` blocks the VU inside `ws.connect()` until the socket closes, giving clean per-iteration lifecycle; socket-scoped `socket.setInterval/setTimeout` work correctly within the connect callback so there was no reason to migrate in the first place.
 
