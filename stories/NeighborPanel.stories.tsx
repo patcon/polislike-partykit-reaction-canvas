@@ -21,6 +21,9 @@ const meta = {
       </div>
     ),
   ],
+  argTypes: {
+    totalMs: { control: { type: 'number', min: 1000, step: 1000 }, description: 'Total animation duration (ms)' },
+  },
   args: {
     room: ROOM,
     userId: 'user-0-0',
@@ -58,7 +61,7 @@ function easedDelay(index: number, total: number, totalMs: number) {
 }
 
 // ===== 2-neighbour driver =====
-function TwoNeighbourDriver({ room, rows, cols }: { room: string; rows: number; cols: number }) {
+function TwoNeighbourDriver({ room, rows, cols, totalMs = 8000 }: { room: string; rows: number; cols: number; totalMs?: number }) {
   useEffect(() => {
     const seats = generateGrid(rows, cols);
     const allCodes = Object.fromEntries(seats.map(s => [s.userId, s.code]));
@@ -91,7 +94,6 @@ function TwoNeighbourDriver({ room, rows, cols }: { room: string; rows: number; 
       }
     }
 
-    const TOTAL_MS = 8000;
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     const raf = requestAnimationFrame(() => {
@@ -99,7 +101,7 @@ function TwoNeighbourDriver({ room, rows, cols }: { room: string; rows: number; 
       emitToRoom(room, { type: 'neighborEdgesSnapshot', edges: [], allCodes });
 
       edges.forEach((edge, i) => {
-        const delay = easedDelay(i, edges.length, TOTAL_MS) + Math.random() * 200;
+        const delay = easedDelay(i, edges.length, totalMs) + Math.random() * 200;
         timers.push(setTimeout(() => {
           emitToRoom(room, { type: 'neighborEdgeAdded', userA: edge.userA, userB: edge.userB });
         }, delay));
@@ -110,12 +112,12 @@ function TwoNeighbourDriver({ room, rows, cols }: { room: string; rows: number; 
       cancelAnimationFrame(raf);
       timers.forEach(clearTimeout);
     };
-  }, [room, rows, cols]);
+  }, [room, rows, cols, totalMs]);
   return null;
 }
 
 // ===== 3-neighbour driver =====
-function ThreeNeighbourDriver({ room, rows, cols }: { room: string; rows: number; cols: number }) {
+function ThreeNeighbourDriver({ room, rows, cols, totalMs = 8000 }: { room: string; rows: number; cols: number; totalMs?: number }) {
   useEffect(() => {
     const seats = generateGrid(rows, cols);
     const allCodes = Object.fromEntries(seats.map(s => [s.userId, s.code]));
@@ -149,7 +151,6 @@ function ThreeNeighbourDriver({ room, rows, cols }: { room: string; rows: number
       }
     }
 
-    const TOTAL_MS = 8000;
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     const raf = requestAnimationFrame(() => {
@@ -157,7 +158,7 @@ function ThreeNeighbourDriver({ room, rows, cols }: { room: string; rows: number
       emitToRoom(room, { type: 'neighborEdgesSnapshot', edges: [], allCodes });
 
       edges.forEach((edge, i) => {
-        const delay = easedDelay(i, edges.length, TOTAL_MS) + Math.random() * 200;
+        const delay = easedDelay(i, edges.length, totalMs) + Math.random() * 200;
         timers.push(setTimeout(() => {
           emitToRoom(room, { type: 'neighborEdgeAdded', userA: edge.userA, userB: edge.userB });
         }, delay));
@@ -168,7 +169,7 @@ function ThreeNeighbourDriver({ room, rows, cols }: { room: string; rows: number
       cancelAnimationFrame(raf);
       timers.forEach(clearTimeout);
     };
-  }, [room, rows, cols]);
+  }, [room, rows, cols, totalMs]);
   return null;
 }
 
@@ -204,11 +205,13 @@ function EntryDriver({ room }: { room: string }) {
 
 export const TwoNeighbourScan: Story = {
   name: '2-neighbour scan (graph view)',
+  args: { totalMs: 8000 } as any,
   render: (args) => {
     const room = (args as any).room ?? ROOM;
+    const totalMs = (args as any).totalMs ?? 8000;
     return (
       <>
-        <TwoNeighbourDriver room={room} rows={5} cols={6} />
+        <TwoNeighbourDriver room={room} rows={5} cols={6} totalMs={totalMs} />
         <NeighborPanel initialView="graph" />
       </>
     );
@@ -217,11 +220,13 @@ export const TwoNeighbourScan: Story = {
 
 export const ThreeNeighbourScan: Story = {
   name: '3-neighbour scan (graph view)',
+  args: { totalMs: 8000 } as any,
   render: (args) => {
     const room = (args as any).room ?? ROOM;
+    const totalMs = (args as any).totalMs ?? 8000;
     return (
       <>
-        <ThreeNeighbourDriver room={room} rows={5} cols={6} />
+        <ThreeNeighbourDriver room={room} rows={5} cols={6} totalMs={totalMs} />
         <NeighborPanel initialView="graph" />
       </>
     );
