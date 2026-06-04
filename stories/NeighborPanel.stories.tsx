@@ -7,7 +7,7 @@ import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 
 const ROOM = 'storybook-neighbor';
 
-type Strategy = 'cardinal' | 'all';
+type Strategy = 'cardinal' | 'all' | 'front-right';
 
 const meta = {
   title: 'Panels/NeighborPanel',
@@ -26,7 +26,7 @@ const meta = {
   argTypes: {
     totalMs:   { control: { type: 'number', min: 1000, step: 1000 }, description: 'Total animation duration (ms)' },
     neighbors: { control: { type: 'number', min: 0, max: 8, step: 0.5 }, description: 'Neighbours per person — integer = exact count, fraction = probability of one more (e.g. 2.7 = always 2, 70% chance of 3)' },
-    strategy:  { control: { type: 'select' }, options: ['cardinal', 'all'] as Strategy[], description: '"cardinal" scans only up/down/left/right; "all" also includes diagonals' },
+    strategy:  { control: { type: 'select' }, options: ['cardinal', 'all', 'front-right'] as Strategy[], description: '"cardinal" picks randomly from up/down/left/right; "all" also includes diagonals; "front-right" prioritizes front then right, falls back randomly' },
   },
   args: {
     room: ROOM,
@@ -56,21 +56,25 @@ function generateGrid(rows: number, cols: number): Seat[] {
   }));
 }
 
+function shuffle<T>(arr: T[]): T[] {
+  return arr.sort(() => Math.random() - 0.5);
+}
+
 function getAdjacent(seat: Seat, seats: Seat[], strategy: Strategy): Seat[] {
   const { row, col, rows, cols } = seat;
-  const cardinal = [
-    row > 0             ? seats[(row - 1) * cols + col]     : null,
-    row < rows - 1      ? seats[(row + 1) * cols + col]     : null,
-    col > 0             ? seats[row * cols + col - 1]       : null,
-    col < cols - 1      ? seats[row * cols + col + 1]       : null,
-  ];
+  const at = (r: number, c: number) => (r >= 0 && r < rows && c >= 0 && c < cols) ? seats[r * cols + c] : null;
+
+  if (strategy === 'front-right') {
+    const priority = [at(row - 1, col), at(row, col + 1)].filter(Boolean) as Seat[];
+    const rest = shuffle([at(row + 1, col), at(row, col - 1)].filter(Boolean) as Seat[]);
+    return [...priority, ...rest];
+  }
+
+  const cardinal = [at(row - 1, col), at(row + 1, col), at(row, col - 1), at(row, col + 1)];
   const diagonals = strategy === 'all' ? [
-    row > 0 && col > 0             ? seats[(row - 1) * cols + col - 1] : null,
-    row > 0 && col < cols - 1      ? seats[(row - 1) * cols + col + 1] : null,
-    row < rows - 1 && col > 0      ? seats[(row + 1) * cols + col - 1] : null,
-    row < rows - 1 && col < cols - 1 ? seats[(row + 1) * cols + col + 1] : null,
+    at(row - 1, col - 1), at(row - 1, col + 1), at(row + 1, col - 1), at(row + 1, col + 1),
   ] : [];
-  return [...cardinal, ...diagonals].filter(Boolean) as Seat[];
+  return shuffle([...cardinal, ...diagonals].filter(Boolean) as Seat[]);
 }
 
 // Ease-in-out cubic
@@ -110,7 +114,7 @@ function GraphDriver({
     const extraProb = neighbors - guaranteed;
 
     for (const seat of seats) {
-      const adjacent = getAdjacent(seat, seats, strategy).sort(() => Math.random() - 0.5);
+      const adjacent = getAdjacent(seat, seats, strategy);
       const count = guaranteed + (Math.random() < extraProb ? 1 : 0);
       for (const target of adjacent.slice(0, count)) {
         const key = [seat.userId, target.userId].sort().join('|');
@@ -191,6 +195,20 @@ export const CardinalScan: Story = {
 export const DiagonalScan: Story = {
   name: 'Diagonal scan — 2.5 neighbours (graph view)',
   args: { totalMs: 8000, neighbors: 2.5, strategy: 'all' } as any,
+  render: (args) => {
+    const a = args as any;
+    return (
+      <>
+        <GraphDriver room={a.room ?? ROOM} rows={5} cols={6} neighbors={a.neighbors} strategy={a.strategy} totalMs={a.totalMs} />
+        <NeighborPanel initialView="graph" />
+      </>
+    );
+  },
+};
+
+export const FrontRightScan: Story = {
+  name: 'Front-right priority — 2 neighbours (graph view)',
+  args: { totalMs: 8000, neighbors: 2, strategy: 'front-right' } as any,
   render: (args) => {
     const a = args as any;
     return (
