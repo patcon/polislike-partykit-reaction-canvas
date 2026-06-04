@@ -35,6 +35,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   const [edges, setEdges] = useState<Edge[]>([]);
   const [flipH, setFlipH] = useState(false);
   const [flipV, setFlipV] = useState(false);
+  const [rotation, setRotation] = useState(0);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const simRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
@@ -246,9 +247,9 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     const scaleX = flipH ? -1 : 1;
     const scaleY = flipV ? -1 : 1;
     transformGroupRef.current.attr('transform',
-      `translate(${cx},${cy}) scale(${scaleX},${scaleY}) translate(${-cx},${-cy})`
+      `translate(${cx},${cy}) rotate(${rotation}) scale(${scaleX},${scaleY}) translate(${-cx},${-cy})`
     );
-  }, [flipH, flipV]);
+  }, [flipH, flipV, rotation]);
 
   useEffect(() => () => clearStatusTimer(), []);
 
@@ -271,16 +272,31 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         </div>
         <div style={{ flex: 1, position: 'relative' }}>
           <svg ref={svgRef} style={{ width: '100%', height: '100%', background: '#1a1a1a', borderRadius: 8 }} />
-          <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', gap: 4 }}>
+          <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
+            <button
+              onClick={() => restartSim()}
+              title="Refresh layout"
+              style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid #444', background: 'rgba(20,20,20,0.8)', color: '#ccc', cursor: 'pointer' }}
+            >
+              ↺
+            </button>
+            <input
+              type="range"
+              min={-180}
+              max={180}
+              value={rotation}
+              onChange={e => setRotation(Number(e.target.value))}
+              style={{ width: 120, maxWidth: 200, cursor: 'pointer', accentColor: '#4f9cf9' }}
+            />
             <button
               onClick={() => setFlipH(f => !f)}
-              style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid #444', background: flipH ? '#2a4a7f' : 'rgba(20,20,20,0.8)', color: '#ccc', cursor: 'pointer' }}
+              style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid #444', background: 'rgba(20,20,20,0.8)', color: '#ccc', cursor: 'pointer' }}
             >
               ↔
             </button>
             <button
               onClick={() => setFlipV(f => !f)}
-              style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid #444', background: flipV ? '#2a4a7f' : 'rgba(20,20,20,0.8)', color: '#ccc', cursor: 'pointer' }}
+              style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid #444', background: 'rgba(20,20,20,0.8)', color: '#ccc', cursor: 'pointer' }}
             >
               ↕
             </button>
