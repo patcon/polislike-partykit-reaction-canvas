@@ -125,10 +125,13 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
 
     svg.selectAll('*').remove();
 
+    const padding = 20;
+
     const sim = d3.forceSimulation<D3Node>(nodesRef.current)
       .force('link', d3.forceLink<D3Node, D3Link>(linksRef.current).id(d => d.id).distance(60))
-      .force('charge', d3.forceManyBody().strength(-80))
-      .force('center', d3.forceCenter(width / 2, height / 2))
+      .force('charge', d3.forceManyBody().strength(-120))
+      .force('x', d3.forceX(width / 2).strength(0.07))
+      .force('y', d3.forceY(height / 2).strength(0.07))
       .force('collide', d3.forceCollide(14));
     simRef.current = sim;
 
@@ -164,6 +167,10 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       );
 
     sim.on('tick', () => {
+      for (const n of nodesRef.current) {
+        n.x = Math.max(padding, Math.min(width - padding, n.x ?? width / 2));
+        n.y = Math.max(padding, Math.min(height - padding, n.y ?? height / 2));
+      }
       svg.selectAll<SVGLineElement, D3Link>('line')
         .attr('x1', d => (d.source as D3Node).x ?? 0)
         .attr('y1', d => (d.source as D3Node).y ?? 0)
