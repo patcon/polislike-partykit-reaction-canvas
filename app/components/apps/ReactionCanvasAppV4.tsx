@@ -39,6 +39,7 @@ import MapMakerPanel from "../panels/MapMakerPanel";
 import MapViewerPanel from "../panels/MapViewerPanel";
 import ValenceBeatPadPanel from "../panels/ValenceBeatPadPanel";
 import ArrivalCanvasPanel from "../panels/ArrivalCanvasPanel";
+import NeighborPanel from "../panels/NeighborPanel";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
@@ -53,6 +54,7 @@ const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = 
   'map-viewer':      MapViewerPanel,
   'valence-beat-pad': ValenceBeatPadPanel,
   'arrival-canvas':   ArrivalCanvasPanel,
+  'neighbor':         NeighborPanel,
 };
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;

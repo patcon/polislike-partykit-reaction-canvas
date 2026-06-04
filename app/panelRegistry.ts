@@ -28,6 +28,7 @@ export const PANEL_REGISTRY: PanelMeta[] = [
   { id: 'map-viewer',      label: 'Map Viewer',      description: 'View the computed participant map',                     patchable: true,  activityMode: true  },
   { id: 'valence-beat-pad', label: 'Valence Beat Pad', shortLabel: 'Beat Pad', description: 'Interactive musical pad driven by audience valence', patchable: true, activityMode: true },
   { id: 'arrival-canvas', label: 'Arrival Canvas', shortLabel: 'Arrival', description: 'Room-fill visualizer with THX-style audio convergence', patchable: true, activityMode: true },
+  { id: 'neighbor', label: 'Neighbor Network', shortLabel: 'Neighbor', description: 'Social graph of nearby audience members', patchable: true, activityMode: true },
 ];
 
 export const PATCHABLE_PANELS = PANEL_REGISTRY.filter(p => p.patchable);

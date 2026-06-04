@@ -274,7 +274,11 @@ interface HangUpCallEvent      { type: 'hangUp';        targetUserId: string }
 interface SetCallAlgorithmEvent { type: 'setCallAlgorithm'; algorithm: string }
 interface SetArrivalCapacityEvent { type: 'setArrivalCapacity'; capacity: number }
 
-type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | MapProjectionSetEvent | MapProjectionClearEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent | SetArrivalCapacityEvent;
+interface NeighborEdgeEvent      { type: 'neighborEdge';         from: string; toCode: string }
+interface RequestNeighborEdgesEvent { type: 'requestNeighborEdges' }
+interface ClearNeighborEdgesEvent   { type: 'clearNeighborEdges' }
+
+type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | MapProjectionSetEvent | MapProjectionClearEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent | SetArrivalCapacityEvent | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -358,6 +362,8 @@ export default class Server implements Party.Server {
   private callPairs: Map<string, string> = new Map();
   private callAlgorithm: string = 'first-available';
   private arrivalCapacity: number = 50;
+  private neighborCodes = new Map<string, string>(); // userId → 4-digit code
+  private neighborEdges = new Set<string>();          // canonical "userA|userB" strings
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -414,6 +420,15 @@ export default class Server implements Party.Server {
     if (saved.storyTracerMeta !== undefined) this.storyTracerMeta = saved.storyTracerMeta ?? null;
     if (saved.greeterConfig !== undefined) this.greeterConfig = saved.greeterConfig ?? null;
     if (saved.mapProjection !== undefined) this.mapProjection = saved.mapProjection ?? null;
+  }
+
+  private generateNeighborCode(): string {
+    const used = new Set(this.neighborCodes.values());
+    let code: string;
+    do {
+      code = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
+    } while (used.has(code));
+    return code;
   }
 
   private async persistState(): Promise<void> {
@@ -496,6 +511,9 @@ export default class Server implements Party.Server {
 
     const userId = url.searchParams.get('userId') ?? conn.id;
     this.connectionUserMap.set(conn.id, userId);
+    if (!this.neighborCodes.has(userId)) {
+      this.neighborCodes.set(userId, this.generateNeighborCode());
+    }
     if (isViewer) {
       this.viewerConnectionIds.add(conn.id);
     }
@@ -568,6 +586,7 @@ export default class Server implements Party.Server {
       mapProjection: this.mapProjection,
       callAlgorithm: this.callAlgorithm,
       arrivalCapacity: this.arrivalCapacity,
+      myNeighborCode: this.neighborCodes.get(userId) ?? null,
     }));
   }
 
@@ -585,7 +604,10 @@ export default class Server implements Party.Server {
       ? [...this.connectionUserMap.values()].some(uid => uid === userId)
       : false;
 
-    if (userId && !userStillConnected) this.cursorPositions.delete(userId);
+    if (userId && !userStillConnected) {
+      this.cursorPositions.delete(userId);
+      this.neighborCodes.delete(userId);
+    }
 
     if (!isAdmin && userId && !userStillConnected) {
       this.room.broadcast(JSON.stringify({ type: 'userLeft', userId, wasViewer }));
@@ -901,6 +923,37 @@ export default class Server implements Party.Server {
         if (!this.adminConnectionIds.has(sender.id)) return;
         this.arrivalCapacity = event.capacity;
         this.room.broadcast(JSON.stringify({ type: 'arrivalCapacityChanged', capacity: this.arrivalCapacity }));
+      } else if (event.type === 'neighborEdge') {
+        const fromUserId = this.connectionUserMap.get(sender.id);
+        if (!fromUserId) return;
+        const toCode = event.toCode;
+        if (this.neighborCodes.get(fromUserId) === toCode) {
+          sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'self' }));
+          return;
+        }
+        let toUserId: string | null = null;
+        for (const [uid, code] of this.neighborCodes) {
+          if (code === toCode) { toUserId = uid; break; }
+        }
+        if (!toUserId) {
+          sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'not_found' }));
+          return;
+        }
+        const canonical = [fromUserId, toUserId].sort().join('|');
+        if (this.neighborEdges.has(canonical)) {
+          sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'duplicate' }));
+          return;
+        }
+        this.neighborEdges.add(canonical);
+        const [userA, userB] = canonical.split('|');
+        this.room.broadcast(JSON.stringify({ type: 'neighborEdgeAdded', userA, userB }));
+      } else if (event.type === 'requestNeighborEdges') {
+        const edges = [...this.neighborEdges].map(e => { const [userA, userB] = e.split('|'); return { userA, userB }; });
+        const allCodes = Object.fromEntries(this.neighborCodes);
+        sender.send(JSON.stringify({ type: 'neighborEdgesSnapshot', edges, allCodes }));
+      } else if (event.type === 'clearNeighborEdges') {
+        this.neighborEdges.clear();
+        this.room.broadcast(JSON.stringify({ type: 'neighborEdgesCleared' }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);

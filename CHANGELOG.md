@@ -4,6 +4,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 29 (2026-06-02)
 
+### Added
+- **NeighborPanel** — new panel for building a live social graph of nearby audience members; participants see their own 4-digit code and enter neighbours' codes via an on-screen keypad; emcee can view a D3 force-directed map of all connections in real time ([#134](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/134))
+
 ### Changed
 - **Perf test CI: add `party` and `room` inputs** — `workflow_dispatch` now accepts a `party` dropdown (`perf`/`main`, default `perf`) and a `room` text field (default `default`); WS URL is constructed dynamically from these inputs. Renames the hard-coded `perf-default` room to `default` throughout the k6 script, `perf:remote` npm script, and `PerfCanvasApp`.
 
