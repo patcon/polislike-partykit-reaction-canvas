@@ -91,7 +91,7 @@ function TwoNeighbourDriver({ room, rows, cols }: { room: string; rows: number; 
       }
     }
 
-    const TOTAL_MS = 18000;
+    const TOTAL_MS = 8000;
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     const raf = requestAnimationFrame(() => {
@@ -149,7 +149,7 @@ function ThreeNeighbourDriver({ room, rows, cols }: { room: string; rows: number
       }
     }
 
-    const TOTAL_MS = 20000;
+    const TOTAL_MS = 8000;
     const timers: ReturnType<typeof setTimeout>[] = [];
 
     const raf = requestAnimationFrame(() => {
