@@ -7,6 +7,8 @@ import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 
 const ROOM = 'storybook-neighbor';
 
+type Strategy = 'cardinal' | 'all';
+
 const meta = {
   title: 'Panels/NeighborPanel',
   component: NeighborPanel,
@@ -22,7 +24,9 @@ const meta = {
     ),
   ],
   argTypes: {
-    totalMs: { control: { type: 'number', min: 1000, step: 1000 }, description: 'Total animation duration (ms)' },
+    totalMs:   { control: { type: 'number', min: 1000, step: 1000 }, description: 'Total animation duration (ms)' },
+    neighbors: { control: { type: 'number', min: 0, max: 8, step: 0.5 }, description: 'Neighbours per person — integer = exact count, fraction = probability of one more (e.g. 2.7 = always 2, 70% chance of 3)' },
+    strategy:  { control: { type: 'select' }, options: ['cardinal', 'all'] as Strategy[], description: '"cardinal" scans only up/down/left/right; "all" also includes diagonals' },
   },
   args: {
     room: ROOM,
@@ -39,7 +43,9 @@ function makeCode(n: number) {
   return String(n).padStart(4, '0');
 }
 
-function generateGrid(rows: number, cols: number) {
+type Seat = { userId: string; code: string; row: number; col: number; rows: number; cols: number };
+
+function generateGrid(rows: number, cols: number): Seat[] {
   return Array.from({ length: rows * cols }, (_, i) => ({
     userId: `user-${Math.floor(i / cols)}-${i % cols}`,
     code: makeCode(i + 1),
@@ -48,6 +54,23 @@ function generateGrid(rows: number, cols: number) {
     rows,
     cols,
   }));
+}
+
+function getAdjacent(seat: Seat, seats: Seat[], strategy: Strategy): Seat[] {
+  const { row, col, rows, cols } = seat;
+  const cardinal = [
+    row > 0             ? seats[(row - 1) * cols + col]     : null,
+    row < rows - 1      ? seats[(row + 1) * cols + col]     : null,
+    col > 0             ? seats[row * cols + col - 1]       : null,
+    col < cols - 1      ? seats[row * cols + col + 1]       : null,
+  ];
+  const diagonals = strategy === 'all' ? [
+    row > 0 && col > 0             ? seats[(row - 1) * cols + col - 1] : null,
+    row > 0 && col < cols - 1      ? seats[(row - 1) * cols + col + 1] : null,
+    row < rows - 1 && col > 0      ? seats[(row + 1) * cols + col - 1] : null,
+    row < rows - 1 && col < cols - 1 ? seats[(row + 1) * cols + col + 1] : null,
+  ] : [];
+  return [...cardinal, ...diagonals].filter(Boolean) as Seat[];
 }
 
 // Ease-in-out cubic
@@ -60,8 +83,22 @@ function easedDelay(index: number, total: number, totalMs: number) {
   return easeInOut(t) * totalMs;
 }
 
-// ===== 2-neighbour driver =====
-function TwoNeighbourDriver({ room, rows, cols, totalMs = 8000 }: { room: string; rows: number; cols: number; totalMs?: number }) {
+// ===== Unified graph driver =====
+function GraphDriver({
+  room,
+  rows,
+  cols,
+  neighbors = 2,
+  strategy = 'cardinal',
+  totalMs = 8000,
+}: {
+  room: string;
+  rows: number;
+  cols: number;
+  neighbors?: number;
+  strategy?: Strategy;
+  totalMs?: number;
+}) {
   useEffect(() => {
     const seats = generateGrid(rows, cols);
     const allCodes = Object.fromEntries(seats.map(s => [s.userId, s.code]));
@@ -69,22 +106,13 @@ function TwoNeighbourDriver({ room, rows, cols, totalMs = 8000 }: { room: string
     const edges: Array<{ userA: string; userB: string }> = [];
     const edgeSet = new Set<string>();
 
-    for (const seat of seats) {
-      const candidates: Array<{ userId: string }> = [];
-      // left or right (one of them, random)
-      const lr = [
-        seat.col > 0 ? seats[seat.row * cols + seat.col - 1] : null,
-        seat.col < cols - 1 ? seats[seat.row * cols + seat.col + 1] : null,
-      ].filter(Boolean) as typeof seats;
-      if (lr.length) candidates.push(lr[Math.floor(Math.random() * lr.length)]);
-      // front or back (one of them, random)
-      const fb = [
-        seat.row > 0 ? seats[(seat.row - 1) * cols + seat.col] : null,
-        seat.row < rows - 1 ? seats[(seat.row + 1) * cols + seat.col] : null,
-      ].filter(Boolean) as typeof seats;
-      if (fb.length) candidates.push(fb[Math.floor(Math.random() * fb.length)]);
+    const guaranteed = Math.floor(neighbors);
+    const extraProb = neighbors - guaranteed;
 
-      for (const target of candidates) {
+    for (const seat of seats) {
+      const adjacent = getAdjacent(seat, seats, strategy).sort(() => Math.random() - 0.5);
+      const count = guaranteed + (Math.random() < extraProb ? 1 : 0);
+      for (const target of adjacent.slice(0, count)) {
         const key = [seat.userId, target.userId].sort().join('|');
         if (!edgeSet.has(key)) {
           edgeSet.add(key);
@@ -112,64 +140,7 @@ function TwoNeighbourDriver({ room, rows, cols, totalMs = 8000 }: { room: string
       cancelAnimationFrame(raf);
       timers.forEach(clearTimeout);
     };
-  }, [room, rows, cols, totalMs]);
-  return null;
-}
-
-// ===== 3-neighbour driver =====
-function ThreeNeighbourDriver({ room, rows, cols, totalMs = 8000 }: { room: string; rows: number; cols: number; totalMs?: number }) {
-  useEffect(() => {
-    const seats = generateGrid(rows, cols);
-    const allCodes = Object.fromEntries(seats.map(s => [s.userId, s.code]));
-
-    const edges: Array<{ userA: string; userB: string }> = [];
-    const edgeSet = new Set<string>();
-
-    for (const seat of seats) {
-      const allAdjacent = [
-        // cardinal
-        seat.col > 0 ? seats[seat.row * cols + seat.col - 1] : null,
-        seat.col < cols - 1 ? seats[seat.row * cols + seat.col + 1] : null,
-        seat.row > 0 ? seats[(seat.row - 1) * cols + seat.col] : null,
-        seat.row < rows - 1 ? seats[(seat.row + 1) * cols + seat.col] : null,
-        // diagonals
-        seat.row > 0 && seat.col > 0 ? seats[(seat.row - 1) * cols + seat.col - 1] : null,
-        seat.row > 0 && seat.col < cols - 1 ? seats[(seat.row - 1) * cols + seat.col + 1] : null,
-        seat.row < rows - 1 && seat.col > 0 ? seats[(seat.row + 1) * cols + seat.col - 1] : null,
-        seat.row < rows - 1 && seat.col < cols - 1 ? seats[(seat.row + 1) * cols + seat.col + 1] : null,
-      ].filter(Boolean) as typeof seats;
-
-      // shuffle and take up to 3
-      const shuffled = allAdjacent.sort(() => Math.random() - 0.5).slice(0, 3);
-      for (const target of shuffled) {
-        const key = [seat.userId, target.userId].sort().join('|');
-        if (!edgeSet.has(key)) {
-          edgeSet.add(key);
-          const [userA, userB] = key.split('|');
-          edges.push({ userA, userB });
-        }
-      }
-    }
-
-    const timers: ReturnType<typeof setTimeout>[] = [];
-
-    const raf = requestAnimationFrame(() => {
-      emitToRoom(room, { type: 'connected', myNeighborCode: '0001' });
-      emitToRoom(room, { type: 'neighborEdgesSnapshot', edges: [], allCodes });
-
-      edges.forEach((edge, i) => {
-        const delay = easedDelay(i, edges.length, totalMs) + Math.random() * 200;
-        timers.push(setTimeout(() => {
-          emitToRoom(room, { type: 'neighborEdgeAdded', userA: edge.userA, userB: edge.userB });
-        }, delay));
-      });
-    });
-
-    return () => {
-      cancelAnimationFrame(raf);
-      timers.forEach(clearTimeout);
-    };
-  }, [room, rows, cols, totalMs]);
+  }, [room, rows, cols, neighbors, strategy, totalMs]);
   return null;
 }
 
@@ -203,30 +174,28 @@ function EntryDriver({ room }: { room: string }) {
   return null;
 }
 
-export const TwoNeighbourScan: Story = {
-  name: '2-neighbour scan (graph view)',
-  args: { totalMs: 8000 } as any,
+export const CardinalScan: Story = {
+  name: 'Cardinal scan — 2 neighbours (graph view)',
+  args: { totalMs: 8000, neighbors: 2, strategy: 'cardinal' } as any,
   render: (args) => {
-    const room = (args as any).room ?? ROOM;
-    const totalMs = (args as any).totalMs ?? 8000;
+    const a = args as any;
     return (
       <>
-        <TwoNeighbourDriver room={room} rows={5} cols={6} totalMs={totalMs} />
+        <GraphDriver room={a.room ?? ROOM} rows={5} cols={6} neighbors={a.neighbors} strategy={a.strategy} totalMs={a.totalMs} />
         <NeighborPanel initialView="graph" />
       </>
     );
   },
 };
 
-export const ThreeNeighbourScan: Story = {
-  name: '3-neighbour scan (graph view)',
-  args: { totalMs: 8000 } as any,
+export const DiagonalScan: Story = {
+  name: 'Diagonal scan — 2.5 neighbours (graph view)',
+  args: { totalMs: 8000, neighbors: 2.5, strategy: 'all' } as any,
   render: (args) => {
-    const room = (args as any).room ?? ROOM;
-    const totalMs = (args as any).totalMs ?? 8000;
+    const a = args as any;
     return (
       <>
-        <ThreeNeighbourDriver room={room} rows={5} cols={6} totalMs={totalMs} />
+        <GraphDriver room={a.room ?? ROOM} rows={5} cols={6} neighbors={a.neighbors} strategy={a.strategy} totalMs={a.totalMs} />
         <NeighborPanel initialView="graph" />
       </>
     );
