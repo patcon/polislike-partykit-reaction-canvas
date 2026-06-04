@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 29 (2026-06-02)
 
 ### Changed
-- **NeighborPanel graph view** — nodes are now coloured by live reaction-canvas valence (green/red/yellow) using the same `computeReactionRegion` logic as other projection maps; grey for users with no cursor data yet; own node stays blue.
+- **NeighborPanel graph view** — nodes are now coloured by live reaction-canvas valence (green/red/yellow) using the same `computeReactionRegion` logic as other projection maps; grey for users with no cursor data yet; no special "you are here" highlight for own node.
 - **NeighborPanel graph view** — added ↺ refresh button to re-randomise the force layout; added ±180° rotation slider beside the flip buttons; removed active-state highlighting from flip buttons since orientation has no canonical "true" state.
 
 ### Added

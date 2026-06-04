@@ -54,7 +54,6 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   const anchorsRef = useRef<ReactionAnchors>(DEFAULT_ANCHORS);
 
   function getNodeColor(uid: string): string {
-    if (uid === socketUserId.current) return '#4f9cf9';
     const pos = liveCursorsRef.current.get(uid);
     if (!pos) return '#888';
     const region = computeReactionRegion(pos.x, pos.y, anchorsRef.current);
