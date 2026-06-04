@@ -25,8 +25,8 @@ const meta = {
   ],
   argTypes: {
     totalMs:   { control: { type: 'number', min: 1000, step: 1000 }, description: 'Total animation duration (ms)' },
-    neighbors: { control: { type: 'number', min: 0, max: 8, step: 0.5 }, description: 'Neighbours per person — integer = exact count, fraction = probability of one more (e.g. 2.7 = always 2, 70% chance of 3)' },
-    strategy:  { control: { type: 'select' }, options: ['cardinal', 'all', 'front-right'] as Strategy[], description: '"cardinal" picks randomly from up/down/left/right; "all" also includes diagonals; "front-right" prioritizes front then right, falls back randomly' },
+    neighbors: { name: 'avg neighbors connected', control: { type: 'number', min: 0, max: 8, step: 0.5 }, description: 'Neighbours per person — integer = exact count, fraction = probability of one more (e.g. 2.7 = always 2, 70% chance of 3)' },
+    strategy:  { name: 'neighbor selection strategy', control: { type: 'select' }, options: ['cardinal', 'all', 'front-right'] as Strategy[], description: '"cardinal" picks randomly from up/down/left/right; "all" also includes diagonals; "front-right" prioritizes front then right, falls back randomly' },
   },
   args: {
     room: ROOM,
