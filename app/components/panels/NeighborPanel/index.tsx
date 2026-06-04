@@ -4,6 +4,8 @@ import * as d3 from 'd3';
 import { usePanelContext } from '../../../context/PanelContext';
 import { getPartySocketConfig } from '../../../utils/partyHost';
 import { generateUUID } from '../../../utils/userId';
+import { computeReactionRegion, DEFAULT_ANCHORS } from '../../../utils/voteRegion';
+import type { ReactionAnchors } from '../../../utils/voteRegion';
 
 type View = 'entry' | 'graph';
 type EdgeError = 'not_found' | 'self' | 'duplicate';
@@ -16,6 +18,7 @@ const KEYPAD_KEYS = ['1','2','3','4','5','6','7','8','9','←','0','✕'];
 const EDGE_COLOR = '#555';
 const EDGE_FLASH_COLOR = '#4ade80';
 const EDGE_FLASH_MS = 800;
+const VOTE_COLORS = { positive: '#2ecc71', negative: '#e74c3c', neutral: '#f1c40f' };
 
 const ERROR_MESSAGES: Record<EdgeError, string> = {
   not_found: 'Code not found — try again',
@@ -47,6 +50,21 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   const paddingRef = useRef(20);
   const sizeRef = useRef({ width: 320, height: 280 });
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const liveCursorsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const anchorsRef = useRef<ReactionAnchors>(DEFAULT_ANCHORS);
+
+  function getNodeColor(uid: string): string {
+    if (uid === socketUserId.current) return '#4f9cf9';
+    const pos = liveCursorsRef.current.get(uid);
+    if (!pos) return '#888';
+    const region = computeReactionRegion(pos.x, pos.y, anchorsRef.current);
+    return region ? VOTE_COLORS[region] : '#888';
+  }
+
+  function updateNodeColors() {
+    nodeGroupRef.current?.selectAll<SVGCircleElement, D3Node>('circle')
+      .attr('fill', d => getNodeColor(d.id));
+  }
 
   const addEdgeLive = useCallback((link: D3Link) => {
     const sim = simRef.current;
@@ -69,7 +87,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         .data(nodesRef.current, d => d.id)
         .join(enter => enter.append('circle')
           .attr('r', 8)
-          .attr('fill', d => d.id === socketUserId.current ? '#4f9cf9' : '#aaa')
+          .attr('fill', d => getNodeColor(d.id))
           .attr('stroke', '#fff')
           .attr('stroke-width', 1.5)
           .call(makeDrag(sim))
@@ -101,6 +119,17 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       const msg = JSON.parse(evt.data);
       if (msg.type === 'connected') {
         if (msg.myNeighborCode) setMyCode(msg.myNeighborCode);
+        if (msg.roomAnchors) anchorsRef.current = msg.roomAnchors;
+      } else if (msg.type === 'roomAnchorsChanged') {
+        anchorsRef.current = msg.anchors ?? DEFAULT_ANCHORS;
+        updateNodeColors();
+      } else if (msg.type === 'move' || msg.type === 'touch') {
+        const { userId, x, y } = msg.position;
+        liveCursorsRef.current.set(userId, { x, y });
+        updateNodeColors();
+      } else if (msg.type === 'remove') {
+        liveCursorsRef.current.delete(msg.position.userId);
+        updateNodeColors();
       } else if (msg.type === 'neighborEdgesSnapshot') {
         setEdges(msg.edges ?? []);
         const userIds = Object.keys(msg.allCodes ?? {});
@@ -214,7 +243,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       .data(nodesRef.current, d => d.id)
       .join('circle')
       .attr('r', 8)
-      .attr('fill', d => d.id === socketUserId.current ? '#4f9cf9' : '#aaa')
+      .attr('fill', d => getNodeColor(d.id))
       .attr('stroke', '#fff')
       .attr('stroke-width', 1.5)
       .call(makeDrag(sim));
