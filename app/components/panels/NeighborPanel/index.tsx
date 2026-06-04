@@ -301,13 +301,6 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         <div style={{ flex: 1, position: 'relative' }}>
           <svg ref={svgRef} style={{ width: '100%', height: '100%', background: '#1a1a1a', borderRadius: 8 }} />
           <div style={{ position: 'absolute', bottom: 8, right: 8, display: 'flex', alignItems: 'center', gap: 4 }}>
-            <button
-              onClick={() => restartSim()}
-              title="Refresh layout"
-              style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid #444', background: 'rgba(20,20,20,0.8)', color: '#ccc', cursor: 'pointer' }}
-            >
-              ↺
-            </button>
             <input
               type="range"
               min={-180}
@@ -327,6 +320,13 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
               style={{ fontSize: 11, padding: '2px 8px', borderRadius: 4, border: '1px solid #444', background: 'rgba(20,20,20,0.8)', color: '#ccc', cursor: 'pointer' }}
             >
               ↕
+            </button>
+            <button
+              onClick={() => restartSim()}
+              title="Refresh layout"
+              style={{ fontSize: 11, padding: '2px 6px', borderRadius: 4, border: '1px solid #444', background: 'rgba(20,20,20,0.8)', color: '#ccc', cursor: 'pointer' }}
+            >
+              ↺
             </button>
           </div>
         </div>
