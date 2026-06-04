@@ -31,7 +31,7 @@
  */
 
 import { sleep } from "k6";
-import { WebSocket } from "k6/websockets";
+import ws from "k6/ws";
 import { Counter, Rate, Trend } from "k6/metrics";
 import { textSummary } from "https://jslib.k6.io/k6-summary/0.0.1/index.js";
 
@@ -121,75 +121,73 @@ export default function () {
 
   let presenceCount = 0;
   let lastSent = 0;
-  let opened = false;
 
-  const socket = new WebSocket(WS_URL);
-
-  socket.onopen = () => {
+  // ws.connect() blocks the VU until the socket closes — this is the correct
+  // pattern for k6/ws and gives clean per-iteration lifecycle management.
+  const res = ws.connect(WS_URL, {}, function (socket) {
     connectLatency.add(Date.now() - t0);
-    opened = true;
     connectionSuccess.add(true);
 
-    // Poll at 10ms; actual send rate is governed by computeThrottleMs(presenceCount).
-    // When adaptive throttle is off, computeThrottleMs returns 33ms (~30 fps).
-    const sendInterval = setInterval(() => {
-      const now = Date.now();
-      if (now - lastSent < computeThrottleMs(presenceCount)) return;
-      lastSent = now;
-
-      const tSec = (now - t0) / 1000;
-      const { x, y } = orbitPosition(orbit, tSec);
-      const eventType = Math.random() < 0.1 ? "touch" : "move";
-      socket.send(
-        JSON.stringify({
-          type: eventType,
-          position: { x, y, timestamp: now, userId },
-        })
-      );
-      cursorsSent.add(1);
-    }, 10);
-
-    setTimeout(() => {
-      clearInterval(sendInterval);
-      socket.send(
-        JSON.stringify({
-          type: "remove",
-          position: { x: 0, y: 0, timestamp: Date.now(), userId },
-        })
-      );
-      socket.close();
-    }, closeAfterMs);
-  };
-
-  socket.onmessage = (e) => {
-    try {
-      const msg = JSON.parse(e.data);
-      if (msg.type === "presenceCount") {
-        presenceCount = msg.count;
-      } else if (msg.type === "cursorBatch" && Array.isArray(msg.cursors)) {
-        // Count only cursor events, not presenceCount broadcasts
-        cursorsReceived.add(msg.cursors.length);
-        // Measure end-to-end delivery latency for our own cursor echoed back
+    socket.on("open", () => {
+      // Poll at 10ms; actual send rate is governed by computeThrottleMs(presenceCount).
+      // When adaptive throttle is off, computeThrottleMs returns 33ms (~30 fps).
+      socket.setInterval(() => {
         const now = Date.now();
-        for (const event of msg.cursors) {
-          if (event.position?.userId === userId && event.position?.timestamp) {
-            deliveryLatency.add(now - event.position.timestamp);
+        if (now - lastSent < computeThrottleMs(presenceCount)) return;
+        lastSent = now;
+
+        const tSec = (now - t0) / 1000;
+        const { x, y } = orbitPosition(orbit, tSec);
+        const eventType = Math.random() < 0.1 ? "touch" : "move";
+        socket.send(
+          JSON.stringify({
+            type: eventType,
+            position: { x, y, timestamp: now, userId },
+          })
+        );
+        cursorsSent.add(1);
+      }, 10);
+
+      // Stagger close time 18–22s to avoid synchronized reconnect storms
+      socket.setTimeout(() => {
+        socket.send(
+          JSON.stringify({
+            type: "remove",
+            position: { x: 0, y: 0, timestamp: Date.now(), userId },
+          })
+        );
+        socket.close();
+      }, closeAfterMs);
+    });
+
+    socket.on("message", (data) => {
+      try {
+        const msg = JSON.parse(data);
+        if (msg.type === "presenceCount") {
+          presenceCount = msg.count;
+        } else if (msg.type === "cursorBatch" && Array.isArray(msg.cursors)) {
+          // Count only cursor events, not presenceCount broadcasts
+          cursorsReceived.add(msg.cursors.length);
+          // Measure end-to-end delivery latency for our own cursor echoed back
+          const now = Date.now();
+          for (const event of msg.cursors) {
+            if (event.position?.userId === userId && event.position?.timestamp) {
+              deliveryLatency.add(now - event.position.timestamp);
+            }
           }
         }
-      }
-    } catch (_) {}
-  };
+      } catch (_) {}
+    });
 
-  socket.onerror = (e) => {
-    console.error(`[${userId.slice(0, 8)}] WS error: ${e.message}`);
-  };
+    socket.on("error", (e) => {
+      console.error(`[${userId.slice(0, 8)}] WS error: ${e.error()}`);
+    });
+  });
 
-  socket.onclose = () => {
-    if (!opened) connectionSuccess.add(false);
-  };
+  if (!res || res.status !== 101) connectionSuccess.add(false);
 
-  // Keep VU alive while the socket is open; extra 2s for graceful close handshake
-  sleep((closeAfterMs + 2000) / 1000);
+  // Brief pause between VU iterations so k6 pacing stays smooth
+  sleep(1);
 }
 
 export function handleSummary(data) {
