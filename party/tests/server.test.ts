@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import type * as Party from 'partykit/server';
 import Server from '../server';
 import { createMockRoom, createMockConnection, makeConnectCtx } from './helpers/mockParty';
@@ -27,9 +27,14 @@ describe('Server onMessage handlers', () => {
   let server: Server;
 
   beforeEach(() => {
+    vi.spyOn(console, 'log').mockImplementation(() => {});
     connections = [];
     ({ room, broadcast } = createMockRoom(connections));
     server = new Server(room);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   function connectUser(userId: string, opts: { isAdmin?: boolean } = {}) {
@@ -487,7 +492,6 @@ describe('Server onMessage handlers', () => {
       expect(() => server.onMessage('not json', conn)).not.toThrow();
       expect(errorSpy).toHaveBeenCalledWith('Failed to parse event:', expect.any(SyntaxError));
       expect(broadcast).not.toHaveBeenCalled();
-      errorSpy.mockRestore();
     });
   });
 });
