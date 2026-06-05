@@ -6,19 +6,16 @@ import { getPartySocketConfig } from '../../../utils/partyHost';
 import { generateUUID } from '../../../utils/userId';
 import { computeReactionRegion, DEFAULT_ANCHORS } from '../../../utils/voteRegion';
 import type { ReactionAnchors } from '../../../utils/voteRegion';
+import { VOTE_COLORS, USER_STATUS_COLORS, EDGE_COLOR, EDGE_FLASH_COLOR, EDGE_FLASH_MS } from '../../../constants/userStatus';
 
 type View = 'entry' | 'graph';
 type EdgeError = 'not_found' | 'self' | 'duplicate';
 
 interface Edge { userA: string; userB: string }
-interface D3Node extends d3.SimulationNodeDatum { id: string }
+interface D3Node extends d3.SimulationNodeDatum { id: string; offline?: boolean }
 interface D3Link extends d3.SimulationLinkDatum<D3Node> { id: string }
 
 const KEYPAD_KEYS = ['1','2','3','4','5','6','7','8','9','←','0','✕'];
-const EDGE_COLOR = '#555';
-const EDGE_FLASH_COLOR = '#4ade80';
-const EDGE_FLASH_MS = 800;
-const VOTE_COLORS = { positive: '#2ecc71', negative: '#e74c3c', neutral: '#f1c40f' };
 
 const ERROR_MESSAGES: Record<EdgeError, string> = {
   not_found: 'Code not found — try again',
@@ -39,6 +36,8 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   const [flipH, setFlipH] = useState(false);
   const [flipV, setFlipV] = useState(false);
   const [rotation, setRotation] = useState(0);
+  const [showOffline, setShowOffline] = useState(true);
+  const showOfflineRef = useRef(true);
 
   const svgRef = useRef<SVGSVGElement>(null);
   const simRef = useRef<d3.Simulation<D3Node, D3Link> | null>(null);
@@ -65,16 +64,34 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     });
   }
 
-  function getNodeColor(uid: string): string {
-    const pos = liveCursorsRef.current.get(uid);
-    if (!pos) return '#888';
+  function getNodeColor(node: D3Node): string {
+    if (node.offline) return USER_STATUS_COLORS.offline;
+    const pos = liveCursorsRef.current.get(node.id);
+    if (!pos) return USER_STATUS_COLORS.idle;
     const region = computeReactionRegion(pos.x, pos.y, anchorsRef.current);
-    return region ? VOTE_COLORS[region] : '#888';
+    return region ? VOTE_COLORS[region] : USER_STATUS_COLORS.idle;
+  }
+
+  function getLinkDisplay(d: D3Link): string | null {
+    if (showOfflineRef.current) return null;
+    const srcId = typeof d.source === 'object' ? (d.source as D3Node).id : d.source as string;
+    const tgtId = typeof d.target === 'object' ? (d.target as D3Node).id : d.target as string;
+    const srcOffline = nodesRef.current.find(n => n.id === srcId)?.offline;
+    const tgtOffline = nodesRef.current.find(n => n.id === tgtId)?.offline;
+    return (srcOffline || tgtOffline) ? 'none' : null;
   }
 
   function updateNodeColors() {
     nodeGroupRef.current?.selectAll<SVGCircleElement, D3Node>('circle')
-      .attr('fill', d => getNodeColor(d.id));
+      .attr('fill', d => getNodeColor(d));
+  }
+
+  function updateVisibility() {
+    const show = showOfflineRef.current;
+    nodeGroupRef.current?.selectAll<SVGCircleElement, D3Node>('circle')
+      .attr('display', d => (!show && d.offline) ? 'none' : null);
+    linkGroupRef.current?.selectAll<SVGLineElement, D3Link>('line')
+      .attr('display', d => getLinkDisplay(d));
   }
 
   function addNodeLive(uid: string) {
@@ -85,8 +102,9 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     nodeGroup.selectAll<SVGCircleElement, D3Node>('circle')
       .data(nodesRef.current, d => d.id)
       .join(enter => enter.append('circle')
-        .attr('r', 8).attr('fill', d => getNodeColor(d.id))
+        .attr('r', 8).attr('fill', d => getNodeColor(d))
         .attr('stroke', '#fff').attr('stroke-width', 1.5)
+        .attr('display', d => (!showOfflineRef.current && d.offline) ? 'none' : null)
         .call(makeDrag(sim))
       );
     sim.alpha(0.3).restart();
@@ -114,9 +132,10 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         .data(nodesRef.current, d => d.id)
         .join(enter => enter.append('circle')
           .attr('r', 8)
-          .attr('fill', d => getNodeColor(d.id))
+          .attr('fill', d => getNodeColor(d))
           .attr('stroke', '#fff')
           .attr('stroke-width', 1.5)
+          .attr('display', d => (!showOfflineRef.current && d.offline) ? 'none' : null)
           .call(makeDrag(sim))
         );
     }
@@ -131,6 +150,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       .join(enter => enter.append('line')
         .attr('stroke', EDGE_FLASH_COLOR)
         .attr('stroke-width', 1.5)
+        .attr('display', d => getLinkDisplay(d))
         .transition().duration(EDGE_FLASH_MS)
         .attr('stroke', EDGE_COLOR)
       );
@@ -159,7 +179,15 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         updateNodeColors();
       } else if (msg.type === 'userJoined') {
         const uid: string = msg.userId;
-        if (!nodesRef.current.find(n => n.id === uid)) {
+        const existing = nodesRef.current.find(n => n.id === uid);
+        if (existing) {
+          existing.offline = false;
+          nodeGroupRef.current?.selectAll<SVGCircleElement, D3Node>('circle')
+            .filter(d => d.id === uid)
+            .attr('fill', getNodeColor(existing))
+            .attr('display', null);
+          updateVisibility();
+        } else {
           const { width, height } = sizeRef.current;
           nodesRef.current = [...nodesRef.current, { id: uid, x: width / 2, y: height / 2 }];
           addNodeLive(uid);
@@ -168,9 +196,15 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       } else if (msg.type === 'userLeft') {
         const uid: string = msg.userId;
         liveCursorsRef.current.delete(uid);
-        nodesRef.current = nodesRef.current.filter(n => n.id !== uid);
-        linksRef.current = freshLinks().filter(l => l.source !== uid && l.target !== uid);
-        restartSim();
+        const node = nodesRef.current.find(n => n.id === uid);
+        if (node) {
+          node.offline = true;
+          nodeGroupRef.current?.selectAll<SVGCircleElement, D3Node>('circle')
+            .filter(d => d.id === uid)
+            .attr('fill', USER_STATUS_COLORS.offline)
+            .attr('display', showOfflineRef.current ? null : 'none');
+          updateVisibility();
+        }
       } else if (msg.type === 'neighborEdgesSnapshot') {
         setEdges(msg.edges ?? []);
         const edgeUserIds = (msg.edges ?? []).flatMap((e: Edge) => [e.userA, e.userB]);
@@ -194,8 +228,9 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
             nodeGroup.selectAll<SVGCircleElement, D3Node>('circle')
               .data(nodesRef.current, d => d.id)
               .join(enter => enter.append('circle')
-                .attr('r', 8).attr('fill', d => getNodeColor(d.id))
+                .attr('r', 8).attr('fill', d => getNodeColor(d))
                 .attr('stroke', '#fff').attr('stroke-width', 1.5)
+                .attr('display', d => (!showOfflineRef.current && d.offline) ? 'none' : null)
                 .call(makeDrag(sim))
               );
           }
@@ -207,7 +242,10 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
             (sim.force('link') as d3.ForceLink<D3Node, D3Link>).links(linksRef.current);
             linkGroup.selectAll<SVGLineElement, D3Link>('line')
               .data(linksRef.current, d => d.id)
-              .join(enter => enter.append('line').attr('stroke', EDGE_COLOR).attr('stroke-width', 1.5));
+              .join(enter => enter.append('line')
+                .attr('stroke', EDGE_COLOR).attr('stroke-width', 1.5)
+                .attr('display', d => getLinkDisplay(d))
+              );
             sim.alpha(0.3).restart();
           }
         } else {
@@ -315,16 +353,18 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       .data(linksRef.current, d => d.id)
       .join('line')
       .attr('stroke', EDGE_COLOR)
-      .attr('stroke-width', 1.5);
+      .attr('stroke-width', 1.5)
+      .attr('display', d => getLinkDisplay(d));
 
     nodeGroupRef.current
       .selectAll<SVGCircleElement, D3Node>('circle')
       .data(nodesRef.current, d => d.id)
       .join('circle')
       .attr('r', 8)
-      .attr('fill', d => getNodeColor(d.id))
+      .attr('fill', d => getNodeColor(d))
       .attr('stroke', '#fff')
       .attr('stroke-width', 1.5)
+      .attr('display', d => (!showOfflineRef.current && d.offline) ? 'none' : null)
       .call(makeDrag(sim));
 
     sim.on('tick', () => {
@@ -367,12 +407,28 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
           >
             ← Back
           </button>
-          <button
-            onClick={() => socket.send(JSON.stringify({ type: 'clearNeighborEdges' }))}
-            style={{ background: 'none', border: '1px solid #888', borderRadius: 4, cursor: 'pointer', color: '#ccc', fontSize: 12, padding: '2px 8px' }}
-          >
-            Clear all connections
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <label style={{ color: '#ccc', fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={showOffline}
+                onChange={e => {
+                  const val = e.target.checked;
+                  setShowOffline(val);
+                  showOfflineRef.current = val;
+                  updateVisibility();
+                }}
+                style={{ cursor: 'pointer' }}
+              />
+              show offline
+            </label>
+            <button
+              onClick={() => socket.send(JSON.stringify({ type: 'clearNeighborEdges' }))}
+              style={{ background: 'none', border: '1px solid #888', borderRadius: 4, cursor: 'pointer', color: '#ccc', fontSize: 12, padding: '2px 8px' }}
+            >
+              Clear all connections
+            </button>
+          </div>
         </div>
         <div style={{ flex: 1, position: 'relative' }}>
           <svg ref={svgRef} style={{ width: '100%', height: '100%', background: '#1a1a1a', borderRadius: 8 }} />
