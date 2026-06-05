@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 29 (2026-06-02)
 
 ### Changed
+- **NeighborPanel graph view** — nodes are now coloured by live reaction-canvas valence (green/red/yellow) using the same `computeReactionRegion` logic as other projection maps; grey for users with no cursor data yet; no special "you are here" highlight for own node.
+- **NeighborPanel graph view** — new nodes spawn at SVG centre instead of top-left; removed tick-handler coordinate clamping so dragging works correctly when graph is rotated.
+
+### Fixed
+- **NeighborPanel graph** — "node not found" crash (and resulting WSOD) when a link referenced a user ID missing from the nodes array due to server/timing inconsistency; D3 link mutation also caused the same crash on second map open; both resolved by normalising and filtering links in `freshLinks()` before passing to any simulation.
+- **NeighborPanel graph** — nodes now appear/disappear in real time: `userJoined` adds a dot immediately (no need to leave and re-open the graph); `userLeft` removes the dot and any associated edges; `neighborEdgesCleared` also clears all dots; `neighborEdgeAdded` now drives ref updates + `restartSim` directly instead of the unreliable live-patch path.
+- **NeighborPanel graph** — joining users and their prior edges now merge into the live simulation without resetting it; `userJoined` adds the node directly via `addNodeLive`; the subsequent snapshot response merges new nodes/edges incrementally (`addEdgeLive`-style, no flash); `restartSim` is only called on initial graph open or full clears.
+- **NeighborPanel graph view** — added ↺ refresh button to re-randomise the force layout; added ±180° rotation slider beside the flip buttons; removed active-state highlighting from flip buttons since orientation has no canonical "true" state.
+
+### Added
+- **NeighborPanel** — new panel for building a live social graph of nearby audience members; participants see their own 4-digit code and enter neighbours' codes via an on-screen keypad; emcee can view a D3 force-directed map of all connections in real time ([#134](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/134))
+
+### Changed
 - **Perf test CI: add `party` and `room` inputs** — `workflow_dispatch` now accepts a `party` dropdown (`perf`/`main`, default `perf`) and a `room` text field (default `default`); WS URL is constructed dynamically from these inputs. Renames the hard-coded `perf-default` room to `default` throughout the k6 script, `perf:remote` npm script, and `PerfCanvasApp`.
 
 ### Added

@@ -9,16 +9,9 @@ import { computeReactionRegion, DEFAULT_ANCHORS } from '../../../utils/voteRegio
 import type { ReactionAnchors } from '../../../utils/voteRegion';
 import type { MapProjection, MapViewerConfig } from '../../../types';
 import type { MomentSnapshot } from '../AdminPanelNoDB/types';
+import { VOTE_COLORS, USER_STATUS_COLORS, USER_STATUS_LABELS, MISSING_COLOR } from '../../../constants/userStatus';
 
-const VOTE_COLORS: Record<string, string> = {
-  positive: '#2ecc71',
-  negative: '#e74c3c',
-  neutral:  '#f1c40f',
-};
-const MISSING_COLOR = '#b0b0b0';
 const DEFAULT_COLOR = '#4a8';
-const CONNECTED_IDLE_COLOR = '#888';
-const DISCONNECTED_COLOR = '#333';
 
 
 function ScatterPlot({ data, selfId, colorById, flipX, flipY }: { data: [string, [number, number]][]; selfId: string; colorById?: Record<string, string>; flipX?: boolean; flipY?: boolean }) {
@@ -44,8 +37,8 @@ function ScatterPlot({ data, selfId, colorById, flipX, flipY }: { data: [string,
       .sort(([a], [b]) => {
         const priority = (id: string) => {
           const c = colorById?.[id];
-          if (!c || c === DISCONNECTED_COLOR) return 0;
-          if (c === CONNECTED_IDLE_COLOR) return 1;
+          if (!c || c === USER_STATUS_COLORS.offline) return 0;
+          if (c === USER_STATUS_COLORS.idle) return 1;
           return 2;
         };
         return priority(a) - priority(b);
@@ -245,11 +238,11 @@ export default function MapViewerPanel() {
         const cursor = liveCursors.get(id);
         if (cursor) {
           const region = computeReactionRegion(cursor.x, cursor.y, effectiveAnchors);
-          map[id] = region ? (VOTE_COLORS[region] ?? CONNECTED_IDLE_COLOR) : CONNECTED_IDLE_COLOR;
+          map[id] = region ? (VOTE_COLORS[region] ?? USER_STATUS_COLORS.idle) : USER_STATUS_COLORS.idle;
         } else if (connectedUserIds.includes(id)) {
-          map[id] = CONNECTED_IDLE_COLOR;
+          map[id] = USER_STATUS_COLORS.idle;
         } else {
-          map[id] = DISCONNECTED_COLOR;
+          map[id] = USER_STATUS_COLORS.offline;
         }
       }
       return map;
@@ -330,7 +323,12 @@ export default function MapViewerPanel() {
             <span style={{ fontSize: 10, color: '#555', minWidth: 28, textAlign: 'center' }}>{activeMomentIdx + 1}/{moments.length}</span>
             <button onClick={() => setMomentPageIdx(Math.max(0, activeMomentIdx - 1))} disabled={activeMomentIdx <= 0} title="Previous moment" style={btnStyle(false, activeMomentIdx <= 0)}>‹</button>
             <button onClick={() => setMomentPageIdx(Math.min(moments.length - 1, activeMomentIdx + 1))} disabled={activeMomentIdx >= moments.length - 1} title="Next moment" style={btnStyle(false, activeMomentIdx >= moments.length - 1)}>›</button>
-            {([['#2ecc71', 'agree'], ['#e74c3c', 'disagree'], ['#f1c40f', 'pass'], ['#b0b0b0', 'missing']] as [string, string][]).map(([color, label]) => (
+            {([
+                [VOTE_COLORS.positive, 'agree'],
+                [VOTE_COLORS.negative, 'disagree'],
+                [VOTE_COLORS.neutral,  'pass'],
+                [MISSING_COLOR,        'missing'],
+              ] as [string, string][]).map(([color, label]) => (
               <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
                 <span>{label}</span>
@@ -341,7 +339,13 @@ export default function MapViewerPanel() {
         {showNowLegend && (
           <span style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
             <span style={{ color: '#777' }}>live</span>
-            {([['#2ecc71', 'agree'], ['#e74c3c', 'disagree'], ['#f1c40f', 'pass'], ['#888', 'idle'], ['#444', 'offline']] as [string, string][]).map(([color, label]) => (
+            {([
+              [VOTE_COLORS.positive, 'agree'],
+              [VOTE_COLORS.negative, 'disagree'],
+              [VOTE_COLORS.neutral,  'pass'],
+              [USER_STATUS_COLORS.idle,    USER_STATUS_LABELS.idle],
+              [USER_STATUS_COLORS.offline, USER_STATUS_LABELS.offline],
+            ] as [string, string][]).map(([color, label]) => (
               <span key={label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
                 <span>{label}</span>

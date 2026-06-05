@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { idbGet } from "../../utils/idbStorage";
 import type { MapViewerConfig } from "../../types";
 import type { MomentSnapshot } from "../panels/AdminPanelNoDB/types";
+import { VOTE_COLORS, USER_STATUS_COLORS, USER_STATUS_LABELS, MISSING_COLOR } from "../../constants/userStatus";
 
 interface PanelSettingsModalMapViewerProps {
   room: string;
@@ -72,26 +73,26 @@ export default function PanelSettingsModalMapViewer({ room, current, onSubmit, o
           {showVoteLegend && (
             <div style={{ display: 'flex', gap: 12, fontSize: 12, color: '#888', alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#2ecc71', display: 'inline-block' }} /> agree
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: VOTE_COLORS.positive, display: 'inline-block' }} /> agree
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#e74c3c', display: 'inline-block' }} /> disagree
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: VOTE_COLORS.negative, display: 'inline-block' }} /> disagree
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#f1c40f', display: 'inline-block' }} /> pass
+                <span style={{ width: 10, height: 10, borderRadius: '50%', background: VOTE_COLORS.neutral, display: 'inline-block' }} /> pass
               </span>
               {colorMode === 'moment' && (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#b0b0b0', display: 'inline-block' }} /> missing
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: MISSING_COLOR, display: 'inline-block' }} /> missing
                 </span>
               )}
               {colorMode === 'now' && (
                 <>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#888', display: 'inline-block' }} /> idle
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: USER_STATUS_COLORS.idle, display: 'inline-block' }} /> {USER_STATUS_LABELS.idle}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: '#444', display: 'inline-block' }} /> offline
+                    <span style={{ width: 10, height: 10, borderRadius: '50%', background: USER_STATUS_COLORS.offline, display: 'inline-block' }} /> {USER_STATUS_LABELS.offline}
                   </span>
                 </>
               )}
