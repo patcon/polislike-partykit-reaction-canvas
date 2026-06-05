@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file. Releases cut every Monday morning ET; each section header is `## Week N (YYYY-MM-DD)` where the date is the Monday that week starts on, and Week 0 = 2025-11-17.
 
+**Format:** [Keep a Changelog 1.1.0](https://keepachangelog.com/en/1.1.0/) — section types in order: `Added`, `Changed`, `Deprecated`, `Removed`, `Fixed`, `Security`. Weeks are reverse-chronological; bullets within each section are chronological. One set of type sections per week.
+
+**Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) — e.g. `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`.
+
 ## Week 29 (2026-06-02)
 
 ### Added
