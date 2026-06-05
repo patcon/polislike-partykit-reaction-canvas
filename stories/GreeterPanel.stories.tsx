@@ -37,7 +37,7 @@ export const WithBadUrl: Story = {
   args: { greeterConfig: { eventUrl: 'https://example.com' } },
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText(/Unrecognized URL.*Contact the app admin/)).toBeInTheDocument();
+    await expect(canvas.findByText(/Unrecognized URL.*Contact the app admin/)).resolves.toBeInTheDocument();
   },
 };
 

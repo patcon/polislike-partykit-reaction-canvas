@@ -68,9 +68,10 @@ export const NoProjection: Story = {
 
 export const WithGaussianBlob: Story = {
   play: async ({ canvasElement }) => {
+    // defer emit until after usePartySocket's useEffect has subscribed
+    await new Promise(r => requestAnimationFrame(r));
     emitToRoom('storybook', { type: 'connected', mapProjection: GAUSSIAN_PROJECTION, connectedUserIds: [], roomAnchors: null });
     const canvas = within(canvasElement);
-    // findByText waits for the async state update triggered by emitToRoom to flush
     await expect(canvas.findByText(/UMAP/)).resolves.toBeInTheDocument();
   },
 };
