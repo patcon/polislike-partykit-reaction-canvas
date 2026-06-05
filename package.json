@@ -15,6 +15,7 @@
     "cachebust": "node scripts/build-with-cachebust.js",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
+    "chromatic": "pnpm dlx chromatic --project-token=$CHROMATIC_PROJECT_TOKEN",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "perf": "echo 'Observe at: http://localhost:1999/#perf' && k6 run perf/load-test-k6.js",
