@@ -483,8 +483,11 @@ describe('Server onMessage handlers', () => {
   describe('malformed message', () => {
     it('does not throw and does not broadcast', () => {
       const { conn } = connectUser('alice');
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       expect(() => server.onMessage('not json', conn)).not.toThrow();
+      expect(errorSpy).toHaveBeenCalledWith('Failed to parse event:', expect.any(SyntaxError));
       expect(broadcast).not.toHaveBeenCalled();
+      errorSpy.mockRestore();
     });
   });
 });
