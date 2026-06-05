@@ -17,6 +17,7 @@ import SendPopupModal from "./SendPopupModal";
 import PanelSettingsModalReactionCanvas from "./PanelSettingsModalReactionCanvas";
 import PanelSettingsModalVoiceCall from "./PanelSettingsModalVoiceCall";
 import PanelSettingsModalArrivalCanvas from "./PanelSettingsModalArrivalCanvas";
+import SoccerConfigModal from "../../../../plugins/soccer/component";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -296,9 +297,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
         {activeTab === 'interfaces' && (
           <InterfacesTab
             activity={roomConfig.activity}
-            soccerScore={roomConfig.soccerScore}
             sendActivity={roomConfig.sendActivity}
-            resetSoccerScore={roomConfig.resetSoccerScore}
             setImageConfigOpen={roomConfig.setImageConfigOpen}
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
             setGreeterConfigOpen={roomConfig.setGreeterConfigOpen}
@@ -306,6 +305,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
             setVoiceCallConfigOpen={roomConfig.setVoiceCallConfigOpen}
             setMapViewerConfigOpen={roomConfig.setMapViewerConfigOpen}
             setArrivalConfigOpen={roomConfig.setArrivalConfigOpen}
+            setSoccerConfigOpen={roomConfig.setSoccerConfigOpen}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
             userId={userId}
             selfChain={selfChain}
@@ -504,6 +504,13 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
           current={mapViewerConfig ?? null}
           onSubmit={(config) => { onMapViewerConfigChange?.(config); }}
           onClose={() => roomConfig.setMapViewerConfigOpen(false)}
+        />
+      )}
+      {roomConfig.soccerConfigOpen && (
+        <SoccerConfigModal
+          score={roomConfig.soccerScore}
+          onReset={roomConfig.resetSoccerScore}
+          onClose={() => roomConfig.setSoccerConfigOpen(false)}
         />
       )}
     </div>

@@ -5,12 +5,11 @@ import QRWithCopy from '../../../shared/QRWithCopy';
 import type { ActivityMode } from "../../../../types";
 import { appendSelfToChain } from "../../../../utils/inviteChain";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../../../panelRegistry";
+import { PLUGIN_MAP } from "../../../../../plugins/index";
 
 interface InterfacesTabProps {
   activity: ActivityMode;
-  soccerScore: { left: number; right: number };
   sendActivity: (act: ActivityMode) => void;
-  resetSoccerScore: () => void;
   setImageConfigOpen: (v: boolean) => void;
   setSocialConfigOpen: (v: boolean) => void;
   setGreeterConfigOpen: (v: boolean) => void;
@@ -18,6 +17,7 @@ interface InterfacesTabProps {
   setVoiceCallConfigOpen: (v: boolean) => void;
   setMapViewerConfigOpen: (v: boolean) => void;
   setArrivalConfigOpen: (v: boolean) => void;
+  setSoccerConfigOpen: (v: boolean) => void;
   onClearRoleAssignments: () => void;
   userId?: string;
   selfChain?: string[];
@@ -45,10 +45,10 @@ function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[
 
 
 export default function InterfacesTab({
-  activity, soccerScore,
-  sendActivity, resetSoccerScore,
+  activity,
+  sendActivity,
   setImageConfigOpen, setSocialConfigOpen, setGreeterConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
-  setMapViewerConfigOpen, setArrivalConfigOpen,
+  setMapViewerConfigOpen, setArrivalConfigOpen, setSoccerConfigOpen,
   onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
@@ -101,6 +101,9 @@ export default function InterfacesTab({
                   {id === 'arrival-canvas' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setArrivalConfigOpen(true); }}><IoMdSettings /></button>
                   )}
+                  {PLUGIN_MAP[id]?.configModal && (
+                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSoccerConfigOpen(true); }}><IoMdSettings /></button>
+                  )}
                 </td>
                 {/* Solo */}
                 <td style={{ textAlign: 'center', padding: '10px 8px' }}>
@@ -141,20 +144,6 @@ export default function InterfacesTab({
           })}
         </tbody>
       </table>
-
-      {/* Soccer score — shown when soccer is active */}
-      {activity === 'soccer' && (
-        <div style={{ marginTop: 20, borderTop: '1px solid #444', paddingTop: 16 }}>
-          <p style={{ marginBottom: 10, fontWeight: 600 }}>Soccer settings:</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 12 }}>
-            <span style={{ color: '#aaa', fontSize: 15 }}>Score:</span>
-            <span style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 700, color: '#eee' }}>
-              {soccerScore.left} – {soccerScore.right}
-            </span>
-          </div>
-          <button className="v3-admin-btn v3-admin-btn--destructive" onClick={resetSoccerScore}>Reset Score</button>
-        </div>
-      )}
 
       {/* Role assignments */}
       <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>

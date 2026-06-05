@@ -43,6 +43,7 @@ import NeighborPanel from "../panels/NeighborPanel";
 import ScreenLightPanel from "../panels/ScreenLightPanel";
 import LightShowPanel from "../panels/LightShowPanel";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
+import { PLUGIN_MAP } from "../../../plugins/index";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
   'social-sharing': SocialMediaPanel,
@@ -59,6 +60,12 @@ const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = 
   'neighbor':         NeighborPanel,
   'screen-light':     ScreenLightPanel,
   'light-show':       LightShowPanel,
+  // Plugin-provided components (panels distributed as packages)
+  ...Object.fromEntries(
+    Object.entries(PLUGIN_MAP)
+      .filter(([, p]) => p.component)
+      .map(([id, p]) => [id, p.component!])
+  ),
 };
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
