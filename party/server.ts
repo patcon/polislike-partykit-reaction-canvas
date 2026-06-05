@@ -1,7 +1,9 @@
 import type * as Party from "partykit/server";
 import type { ActivityMode, StoryTracerPoint, StoryTracerMeta, MapProjection } from "../app/types";
-// Ghost cursor imports (for demo purposes - can be easily removed)
 import { createNoise2D } from 'simplex-noise';
+import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } from './lib/reactionRegion';
+import type { ReactionAnchors } from './lib/reactionRegion';
+import { getCurrentActiveStatementId, computeNextDisplayTimestamp, computeClearedQueue } from './lib/queueLogic';
 
 interface CursorPosition {
   x: number;
@@ -84,12 +86,6 @@ interface SetRecordingStateEvent {
 interface SetRoomLabelsEvent {
   type: 'setRoomLabels';
   labels: { positive: string; negative: string; neutral: string } | null;
-}
-
-interface ReactionAnchors {
-  positive: { x: number; y: number };
-  negative: { x: number; y: number };
-  neutral:  { x: number; y: number };
 }
 
 interface SetRoomAnchorsEvent {
@@ -282,32 +278,6 @@ interface SetLightColorEvent { type: 'setLightColor'; color: string; brightness:
 
 type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | MapProjectionSetEvent | MapProjectionClearEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent | SetArrivalCapacityEvent | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent | SetLightColorEvent;
 
-// ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
-const DEFAULT_ANCHORS = {
-  positive: { x: 95, y: 5  },
-  negative: { x: 5,  y: 95 },
-  neutral:  { x: 95, y: 95 },
-};
-
-function computeReactionRegionServer(nx: number, ny: number, anchors: ReactionAnchors): 'positive' | 'negative' | 'neutral' | null {
-  const x = nx / 100, y = ny / 100;
-  const pos = { x: anchors.positive.x / 100, y: anchors.positive.y / 100 };
-  const neg = { x: anchors.negative.x / 100, y: anchors.negative.y / 100 };
-  const neu = { x: anchors.neutral.x  / 100, y: anchors.neutral.y  / 100 };
-  const denom = (neg.y - neu.y) * (pos.x - neu.x) + (neu.x - neg.x) * (pos.y - neu.y);
-  if (Math.abs(denom) < 1e-10) {
-    const dp = Math.hypot(x - pos.x, y - pos.y);
-    const dn = Math.hypot(x - neg.x, y - neg.y);
-    const du = Math.hypot(x - neu.x, y - neu.y);
-    const m = Math.min(dp, dn, du);
-    return m === dp ? 'positive' : m === dn ? 'negative' : 'neutral';
-  }
-  const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
-  const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
-  const wNeu = 1 - wPos - wNeg;
-  const max = Math.max(wPos, wNeg, wNeu);
-  return max === wPos ? 'positive' : max === wNeg ? 'negative' : 'neutral';
-}
 
 // ===== SOCCER PHYSICS CONSTANTS =====
 const SOCCER_BALL_R = 2;      // % of canvas
@@ -452,7 +422,7 @@ export default class Server implements Party.Server {
   }
 
   private getTargetConnections(targetUserId?: string, targetRegion?: 'positive' | 'negative' | 'neutral' | null, targetUserIds?: string[]): Party.Connection[] {
-    const anchors = this.roomAnchors ?? DEFAULT_ANCHORS;
+    const anchors = this.roomAnchors ?? REACTION_DEFAULT_ANCHORS;
     return [...this.room.getConnections()].filter(conn => {
       if (this.adminConnectionIds.has(conn.id)) return false;
       const userId = this.connectionUserMap.get(conn.id);
@@ -461,7 +431,7 @@ export default class Server implements Party.Server {
       if (targetUserIds !== undefined) return targetUserIds.includes(userId);
       const pos = this.cursorPositions.get(userId);
       if (!pos) return targetRegion === null;
-      return computeReactionRegionServer(pos.x, pos.y, anchors) === targetRegion;
+      return computeReactionRegion(pos.x, pos.y, anchors) === targetRegion;
     });
   }
 
@@ -1051,28 +1021,8 @@ export default class Server implements Party.Server {
 
   private queueStatement(statementId: number) {
     const now = Date.now();
-
-    // Find the latest *future* or *past* displayTimestamp
-    // i.e. the most recently scheduled statement
-    let lastTimestamp = now;
-
-    if (this.allSelectedStatements.length > 0) {
-      const latest = this.allSelectedStatements.reduce((a, b) =>
-        a.displayTimestamp > b.displayTimestamp ? a : b
-      );
-      lastTimestamp = latest.displayTimestamp;
-    }
-
-    // Special rule: if active statement is -1, add immediately
-    const currentActive = this.getCurrentActiveStatementId();
-    const displayTimestamp =
-      currentActive === -1
-        ? now
-        : lastTimestamp + 10_000;   // ← 10s after last queued item's timestamp
-
-    const queueItem: QueueItem = { statementId, displayTimestamp };
-    this.allSelectedStatements.push(queueItem);
-
+    const displayTimestamp = computeNextDisplayTimestamp(this.allSelectedStatements, now);
+    this.allSelectedStatements.push({ statementId, displayTimestamp });
     this.room.broadcast(JSON.stringify({
       type: 'queueUpdated',
       allSelectedStatements: this.allSelectedStatements,
@@ -1081,33 +1031,11 @@ export default class Server implements Party.Server {
   }
 
   private getCurrentActiveStatementId(): number {
-    const now = Date.now();
-    // Find the most recent statement that should be displayed
-    const displayedStatements = this.allSelectedStatements
-      .filter(item => item.displayTimestamp <= now)
-      .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
-
-    if (displayedStatements.length > 0) {
-      return displayedStatements[0].statementId;
-    }
-
-    // Default to statement 1 if no statements have been queued yet
-    return 1;
+    return getCurrentActiveStatementId(this.allSelectedStatements, Date.now());
   }
 
   private clearQueue() {
-    const now = Date.now();
-
-    // Keep only the currently active statement (most recent past statement)
-    // Remove all future queued statements
-    const pastStatements = this.allSelectedStatements
-      .filter(item => item.displayTimestamp <= now)
-      .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
-
-    // Keep only the most recent past statement (current active) if it exists
-    this.allSelectedStatements = pastStatements.length > 0 ? [pastStatements[0]] : [];
-
-    // Broadcast queue update
+    this.allSelectedStatements = computeClearedQueue(this.allSelectedStatements, Date.now());
     this.room.broadcast(JSON.stringify({
       type: 'queueUpdated',
       allSelectedStatements: this.allSelectedStatements,
