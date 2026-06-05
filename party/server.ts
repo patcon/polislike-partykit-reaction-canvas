@@ -4,8 +4,10 @@ import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } fr
 import type { ReactionAnchors } from './lib/reactionRegion';
 import { getCurrentActiveStatementId, computeNextDisplayTimestamp, computeClearedQueue } from './lib/queueLogic';
 import type { QueueItem } from './lib/queueLogic';
-import { SoccerPhysicsEngine } from './lib/soccerPhysics';
 import { GhostCursorManager } from './lib/ghostCursors';
+import { PLUGIN_MAP } from '../plugins/index';
+import type { PluginContext } from '../plugins/types';
+import { getSoccerBallState, getSoccerScore } from '../plugins/soccer/server';
 import type {
   CursorEvent, PolisStatement, Vote, PersistedState, ClientEvent,
   PlaybackCursorBroadcastEvent, StatementEvent, UpdateStatementsPoolEvent,
@@ -67,9 +69,10 @@ export default class Server implements Party.Server {
   private neighborEdges = new Set<string>();          // canonical "userA|userB" strings
   private lightColor: { color: string; brightness: number } = { color: '#000000', brightness: 100 };
 
-  private soccer = new SoccerPhysicsEngine(
-    (msg) => this.room.broadcast(msg),
-    () => this.cursorPositions,
+  private pluginStates = new Map<string, unknown>(
+    Object.entries(PLUGIN_MAP)
+      .filter(([, p]) => p.server)
+      .map(([id, p]) => [id, p.server!.createState()]),
   );
   private ghosts = new GhostCursorManager(
     (msg) => this.room.broadcast(msg),
@@ -77,6 +80,13 @@ export default class Server implements Party.Server {
   );
 
   constructor(readonly room: Party.Room) {}
+
+  private makePluginContext(): PluginContext {
+    return {
+      broadcast: (msg) => this.room.broadcast(msg),
+      getCursorPositions: () => this.cursorPositions,
+    };
+  }
 
   private get persistenceEnabled(): boolean {
     return this.room.env.DISABLE_STORAGE_PERSISTENCE !== 'true';
@@ -253,8 +263,8 @@ export default class Server implements Party.Server {
       nowLabel: this.nowLabel,
       roomSocialConfig: this.roomSocialConfig,
       greeterConfig: this.greeterConfig,
-      ballState: this.currentActivity === 'soccer' ? this.soccer.ballState : null,
-      soccerScore: this.soccer.score,
+      ballState: this.currentActivity === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
+      soccerScore: getSoccerScore(this.pluginStates.get('soccer')),
       isViewer,
       userCap: this.userCap,
       viewerCount: vCount,
@@ -275,6 +285,11 @@ export default class Server implements Party.Server {
       myNeighborCode: this.neighborCodes.get(userId) ?? null,
       lightColor: this.lightColor,
     }));
+
+    const pluginCtx = this.makePluginContext();
+    for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+      if (plugin.server) plugin.server.onConnect(conn, pluginCtx, this.pluginStates.get(id), this.currentActivity);
+    }
   }
 
   onClose(conn: Party.Connection) {
@@ -335,6 +350,13 @@ export default class Server implements Party.Server {
 
     try {
       const event: ClientEvent = JSON.parse(message);
+
+      // Plugin message router — runs before the main switch; return early if handled
+      const pluginCtx = this.makePluginContext();
+      for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+        if (plugin.server?.onMessage(event.type, event, sender, pluginCtx, this.pluginStates.get(id), this.currentActivity)) return;
+      }
+
       switch (event.type) {
         case 'playbackCursorBroadcast': this.handlePlaybackCursorBroadcast(event); break;
         case 'move':
@@ -353,7 +375,6 @@ export default class Server implements Party.Server {
         case 'setActivity': this.handleSetActivity(event); break;
         case 'setNowLabel': this.handleSetNowLabel(event); break;
         case 'setImageUrl': this.handleSetImageUrl(event); break;
-        case 'resetSoccerScore': this.soccer.resetScore(); break;
         case 'setUserCap': this.handleSetUserCap(event, sender); break;
         case 'triggerActivity': this.handleTriggerActivity(event); break;
         case 'submitGithubUsername': this.handleSubmitGithubUsername(event); break;
@@ -479,20 +500,23 @@ export default class Server implements Party.Server {
     this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
   }
 
-  // --- Soccer handlers ---
-
   private handleSetActivity(event: SetActivityEvent): void {
+    const prevActivity = this.currentActivity;
     this.currentActivity = event.activity;
-    if (event.activity === 'soccer') {
-      this.soccer.start();
-    } else {
-      this.soccer.stop();
-    }
+    const ctx = this.makePluginContext();
+
+    const prevPlugin = PLUGIN_MAP[prevActivity];
+    if (prevPlugin?.server) prevPlugin.server.onDeactivate(ctx, this.pluginStates.get(prevActivity));
+
+    const nextPlugin = PLUGIN_MAP[this.currentActivity];
+    if (nextPlugin?.server) nextPlugin.server.onActivate(ctx, this.pluginStates.get(this.currentActivity));
+
+    const soccerState = this.pluginStates.get('soccer');
     this.room.broadcast(JSON.stringify({
       type: 'activityChanged',
       activity: this.currentActivity,
-      ball: this.currentActivity === 'soccer' ? this.soccer.ballState : null,
-      score: this.soccer.score,
+      ball: this.currentActivity === 'soccer' ? getSoccerBallState(soccerState) : null,
+      score: getSoccerScore(soccerState),
     }));
   }
 
