@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import ScreenLightPanel from '../app/components/panels/ScreenLightPanel';
 import { PanelContextProvider } from '../app/context/PanelContext';
 import { emitToRoom } from '../.storybook/mocks/partysocket-react';
@@ -20,10 +20,16 @@ const meta = {
       </div>
     ),
   ],
+  argTypes: {
+    color:      { control: 'color', description: 'Light color' },
+    brightness: { control: { type: 'range', min: 0, max: 100, step: 1 }, description: 'Brightness (0–100%)' },
+  },
   args: {
     room: ROOM,
     userId: 'story-user',
     inviteEdges: {},
+    color: '#ff0000',
+    brightness: 100,
   },
 } satisfies Meta;
 
@@ -32,13 +38,25 @@ type Story = StoryObj<typeof meta>;
 
 // ===== Drivers =====
 
-function IdleDriver({ room }: { room: string }) {
+function DefaultDriver({ room, color, brightness }: { room: string; color: string; brightness: number }) {
+  const mounted = useRef(false);
+
+  // Defer the connected message until after siblings have subscribed
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
-      emitToRoom(room, { type: 'connected', lightColor: { color: '#000000', brightness: 100 } });
+      emitToRoom(room, { type: 'connected', lightColor: { color, brightness } });
+      mounted.current = true;
     });
     return () => cancelAnimationFrame(raf);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room]);
+
+  // Push control changes after the initial connected message has been sent
+  useEffect(() => {
+    if (!mounted.current) return;
+    emitToRoom(room, { type: 'lightColor', color, brightness });
+  }, [room, color, brightness]);
+
   return null;
 }
 
@@ -84,13 +102,13 @@ function BrightnessPulseDriver({ room, periodMs = 3000 }: { room: string; period
 
 // ===== Stories =====
 
-export const Idle: Story = {
-  name: 'Idle (black, no incoming messages)',
+export const Default: Story = {
+  name: 'Default (color + brightness controls)',
   render: (args) => {
-    const room = (args as any).room ?? ROOM;
+    const a = args as any;
     return (
       <>
-        <IdleDriver room={room} />
+        <DefaultDriver room={a.room ?? ROOM} color={a.color} brightness={a.brightness} />
         <ScreenLightPanel />
       </>
     );
