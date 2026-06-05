@@ -8,7 +8,17 @@ import { SoccerPhysicsEngine } from './lib/soccerPhysics';
 import { GhostCursorManager } from './lib/ghostCursors';
 import type {
   CursorEvent, PolisStatement, Vote, PersistedState, ClientEvent,
-  PlaybackCursorBroadcastEvent,
+  PlaybackCursorBroadcastEvent, StatementEvent, UpdateStatementsPoolEvent,
+  SetTimecodeEvent, SetRecordingStateEvent, SetRoomLabelsEvent, SetRoomAnchorsEvent,
+  SetRoomAvatarStyleEvent, SetActivityEvent, SetNowLabelEvent, SetImageUrlEvent,
+  SetUserCapEvent, TriggerActivityEvent, SubmitGithubUsernameEvent, SubmitFeedbackStarsEvent,
+  SetSocialConfigEvent, SetGreeterConfigEvent, PushInterfaceEvent, AcceptInterfaceEvent,
+  PushHapticEvent, RegisterCustomAvatarEvent, SetColorCursorsByVoteEvent,
+  SetDefaultCursorColorEvent, SetOwnValenceDisplayEvent, SetValenceInputModeEvent,
+  RecordInvitationsEvent, StenoStartRecordingEvent, StenoStopRecordingEvent,
+  StenoAppendTextEvent, StenoSetTextEvent, StoryTracerSetPointsEvent, MapProjectionSetEvent,
+  WebRTCOfferEvent, WebRTCAnswerEvent, WebRTCIceEvent, HangUpCallEvent,
+  SetCallAlgorithmEvent, SetArrivalCapacityEvent, NeighborEdgeEvent, SetLightColorEvent,
 } from './types';
 
 export default class Server implements Party.Server {
@@ -325,319 +335,464 @@ export default class Server implements Party.Server {
 
     try {
       const event: ClientEvent = JSON.parse(message);
-
-      if (event.type === 'playbackCursorBroadcast') {
-        // Admin replaying recorded events — broadcast to ALL clients (including sender)
-        // so the admin's own "Peek Canvas" tab also sees playback cursors
-        this.room.broadcast(JSON.stringify({
-          type: event.cursorType,
-          position: {
-            ...event.position,
-            isPlayback: true,
-          },
-        }));
-      } else if ('position' in event) {
-        // Handle cursor events
-        const isFirstAppearance = (event.type === 'move' || event.type === 'touch') && !this.cursorPositions.has(event.position.userId);
-        if (isFirstAppearance) console.log(`Cursor appeared for ${event.position.userId} via ${event.type}`);
-        else if (event.type === 'remove') console.log(`Cursor removed for ${event.position.userId}`);
-        // Track cursor positions for soccer physics
-        if (event.type === 'move' || event.type === 'touch') {
-          this.cursorPositions.set(event.position.userId, { x: event.position.x, y: event.position.y });
-        } else if (event.type === 'remove') {
-          this.cursorPositions.delete(event.position.userId);
-        }
-        // Broadcast the cursor event to all other connections
-        this.room.broadcast(message, [sender.id]);
-      } else if (event.type === 'setActiveStatement') {
-        // Handle immediate statement change events (legacy support)
-        console.log(`Statement change from ${sender.id}:`, event.statementId);
-        this.activeStatementId = event.statementId;
-        // Broadcast the statement change to all connections
-        this.room.broadcast(JSON.stringify({
-          type: 'activeStatementChanged',
-          statementId: this.activeStatementId
-        }));
-      } else if (event.type === 'queueStatement') {
-        // Handle queuing statement events
-        console.log(`Queue statement from ${sender.id}:`, event.statementId);
-        this.queueStatement(event.statementId);
-      } else if (event.type === 'clearQueue') {
-        // Handle clearing the queue
-        console.log(`Clear queue from ${sender.id}`);
-        this.clearQueue();
-      } else if (event.type === 'updateStatementsPool') {
-        // Handle statements pool updates from client
-        if (event.conversationId) {
-          console.log(`Statements pool update from ${sender.id} via Polis conversation:`, event.conversationId);
-          this.updateStatementsPool(undefined, event.conversationId, event.baseUrl);
-        } else if (event.json) {
-          console.log(`Statements pool update from ${sender.id} via JSON data:`, event.json.length, 'items');
-          this.updateStatementsPool(event.json);
-        } else {
-          console.log(`Invalid statements pool update from ${sender.id}: no json or conversationId provided`);
-        }
-      } else if (event.type === 'setGhostCursors') {
-        // Handle ghost cursor setting changes
-        console.log(`Ghost cursor setting from ${sender.id}:`, event.enabled);
-        this.ghosts.setEnabled(event.enabled);
-      } else if (event.type === 'setTimecode') {
-        this.savedTimecode = event.timecode;
-        this.room.broadcast(JSON.stringify({ type: 'timecodeUpdate', timecode: this.savedTimecode }));
-      } else if (event.type === 'setRecordingState') {
-        this.recordingState = event.recording;
-        this.room.broadcast(JSON.stringify({ type: 'recordingStateChanged', recording: this.recordingState }));
-      } else if (event.type === 'setRoomLabels') {
-        this.roomLabels = event.labels;
-        this.room.broadcast(JSON.stringify({ type: 'roomLabelsChanged', labels: this.roomLabels }));
-      } else if (event.type === 'setRoomAnchors') {
-        this.roomAnchors = event.anchors;
-        this.room.broadcast(JSON.stringify({ type: 'roomAnchorsChanged', anchors: this.roomAnchors }));
-      } else if (event.type === 'setRoomAvatarStyle') {
-        this.roomAvatarStyle = event.avatarStyle;
-        this.room.broadcast(JSON.stringify({ type: 'roomAvatarStyleChanged', avatarStyle: this.roomAvatarStyle }));
-      } else if (event.type === 'setActivity') {
-        this.currentActivity = event.activity;
-        if (event.activity === 'soccer') {
-          this.soccer.start();
-        } else {
-          this.soccer.stop();
-        }
-        this.room.broadcast(JSON.stringify({
-          type: 'activityChanged',
-          activity: this.currentActivity,
-          ball: this.currentActivity === 'soccer' ? this.soccer.ballState : null,
-          score: this.soccer.score,
-        }));
-      } else if (event.type === 'setNowLabel') {
-        this.nowLabel = event.label;
-        this.room.broadcast(JSON.stringify({ type: 'nowLabelChanged', label: this.nowLabel }));
-      } else if (event.type === 'setImageUrl') {
-        this.roomImageUrl = event.url;
-        this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
-      } else if (event.type === 'resetSoccerScore') {
-        this.soccer.resetScore();
-      } else if (event.type === 'setUserCap') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.userCap = event.cap;
-        this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
-      } else if (event.type === 'triggerActivity') {
-        const msg = JSON.stringify({ type: 'activityTriggered', activityName: event.activityName });
-        const hasTarget = event.targetUserId !== undefined || event.targetRegion !== undefined || event.targetUserIds !== undefined;
-        if (hasTarget) {
-          const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
-          for (const conn of targets) conn.send(msg);
-        } else {
-          this.room.broadcast(msg);
-        }
-      } else if (event.type === 'submitGithubUsername') {
-        const submission = {
-          username: event.username,
-          displayName: event.displayName,
-          avatarUrl: event.avatarUrl,
-          timestamp: event.timestamp || Date.now(),
-        };
-        this.githubSubmissions.push(submission);
-        // Broadcast to admins so they see it live
-        this.room.broadcast(JSON.stringify({ type: 'githubUsernameSubmitted', ...submission }));
-      } else if (event.type === 'submitFeedbackStars') {
-        this.room.broadcast(JSON.stringify({ type: 'feedbackStarsSubmitted', userId: event.userId, stars: event.stars, timestamp: event.timestamp || Date.now() }));
-      } else if (event.type === 'setSocialConfig') {
-        this.roomSocialConfig = event.config;
-        this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
-        void this.persistState();
-      } else if (event.type === 'setGreeterConfig') {
-        this.greeterConfig = event.config;
-        this.room.broadcast(JSON.stringify({ type: 'greeterConfigChanged', config: this.greeterConfig }));
-      } else if (event.type === 'requestJoin') {
-        if (!this.viewerConnectionIds.has(sender.id)) return;
-        if (this.userCap !== null && this.participantCount() >= this.userCap) {
-          sender.send(JSON.stringify({ type: 'joinDenied' }));
-          return;
-        }
-        this.viewerConnectionIds.delete(sender.id);
-        const count = this.participantCount();
-        const vCount = this.viewerCount();
-        sender.send(JSON.stringify({ type: 'joinApproved' }));
-        this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }), [sender.id]);
-        sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
-      } else if (event.type === 'clearPushedInterfaces') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.room.broadcast(JSON.stringify({ type: 'pushedInterfacesCleared' }));
-      } else if (event.type === 'pushInterface') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
-        const msg = JSON.stringify({ type: 'interfacePushed', interfaceName: event.interfaceName, payload: event.payload ?? {} });
-        for (const conn of targets) conn.send(msg);
-      } else if (event.type === 'pushHaptic') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
-        const msg = JSON.stringify({ type: 'hapticPushed' });
-        for (const conn of targets) conn.send(msg);
-      } else if (event.type === 'acceptInterface') {
-        const userId = this.connectionUserMap.get(sender.id);
-        if (!userId) return;
-        const msg = JSON.stringify({ type: 'interfaceAccepted', userId, interfaceName: event.interfaceName });
-        for (const conn of this.room.getConnections()) {
-          if (this.adminConnectionIds.has(conn.id)) conn.send(msg);
-        }
-      } else if (event.type === 'setOwnValenceDisplay') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.ownValenceDisplay = event.mode;
-        this.room.broadcast(JSON.stringify({ type: 'ownValenceDisplayChanged', ownValenceDisplay: this.ownValenceDisplay }));
-      } else if (event.type === 'setValenceInputMode') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.valenceInputMode = event.mode;
-        this.room.broadcast(JSON.stringify({ type: 'valenceInputModeChanged', valenceInputMode: this.valenceInputMode }));
-      } else if (event.type === 'setDefaultCursorColor') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.defaultCursorColor = event.color;
-        this.room.broadcast(JSON.stringify({ type: 'defaultCursorColorChanged', defaultCursorColor: this.defaultCursorColor }));
-      } else if (event.type === 'setColorCursorsByVote') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.colorCursorsByVote = event.enabled;
-        this.room.broadcast(JSON.stringify({ type: 'colorCursorsByVoteChanged', colorCursorsByVote: this.colorCursorsByVote }));
-      } else if (event.type === 'registerCustomAvatar') {
-        this.customAvatars.set(event.userId, event.photoUrl);
-        this.room.broadcast(JSON.stringify({ type: 'customAvatarsChanged', customAvatars: Object.fromEntries(this.customAvatars) }));
-      } else if (event.type === 'recordInvitations') {
-        const newEdges: Array<[string, string]> = [];
-        for (const [inviterId, inviteeId] of event.edges) {
-          if (!this.inviteEdges.has(inviteeId)) {
-            this.inviteEdges.set(inviteeId, inviterId);
-            newEdges.push([inviterId, inviteeId]);
-          }
-        }
-        if (newEdges.length > 0) {
-          this.room.broadcast(JSON.stringify({ type: 'inviteEdges', edges: newEdges }));
-        }
-      } else if (event.type === 'strokeSegment') {
-        this.room.broadcast(message);
-      } else if (event.type === 'clearSignature') {
-        this.room.broadcast(JSON.stringify({ type: 'signatureCleared', userId: event.userId }));
-      } else if (event.type === 'stenoStartRecording') {
-        if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) {
-          sender.send(JSON.stringify({ type: 'stenoLockDenied', lockHolderUserId: this.stenoLockUserId }));
-          return;
-        }
-        this.stenoLockUserId = event.userId;
-        this.room.broadcast(JSON.stringify({ type: 'stenoLockAcquired', userId: event.userId }));
-      } else if (event.type === 'stenoStopRecording') {
-        if (this.stenoLockUserId !== event.userId) return;
-        this.stenoLockUserId = null;
-        this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId: event.userId }));
-      } else if (event.type === 'stenoAppendText') {
-        if (this.stenoLockUserId !== event.userId) return;
-        this.stenoVtt += '\n' + event.text + '\n';
-        this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
-        void this.persistState();
-      } else if (event.type === 'stenoSetText') {
-        if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) return;
-        this.stenoVtt = event.text;
-        this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
-        void this.persistState();
-      } else if (event.type === 'storyTracerSetPoints') {
-        this.storyTracerPoints = event.points;
-        this.storyTracerMeta = event.meta;
-        void this.persistState();
-        this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: event.points, meta: event.meta }));
-      } else if (event.type === 'storyTracerClearPoints') {
-        this.storyTracerPoints = null;
-        this.storyTracerMeta = null;
-        void this.persistState();
-        this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: null, meta: null }));
-      } else if (event.type === 'mapProjectionSet') {
-        this.mapProjection = event.projection;
-        void this.persistState();
-        this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: event.projection }));
-      } else if (event.type === 'mapProjectionClear') {
-        this.mapProjection = null;
-        void this.persistState();
-        this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: null }));
-      } else if (event.type === 'joinCallQueue') {
-        const senderId = this.connectionUserMap.get(sender.id);
-        if (!senderId) return;
-        if (this.callPairs.has(senderId)) return; // already in a call
-        if (this.callQueue.length > 0) {
-          const waiterId = this.callQueue.shift()!;
-          this.callPairs.set(waiterId, senderId);
-          this.callPairs.set(senderId, waiterId);
-          for (const conn of this.getTargetConnections(waiterId)) {
-            conn.send(JSON.stringify({ type: 'callPaired', role: 'initiator', peerId: senderId }));
-          }
-          sender.send(JSON.stringify({ type: 'callPaired', role: 'receiver', peerId: waiterId }));
-        } else {
-          this.callQueue.push(senderId);
-          sender.send(JSON.stringify({ type: 'callQueued' }));
-        }
-      } else if (event.type === 'leaveCallQueue') {
-        const senderId = this.connectionUserMap.get(sender.id);
-        if (!senderId) return;
-        const idx = this.callQueue.indexOf(senderId);
-        if (idx !== -1) this.callQueue.splice(idx, 1);
-      } else if (event.type === 'webrtcOffer' || event.type === 'webrtcAnswer' || event.type === 'webrtcIce') {
-        const senderId = this.connectionUserMap.get(sender.id);
-        if (!senderId) return;
-        const parsed = JSON.parse(message) as Record<string, unknown>;
-        for (const conn of this.getTargetConnections(event.targetUserId)) {
-          conn.send(JSON.stringify({ ...parsed, fromUserId: senderId }));
-        }
-      } else if (event.type === 'hangUp') {
-        const senderId = this.connectionUserMap.get(sender.id);
-        if (!senderId) return;
-        this.callPairs.delete(senderId);
-        const peerId = event.targetUserId;
-        this.callPairs.delete(peerId);
-        for (const conn of this.getTargetConnections(peerId)) {
-          conn.send(JSON.stringify({ type: 'hangUp', fromUserId: senderId }));
-        }
-      } else if (event.type === 'setCallAlgorithm') {
-        if (this.adminConnectionIds.has(sender.id)) {
-          this.callAlgorithm = event.algorithm;
-        }
-      } else if (event.type === 'setArrivalCapacity') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.arrivalCapacity = event.capacity;
-        this.room.broadcast(JSON.stringify({ type: 'arrivalCapacityChanged', capacity: this.arrivalCapacity }));
-      } else if (event.type === 'neighborEdge') {
-        const fromUserId = this.connectionUserMap.get(sender.id);
-        if (!fromUserId) return;
-        const toCode = event.toCode;
-        if (this.neighborCodes.get(fromUserId) === toCode) {
-          sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'self' }));
-          return;
-        }
-        let toUserId: string | null = null;
-        for (const [uid, code] of this.neighborCodes) {
-          if (code === toCode) { toUserId = uid; break; }
-        }
-        if (!toUserId) {
-          sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'not_found' }));
-          return;
-        }
-        const canonical = [fromUserId, toUserId].sort().join('|');
-        if (this.neighborEdges.has(canonical)) {
-          sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'duplicate' }));
-          return;
-        }
-        this.neighborEdges.add(canonical);
-        const [userA, userB] = canonical.split('|');
-        this.room.broadcast(JSON.stringify({ type: 'neighborEdgeAdded', userA, userB }));
-      } else if (event.type === 'requestNeighborEdges') {
-        const edges = [...this.neighborEdges].map(e => { const [userA, userB] = e.split('|'); return { userA, userB }; });
-        const allCodes = Object.fromEntries(this.neighborCodes);
-        sender.send(JSON.stringify({ type: 'neighborEdgesSnapshot', edges, allCodes }));
-      } else if (event.type === 'clearNeighborEdges') {
-        this.neighborEdges.clear();
-        this.room.broadcast(JSON.stringify({ type: 'neighborEdgesCleared' }));
-      } else if (event.type === 'setLightColor') {
-        this.lightColor = { color: event.color, brightness: event.brightness };
-        this.room.broadcast(JSON.stringify({ type: 'lightColor', color: event.color, brightness: event.brightness }));
+      switch (event.type) {
+        case 'playbackCursorBroadcast': this.handlePlaybackCursorBroadcast(event); break;
+        case 'move':
+        case 'touch':
+        case 'remove': this.handleCursorEvent(event, message, sender); break;
+        case 'setActiveStatement': this.handleSetActiveStatement(event, sender); break;
+        case 'queueStatement': this.queueStatement(event.statementId); break;
+        case 'clearQueue': this.clearQueue(); break;
+        case 'updateStatementsPool': this.handleUpdateStatementsPool(event, sender); break;
+        case 'setGhostCursors': this.ghosts.setEnabled(event.enabled); break;
+        case 'setTimecode': this.handleSetTimecode(event); break;
+        case 'setRecordingState': this.handleSetRecordingState(event); break;
+        case 'setRoomLabels': this.handleSetRoomLabels(event); break;
+        case 'setRoomAnchors': this.handleSetRoomAnchors(event); break;
+        case 'setRoomAvatarStyle': this.handleSetRoomAvatarStyle(event); break;
+        case 'setActivity': this.handleSetActivity(event); break;
+        case 'setNowLabel': this.handleSetNowLabel(event); break;
+        case 'setImageUrl': this.handleSetImageUrl(event); break;
+        case 'resetSoccerScore': this.soccer.resetScore(); break;
+        case 'setUserCap': this.handleSetUserCap(event, sender); break;
+        case 'triggerActivity': this.handleTriggerActivity(event); break;
+        case 'submitGithubUsername': this.handleSubmitGithubUsername(event); break;
+        case 'submitFeedbackStars': this.handleSubmitFeedbackStars(event); break;
+        case 'setSocialConfig': this.handleSetSocialConfig(event); break;
+        case 'setGreeterConfig': this.handleSetGreeterConfig(event); break;
+        case 'requestJoin': this.handleRequestJoin(sender); break;
+        case 'clearPushedInterfaces': this.handleClearPushedInterfaces(sender); break;
+        case 'pushInterface': this.handlePushInterface(event, sender); break;
+        case 'pushHaptic': this.handlePushHaptic(event, sender); break;
+        case 'acceptInterface': this.handleAcceptInterface(event, sender); break;
+        case 'setOwnValenceDisplay': this.handleSetOwnValenceDisplay(event, sender); break;
+        case 'setValenceInputMode': this.handleSetValenceInputMode(event, sender); break;
+        case 'setDefaultCursorColor': this.handleSetDefaultCursorColor(event, sender); break;
+        case 'setColorCursorsByVote': this.handleSetColorCursorsByVote(event, sender); break;
+        case 'registerCustomAvatar': this.handleRegisterCustomAvatar(event); break;
+        case 'recordInvitations': this.handleRecordInvitations(event); break;
+        case 'strokeSegment': this.room.broadcast(message); break;
+        case 'clearSignature': this.room.broadcast(JSON.stringify({ type: 'signatureCleared', userId: event.userId })); break;
+        case 'stenoStartRecording': this.handleStenoStartRecording(event, sender); break;
+        case 'stenoStopRecording': this.handleStenoStopRecording(event); break;
+        case 'stenoAppendText': this.handleStenoAppendText(event); break;
+        case 'stenoSetText': this.handleStenoSetText(event); break;
+        case 'storyTracerSetPoints': this.handleStoryTracerSetPoints(event); break;
+        case 'storyTracerClearPoints': this.handleStoryTracerClearPoints(); break;
+        case 'mapProjectionSet': this.handleMapProjectionSet(event); break;
+        case 'mapProjectionClear': this.handleMapProjectionClear(); break;
+        case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
+        case 'leaveCallQueue': this.handleLeaveCallQueue(sender); break;
+        case 'webrtcOffer':
+        case 'webrtcAnswer':
+        case 'webrtcIce': this.handleWebrtcSignaling(event, sender); break;
+        case 'hangUp': this.handleHangUp(event, sender); break;
+        case 'setCallAlgorithm': this.handleSetCallAlgorithm(event, sender); break;
+        case 'setArrivalCapacity': this.handleSetArrivalCapacity(event, sender); break;
+        case 'neighborEdge': this.handleNeighborEdge(event, sender); break;
+        case 'requestNeighborEdges': this.handleRequestNeighborEdges(sender); break;
+        case 'clearNeighborEdges': this.handleClearNeighborEdges(); break;
+        case 'setLightColor': this.handleSetLightColor(event); break;
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
     }
   }
+
+  // --- Cursor handlers ---
+
+  private handlePlaybackCursorBroadcast(event: PlaybackCursorBroadcastEvent): void {
+    // Admin replaying recorded events — broadcast to ALL clients (including sender)
+    // so the admin's own "Peek Canvas" tab also sees playback cursors
+    this.room.broadcast(JSON.stringify({
+      type: event.cursorType,
+      position: { ...event.position, isPlayback: true },
+    }));
+  }
+
+  private handleCursorEvent(event: CursorEvent, message: string, sender: Party.Connection): void {
+    const isFirstAppearance = (event.type === 'move' || event.type === 'touch') && !this.cursorPositions.has(event.position.userId);
+    if (isFirstAppearance) console.log(`Cursor appeared for ${event.position.userId} via ${event.type}`);
+    else if (event.type === 'remove') console.log(`Cursor removed for ${event.position.userId}`);
+    if (event.type === 'move' || event.type === 'touch') {
+      this.cursorPositions.set(event.position.userId, { x: event.position.x, y: event.position.y });
+    } else if (event.type === 'remove') {
+      this.cursorPositions.delete(event.position.userId);
+    }
+    this.room.broadcast(message, [sender.id]);
+  }
+
+  // --- Statement / queue handlers ---
+
+  private handleSetActiveStatement(event: StatementEvent, sender: Party.Connection): void {
+    console.log(`Statement change from ${sender.id}:`, event.statementId);
+    this.activeStatementId = event.statementId;
+    this.room.broadcast(JSON.stringify({ type: 'activeStatementChanged', statementId: this.activeStatementId }));
+  }
+
+  private handleUpdateStatementsPool(event: UpdateStatementsPoolEvent, sender: Party.Connection): void {
+    if (event.conversationId) {
+      console.log(`Statements pool update from ${sender.id} via Polis conversation:`, event.conversationId);
+      void this.updateStatementsPool(undefined, event.conversationId, event.baseUrl);
+    } else if (event.json) {
+      console.log(`Statements pool update from ${sender.id} via JSON data:`, event.json.length, 'items');
+      void this.updateStatementsPool(event.json);
+    } else {
+      console.log(`Invalid statements pool update from ${sender.id}: no json or conversationId provided`);
+    }
+  }
+
+  // --- Room config handlers ---
+
+  private handleSetTimecode(event: SetTimecodeEvent): void {
+    this.savedTimecode = event.timecode;
+    this.room.broadcast(JSON.stringify({ type: 'timecodeUpdate', timecode: this.savedTimecode }));
+  }
+
+  private handleSetRecordingState(event: SetRecordingStateEvent): void {
+    this.recordingState = event.recording;
+    this.room.broadcast(JSON.stringify({ type: 'recordingStateChanged', recording: this.recordingState }));
+  }
+
+  private handleSetRoomLabels(event: SetRoomLabelsEvent): void {
+    this.roomLabels = event.labels;
+    this.room.broadcast(JSON.stringify({ type: 'roomLabelsChanged', labels: this.roomLabels }));
+  }
+
+  private handleSetRoomAnchors(event: SetRoomAnchorsEvent): void {
+    this.roomAnchors = event.anchors;
+    this.room.broadcast(JSON.stringify({ type: 'roomAnchorsChanged', anchors: this.roomAnchors }));
+  }
+
+  private handleSetRoomAvatarStyle(event: SetRoomAvatarStyleEvent): void {
+    this.roomAvatarStyle = event.avatarStyle;
+    this.room.broadcast(JSON.stringify({ type: 'roomAvatarStyleChanged', avatarStyle: this.roomAvatarStyle }));
+  }
+
+  private handleSetNowLabel(event: SetNowLabelEvent): void {
+    this.nowLabel = event.label;
+    this.room.broadcast(JSON.stringify({ type: 'nowLabelChanged', label: this.nowLabel }));
+  }
+
+  private handleSetImageUrl(event: SetImageUrlEvent): void {
+    this.roomImageUrl = event.url;
+    this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
+  }
+
+  // --- Soccer handlers ---
+
+  private handleSetActivity(event: SetActivityEvent): void {
+    this.currentActivity = event.activity;
+    if (event.activity === 'soccer') {
+      this.soccer.start();
+    } else {
+      this.soccer.stop();
+    }
+    this.room.broadcast(JSON.stringify({
+      type: 'activityChanged',
+      activity: this.currentActivity,
+      ball: this.currentActivity === 'soccer' ? this.soccer.ballState : null,
+      score: this.soccer.score,
+    }));
+  }
+
+  // --- Admin / access handlers ---
+
+  private handleSetUserCap(event: SetUserCapEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.userCap = event.cap;
+    this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
+  }
+
+  private handleRequestJoin(sender: Party.Connection): void {
+    if (!this.viewerConnectionIds.has(sender.id)) return;
+    if (this.userCap !== null && this.participantCount() >= this.userCap) {
+      sender.send(JSON.stringify({ type: 'joinDenied' }));
+      return;
+    }
+    this.viewerConnectionIds.delete(sender.id);
+    const count = this.participantCount();
+    const vCount = this.viewerCount();
+    sender.send(JSON.stringify({ type: 'joinApproved' }));
+    this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }), [sender.id]);
+    sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
+  }
+
+  private handleClearPushedInterfaces(sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.room.broadcast(JSON.stringify({ type: 'pushedInterfacesCleared' }));
+  }
+
+  private handlePushInterface(event: PushInterfaceEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
+    const msg = JSON.stringify({ type: 'interfacePushed', interfaceName: event.interfaceName, payload: event.payload ?? {} });
+    for (const conn of targets) conn.send(msg);
+  }
+
+  private handlePushHaptic(event: PushHapticEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
+    const msg = JSON.stringify({ type: 'hapticPushed' });
+    for (const conn of targets) conn.send(msg);
+  }
+
+  private handleAcceptInterface(event: AcceptInterfaceEvent, sender: Party.Connection): void {
+    const userId = this.connectionUserMap.get(sender.id);
+    if (!userId) return;
+    const msg = JSON.stringify({ type: 'interfaceAccepted', userId, interfaceName: event.interfaceName });
+    for (const conn of this.room.getConnections()) {
+      if (this.adminConnectionIds.has(conn.id)) conn.send(msg);
+    }
+  }
+
+  private handleTriggerActivity(event: TriggerActivityEvent): void {
+    const msg = JSON.stringify({ type: 'activityTriggered', activityName: event.activityName });
+    const hasTarget = event.targetUserId !== undefined || event.targetRegion !== undefined || event.targetUserIds !== undefined;
+    if (hasTarget) {
+      const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
+      for (const conn of targets) conn.send(msg);
+    } else {
+      this.room.broadcast(msg);
+    }
+  }
+
+  // --- Viz / display handlers ---
+
+  private handleSetOwnValenceDisplay(event: SetOwnValenceDisplayEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.ownValenceDisplay = event.mode;
+    this.room.broadcast(JSON.stringify({ type: 'ownValenceDisplayChanged', ownValenceDisplay: this.ownValenceDisplay }));
+  }
+
+  private handleSetValenceInputMode(event: SetValenceInputModeEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.valenceInputMode = event.mode;
+    this.room.broadcast(JSON.stringify({ type: 'valenceInputModeChanged', valenceInputMode: this.valenceInputMode }));
+  }
+
+  private handleSetDefaultCursorColor(event: SetDefaultCursorColorEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.defaultCursorColor = event.color;
+    this.room.broadcast(JSON.stringify({ type: 'defaultCursorColorChanged', defaultCursorColor: this.defaultCursorColor }));
+  }
+
+  private handleSetColorCursorsByVote(event: SetColorCursorsByVoteEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.colorCursorsByVote = event.enabled;
+    this.room.broadcast(JSON.stringify({ type: 'colorCursorsByVoteChanged', colorCursorsByVote: this.colorCursorsByVote }));
+  }
+
+  // --- Social / submission handlers ---
+
+  private handleSubmitGithubUsername(event: SubmitGithubUsernameEvent): void {
+    const submission = {
+      username: event.username,
+      displayName: event.displayName,
+      avatarUrl: event.avatarUrl,
+      timestamp: event.timestamp || Date.now(),
+    };
+    this.githubSubmissions.push(submission);
+    this.room.broadcast(JSON.stringify({ type: 'githubUsernameSubmitted', ...submission }));
+  }
+
+  private handleSubmitFeedbackStars(event: SubmitFeedbackStarsEvent): void {
+    this.room.broadcast(JSON.stringify({ type: 'feedbackStarsSubmitted', userId: event.userId, stars: event.stars, timestamp: event.timestamp || Date.now() }));
+  }
+
+  private handleSetSocialConfig(event: SetSocialConfigEvent): void {
+    this.roomSocialConfig = event.config;
+    this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
+    void this.persistState();
+  }
+
+  private handleSetGreeterConfig(event: SetGreeterConfigEvent): void {
+    this.greeterConfig = event.config;
+    this.room.broadcast(JSON.stringify({ type: 'greeterConfigChanged', config: this.greeterConfig }));
+  }
+
+  private handleRegisterCustomAvatar(event: RegisterCustomAvatarEvent): void {
+    this.customAvatars.set(event.userId, event.photoUrl);
+    this.room.broadcast(JSON.stringify({ type: 'customAvatarsChanged', customAvatars: Object.fromEntries(this.customAvatars) }));
+  }
+
+  private handleRecordInvitations(event: RecordInvitationsEvent): void {
+    const newEdges: Array<[string, string]> = [];
+    for (const [inviterId, inviteeId] of event.edges) {
+      if (!this.inviteEdges.has(inviteeId)) {
+        this.inviteEdges.set(inviteeId, inviterId);
+        newEdges.push([inviterId, inviteeId]);
+      }
+    }
+    if (newEdges.length > 0) {
+      this.room.broadcast(JSON.stringify({ type: 'inviteEdges', edges: newEdges }));
+    }
+  }
+
+  // --- Steno handlers ---
+
+  private handleStenoStartRecording(event: StenoStartRecordingEvent, sender: Party.Connection): void {
+    if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) {
+      sender.send(JSON.stringify({ type: 'stenoLockDenied', lockHolderUserId: this.stenoLockUserId }));
+      return;
+    }
+    this.stenoLockUserId = event.userId;
+    this.room.broadcast(JSON.stringify({ type: 'stenoLockAcquired', userId: event.userId }));
+  }
+
+  private handleStenoStopRecording(event: StenoStopRecordingEvent): void {
+    if (this.stenoLockUserId !== event.userId) return;
+    this.stenoLockUserId = null;
+    this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId: event.userId }));
+  }
+
+  private handleStenoAppendText(event: StenoAppendTextEvent): void {
+    if (this.stenoLockUserId !== event.userId) return;
+    this.stenoVtt += '\n' + event.text + '\n';
+    this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
+    void this.persistState();
+  }
+
+  private handleStenoSetText(event: StenoSetTextEvent): void {
+    if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) return;
+    this.stenoVtt = event.text;
+    this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
+    void this.persistState();
+  }
+
+  // --- StoryTracer / Map handlers ---
+
+  private handleStoryTracerSetPoints(event: StoryTracerSetPointsEvent): void {
+    this.storyTracerPoints = event.points;
+    this.storyTracerMeta = event.meta;
+    void this.persistState();
+    this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: event.points, meta: event.meta }));
+  }
+
+  private handleStoryTracerClearPoints(): void {
+    this.storyTracerPoints = null;
+    this.storyTracerMeta = null;
+    void this.persistState();
+    this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: null, meta: null }));
+  }
+
+  private handleMapProjectionSet(event: MapProjectionSetEvent): void {
+    this.mapProjection = event.projection;
+    void this.persistState();
+    this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: event.projection }));
+  }
+
+  private handleMapProjectionClear(): void {
+    this.mapProjection = null;
+    void this.persistState();
+    this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: null }));
+  }
+
+  // --- Voice call handlers ---
+
+  private handleJoinCallQueue(sender: Party.Connection): void {
+    const senderId = this.connectionUserMap.get(sender.id);
+    if (!senderId) return;
+    if (this.callPairs.has(senderId)) return; // already in a call
+    if (this.callQueue.length > 0) {
+      const waiterId = this.callQueue.shift()!;
+      this.callPairs.set(waiterId, senderId);
+      this.callPairs.set(senderId, waiterId);
+      for (const conn of this.getTargetConnections(waiterId)) {
+        conn.send(JSON.stringify({ type: 'callPaired', role: 'initiator', peerId: senderId }));
+      }
+      sender.send(JSON.stringify({ type: 'callPaired', role: 'receiver', peerId: waiterId }));
+    } else {
+      this.callQueue.push(senderId);
+      sender.send(JSON.stringify({ type: 'callQueued' }));
+    }
+  }
+
+  private handleLeaveCallQueue(sender: Party.Connection): void {
+    const senderId = this.connectionUserMap.get(sender.id);
+    if (!senderId) return;
+    const idx = this.callQueue.indexOf(senderId);
+    if (idx !== -1) this.callQueue.splice(idx, 1);
+  }
+
+  private handleWebrtcSignaling(event: WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent, sender: Party.Connection): void {
+    const senderId = this.connectionUserMap.get(sender.id);
+    if (!senderId) return;
+    for (const conn of this.getTargetConnections(event.targetUserId)) {
+      conn.send(JSON.stringify({ ...event, fromUserId: senderId }));
+    }
+  }
+
+  private handleHangUp(event: HangUpCallEvent, sender: Party.Connection): void {
+    const senderId = this.connectionUserMap.get(sender.id);
+    if (!senderId) return;
+    this.callPairs.delete(senderId);
+    const peerId = event.targetUserId;
+    this.callPairs.delete(peerId);
+    for (const conn of this.getTargetConnections(peerId)) {
+      conn.send(JSON.stringify({ type: 'hangUp', fromUserId: senderId }));
+    }
+  }
+
+  private handleSetCallAlgorithm(event: SetCallAlgorithmEvent, sender: Party.Connection): void {
+    if (this.adminConnectionIds.has(sender.id)) {
+      this.callAlgorithm = event.algorithm;
+    }
+  }
+
+  private handleSetArrivalCapacity(event: SetArrivalCapacityEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.arrivalCapacity = event.capacity;
+    this.room.broadcast(JSON.stringify({ type: 'arrivalCapacityChanged', capacity: this.arrivalCapacity }));
+  }
+
+  // --- Neighbor handlers ---
+
+  private handleNeighborEdge(event: NeighborEdgeEvent, sender: Party.Connection): void {
+    const fromUserId = this.connectionUserMap.get(sender.id);
+    if (!fromUserId) return;
+    const toCode = event.toCode;
+    if (this.neighborCodes.get(fromUserId) === toCode) {
+      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'self' }));
+      return;
+    }
+    let toUserId: string | null = null;
+    for (const [uid, code] of this.neighborCodes) {
+      if (code === toCode) { toUserId = uid; break; }
+    }
+    if (!toUserId) {
+      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'not_found' }));
+      return;
+    }
+    const canonical = [fromUserId, toUserId].sort().join('|');
+    if (this.neighborEdges.has(canonical)) {
+      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'duplicate' }));
+      return;
+    }
+    this.neighborEdges.add(canonical);
+    const [userA, userB] = canonical.split('|');
+    this.room.broadcast(JSON.stringify({ type: 'neighborEdgeAdded', userA, userB }));
+  }
+
+  private handleRequestNeighborEdges(sender: Party.Connection): void {
+    const edges = [...this.neighborEdges].map(e => { const [userA, userB] = e.split('|'); return { userA, userB }; });
+    const allCodes = Object.fromEntries(this.neighborCodes);
+    sender.send(JSON.stringify({ type: 'neighborEdgesSnapshot', edges, allCodes }));
+  }
+
+  private handleClearNeighborEdges(): void {
+    this.neighborEdges.clear();
+    this.room.broadcast(JSON.stringify({ type: 'neighborEdgesCleared' }));
+  }
+
+  // --- Light handler ---
+
+  private handleSetLightColor(event: SetLightColorEvent): void {
+    this.lightColor = { color: event.color, brightness: event.brightness };
+    this.room.broadcast(JSON.stringify({ type: 'lightColor', color: event.color, brightness: event.brightness }));
+  }
+
+  // --- Core statement/queue methods ---
 
   private queueStatement(statementId: number) {
     const now = Date.now();
