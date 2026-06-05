@@ -187,7 +187,6 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       } else if (msg.type === 'neighborEdgesCleared') {
         setEdges([]);
         linksRef.current = [];
-        nodesRef.current = [];
         restartSim();
       } else if (msg.type === 'neighborEdgeError') {
         setErrorReason(msg.reason as EdgeError);
