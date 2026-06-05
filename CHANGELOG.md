@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 29 (2026-06-02)
 
 ### Added
-- **Chromatic Storybook deploy** — GitHub Actions workflow publishes Storybook to Chromatic on every push; visual changes are auto-accepted so CI never blocks on review.
+- **Chromatic Storybook deploy** — GitHub Actions workflow publishes Storybook to Chromatic on every push; visual changes are auto-accepted so CI never blocks on review. ([#137](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/137))
 
 ### Added
 - **Screen Light panel** — new canvas activity mode (`screen-light`) that turns a participant's phone into a full-screen colored light; color and brightness are controlled remotely by an admin running the Light Show panel; screen wake lock is on by default with a subtle toggle in the bottom-right corner.
