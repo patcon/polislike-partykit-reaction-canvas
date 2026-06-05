@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 29 (2026-06-02)
 
+### Added
+- **Screen Light panel** — new canvas activity mode (`screen-light`) that turns a participant's phone into a full-screen colored light; color and brightness are controlled remotely by an admin running the Light Show panel; screen wake lock is on by default with a subtle toggle in the bottom-right corner.
+- **Light Show panel** — new patchable controller panel (`light-show`) for setting the color (via presets + custom picker) and brightness (dimmer slider) of all connected Screen Light phones in real time.
+
 ### Changed
 - **NeighborPanel graph view** — nodes are now coloured by live reaction-canvas valence (green/red/yellow) using the same `computeReactionRegion` logic as other projection maps; grey for users with no cursor data yet; no special "you are here" highlight for own node.
 - **NeighborPanel graph view** — new nodes spawn at SVG centre instead of top-left; removed tick-handler coordinate clamping so dragging works correctly when graph is rotated.

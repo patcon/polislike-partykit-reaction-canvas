@@ -134,6 +134,19 @@
   overflow: hidden;
 }
 
+/* Wake lock button — white and anchored bottom-right, low opacity as a subtle hint */
+.screen-light-panel .wakelock-indicator-btn {
+  top: unset;
+  left: unset;
+  bottom: 16px;
+  right: 16px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.screen-light-panel .wakelock-indicator-btn--off {
+  color: rgba(255, 255, 255, 0.1);
+}
+
 /* Wake lock button — inverted for dark panel background, anchored left in footer */
 .steno-panel .wakelock-indicator-btn {
   position: absolute;

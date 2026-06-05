@@ -278,7 +278,9 @@ interface NeighborEdgeEvent      { type: 'neighborEdge';         from: string; t
 interface RequestNeighborEdgesEvent { type: 'requestNeighborEdges' }
 interface ClearNeighborEdgesEvent   { type: 'clearNeighborEdges' }
 
-type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | MapProjectionSetEvent | MapProjectionClearEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent | SetArrivalCapacityEvent | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent;
+interface SetLightColorEvent { type: 'setLightColor'; color: string; brightness: number }
+
+type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | MapProjectionSetEvent | MapProjectionClearEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent | SetArrivalCapacityEvent | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent | SetLightColorEvent;
 
 // ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
 const DEFAULT_ANCHORS = {
@@ -364,6 +366,7 @@ export default class Server implements Party.Server {
   private arrivalCapacity: number = 50;
   private neighborCodes = new Map<string, string>(); // userId → 4-digit code
   private neighborEdges = new Set<string>();          // canonical "userA|userB" strings
+  private lightColor: { color: string; brightness: number } = { color: '#000000', brightness: 100 };
 
   // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
   private ghostCursorsEnabled: boolean = false;
@@ -587,6 +590,7 @@ export default class Server implements Party.Server {
       callAlgorithm: this.callAlgorithm,
       arrivalCapacity: this.arrivalCapacity,
       myNeighborCode: this.neighborCodes.get(userId) ?? null,
+      lightColor: this.lightColor,
     }));
   }
 
@@ -954,6 +958,9 @@ export default class Server implements Party.Server {
       } else if (event.type === 'clearNeighborEdges') {
         this.neighborEdges.clear();
         this.room.broadcast(JSON.stringify({ type: 'neighborEdgesCleared' }));
+      } else if (event.type === 'setLightColor') {
+        this.lightColor = { color: event.color, brightness: event.brightness };
+        this.room.broadcast(JSON.stringify({ type: 'lightColor', color: event.color, brightness: event.brightness }));
       }
     } catch (e) {
       console.error('Failed to parse event:', e);

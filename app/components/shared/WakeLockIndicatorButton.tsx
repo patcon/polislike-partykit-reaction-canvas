@@ -7,6 +7,7 @@ interface Props {
 }
 
 export default function WakeLockIndicatorButton({ enabled, active, onToggle }: Props) {
+  if (!('wakeLock' in navigator)) return null;
   const classes = [
     'wakelock-indicator-btn',
     !enabled ? 'wakelock-indicator-btn--off' : '',
