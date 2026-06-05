@@ -40,7 +40,7 @@ Always use `generateUUID()` from `app/utils/userId.ts` instead. It calls `crypto
 
 ### PartyKit CLI notes
 
-Use `--force` (not `--yes`) to skip confirmation prompts — e.g. `npx partykit delete --preview stg --force`. `--yes` is not a valid partykit option and will error.
+Use `--force` (not `--yes`) to skip confirmation prompts — e.g. `pnpm exec partykit delete --preview stg --force`. `--yes` is not a valid partykit option and will error.
 
 ### Deploy rules
 
