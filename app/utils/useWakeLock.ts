@@ -2,7 +2,9 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 
 // Manages Screen Wake Lock lifecycle. Pass `active` to drive acquire/release reactively.
 // Automatically re-acquires on visibilitychange (browsers release the lock when tab hides).
-export function useWakeLock(active: boolean): { acquired: boolean } {
+// `supported` is false on non-secure contexts (HTTP LAN) where the API is unavailable.
+export function useWakeLock(active: boolean): { acquired: boolean; supported: boolean } {
+  const supported = 'wakeLock' in navigator;
   const [acquired, setAcquired] = useState(false);
   const sentinelRef = useRef<WakeLockSentinel | null>(null);
 
@@ -36,5 +38,5 @@ export function useWakeLock(active: boolean): { acquired: boolean } {
     return () => document.removeEventListener('visibilitychange', handleVisibility);
   }, [active, acquire]);
 
-  return { acquired };
+  return { acquired, supported };
 }
