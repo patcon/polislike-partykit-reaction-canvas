@@ -1,334 +1,36 @@
 import type * as Party from "partykit/server";
 import type { ActivityMode, StoryTracerPoint, StoryTracerMeta, MapProjection } from "../app/types";
-// Ghost cursor imports (for demo purposes - can be easily removed)
-import { createNoise2D } from 'simplex-noise';
-
-interface CursorPosition {
-  x: number;
-  y: number;
-  timestamp: number;
-  userId: string;
-}
-
-interface CursorEvent {
-  type: 'move' | 'touch' | 'remove';
-  position: CursorPosition;
-}
-
-interface PolisStatement {
-  txt: string;
-  tid: number;
-  created?: string;
-  quote_src_url?: string | null;
-  is_seed?: boolean;
-  is_meta?: boolean;
-  lang?: string;
-  pid?: number;
-  velocity?: number;
-  mod?: number;
-  active?: boolean;
-  agree_count?: number;
-  disagree_count?: number;
-  pass_count?: number;
-  count?: number;
-  conversation_id?: string;
-}
-
-interface DefaultStatement {
-  txt: string;
-  tid: number;
-  timecode?: number;
-}
-
-interface QueueItem {
-  statementId: number;
-  displayTimestamp: number; // timestamp when this should become active
-}
-
-interface StatementEvent {
-  type: 'setActiveStatement';
-  statementId: number;
-}
-
-interface QueueStatementEvent {
-  type: 'queueStatement';
-  statementId: number;
-}
-
-interface ClearQueueEvent {
-  type: 'clearQueue';
-}
-
-interface UpdateStatementsPoolEvent {
-  type: 'updateStatementsPool';
-  json?: any[];
-  conversationId?: string;
-  baseUrl?: string;
-}
-
-interface GhostCursorSettingEvent {
-  type: 'setGhostCursors';
-  enabled: boolean;
-}
-
-interface SetTimecodeEvent {
-  type: 'setTimecode';
-  timecode: number;
-}
-
-interface SetRecordingStateEvent {
-  type: 'setRecordingState';
-  recording: boolean;
-}
-
-interface SetRoomLabelsEvent {
-  type: 'setRoomLabels';
-  labels: { positive: string; negative: string; neutral: string } | null;
-}
-
-interface ReactionAnchors {
-  positive: { x: number; y: number };
-  negative: { x: number; y: number };
-  neutral:  { x: number; y: number };
-}
-
-interface SetRoomAnchorsEvent {
-  type: 'setRoomAnchors';
-  anchors: ReactionAnchors | null;
-}
-
-interface SetRoomAvatarStyleEvent {
-  type: 'setRoomAvatarStyle';
-  avatarStyle: string | null;
-}
-
-interface SetActivityEvent {
-  type: 'setActivity';
-  activity: ActivityMode;
-}
-
-interface SetImageUrlEvent {
-  type: 'setImageUrl';
-  url: string;
-}
-
-interface ResetSoccerScoreEvent {
-  type: 'resetSoccerScore';
-}
-
-interface SetUserCapEvent {
-  type: 'setUserCap';
-  cap: number | null;
-}
-
-interface TriggerActivityEvent {
-  type: 'triggerActivity';
-  activityName: 'githubUsername' | 'feedbackStars';
-  targetUserId?: string;
-  targetRegion?: 'positive' | 'negative' | 'neutral' | null;
-  targetUserIds?: string[];
-}
-
-interface SubmitFeedbackStarsEvent {
-  type: 'submitFeedbackStars';
-  userId: string;
-  stars: number;
-  timestamp: number;
-}
-
-interface SetSocialConfigEvent {
-  type: 'setSocialConfig';
-  config: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
-}
-
-interface SetGreeterConfigEvent {
-  type: 'setGreeterConfig';
-  config: { eventUrl: string } | null;
-}
-
-interface SubmitGithubUsernameEvent {
-  type: 'submitGithubUsername';
-  username: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  timestamp: number;
-}
-
-interface RequestJoinEvent {
-  type: 'requestJoin';
-}
-
-interface PlaybackCursorBroadcastEvent {
-  type: 'playbackCursorBroadcast';
-  cursorType: 'move' | 'touch' | 'remove';
-  position: CursorPosition;
-}
-
-interface PushInterfaceEvent {
-  type: 'pushInterface';
-  targetUserId?: string;
-  targetRegion?: 'positive' | 'negative' | 'neutral' | null;
-  targetUserIds?: string[];
-  interfaceName: string;
-  payload?: Record<string, unknown>;
-}
-
-interface AcceptInterfaceEvent {
-  type: 'acceptInterface';
-  interfaceName: string;
-}
-
-interface ClearPushedInterfacesEvent {
-  type: 'clearPushedInterfaces';
-}
-
-interface PushHapticEvent {
-  type: 'pushHaptic';
-  targetUserId?: string;
-  targetRegion?: 'positive' | 'negative' | 'neutral' | null;
-  targetUserIds?: string[];
-}
-
-interface Vote {
-  userId: string;
-  statementId: number;
-  vote: number; // +1 for agree, -1 for disagree, 0 for pass
-  timestamp: number;
-}
-
-interface SetNowLabelEvent {
-  type: 'setNowLabel';
-  label: string;
-}
-
-interface RecordInvitationsEvent {
-  type: 'recordInvitations';
-  edges: Array<[string, string]>; // [inviterId, inviteeId]
-}
-
-interface RegisterCustomAvatarEvent {
-  type: 'registerCustomAvatar';
-  userId: string;
-  photoUrl: string;
-}
-
-interface SetColorCursorsByVoteEvent {
-  type: 'setColorCursorsByVote';
-  enabled: boolean;
-}
-
-interface SetDefaultCursorColorEvent {
-  type: 'setDefaultCursorColor';
-  color: string;
-}
-
-interface SetOwnValenceDisplayEvent {
-  type: 'setOwnValenceDisplay';
-  mode: 'background' | 'labels' | 'none';
-}
-
-interface SetValenceInputModeEvent {
-  type: 'setValenceInputMode';
-  mode: 'touch' | 'orientation-horizontal' | 'orientation-vertical' | 'orientation-rotation';
-}
-
-interface StrokeSegmentEvent {
-  type: 'strokeSegment';
-  userId: string;
-  strokeId: string;
-  points: Array<{ x: number; y: number }>;
-  isFinal: boolean;
-}
-
-interface ClearSignatureEvent {
-  type: 'clearSignature';
-  userId: string;
-}
-
-interface PersistedState {
-  roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
-  stenoVtt: string;
-  storyTracerPoints?: StoryTracerPoint[] | null;
-  storyTracerMeta?: StoryTracerMeta | null;
-  greeterConfig?: { eventUrl: string } | null;
-  mapProjection?: MapProjection | null;
-}
-
-interface StenoStartRecordingEvent { type: 'stenoStartRecording'; userId: string }
-interface StenoStopRecordingEvent  { type: 'stenoStopRecording';  userId: string }
-interface StenoAppendTextEvent     { type: 'stenoAppendText';     userId: string; text: string }
-interface StenoSetTextEvent        { type: 'stenoSetText';        userId: string; text: string }
-
-interface StoryTracerSetPointsEvent  { type: 'storyTracerSetPoints';  userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta }
-interface StoryTracerClearPointsEvent { type: 'storyTracerClearPoints'; userId: string }
-
-interface MapProjectionSetEvent   { type: 'mapProjectionSet';   userId: string; projection: MapProjection }
-interface MapProjectionClearEvent { type: 'mapProjectionClear'; userId: string }
-
-interface JoinCallQueueEvent   { type: 'joinCallQueue' }
-interface LeaveCallQueueEvent  { type: 'leaveCallQueue' }
-interface WebRTCOfferEvent     { type: 'webrtcOffer';   targetUserId: string; offer: unknown }
-interface WebRTCAnswerEvent    { type: 'webrtcAnswer';  targetUserId: string; answer: unknown }
-interface WebRTCIceEvent       { type: 'webrtcIce';     targetUserId: string; candidate: unknown }
-interface HangUpCallEvent      { type: 'hangUp';        targetUserId: string }
-interface SetCallAlgorithmEvent { type: 'setCallAlgorithm'; algorithm: string }
-interface SetArrivalCapacityEvent { type: 'setArrivalCapacity'; capacity: number }
-
-interface NeighborEdgeEvent      { type: 'neighborEdge';         from: string; toCode: string }
-interface RequestNeighborEdgesEvent { type: 'requestNeighborEdges' }
-interface ClearNeighborEdgesEvent   { type: 'clearNeighborEdges' }
-
-interface SetLightColorEvent { type: 'setLightColor'; color: string; brightness: number }
-
-type ClientEvent =CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent | StoryTracerClearPointsEvent | MapProjectionSetEvent | MapProjectionClearEvent | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent | SetArrivalCapacityEvent | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent | SetLightColorEvent;
-
-// ===== REACTION REGION HELPER (mirrors app/utils/voteRegion.ts) =====
-const DEFAULT_ANCHORS = {
-  positive: { x: 95, y: 5  },
-  negative: { x: 5,  y: 95 },
-  neutral:  { x: 95, y: 95 },
-};
-
-function computeReactionRegionServer(nx: number, ny: number, anchors: ReactionAnchors): 'positive' | 'negative' | 'neutral' | null {
-  const x = nx / 100, y = ny / 100;
-  const pos = { x: anchors.positive.x / 100, y: anchors.positive.y / 100 };
-  const neg = { x: anchors.negative.x / 100, y: anchors.negative.y / 100 };
-  const neu = { x: anchors.neutral.x  / 100, y: anchors.neutral.y  / 100 };
-  const denom = (neg.y - neu.y) * (pos.x - neu.x) + (neu.x - neg.x) * (pos.y - neu.y);
-  if (Math.abs(denom) < 1e-10) {
-    const dp = Math.hypot(x - pos.x, y - pos.y);
-    const dn = Math.hypot(x - neg.x, y - neg.y);
-    const du = Math.hypot(x - neu.x, y - neu.y);
-    const m = Math.min(dp, dn, du);
-    return m === dp ? 'positive' : m === dn ? 'negative' : 'neutral';
-  }
-  const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
-  const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
-  const wNeu = 1 - wPos - wNeg;
-  const max = Math.max(wPos, wNeg, wNeu);
-  return max === wPos ? 'positive' : max === wNeg ? 'negative' : 'neutral';
-}
-
-// ===== SOCCER PHYSICS CONSTANTS =====
-const SOCCER_BALL_R = 2;      // % of canvas
-const SOCCER_DAMPING = 0.7;   // energy retained on wall bounce
-const SOCCER_FRICTION = 0.991; // per-tick speed decay
-const SOCCER_GOAL_MIN_Y = 33; // % — top of goal opening
-const SOCCER_GOAL_MAX_Y = 67; // % — bottom of goal opening
-const SOCCER_KICK_RADIUS = 8; // % — cursor influence range
-const SOCCER_KICK_FORCE = 2.5; // max impulse per tick
-const SOCCER_TICK_MS = 50;    // physics tick rate
+import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } from './lib/reactionRegion';
+import type { ReactionAnchors } from './lib/reactionRegion';
+import { getCurrentActiveStatementId, computeNextDisplayTimestamp, computeClearedQueue } from './lib/queueLogic';
+import type { QueueItem } from './lib/queueLogic';
+import { SoccerPhysicsEngine } from './lib/soccerPhysics';
+import { GhostCursorManager } from './lib/ghostCursors';
+import type {
+  CursorEvent, PolisStatement, Vote, PersistedState, ClientEvent,
+  PlaybackCursorBroadcastEvent, StatementEvent, UpdateStatementsPoolEvent,
+  SetTimecodeEvent, SetRecordingStateEvent, SetRoomLabelsEvent, SetRoomAnchorsEvent,
+  SetRoomAvatarStyleEvent, SetActivityEvent, SetNowLabelEvent, SetImageUrlEvent,
+  SetUserCapEvent, TriggerActivityEvent, SubmitGithubUsernameEvent, SubmitFeedbackStarsEvent,
+  SetSocialConfigEvent, SetGreeterConfigEvent, PushInterfaceEvent, AcceptInterfaceEvent,
+  PushHapticEvent, RegisterCustomAvatarEvent, SetColorCursorsByVoteEvent,
+  SetDefaultCursorColorEvent, SetOwnValenceDisplayEvent, SetValenceInputModeEvent,
+  RecordInvitationsEvent, StenoStartRecordingEvent, StenoStopRecordingEvent,
+  StenoAppendTextEvent, StenoSetTextEvent, StoryTracerSetPointsEvent, MapProjectionSetEvent,
+  WebRTCOfferEvent, WebRTCAnswerEvent, WebRTCIceEvent, HangUpCallEvent,
+  SetCallAlgorithmEvent, SetArrivalCapacityEvent, NeighborEdgeEvent, SetLightColorEvent,
+} from './types';
 
 export default class Server implements Party.Server {
-  private activeStatementId: number = 1; // Default to statement 1
-  private allSelectedStatements: QueueItem[] = []; // All statements that have been selected
-  private statementsPool: PolisStatement[] = []; // Pool of all available statements
-  private votes: Vote[] = []; // Store all votes
+  private activeStatementId: number = 1;
+  private allSelectedStatements: QueueItem[] = [];
+  private statementsPool: PolisStatement[] = [];
+  private votes: Vote[] = [];
   private connectionUserMap = new Map<string, string>(); // connectionId -> userId
-  private adminConnectionIds = new Set<string>(); // connectionIds that are admin panels
-  private viewerConnectionIds = new Set<string>(); // connectionIds that are viewers (cap exceeded)
+  private adminConnectionIds = new Set<string>();
+  private viewerConnectionIds = new Set<string>();
   private userCap: number | null = null;
-  private savedTimecode: number = 0; // Last paused timecode for the video in this room
+  private savedTimecode: number = 0;
   private recordingState: boolean = false;
   private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
   private roomAnchors: ReactionAnchors | null = null;
@@ -338,12 +40,9 @@ export default class Server implements Party.Server {
   private nowLabel: string = '';
   private roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null = null;
   private greeterConfig: { eventUrl: string } | null = null;
-  private ballState = { x: 50, y: 50, vx: 2, vy: 1 };
-  private soccerScore = { left: 0, right: 0 };
   private msgCount = 0;
   private msgRateInterval?: NodeJS.Timeout;
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
-  private soccerInterval?: NodeJS.Timeout;
   private cursorPositions = new Map<string, { x: number; y: number }>();
   private inviteEdges = new Map<string, string>(); // inviteeId -> inviterId
   private customAvatars = new Map<string, string>(); // userId -> photoUrl
@@ -368,30 +67,14 @@ export default class Server implements Party.Server {
   private neighborEdges = new Set<string>();          // canonical "userA|userB" strings
   private lightColor: { color: string; brightness: number } = { color: '#000000', brightness: 100 };
 
-  // ===== GHOST CURSOR DEMO CODE (can be easily removed) =====
-  private ghostCursorsEnabled: boolean = false;
-  private ghostCursors: Array<{
-    id: string;
-    x: number;
-    y: number;
-    targetX: number;
-    targetY: number;
-    isMoving: boolean;
-    moveStartTime: number;
-    moveDuration: number;
-    voteArea: { x: number; y: number }; // Current vote area for random motion
-    noiseOffsetX: number; // Unique noise offset for X axis
-    noiseOffsetY: number; // Unique noise offset for Y axis
-    restingSpeed: number; // Individual resting movement speed multiplier
-    restingRadius: number; // Individual resting movement radius
-    transitionStartTime: number; // When transition to resting began
-    transitionDuration: number; // How long the transition takes
-    finalMovePosition: { x: number; y: number }; // Position when movement ended
-  }> = [];
-  private ghostCursorInterval?: NodeJS.Timeout;
-  private noise2D = createNoise2D();
-  private lastActiveStatementId: number = 1;
-  // ===== END GHOST CURSOR DEMO CODE =====
+  private soccer = new SoccerPhysicsEngine(
+    (msg) => this.room.broadcast(msg),
+    () => this.cursorPositions,
+  );
+  private ghosts = new GhostCursorManager(
+    (msg) => this.room.broadcast(msg),
+    () => this.allSelectedStatements,
+  );
 
   constructor(readonly room: Party.Room) {}
 
@@ -452,7 +135,7 @@ export default class Server implements Party.Server {
   }
 
   private getTargetConnections(targetUserId?: string, targetRegion?: 'positive' | 'negative' | 'neutral' | null, targetUserIds?: string[]): Party.Connection[] {
-    const anchors = this.roomAnchors ?? DEFAULT_ANCHORS;
+    const anchors = this.roomAnchors ?? REACTION_DEFAULT_ANCHORS;
     return [...this.room.getConnections()].filter(conn => {
       if (this.adminConnectionIds.has(conn.id)) return false;
       const userId = this.connectionUserMap.get(conn.id);
@@ -461,7 +144,7 @@ export default class Server implements Party.Server {
       if (targetUserIds !== undefined) return targetUserIds.includes(userId);
       const pos = this.cursorPositions.get(userId);
       if (!pos) return targetRegion === null;
-      return computeReactionRegionServer(pos.x, pos.y, anchors) === targetRegion;
+      return computeReactionRegion(pos.x, pos.y, anchors) === targetRegion;
     });
   }
 
@@ -559,7 +242,7 @@ export default class Server implements Party.Server {
       allSelectedStatements: this.allSelectedStatements,
       statementsPool: this.statementsPool,
       currentTime: Date.now(),
-      ghostCursorsEnabled: this.ghostCursorsEnabled,
+      ghostCursorsEnabled: this.ghosts.enabled,
       timecode: this.savedTimecode,
       recordingState: this.recordingState,
       roomLabels: this.roomLabels,
@@ -570,8 +253,8 @@ export default class Server implements Party.Server {
       nowLabel: this.nowLabel,
       roomSocialConfig: this.roomSocialConfig,
       greeterConfig: this.greeterConfig,
-      ballState: this.currentActivity === 'soccer' ? this.ballState : null,
-      soccerScore: this.soccerScore,
+      ballState: this.currentActivity === 'soccer' ? this.soccer.ballState : null,
+      soccerScore: this.soccer.score,
       isViewer,
       userCap: this.userCap,
       viewerCount: vCount,
@@ -652,427 +335,469 @@ export default class Server implements Party.Server {
 
     try {
       const event: ClientEvent = JSON.parse(message);
-
-      if (event.type === 'playbackCursorBroadcast') {
-        // Admin replaying recorded events — broadcast to ALL clients (including sender)
-        // so the admin's own "Peek Canvas" tab also sees playback cursors
-        this.room.broadcast(JSON.stringify({
-          type: event.cursorType,
-          position: {
-            ...event.position,
-            isPlayback: true,
-          },
-        }));
-      } else if ('position' in event) {
-        // Handle cursor events
-        const isFirstAppearance = (event.type === 'move' || event.type === 'touch') && !this.cursorPositions.has(event.position.userId);
-        if (isFirstAppearance) console.log(`Cursor appeared for ${event.position.userId} via ${event.type}`);
-        else if (event.type === 'remove') console.log(`Cursor removed for ${event.position.userId}`);
-        // Track cursor positions for soccer physics
-        if (event.type === 'move' || event.type === 'touch') {
-          this.cursorPositions.set(event.position.userId, { x: event.position.x, y: event.position.y });
-        } else if (event.type === 'remove') {
-          this.cursorPositions.delete(event.position.userId);
-        }
-        // Broadcast the cursor event to all other connections
-        this.room.broadcast(message, [sender.id]);
-      } else if (event.type === 'setActiveStatement') {
-        // Handle immediate statement change events (legacy support)
-        console.log(`Statement change from ${sender.id}:`, event.statementId);
-        this.activeStatementId = event.statementId;
-        // Broadcast the statement change to all connections
-        this.room.broadcast(JSON.stringify({
-          type: 'activeStatementChanged',
-          statementId: this.activeStatementId
-        }));
-      } else if (event.type === 'queueStatement') {
-        // Handle queuing statement events
-        console.log(`Queue statement from ${sender.id}:`, event.statementId);
-        this.queueStatement(event.statementId);
-      } else if (event.type === 'clearQueue') {
-        // Handle clearing the queue
-        console.log(`Clear queue from ${sender.id}`);
-        this.clearQueue();
-      } else if (event.type === 'updateStatementsPool') {
-        // Handle statements pool updates from client
-        if (event.conversationId) {
-          console.log(`Statements pool update from ${sender.id} via Polis conversation:`, event.conversationId);
-          this.updateStatementsPool(undefined, event.conversationId, event.baseUrl);
-        } else if (event.json) {
-          console.log(`Statements pool update from ${sender.id} via JSON data:`, event.json.length, 'items');
-          this.updateStatementsPool(event.json);
-        } else {
-          console.log(`Invalid statements pool update from ${sender.id}: no json or conversationId provided`);
-        }
-      } else if (event.type === 'setGhostCursors') {
-        // Handle ghost cursor setting changes
-        console.log(`Ghost cursor setting from ${sender.id}:`, event.enabled);
-        this.setGhostCursorsEnabled(event.enabled);
-      } else if (event.type === 'setTimecode') {
-        this.savedTimecode = event.timecode;
-        this.room.broadcast(JSON.stringify({ type: 'timecodeUpdate', timecode: this.savedTimecode }));
-      } else if (event.type === 'setRecordingState') {
-        this.recordingState = event.recording;
-        this.room.broadcast(JSON.stringify({ type: 'recordingStateChanged', recording: this.recordingState }));
-      } else if (event.type === 'setRoomLabels') {
-        this.roomLabels = event.labels;
-        this.room.broadcast(JSON.stringify({ type: 'roomLabelsChanged', labels: this.roomLabels }));
-      } else if (event.type === 'setRoomAnchors') {
-        this.roomAnchors = event.anchors;
-        this.room.broadcast(JSON.stringify({ type: 'roomAnchorsChanged', anchors: this.roomAnchors }));
-      } else if (event.type === 'setRoomAvatarStyle') {
-        this.roomAvatarStyle = event.avatarStyle;
-        this.room.broadcast(JSON.stringify({ type: 'roomAvatarStyleChanged', avatarStyle: this.roomAvatarStyle }));
-      } else if (event.type === 'setActivity') {
-        this.currentActivity = event.activity;
-        if (event.activity === 'soccer') {
-          this.startSoccerPhysics();
-        } else {
-          this.stopSoccerPhysics();
-        }
-        this.room.broadcast(JSON.stringify({
-          type: 'activityChanged',
-          activity: this.currentActivity,
-          ball: this.currentActivity === 'soccer' ? this.ballState : null,
-          score: this.soccerScore,
-        }));
-      } else if (event.type === 'setNowLabel') {
-        this.nowLabel = event.label;
-        this.room.broadcast(JSON.stringify({ type: 'nowLabelChanged', label: this.nowLabel }));
-      } else if (event.type === 'setImageUrl') {
-        this.roomImageUrl = event.url;
-        this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
-      } else if (event.type === 'resetSoccerScore') {
-        this.soccerScore = { left: 0, right: 0 };
-        this.room.broadcast(JSON.stringify({ type: 'goalScored', score: this.soccerScore }));
-      } else if (event.type === 'setUserCap') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.userCap = event.cap;
-        this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
-      } else if (event.type === 'triggerActivity') {
-        const msg = JSON.stringify({ type: 'activityTriggered', activityName: event.activityName });
-        const hasTarget = event.targetUserId !== undefined || event.targetRegion !== undefined || event.targetUserIds !== undefined;
-        if (hasTarget) {
-          const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
-          for (const conn of targets) conn.send(msg);
-        } else {
-          this.room.broadcast(msg);
-        }
-      } else if (event.type === 'submitGithubUsername') {
-        const submission = {
-          username: event.username,
-          displayName: event.displayName,
-          avatarUrl: event.avatarUrl,
-          timestamp: event.timestamp || Date.now(),
-        };
-        this.githubSubmissions.push(submission);
-        // Broadcast to admins so they see it live
-        this.room.broadcast(JSON.stringify({ type: 'githubUsernameSubmitted', ...submission }));
-      } else if (event.type === 'submitFeedbackStars') {
-        this.room.broadcast(JSON.stringify({ type: 'feedbackStarsSubmitted', userId: event.userId, stars: event.stars, timestamp: event.timestamp || Date.now() }));
-      } else if (event.type === 'setSocialConfig') {
-        this.roomSocialConfig = event.config;
-        this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
-        void this.persistState();
-      } else if (event.type === 'setGreeterConfig') {
-        this.greeterConfig = event.config;
-        this.room.broadcast(JSON.stringify({ type: 'greeterConfigChanged', config: this.greeterConfig }));
-      } else if (event.type === 'requestJoin') {
-        if (!this.viewerConnectionIds.has(sender.id)) return;
-        if (this.userCap !== null && this.participantCount() >= this.userCap) {
-          sender.send(JSON.stringify({ type: 'joinDenied' }));
-          return;
-        }
-        this.viewerConnectionIds.delete(sender.id);
-        const count = this.participantCount();
-        const vCount = this.viewerCount();
-        sender.send(JSON.stringify({ type: 'joinApproved' }));
-        this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }), [sender.id]);
-        sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
-      } else if (event.type === 'clearPushedInterfaces') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.room.broadcast(JSON.stringify({ type: 'pushedInterfacesCleared' }));
-      } else if (event.type === 'pushInterface') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
-        const msg = JSON.stringify({ type: 'interfacePushed', interfaceName: event.interfaceName, payload: event.payload ?? {} });
-        for (const conn of targets) conn.send(msg);
-      } else if (event.type === 'pushHaptic') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
-        const msg = JSON.stringify({ type: 'hapticPushed' });
-        for (const conn of targets) conn.send(msg);
-      } else if (event.type === 'acceptInterface') {
-        const userId = this.connectionUserMap.get(sender.id);
-        if (!userId) return;
-        const msg = JSON.stringify({ type: 'interfaceAccepted', userId, interfaceName: event.interfaceName });
-        for (const conn of this.room.getConnections()) {
-          if (this.adminConnectionIds.has(conn.id)) conn.send(msg);
-        }
-      } else if (event.type === 'setOwnValenceDisplay') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.ownValenceDisplay = event.mode;
-        this.room.broadcast(JSON.stringify({ type: 'ownValenceDisplayChanged', ownValenceDisplay: this.ownValenceDisplay }));
-      } else if (event.type === 'setValenceInputMode') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.valenceInputMode = event.mode;
-        this.room.broadcast(JSON.stringify({ type: 'valenceInputModeChanged', valenceInputMode: this.valenceInputMode }));
-      } else if (event.type === 'setDefaultCursorColor') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.defaultCursorColor = event.color;
-        this.room.broadcast(JSON.stringify({ type: 'defaultCursorColorChanged', defaultCursorColor: this.defaultCursorColor }));
-      } else if (event.type === 'setColorCursorsByVote') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.colorCursorsByVote = event.enabled;
-        this.room.broadcast(JSON.stringify({ type: 'colorCursorsByVoteChanged', colorCursorsByVote: this.colorCursorsByVote }));
-      } else if (event.type === 'registerCustomAvatar') {
-        this.customAvatars.set(event.userId, event.photoUrl);
-        this.room.broadcast(JSON.stringify({ type: 'customAvatarsChanged', customAvatars: Object.fromEntries(this.customAvatars) }));
-      } else if (event.type === 'recordInvitations') {
-        const newEdges: Array<[string, string]> = [];
-        for (const [inviterId, inviteeId] of event.edges) {
-          if (!this.inviteEdges.has(inviteeId)) {
-            this.inviteEdges.set(inviteeId, inviterId);
-            newEdges.push([inviterId, inviteeId]);
-          }
-        }
-        if (newEdges.length > 0) {
-          this.room.broadcast(JSON.stringify({ type: 'inviteEdges', edges: newEdges }));
-        }
-      } else if (event.type === 'strokeSegment') {
-        this.room.broadcast(message);
-      } else if (event.type === 'clearSignature') {
-        this.room.broadcast(JSON.stringify({ type: 'signatureCleared', userId: event.userId }));
-      } else if (event.type === 'stenoStartRecording') {
-        if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) {
-          sender.send(JSON.stringify({ type: 'stenoLockDenied', lockHolderUserId: this.stenoLockUserId }));
-          return;
-        }
-        this.stenoLockUserId = event.userId;
-        this.room.broadcast(JSON.stringify({ type: 'stenoLockAcquired', userId: event.userId }));
-      } else if (event.type === 'stenoStopRecording') {
-        if (this.stenoLockUserId !== event.userId) return;
-        this.stenoLockUserId = null;
-        this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId: event.userId }));
-      } else if (event.type === 'stenoAppendText') {
-        if (this.stenoLockUserId !== event.userId) return;
-        this.stenoVtt += '\n' + event.text + '\n';
-        this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
-        void this.persistState();
-      } else if (event.type === 'stenoSetText') {
-        if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) return;
-        this.stenoVtt = event.text;
-        this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
-        void this.persistState();
-      } else if (event.type === 'storyTracerSetPoints') {
-        this.storyTracerPoints = event.points;
-        this.storyTracerMeta = event.meta;
-        void this.persistState();
-        this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: event.points, meta: event.meta }));
-      } else if (event.type === 'storyTracerClearPoints') {
-        this.storyTracerPoints = null;
-        this.storyTracerMeta = null;
-        void this.persistState();
-        this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: null, meta: null }));
-      } else if (event.type === 'mapProjectionSet') {
-        this.mapProjection = event.projection;
-        void this.persistState();
-        this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: event.projection }));
-      } else if (event.type === 'mapProjectionClear') {
-        this.mapProjection = null;
-        void this.persistState();
-        this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: null }));
-      } else if (event.type === 'joinCallQueue') {
-        const senderId = this.connectionUserMap.get(sender.id);
-        if (!senderId) return;
-        if (this.callPairs.has(senderId)) return; // already in a call
-        if (this.callQueue.length > 0) {
-          const waiterId = this.callQueue.shift()!;
-          this.callPairs.set(waiterId, senderId);
-          this.callPairs.set(senderId, waiterId);
-          for (const conn of this.getTargetConnections(waiterId)) {
-            conn.send(JSON.stringify({ type: 'callPaired', role: 'initiator', peerId: senderId }));
-          }
-          sender.send(JSON.stringify({ type: 'callPaired', role: 'receiver', peerId: waiterId }));
-        } else {
-          this.callQueue.push(senderId);
-          sender.send(JSON.stringify({ type: 'callQueued' }));
-        }
-      } else if (event.type === 'leaveCallQueue') {
-        const senderId = this.connectionUserMap.get(sender.id);
-        if (!senderId) return;
-        const idx = this.callQueue.indexOf(senderId);
-        if (idx !== -1) this.callQueue.splice(idx, 1);
-      } else if (event.type === 'webrtcOffer' || event.type === 'webrtcAnswer' || event.type === 'webrtcIce') {
-        const senderId = this.connectionUserMap.get(sender.id);
-        if (!senderId) return;
-        const parsed = JSON.parse(message) as Record<string, unknown>;
-        for (const conn of this.getTargetConnections(event.targetUserId)) {
-          conn.send(JSON.stringify({ ...parsed, fromUserId: senderId }));
-        }
-      } else if (event.type === 'hangUp') {
-        const senderId = this.connectionUserMap.get(sender.id);
-        if (!senderId) return;
-        this.callPairs.delete(senderId);
-        const peerId = event.targetUserId;
-        this.callPairs.delete(peerId);
-        for (const conn of this.getTargetConnections(peerId)) {
-          conn.send(JSON.stringify({ type: 'hangUp', fromUserId: senderId }));
-        }
-      } else if (event.type === 'setCallAlgorithm') {
-        if (this.adminConnectionIds.has(sender.id)) {
-          this.callAlgorithm = event.algorithm;
-        }
-      } else if (event.type === 'setArrivalCapacity') {
-        if (!this.adminConnectionIds.has(sender.id)) return;
-        this.arrivalCapacity = event.capacity;
-        this.room.broadcast(JSON.stringify({ type: 'arrivalCapacityChanged', capacity: this.arrivalCapacity }));
-      } else if (event.type === 'neighborEdge') {
-        const fromUserId = this.connectionUserMap.get(sender.id);
-        if (!fromUserId) return;
-        const toCode = event.toCode;
-        if (this.neighborCodes.get(fromUserId) === toCode) {
-          sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'self' }));
-          return;
-        }
-        let toUserId: string | null = null;
-        for (const [uid, code] of this.neighborCodes) {
-          if (code === toCode) { toUserId = uid; break; }
-        }
-        if (!toUserId) {
-          sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'not_found' }));
-          return;
-        }
-        const canonical = [fromUserId, toUserId].sort().join('|');
-        if (this.neighborEdges.has(canonical)) {
-          sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'duplicate' }));
-          return;
-        }
-        this.neighborEdges.add(canonical);
-        const [userA, userB] = canonical.split('|');
-        this.room.broadcast(JSON.stringify({ type: 'neighborEdgeAdded', userA, userB }));
-      } else if (event.type === 'requestNeighborEdges') {
-        const edges = [...this.neighborEdges].map(e => { const [userA, userB] = e.split('|'); return { userA, userB }; });
-        const allCodes = Object.fromEntries(this.neighborCodes);
-        sender.send(JSON.stringify({ type: 'neighborEdgesSnapshot', edges, allCodes }));
-      } else if (event.type === 'clearNeighborEdges') {
-        this.neighborEdges.clear();
-        this.room.broadcast(JSON.stringify({ type: 'neighborEdgesCleared' }));
-      } else if (event.type === 'setLightColor') {
-        this.lightColor = { color: event.color, brightness: event.brightness };
-        this.room.broadcast(JSON.stringify({ type: 'lightColor', color: event.color, brightness: event.brightness }));
+      switch (event.type) {
+        case 'playbackCursorBroadcast': this.handlePlaybackCursorBroadcast(event); break;
+        case 'move':
+        case 'touch':
+        case 'remove': this.handleCursorEvent(event, message, sender); break;
+        case 'setActiveStatement': this.handleSetActiveStatement(event, sender); break;
+        case 'queueStatement': this.queueStatement(event.statementId); break;
+        case 'clearQueue': this.clearQueue(); break;
+        case 'updateStatementsPool': this.handleUpdateStatementsPool(event, sender); break;
+        case 'setGhostCursors': this.ghosts.setEnabled(event.enabled); break;
+        case 'setTimecode': this.handleSetTimecode(event); break;
+        case 'setRecordingState': this.handleSetRecordingState(event); break;
+        case 'setRoomLabels': this.handleSetRoomLabels(event); break;
+        case 'setRoomAnchors': this.handleSetRoomAnchors(event); break;
+        case 'setRoomAvatarStyle': this.handleSetRoomAvatarStyle(event); break;
+        case 'setActivity': this.handleSetActivity(event); break;
+        case 'setNowLabel': this.handleSetNowLabel(event); break;
+        case 'setImageUrl': this.handleSetImageUrl(event); break;
+        case 'resetSoccerScore': this.soccer.resetScore(); break;
+        case 'setUserCap': this.handleSetUserCap(event, sender); break;
+        case 'triggerActivity': this.handleTriggerActivity(event); break;
+        case 'submitGithubUsername': this.handleSubmitGithubUsername(event); break;
+        case 'submitFeedbackStars': this.handleSubmitFeedbackStars(event); break;
+        case 'setSocialConfig': this.handleSetSocialConfig(event); break;
+        case 'setGreeterConfig': this.handleSetGreeterConfig(event); break;
+        case 'requestJoin': this.handleRequestJoin(sender); break;
+        case 'clearPushedInterfaces': this.handleClearPushedInterfaces(sender); break;
+        case 'pushInterface': this.handlePushInterface(event, sender); break;
+        case 'pushHaptic': this.handlePushHaptic(event, sender); break;
+        case 'acceptInterface': this.handleAcceptInterface(event, sender); break;
+        case 'setOwnValenceDisplay': this.handleSetOwnValenceDisplay(event, sender); break;
+        case 'setValenceInputMode': this.handleSetValenceInputMode(event, sender); break;
+        case 'setDefaultCursorColor': this.handleSetDefaultCursorColor(event, sender); break;
+        case 'setColorCursorsByVote': this.handleSetColorCursorsByVote(event, sender); break;
+        case 'registerCustomAvatar': this.handleRegisterCustomAvatar(event); break;
+        case 'recordInvitations': this.handleRecordInvitations(event); break;
+        case 'strokeSegment': this.room.broadcast(message); break;
+        case 'clearSignature': this.room.broadcast(JSON.stringify({ type: 'signatureCleared', userId: event.userId })); break;
+        case 'stenoStartRecording': this.handleStenoStartRecording(event, sender); break;
+        case 'stenoStopRecording': this.handleStenoStopRecording(event); break;
+        case 'stenoAppendText': this.handleStenoAppendText(event); break;
+        case 'stenoSetText': this.handleStenoSetText(event); break;
+        case 'storyTracerSetPoints': this.handleStoryTracerSetPoints(event); break;
+        case 'storyTracerClearPoints': this.handleStoryTracerClearPoints(); break;
+        case 'mapProjectionSet': this.handleMapProjectionSet(event); break;
+        case 'mapProjectionClear': this.handleMapProjectionClear(); break;
+        case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
+        case 'leaveCallQueue': this.handleLeaveCallQueue(sender); break;
+        case 'webrtcOffer':
+        case 'webrtcAnswer':
+        case 'webrtcIce': this.handleWebrtcSignaling(event, sender); break;
+        case 'hangUp': this.handleHangUp(event, sender); break;
+        case 'setCallAlgorithm': this.handleSetCallAlgorithm(event, sender); break;
+        case 'setArrivalCapacity': this.handleSetArrivalCapacity(event, sender); break;
+        case 'neighborEdge': this.handleNeighborEdge(event, sender); break;
+        case 'requestNeighborEdges': this.handleRequestNeighborEdges(sender); break;
+        case 'clearNeighborEdges': this.handleClearNeighborEdges(); break;
+        case 'setLightColor': this.handleSetLightColor(event); break;
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
     }
   }
 
-  // ===== SOCCER PHYSICS =====
-  private startSoccerPhysics() {
-    if (this.soccerInterval) clearInterval(this.soccerInterval);
-    this.resetBall();
-    this.soccerInterval = setInterval(() => this.updateBallPhysics(), SOCCER_TICK_MS);
+  // --- Cursor handlers ---
+
+  private handlePlaybackCursorBroadcast(event: PlaybackCursorBroadcastEvent): void {
+    // Admin replaying recorded events — broadcast to ALL clients (including sender)
+    // so the admin's own "Peek Canvas" tab also sees playback cursors
+    this.room.broadcast(JSON.stringify({
+      type: event.cursorType,
+      position: { ...event.position, isPlayback: true },
+    }));
   }
 
-  private stopSoccerPhysics() {
-    if (this.soccerInterval) {
-      clearInterval(this.soccerInterval);
-      this.soccerInterval = undefined;
+  private handleCursorEvent(event: CursorEvent, message: string, sender: Party.Connection): void {
+    const isFirstAppearance = (event.type === 'move' || event.type === 'touch') && !this.cursorPositions.has(event.position.userId);
+    if (isFirstAppearance) console.log(`Cursor appeared for ${event.position.userId} via ${event.type}`);
+    else if (event.type === 'remove') console.log(`Cursor removed for ${event.position.userId}`);
+    if (event.type === 'move' || event.type === 'touch') {
+      this.cursorPositions.set(event.position.userId, { x: event.position.x, y: event.position.y });
+    } else if (event.type === 'remove') {
+      this.cursorPositions.delete(event.position.userId);
     }
-    this.room.broadcast(JSON.stringify({ type: 'ballHidden' }));
+    this.room.broadcast(message, [sender.id]);
   }
 
-  private resetBall() {
-    const dir = Math.random() > 0.5 ? 1 : -1;
-    this.ballState = {
-      x: 50,
-      y: 50,
-      vx: dir * (1.5 + Math.random()),
-      vy: (Math.random() - 0.5) * 2,
+  // --- Statement / queue handlers ---
+
+  private handleSetActiveStatement(event: StatementEvent, sender: Party.Connection): void {
+    console.log(`Statement change from ${sender.id}:`, event.statementId);
+    this.activeStatementId = event.statementId;
+    this.room.broadcast(JSON.stringify({ type: 'activeStatementChanged', statementId: this.activeStatementId }));
+  }
+
+  private handleUpdateStatementsPool(event: UpdateStatementsPoolEvent, sender: Party.Connection): void {
+    if (event.conversationId) {
+      console.log(`Statements pool update from ${sender.id} via Polis conversation:`, event.conversationId);
+      void this.updateStatementsPool(undefined, event.conversationId, event.baseUrl);
+    } else if (event.json) {
+      console.log(`Statements pool update from ${sender.id} via JSON data:`, event.json.length, 'items');
+      void this.updateStatementsPool(event.json);
+    } else {
+      console.log(`Invalid statements pool update from ${sender.id}: no json or conversationId provided`);
+    }
+  }
+
+  // --- Room config handlers ---
+
+  private handleSetTimecode(event: SetTimecodeEvent): void {
+    this.savedTimecode = event.timecode;
+    this.room.broadcast(JSON.stringify({ type: 'timecodeUpdate', timecode: this.savedTimecode }));
+  }
+
+  private handleSetRecordingState(event: SetRecordingStateEvent): void {
+    this.recordingState = event.recording;
+    this.room.broadcast(JSON.stringify({ type: 'recordingStateChanged', recording: this.recordingState }));
+  }
+
+  private handleSetRoomLabels(event: SetRoomLabelsEvent): void {
+    this.roomLabels = event.labels;
+    this.room.broadcast(JSON.stringify({ type: 'roomLabelsChanged', labels: this.roomLabels }));
+  }
+
+  private handleSetRoomAnchors(event: SetRoomAnchorsEvent): void {
+    this.roomAnchors = event.anchors;
+    this.room.broadcast(JSON.stringify({ type: 'roomAnchorsChanged', anchors: this.roomAnchors }));
+  }
+
+  private handleSetRoomAvatarStyle(event: SetRoomAvatarStyleEvent): void {
+    this.roomAvatarStyle = event.avatarStyle;
+    this.room.broadcast(JSON.stringify({ type: 'roomAvatarStyleChanged', avatarStyle: this.roomAvatarStyle }));
+  }
+
+  private handleSetNowLabel(event: SetNowLabelEvent): void {
+    this.nowLabel = event.label;
+    this.room.broadcast(JSON.stringify({ type: 'nowLabelChanged', label: this.nowLabel }));
+  }
+
+  private handleSetImageUrl(event: SetImageUrlEvent): void {
+    this.roomImageUrl = event.url;
+    this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
+  }
+
+  // --- Soccer handlers ---
+
+  private handleSetActivity(event: SetActivityEvent): void {
+    this.currentActivity = event.activity;
+    if (event.activity === 'soccer') {
+      this.soccer.start();
+    } else {
+      this.soccer.stop();
+    }
+    this.room.broadcast(JSON.stringify({
+      type: 'activityChanged',
+      activity: this.currentActivity,
+      ball: this.currentActivity === 'soccer' ? this.soccer.ballState : null,
+      score: this.soccer.score,
+    }));
+  }
+
+  // --- Admin / access handlers ---
+
+  private handleSetUserCap(event: SetUserCapEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.userCap = event.cap;
+    this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
+  }
+
+  private handleRequestJoin(sender: Party.Connection): void {
+    if (!this.viewerConnectionIds.has(sender.id)) return;
+    if (this.userCap !== null && this.participantCount() >= this.userCap) {
+      sender.send(JSON.stringify({ type: 'joinDenied' }));
+      return;
+    }
+    this.viewerConnectionIds.delete(sender.id);
+    const count = this.participantCount();
+    const vCount = this.viewerCount();
+    sender.send(JSON.stringify({ type: 'joinApproved' }));
+    this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }), [sender.id]);
+    sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
+  }
+
+  private handleClearPushedInterfaces(sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.room.broadcast(JSON.stringify({ type: 'pushedInterfacesCleared' }));
+  }
+
+  private handlePushInterface(event: PushInterfaceEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
+    const msg = JSON.stringify({ type: 'interfacePushed', interfaceName: event.interfaceName, payload: event.payload ?? {} });
+    for (const conn of targets) conn.send(msg);
+  }
+
+  private handlePushHaptic(event: PushHapticEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
+    const msg = JSON.stringify({ type: 'hapticPushed' });
+    for (const conn of targets) conn.send(msg);
+  }
+
+  private handleAcceptInterface(event: AcceptInterfaceEvent, sender: Party.Connection): void {
+    const userId = this.connectionUserMap.get(sender.id);
+    if (!userId) return;
+    const msg = JSON.stringify({ type: 'interfaceAccepted', userId, interfaceName: event.interfaceName });
+    for (const conn of this.room.getConnections()) {
+      if (this.adminConnectionIds.has(conn.id)) conn.send(msg);
+    }
+  }
+
+  private handleTriggerActivity(event: TriggerActivityEvent): void {
+    const msg = JSON.stringify({ type: 'activityTriggered', activityName: event.activityName });
+    const hasTarget = event.targetUserId !== undefined || event.targetRegion !== undefined || event.targetUserIds !== undefined;
+    if (hasTarget) {
+      const targets = this.getTargetConnections(event.targetUserId, event.targetRegion, event.targetUserIds);
+      for (const conn of targets) conn.send(msg);
+    } else {
+      this.room.broadcast(msg);
+    }
+  }
+
+  // --- Viz / display handlers ---
+
+  private handleSetOwnValenceDisplay(event: SetOwnValenceDisplayEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.ownValenceDisplay = event.mode;
+    this.room.broadcast(JSON.stringify({ type: 'ownValenceDisplayChanged', ownValenceDisplay: this.ownValenceDisplay }));
+  }
+
+  private handleSetValenceInputMode(event: SetValenceInputModeEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.valenceInputMode = event.mode;
+    this.room.broadcast(JSON.stringify({ type: 'valenceInputModeChanged', valenceInputMode: this.valenceInputMode }));
+  }
+
+  private handleSetDefaultCursorColor(event: SetDefaultCursorColorEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.defaultCursorColor = event.color;
+    this.room.broadcast(JSON.stringify({ type: 'defaultCursorColorChanged', defaultCursorColor: this.defaultCursorColor }));
+  }
+
+  private handleSetColorCursorsByVote(event: SetColorCursorsByVoteEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.colorCursorsByVote = event.enabled;
+    this.room.broadcast(JSON.stringify({ type: 'colorCursorsByVoteChanged', colorCursorsByVote: this.colorCursorsByVote }));
+  }
+
+  // --- Social / submission handlers ---
+
+  private handleSubmitGithubUsername(event: SubmitGithubUsernameEvent): void {
+    const submission = {
+      username: event.username,
+      displayName: event.displayName,
+      avatarUrl: event.avatarUrl,
+      timestamp: event.timestamp || Date.now(),
     };
+    this.githubSubmissions.push(submission);
+    this.room.broadcast(JSON.stringify({ type: 'githubUsernameSubmitted', ...submission }));
   }
 
-  private updateBallPhysics() {
-    const b = this.ballState;
-
-    // Friction
-    b.vx *= SOCCER_FRICTION;
-    b.vy *= SOCCER_FRICTION;
-
-    // Cursor kicks
-    for (const [, pos] of this.cursorPositions) {
-      const dx = b.x - pos.x;
-      const dy = b.y - pos.y;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < SOCCER_KICK_RADIUS && dist > 0.1) {
-        const force = SOCCER_KICK_FORCE * (1 - dist / SOCCER_KICK_RADIUS);
-        b.vx += (dx / dist) * force;
-        b.vy += (dy / dist) * force;
-      }
-    }
-
-    // Move
-    b.x += b.vx;
-    b.y += b.vy;
-
-    // Top/bottom wall bounce
-    if (b.y - SOCCER_BALL_R < 0) { b.y = SOCCER_BALL_R; b.vy = Math.abs(b.vy) * SOCCER_DAMPING; }
-    if (b.y + SOCCER_BALL_R > 100) { b.y = 100 - SOCCER_BALL_R; b.vy = -Math.abs(b.vy) * SOCCER_DAMPING; }
-
-    // Left wall
-    if (b.x - SOCCER_BALL_R <= 0) {
-      if (b.y >= SOCCER_GOAL_MIN_Y && b.y <= SOCCER_GOAL_MAX_Y) {
-        // Goal for right team
-        this.soccerScore.right++;
-        this.room.broadcast(JSON.stringify({ type: 'goalScored', scorer: 'right', score: this.soccerScore }));
-        this.resetBall();
-        return;
-      }
-      b.x = SOCCER_BALL_R;
-      b.vx = Math.abs(b.vx) * SOCCER_DAMPING;
-    }
-
-    // Right wall
-    if (b.x + SOCCER_BALL_R >= 100) {
-      if (b.y >= SOCCER_GOAL_MIN_Y && b.y <= SOCCER_GOAL_MAX_Y) {
-        // Goal for left team
-        this.soccerScore.left++;
-        this.room.broadcast(JSON.stringify({ type: 'goalScored', scorer: 'left', score: this.soccerScore }));
-        this.resetBall();
-        return;
-      }
-      b.x = 100 - SOCCER_BALL_R;
-      b.vx = -Math.abs(b.vx) * SOCCER_DAMPING;
-    }
-
-    this.room.broadcast(JSON.stringify({ type: 'ballUpdate', x: b.x, y: b.y }));
+  private handleSubmitFeedbackStars(event: SubmitFeedbackStarsEvent): void {
+    this.room.broadcast(JSON.stringify({ type: 'feedbackStarsSubmitted', userId: event.userId, stars: event.stars, timestamp: event.timestamp || Date.now() }));
   }
-  // ===== END SOCCER PHYSICS =====
+
+  private handleSetSocialConfig(event: SetSocialConfigEvent): void {
+    this.roomSocialConfig = event.config;
+    this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
+    void this.persistState();
+  }
+
+  private handleSetGreeterConfig(event: SetGreeterConfigEvent): void {
+    this.greeterConfig = event.config;
+    this.room.broadcast(JSON.stringify({ type: 'greeterConfigChanged', config: this.greeterConfig }));
+  }
+
+  private handleRegisterCustomAvatar(event: RegisterCustomAvatarEvent): void {
+    this.customAvatars.set(event.userId, event.photoUrl);
+    this.room.broadcast(JSON.stringify({ type: 'customAvatarsChanged', customAvatars: Object.fromEntries(this.customAvatars) }));
+  }
+
+  private handleRecordInvitations(event: RecordInvitationsEvent): void {
+    const newEdges: Array<[string, string]> = [];
+    for (const [inviterId, inviteeId] of event.edges) {
+      if (!this.inviteEdges.has(inviteeId)) {
+        this.inviteEdges.set(inviteeId, inviterId);
+        newEdges.push([inviterId, inviteeId]);
+      }
+    }
+    if (newEdges.length > 0) {
+      this.room.broadcast(JSON.stringify({ type: 'inviteEdges', edges: newEdges }));
+    }
+  }
+
+  // --- Steno handlers ---
+
+  private handleStenoStartRecording(event: StenoStartRecordingEvent, sender: Party.Connection): void {
+    if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) {
+      sender.send(JSON.stringify({ type: 'stenoLockDenied', lockHolderUserId: this.stenoLockUserId }));
+      return;
+    }
+    this.stenoLockUserId = event.userId;
+    this.room.broadcast(JSON.stringify({ type: 'stenoLockAcquired', userId: event.userId }));
+  }
+
+  private handleStenoStopRecording(event: StenoStopRecordingEvent): void {
+    if (this.stenoLockUserId !== event.userId) return;
+    this.stenoLockUserId = null;
+    this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId: event.userId }));
+  }
+
+  private handleStenoAppendText(event: StenoAppendTextEvent): void {
+    if (this.stenoLockUserId !== event.userId) return;
+    this.stenoVtt += '\n' + event.text + '\n';
+    this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
+    void this.persistState();
+  }
+
+  private handleStenoSetText(event: StenoSetTextEvent): void {
+    if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) return;
+    this.stenoVtt = event.text;
+    this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
+    void this.persistState();
+  }
+
+  // --- StoryTracer / Map handlers ---
+
+  private handleStoryTracerSetPoints(event: StoryTracerSetPointsEvent): void {
+    this.storyTracerPoints = event.points;
+    this.storyTracerMeta = event.meta;
+    void this.persistState();
+    this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: event.points, meta: event.meta }));
+  }
+
+  private handleStoryTracerClearPoints(): void {
+    this.storyTracerPoints = null;
+    this.storyTracerMeta = null;
+    void this.persistState();
+    this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: null, meta: null }));
+  }
+
+  private handleMapProjectionSet(event: MapProjectionSetEvent): void {
+    this.mapProjection = event.projection;
+    void this.persistState();
+    this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: event.projection }));
+  }
+
+  private handleMapProjectionClear(): void {
+    this.mapProjection = null;
+    void this.persistState();
+    this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: null }));
+  }
+
+  // --- Voice call handlers ---
+
+  private handleJoinCallQueue(sender: Party.Connection): void {
+    const senderId = this.connectionUserMap.get(sender.id);
+    if (!senderId) return;
+    if (this.callPairs.has(senderId)) return; // already in a call
+    if (this.callQueue.length > 0) {
+      const waiterId = this.callQueue.shift()!;
+      this.callPairs.set(waiterId, senderId);
+      this.callPairs.set(senderId, waiterId);
+      for (const conn of this.getTargetConnections(waiterId)) {
+        conn.send(JSON.stringify({ type: 'callPaired', role: 'initiator', peerId: senderId }));
+      }
+      sender.send(JSON.stringify({ type: 'callPaired', role: 'receiver', peerId: waiterId }));
+    } else {
+      this.callQueue.push(senderId);
+      sender.send(JSON.stringify({ type: 'callQueued' }));
+    }
+  }
+
+  private handleLeaveCallQueue(sender: Party.Connection): void {
+    const senderId = this.connectionUserMap.get(sender.id);
+    if (!senderId) return;
+    const idx = this.callQueue.indexOf(senderId);
+    if (idx !== -1) this.callQueue.splice(idx, 1);
+  }
+
+  private handleWebrtcSignaling(event: WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent, sender: Party.Connection): void {
+    const senderId = this.connectionUserMap.get(sender.id);
+    if (!senderId) return;
+    for (const conn of this.getTargetConnections(event.targetUserId)) {
+      conn.send(JSON.stringify({ ...event, fromUserId: senderId }));
+    }
+  }
+
+  private handleHangUp(event: HangUpCallEvent, sender: Party.Connection): void {
+    const senderId = this.connectionUserMap.get(sender.id);
+    if (!senderId) return;
+    this.callPairs.delete(senderId);
+    const peerId = event.targetUserId;
+    this.callPairs.delete(peerId);
+    for (const conn of this.getTargetConnections(peerId)) {
+      conn.send(JSON.stringify({ type: 'hangUp', fromUserId: senderId }));
+    }
+  }
+
+  private handleSetCallAlgorithm(event: SetCallAlgorithmEvent, sender: Party.Connection): void {
+    if (this.adminConnectionIds.has(sender.id)) {
+      this.callAlgorithm = event.algorithm;
+    }
+  }
+
+  private handleSetArrivalCapacity(event: SetArrivalCapacityEvent, sender: Party.Connection): void {
+    if (!this.adminConnectionIds.has(sender.id)) return;
+    this.arrivalCapacity = event.capacity;
+    this.room.broadcast(JSON.stringify({ type: 'arrivalCapacityChanged', capacity: this.arrivalCapacity }));
+  }
+
+  // --- Neighbor handlers ---
+
+  private handleNeighborEdge(event: NeighborEdgeEvent, sender: Party.Connection): void {
+    const fromUserId = this.connectionUserMap.get(sender.id);
+    if (!fromUserId) return;
+    const toCode = event.toCode;
+    if (this.neighborCodes.get(fromUserId) === toCode) {
+      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'self' }));
+      return;
+    }
+    let toUserId: string | null = null;
+    for (const [uid, code] of this.neighborCodes) {
+      if (code === toCode) { toUserId = uid; break; }
+    }
+    if (!toUserId) {
+      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'not_found' }));
+      return;
+    }
+    const canonical = [fromUserId, toUserId].sort().join('|');
+    if (this.neighborEdges.has(canonical)) {
+      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'duplicate' }));
+      return;
+    }
+    this.neighborEdges.add(canonical);
+    const [userA, userB] = canonical.split('|');
+    this.room.broadcast(JSON.stringify({ type: 'neighborEdgeAdded', userA, userB }));
+  }
+
+  private handleRequestNeighborEdges(sender: Party.Connection): void {
+    const edges = [...this.neighborEdges].map(e => { const [userA, userB] = e.split('|'); return { userA, userB }; });
+    const allCodes = Object.fromEntries(this.neighborCodes);
+    sender.send(JSON.stringify({ type: 'neighborEdgesSnapshot', edges, allCodes }));
+  }
+
+  private handleClearNeighborEdges(): void {
+    this.neighborEdges.clear();
+    this.room.broadcast(JSON.stringify({ type: 'neighborEdgesCleared' }));
+  }
+
+  // --- Light handler ---
+
+  private handleSetLightColor(event: SetLightColorEvent): void {
+    this.lightColor = { color: event.color, brightness: event.brightness };
+    this.room.broadcast(JSON.stringify({ type: 'lightColor', color: event.color, brightness: event.brightness }));
+  }
+
+  // --- Core statement/queue methods ---
 
   private queueStatement(statementId: number) {
     const now = Date.now();
-
-    // Find the latest *future* or *past* displayTimestamp
-    // i.e. the most recently scheduled statement
-    let lastTimestamp = now;
-
-    if (this.allSelectedStatements.length > 0) {
-      const latest = this.allSelectedStatements.reduce((a, b) =>
-        a.displayTimestamp > b.displayTimestamp ? a : b
-      );
-      lastTimestamp = latest.displayTimestamp;
-    }
-
-    // Special rule: if active statement is -1, add immediately
-    const currentActive = this.getCurrentActiveStatementId();
-    const displayTimestamp =
-      currentActive === -1
-        ? now
-        : lastTimestamp + 10_000;   // ← 10s after last queued item's timestamp
-
-    const queueItem: QueueItem = { statementId, displayTimestamp };
-    this.allSelectedStatements.push(queueItem);
-
+    const displayTimestamp = computeNextDisplayTimestamp(this.allSelectedStatements, now);
+    this.allSelectedStatements.push({ statementId, displayTimestamp });
     this.room.broadcast(JSON.stringify({
       type: 'queueUpdated',
       allSelectedStatements: this.allSelectedStatements,
@@ -1081,33 +806,11 @@ export default class Server implements Party.Server {
   }
 
   private getCurrentActiveStatementId(): number {
-    const now = Date.now();
-    // Find the most recent statement that should be displayed
-    const displayedStatements = this.allSelectedStatements
-      .filter(item => item.displayTimestamp <= now)
-      .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
-
-    if (displayedStatements.length > 0) {
-      return displayedStatements[0].statementId;
-    }
-
-    // Default to statement 1 if no statements have been queued yet
-    return 1;
+    return getCurrentActiveStatementId(this.allSelectedStatements, Date.now());
   }
 
   private clearQueue() {
-    const now = Date.now();
-
-    // Keep only the currently active statement (most recent past statement)
-    // Remove all future queued statements
-    const pastStatements = this.allSelectedStatements
-      .filter(item => item.displayTimestamp <= now)
-      .sort((a, b) => b.displayTimestamp - a.displayTimestamp);
-
-    // Keep only the most recent past statement (current active) if it exists
-    this.allSelectedStatements = pastStatements.length > 0 ? [pastStatements[0]] : [];
-
-    // Broadcast queue update
+    this.allSelectedStatements = computeClearedQueue(this.allSelectedStatements, Date.now());
     this.room.broadcast(JSON.stringify({
       type: 'queueUpdated',
       allSelectedStatements: this.allSelectedStatements,
@@ -1179,259 +882,6 @@ export default class Server implements Party.Server {
       }));
     }
   }
-
-  // ===== GHOST CURSOR DEMO METHODS (can be easily removed) =====
-
-  private setGhostCursorsEnabled(enabled: boolean) {
-    this.ghostCursorsEnabled = enabled;
-
-    if (enabled) {
-      this.initializeGhostCursors();
-      this.startGhostCursorAnimation();
-    } else {
-      this.stopGhostCursorAnimation();
-      // Send remove events for all current ghost cursors
-      this.ghostCursors.forEach(cursor => {
-        this.room.broadcast(JSON.stringify({
-          type: 'remove',
-          position: {
-            x: 0,
-            y: 0,
-            timestamp: Date.now(),
-            userId: cursor.id,
-          }
-        }));
-      });
-      this.ghostCursors = [];
-    }
-
-    // Broadcast the ghost cursor setting change to all connections
-    this.room.broadcast(JSON.stringify({
-      type: 'ghostCursorsChanged',
-      enabled: this.ghostCursorsEnabled
-    }));
-  }
-
-  private generateRandomUserId(): string {
-    // Generate a random user ID similar to real users (9 characters)
-    return Math.random().toString(36).substr(2, 9);
-  }
-
-  private initializeGhostCursors() {
-    this.ghostCursors = [];
-
-    // Define vote areas (normalized coordinates 0-100) - moved inward for natural thumb placement
-    const voteAreas = [
-      { x: 70, y: 20 },   // AGREE: top-right (moved inward)
-      { x: 20, y: 60 },   // DISAGREE: bottom-left (moved inward)
-      { x: 90, y: 70 }    // PASS: bottom-right (moved inward)
-    ];
-
-    for (let i = 0; i < 10; i++) {
-      // Start from random edge positions
-      const side = Math.floor(Math.random() * 4);
-      let startX, startY;
-
-      switch (side) {
-        case 0: // top
-          startX = Math.random() * 100;
-          startY = -5;
-          break;
-        case 1: // right
-          startX = 105;
-          startY = Math.random() * 100;
-          break;
-        case 2: // bottom
-          startX = Math.random() * 100;
-          startY = 105;
-          break;
-        case 3: // left
-        default:
-          startX = -5;
-          startY = Math.random() * 100;
-          break;
-      }
-
-      const targetArea = voteAreas[Math.floor(Math.random() * voteAreas.length)];
-
-      // Generate individual resting characteristics
-      // Most cursors (70%) will have slow movement, some (30%) will have faster movement
-      const isActiveCursor = Math.random() < 0.3;
-      const restingSpeed = isActiveCursor ?
-        0.8 + Math.random() * 0.7 : // Active cursors: 0.8-1.5x speed
-        0.2 + Math.random() * 0.4;  // Most cursors: 0.2-0.6x speed
-
-      const restingRadius = isActiveCursor ?
-        4 + Math.random() * 4 : // Active cursors: 4-8% radius
-        2 + Math.random() * 3;  // Most cursors: 2-5% radius
-
-      this.ghostCursors.push({
-        id: this.generateRandomUserId(),
-        x: startX,
-        y: startY,
-        targetX: targetArea.x,
-        targetY: targetArea.y,
-        isMoving: true,
-        moveStartTime: Date.now() + Math.random() * 2000, // Stagger start times
-        moveDuration: 3000 + Math.random() * 2000, // 3-5 seconds to reach target
-        voteArea: { x: targetArea.x, y: targetArea.y },
-        noiseOffsetX: Math.random() * 1000, // Unique noise offset for each cursor
-        noiseOffsetY: Math.random() * 1000,
-        restingSpeed: restingSpeed,
-        restingRadius: restingRadius,
-        transitionStartTime: 0,
-        transitionDuration: 2000, // 2 second transition to resting motion
-        finalMovePosition: { x: startX, y: startY }
-      });
-    }
-  }
-
-  private startGhostCursorAnimation() {
-    if (this.ghostCursorInterval) {
-      clearInterval(this.ghostCursorInterval);
-    }
-
-    this.ghostCursorInterval = setInterval(() => {
-      this.checkForStatementChanges();
-      this.updateGhostCursors();
-    }, 100); // Update every 100ms for smooth animation
-  }
-
-  private stopGhostCursorAnimation() {
-    if (this.ghostCursorInterval) {
-      clearInterval(this.ghostCursorInterval);
-      this.ghostCursorInterval = undefined;
-    }
-  }
-
-  private updateGhostCursors() {
-    if (!this.ghostCursorsEnabled) return;
-
-    const now = Date.now();
-
-    this.ghostCursors.forEach(cursor => {
-      if (cursor.isMoving && now >= cursor.moveStartTime) {
-        const elapsed = now - cursor.moveStartTime;
-        const progress = Math.min(elapsed / cursor.moveDuration, 1);
-
-        // Use easing function for more natural movement
-        const easeProgress = this.easeInOutCubic(progress);
-
-        // Interpolate position
-        cursor.x = cursor.x + (cursor.targetX - cursor.x) * easeProgress * 0.1;
-        cursor.y = cursor.y + (cursor.targetY - cursor.y) * easeProgress * 0.1;
-
-        // Check if reached target
-        const distanceToTarget = Math.sqrt(
-          Math.pow(cursor.targetX - cursor.x, 2) +
-          Math.pow(cursor.targetY - cursor.y, 2)
-        );
-
-        if (distanceToTarget < 2 || progress >= 1) {
-          cursor.isMoving = false;
-          // Start transition to resting motion
-          cursor.transitionStartTime = now;
-          cursor.finalMovePosition = { x: cursor.x, y: cursor.y };
-          cursor.voteArea = { x: cursor.x, y: cursor.y };
-        }
-      } else if (!cursor.isMoving) {
-        // Handle transition from movement to resting motion
-        const transitionElapsed = now - cursor.transitionStartTime;
-        const transitionProgress = Math.min(transitionElapsed / cursor.transitionDuration, 1);
-
-        // Generate noise-based target position
-        const time = now * 0.0005 * cursor.restingSpeed;
-        const noiseX = this.noise2D(cursor.noiseOffsetX, time);
-        const noiseY = this.noise2D(cursor.noiseOffsetY, time);
-        const noiseTargetX = cursor.voteArea.x + (noiseX * cursor.restingRadius);
-        const noiseTargetY = cursor.voteArea.y + (noiseY * cursor.restingRadius);
-
-        if (transitionProgress < 1) {
-          // During transition: blend from final move position to noise position
-          const easeProgress = this.easeInOutCubic(transitionProgress);
-          cursor.x = cursor.finalMovePosition.x + (noiseTargetX - cursor.finalMovePosition.x) * easeProgress;
-          cursor.y = cursor.finalMovePosition.y + (noiseTargetY - cursor.finalMovePosition.y) * easeProgress;
-        } else {
-          // After transition: use pure noise motion
-          cursor.x = noiseTargetX;
-          cursor.y = noiseTargetY;
-        }
-
-        // Ensure cursors stay within canvas bounds
-        cursor.x = Math.max(0, Math.min(100, cursor.x));
-        cursor.y = Math.max(0, Math.min(100, cursor.y));
-      }
-
-      // Always broadcast cursor position to prevent 3-second timeout removal
-      this.room.broadcast(JSON.stringify({
-        type: 'move',
-        position: {
-          x: Math.max(0, Math.min(100, cursor.x)),
-          y: Math.max(0, Math.min(100, cursor.y)),
-          timestamp: now,
-          userId: cursor.id,
-        }
-      }));
-    });
-  }
-
-  private easeInOutCubic(t: number): number {
-    return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-  }
-
-  private moveGhostCursorsToNewTargets() {
-    if (!this.ghostCursorsEnabled) return;
-
-    const voteAreas = [
-      { x: 70, y: 20 },   // AGREE: top-right (moved inward)
-      { x: 20, y: 60 },   // DISAGREE: bottom-left (moved inward)
-      { x: 90, y: 70 }    // PASS: bottom-right (moved inward)
-    ];
-
-    // Calculate the time until the next statement
-    const now = Date.now();
-    const nextStatement = this.allSelectedStatements
-      .filter(item => item.displayTimestamp > now)
-      .sort((a, b) => a.displayTimestamp - b.displayTimestamp)[0];
-
-    // Default to 10 seconds if no next statement (standard statement duration)
-    const timeUntilNext = nextStatement ? nextStatement.displayTimestamp - now : 10000;
-
-    this.ghostCursors.forEach(cursor => {
-      const newTarget = voteAreas[Math.floor(Math.random() * voteAreas.length)];
-      cursor.targetX = newTarget.x;
-      cursor.targetY = newTarget.y;
-      cursor.isMoving = true;
-
-      // Random delay from 0 to 20% of statement duration before starting to move
-      const maxStartDelay = timeUntilNext * 0.2;
-      const startDelay = Math.random() * maxStartDelay;
-      cursor.moveStartTime = now + startDelay;
-
-      // Finish moving 0 to 20% of total time before the next statement
-      const maxEarlyFinish = timeUntilNext * 0.2;
-      const earlyFinish = Math.random() * maxEarlyFinish;
-      const availableMoveDuration = timeUntilNext - startDelay - earlyFinish;
-
-      // Ensure minimum movement duration of 1 second
-      cursor.moveDuration = Math.max(1000, availableMoveDuration);
-
-      // The vote area will be updated when the cursor reaches its target
-    });
-  }
-
-  private checkForStatementChanges() {
-    if (!this.ghostCursorsEnabled) return;
-
-    const currentActiveId = this.getCurrentActiveStatementId();
-    if (currentActiveId !== this.lastActiveStatementId) {
-      console.log(`Statement changed from ${this.lastActiveStatementId} to ${currentActiveId}, moving ghost cursors`);
-      this.lastActiveStatementId = currentActiveId;
-      this.moveGhostCursorsToNewTargets();
-    }
-  }
-
-  // ===== END GHOST CURSOR DEMO METHODS =====
 
   async onRequest(request: Party.Request) {
     const url = new URL(request.url);
