@@ -53,6 +53,18 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   const liveCursorsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const anchorsRef = useRef<ReactionAnchors>(DEFAULT_ANCHORS);
 
+  // D3 mutates link source/target from string IDs to node objects; normalize back and drop any links
+  // whose endpoints are missing from nodesRef (server/timing inconsistency guard)
+  function freshLinks(): D3Link[] {
+    const nodeIds = new Set(nodesRef.current.map(n => n.id));
+    return linksRef.current.flatMap(l => {
+      const src = typeof l.source === 'object' ? (l.source as D3Node).id : l.source as string;
+      const tgt = typeof l.target === 'object' ? (l.target as D3Node).id : l.target as string;
+      if (!nodeIds.has(src) || !nodeIds.has(tgt)) return [];
+      return [{ id: l.id, source: src, target: tgt }];
+    });
+  }
+
   function getNodeColor(uid: string): string {
     const pos = liveCursorsRef.current.get(uid);
     if (!pos) return '#888';
@@ -75,7 +87,8 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     let nodesChanged = false;
     for (const uid of [link.source as string, link.target as string]) {
       if (!nodesRef.current.find(n => n.id === uid)) {
-        nodesRef.current = [...nodesRef.current, { id: uid }];
+        const { width, height } = sizeRef.current;
+        nodesRef.current = [...nodesRef.current, { id: uid, x: width / 2, y: height / 2 }];
         nodesChanged = true;
       }
     }
@@ -94,7 +107,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     }
 
     // Add the new link and flash its color
-    linksRef.current = [...linksRef.current, link];
+    linksRef.current = [...freshLinks(), link];
     (sim.force('link') as d3.ForceLink<D3Node, D3Link>).links(linksRef.current);
 
     linkGroup
@@ -132,7 +145,9 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       } else if (msg.type === 'neighborEdgesSnapshot') {
         setEdges(msg.edges ?? []);
         const userIds = Object.keys(msg.allCodes ?? {});
-        nodesRef.current = userIds.map(id => ({ id, ...(nodesRef.current.find(n => n.id === id) ?? {}) }));
+        const { width, height } = sizeRef.current;
+        const cx = width / 2, cy = height / 2;
+        nodesRef.current = userIds.map(id => ({ id, x: cx, y: cy, ...(nodesRef.current.find(n => n.id === id) ?? {}) }));
         linksRef.current = (msg.edges ?? []).map((e: Edge) => ({
           id: `${e.userA}|${e.userB}`,
           source: e.userA,
@@ -217,6 +232,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
 
     svg.selectAll('*').remove();
 
+    linksRef.current = freshLinks();
     const sim = d3.forceSimulation<D3Node>(nodesRef.current)
       .force('link', d3.forceLink<D3Node, D3Link>(linksRef.current).id(d => d.id).distance(60))
       .force('charge', d3.forceManyBody().strength(-120))
@@ -248,10 +264,6 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       .call(makeDrag(sim));
 
     sim.on('tick', () => {
-      for (const n of nodesRef.current) {
-        n.x = Math.max(padding, Math.min(width - padding, n.x ?? width / 2));
-        n.y = Math.max(padding, Math.min(height - padding, n.y ?? height / 2));
-      }
       linkGroupRef.current?.selectAll<SVGLineElement, D3Link>('line')
         .attr('x1', d => (d.source as D3Node).x ?? 0)
         .attr('y1', d => (d.source as D3Node).y ?? 0)

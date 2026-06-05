@@ -6,6 +6,10 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Changed
 - **NeighborPanel graph view** — nodes are now coloured by live reaction-canvas valence (green/red/yellow) using the same `computeReactionRegion` logic as other projection maps; grey for users with no cursor data yet; no special "you are here" highlight for own node.
+- **NeighborPanel graph view** — new nodes spawn at SVG centre instead of top-left; removed tick-handler coordinate clamping so dragging works correctly when graph is rotated.
+
+### Fixed
+- **NeighborPanel graph** — "node not found" crash (and resulting WSOD) when a link referenced a user ID missing from the nodes array due to server/timing inconsistency; D3 link mutation also caused the same crash on second map open; both resolved by normalising and filtering links in `freshLinks()` before passing to any simulation.
 - **NeighborPanel graph view** — added ↺ refresh button to re-randomise the force layout; added ±180° rotation slider beside the flip buttons; removed active-state highlighting from flip buttons since orientation has no canonical "true" state.
 
 ### Added
