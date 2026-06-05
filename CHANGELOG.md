@@ -5,36 +5,20 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 29 (2026-06-02)
 
 ### Added
-- **Chromatic Storybook deploy** — GitHub Actions workflow publishes Storybook to Chromatic on every push; visual changes are auto-accepted so CI never blocks on review. ([#137](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/137))
-
-### Added
+- **Perf test CI workflow** — `deploy:perf` npm script and `.github/workflows/perf-test.yml` deploy to a persistent `perf` PartyKit preview and run the k6 load test suite (200 VUs, 30s) against `wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default`; triggered manually or on a daily schedule (skipped if no commits in 24h).
+- **k6 load test improvements** — adds `cursor_delivery_ms` end-to-end latency metric (sender timestamp echoed back via `cursorBatch`), `connection_success` rate metric replacing the meaningless `ws_sessions` threshold, fixes `cursors_received` to count only cursor events (not `presenceCount` messages), staggered 18–22s VU close timer to avoid reconnect storms, and a `handleSummary` fanout ratio display.
+- **ArrivalCanvas panel** — new patchable panel that turns arrivals into an audio-visual moment: the screen transitions black → white and a THX deep note synthesizes and converges to a D major chord as participants join. Emcee sets room capacity via a gear-icon config modal; count and capacity are displayed on screen. Includes a `SimulatingArrivals` Storybook story with a mock driver that steps through arrivals over 10 seconds.
+- **Smooth cursor: avatar support** — smooth cursors now render DiceBear and custom photo avatars when an avatar style is selected in the emcee Avatars tab; DiceBear uses `?radius=50` for native circular rendering (no SVG clip paths); custom photos still use clip paths; falls back to a plain dot when no style is set.
+- **`pnpm perf-100` script** — shorthand for `pnpm run perf --vus 100 --duration 30s`.
+- **NeighborPanel** — new panel for building a live social graph of nearby audience members; participants see their own 4-digit code and enter neighbours' codes via an on-screen keypad; emcee can view a D3 force-directed map of all connections in real time ([#134](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/134))
 - **Screen Light panel** — new canvas activity mode (`screen-light`) that turns a participant's phone into a full-screen colored light; color and brightness are controlled remotely by an admin running the Light Show panel; screen wake lock is on by default with a subtle toggle in the bottom-right corner.
 - **Light Show panel** — new patchable controller panel (`light-show`) for setting the color (via presets + custom picker) and brightness (dimmer slider) of all connected Screen Light phones in real time.
-
-### Changed
-- **NeighborPanel graph view** — nodes are now coloured by live reaction-canvas valence (green/red/yellow) using the same `computeReactionRegion` logic as other projection maps; grey for users with no cursor data yet; no special "you are here" highlight for own node.
-- **NeighborPanel graph view** — new nodes spawn at SVG centre instead of top-left; removed tick-handler coordinate clamping so dragging works correctly when graph is rotated.
-
-### Fixed
-- **NeighborPanel graph** — "node not found" crash (and resulting WSOD) when a link referenced a user ID missing from the nodes array due to server/timing inconsistency; D3 link mutation also caused the same crash on second map open; both resolved by normalising and filtering links in `freshLinks()` before passing to any simulation.
-- **NeighborPanel graph** — nodes now appear/disappear in real time: `userJoined` adds a dot immediately (no need to leave and re-open the graph); `userLeft` removes the dot and any associated edges; `neighborEdgesCleared` also clears all dots; `neighborEdgeAdded` now drives ref updates + `restartSim` directly instead of the unreliable live-patch path.
-- **NeighborPanel graph** — joining users and their prior edges now merge into the live simulation without resetting it; `userJoined` adds the node directly via `addNodeLive`; the subsequent snapshot response merges new nodes/edges incrementally (`addEdgeLive`-style, no flash); `restartSim` is only called on initial graph open or full clears.
-- **NeighborPanel graph view** — added ↺ refresh button to re-randomise the force layout; added ±180° rotation slider beside the flip buttons; removed active-state highlighting from flip buttons since orientation has no canonical "true" state.
-
-### Added
-- **NeighborPanel** — new panel for building a live social graph of nearby audience members; participants see their own 4-digit code and enter neighbours' codes via an on-screen keypad; emcee can view a D3 force-directed map of all connections in real time ([#134](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/134))
+- **Chromatic Storybook deploy** — GitHub Actions workflow publishes Storybook to Chromatic on every push; visual changes are auto-accepted so CI never blocks on review. ([#137](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/137))
 
 ### Changed
 - **Perf test CI: add `party` and `room` inputs** — `workflow_dispatch` now accepts a `party` dropdown (`perf`/`main`, default `perf`) and a `room` text field (default `default`); WS URL is constructed dynamically from these inputs. Renames the hard-coded `perf-default` room to `default` throughout the k6 script, `perf:remote` npm script, and `PerfCanvasApp`.
-
-### Added
-- **`pnpm perf-100` script** — shorthand for `pnpm run perf --vus 100 --duration 30s`.
-
-### Fixed
-- **k6 load test: revert from k6/websockets back to k6/ws** — `k6/websockets` global event loop runs for the entire VU lifetime so iterations never complete and the test never terminates; `k6/ws` blocks the VU inside `ws.connect()` until the socket closes, giving clean per-iteration lifecycle; socket-scoped `socket.setInterval/setTimeout` work correctly within the connect callback so there was no reason to migrate in the first place.
-
-### Added
-- **Smooth cursor: avatar support** — smooth cursors now render DiceBear and custom photo avatars when an avatar style is selected in the emcee Avatars tab; DiceBear uses `?radius=50` for native circular rendering (no SVG clip paths); custom photos still use clip paths; falls back to a plain dot when no style is set.
+- **NeighborPanel graph view** — nodes are now coloured by live reaction-canvas valence (green/red/yellow) using the same `computeReactionRegion` logic as other projection maps; grey for users with no cursor data yet; no special "you are here" highlight for own node.
+- **NeighborPanel graph view** — new nodes spawn at SVG centre instead of top-left; removed tick-handler coordinate clamping so dragging works correctly when graph is rotated.
 
 ### Fixed
 - **Smooth cursor: tune damping to 0.5** — reduces trailing lag while keeping motion smooth.
@@ -45,48 +29,13 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Standardize cursor send rate to 33ms (~30fps)** — adds `CURSOR_THROTTLE_MS = 33` in `app/utils/cursor.ts` as the single source of truth; `TouchLayer` now defaults to it (was unthrottled), `PerfCanvasApp` uses it when adaptive throttle is off (was also unthrottled), adaptive throttle base slider defaults to it (was 50ms), and the k6 load test mirrors it with a comment.
 - **Perf test CI: install k6 before running** — adds `grafana/setup-k6-action@v1` step so k6 is available on the runner; previously the `run-k6-action` step failed with `spawn k6 ENOENT`.
 - **k6 load test: migrate from `k6/ws` to `k6/websockets`** — uses the modern global-event-loop module (browser-standard WebSocket API) which supports concurrent connections per VU; replaces socket-scoped `setInterval`/`setTimeout` with globals and tracks connection success via `onopen`/`onclose` instead of checking the response status.
-
-### Added
-- **Perf test CI workflow** — `deploy:perf` npm script and `.github/workflows/perf-test.yml` deploy to a persistent `perf` PartyKit preview and run the k6 load test suite (200 VUs, 30s) against `wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default`; triggered manually or on a daily schedule (skipped if no commits in 24h).
-- **k6 load test improvements** — adds `cursor_delivery_ms` end-to-end latency metric (sender timestamp echoed back via `cursorBatch`), `connection_success` rate metric replacing the meaningless `ws_sessions` threshold, fixes `cursors_received` to count only cursor events (not `presenceCount` messages), staggered 18–22s VU close timer to avoid reconnect storms, and a `handleSummary` fanout ratio display.
-- **ArrivalCanvas panel** — new patchable panel that turns arrivals into an audio-visual moment: the screen transitions black → white and a THX deep note synthesizes and converges to a D major chord as participants join. Emcee sets room capacity via a gear-icon config modal; count and capacity are displayed on screen. Includes a `SimulatingArrivals` Storybook story with a mock driver that steps through arrivals over 10 seconds.
+- **k6 load test: revert from k6/websockets back to k6/ws** — `k6/websockets` global event loop runs for the entire VU lifetime so iterations never complete and the test never terminates; `k6/ws` blocks the VU inside `ws.connect()` until the socket closes, giving clean per-iteration lifecycle; socket-scoped `socket.setInterval/setTimeout` work correctly within the connect callback so there was no reason to migrate in the first place.
+- **NeighborPanel graph** — "node not found" crash (and resulting WSOD) when a link referenced a user ID missing from the nodes array due to server/timing inconsistency; D3 link mutation also caused the same crash on second map open; both resolved by normalising and filtering links in `freshLinks()` before passing to any simulation.
+- **NeighborPanel graph** — nodes now appear/disappear in real time: `userJoined` adds a dot immediately (no need to leave and re-open the graph); `userLeft` removes the dot and any associated edges; `neighborEdgesCleared` also clears all dots; `neighborEdgeAdded` now drives ref updates + `restartSim` directly instead of the unreliable live-patch path.
+- **NeighborPanel graph** — joining users and their prior edges now merge into the live simulation without resetting it; `userJoined` adds the node directly via `addNodeLive`; the subsequent snapshot response merges new nodes/edges incrementally (`addEdgeLive`-style, no flash); `restartSim` is only called on initial graph open or full clears.
+- **NeighborPanel graph view** — added ↺ refresh button to re-randomise the force layout; added ±180° rotation slider beside the flip buttons; removed active-state highlighting from flip buttons since orientation has no canonical "true" state.
 
 ## Week 27 (2026-05-25)
-
-### Fixed
-- **ValenceBeatPadPanel: ghost tick on valence slider when pads held**
-- **`computeCursorValence` shared utility** — extracted barycentric cursor-to-valence calculation into `app/utils/voteRegion.ts`; `MoodTonesPanel` and `ValenceBeatPadPanel` now both use it, removing three copies of the logic. Also fixes `ValenceBeatPadPanel` mapping Pass/neutral cursors to ~0 instead of 50. — a small white marker overlays the slider track at the locked valence position while any pad is pressed.
-- **ValenceBeatPadPanel: freeze audio/chord to valence at first press** — note frequency, timbre, reverb, and chord detection all lock to the valence captured when the anchor pad is pressed; `getPlayValence()` is the single toggle point.
-- **ValenceBeatPadPanel: freeze pad colour/scale to valence at first press** — pad background, text colour, and note names now lock to the valence value captured when the anchor pad is pressed and release when all pads are lifted.
-- **ValenceBeatPadPanel: highlight chord chip when manually holding all its notes** — assembling a chord by holding its pads one by one now auto-highlights the matching chip; releasing a note un-highlights it.
-- **ValenceBeatPadPanel: stable stat box height** — stat labels (scale/timbre/reverb) now use `white-space: nowrap` + ellipsis so boxes never resize when text changes as valence shifts.
-- **ValenceBeatPadPanel: disable oscillate controls when audience sync is on** — the oscillate row is now dimmed and non-interactive while audience sync is enabled; enabling audience sync also stops any active oscillation.
-
-### Added
-- **ValenceBeatPadPanel** — new V4 interface panel: a 4×4 musical pad whose valence (scale/timbre/reverb) is driven by audience cursor positions when audience sync is on. Supports keyboard play (`7890 / uiop / jkl; / m,./`), auto-oscillating valence, chord detection (up to 6 diatonic chords from anchor pad), a chord-chip strip above the grid for touch-based chord activation, and manual chord saving via multi-touch. No instructional text on mobile — chips are the sole chord affordance.
-- **`shortLabel` on `PanelMeta`** — optional field used in the interface chip bar when a shorter display name is desired; `ValenceBeatPadPanel` uses `shortLabel: 'Beat Pad'`.
-- **Fakeable Storybook socket mock** — `.storybook/mocks/partysocket-react.ts` now subscribes to a shared message bus; stories can call `emitToRoom(room, data)` from their `play` functions to push fake socket messages into components. `MoodTonesPanel` migrated from a hand-rolled `WebSocket` to `usePartySocket` so it benefits from the same mock. `MapViewerPanel`'s `initialProjection` prop (a Storybook-only hack) removed; its `WithGaussianBlob` story now drives projection via `emitToRoom`. New `OscillatingAudienceMood` story for `MoodTonesPanel` shows the mood slider animating from simulated audience cursor positions. Closes [#123](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/123).
-
----
-
-
-### Changed
-- **Unified panel rendering** — the 18-branch conditional render in `ReactionCanvasAppV4` replaced by a `PANEL_COMPONENTS` map; chip-based and activity-based paths unified into a single derived `activePanelId`; canvas visibility check simplified from a long `activity !== X` chain to `!PANEL_COMPONENTS[activity]`.
-- **PanelDefinition type** — `app/panelRegistry.ts` now exports `PanelDefinition` extending `PanelMeta` with a `component: React.ComponentType` field; `inviteEdges` added to `PanelContextValue` and `TreevitesPanel` migrated to context, making all nine non-emcee panels fully prop-free and typeable as `PanelDefinition`.
-- **PanelConfigs contexts** — `greeterConfig`, `socialMediaConfig`, and `mapViewerConfig` now injected via panel-specific React contexts (`app/context/PanelConfigs.tsx`); `GreeterPanel`, `SocialMediaPanel`, and `MapViewerPanel` migrated to `useGreeterConfig()`, `useSocialMediaConfig()`, and `useMapViewerConfig()` respectively. All nine non-emcee panels are now prop-free.
-- **PanelContext** — `room` and `userId` are now injected via React context (`app/context/PanelContext.tsx`) rather than props; six panels (`MoodTonesPanel`, `StenoPanel`, `StoryTracerPanel`, `VoiceCallPanel`, `MapMakerPanel`, `MapViewerPanel`) migrated to `usePanelContext()`. Foundation for panel package extraction.
-- **Panel registry** — introduced `app/panelRegistry.ts` as a single source of truth for all panel metadata (id, label, description, patchable, activityMode); `KNOWN_CHIPS` in `ReactionCanvasAppV4`, `ROWS` in `InterfacesTab`, and the hardcoded `<option>` list in `OfferInterfaceModal` now all derive from this registry. Adding a new panel no longer requires edits in three separate files.
-- **Social sharing panel id renamed** — activity/interface key changed from `'social'` → `'social-media'` → `'social-sharing'` to match its label. Affects URL `addInterface` param, localStorage interface lists, and emcee push messages. Old values stored in localStorage will silently fall back to the canvas interface on next load.
-
-### Added
-- **ReactionCanvas Storybook stories** — two stories (`Interactive`, `Recorder`) under `Canvas/ReactionCanvas` let you try the voting canvas outside the full app; `Recorder` captures cursor events via `onCursorEvent` and displays copyable JSON fixture data for use in future stories.
-
-### Fixed
-- **CI: preview-cleanup workflow node-version bumped to 22** — `pnpm` now requires Node ≥22.13; the delete-preview job was pinned to Node 18, causing it to fail silently after every PR merge. ([57cdd01](https://github.com/patcon/polislike-partykit-reaction-canvas/commit/57cdd01))
-- **OfferInterfaceModal: show panel labels in dropdown** — the interface selector now shows human-readable labels (e.g. "Social Sharing") instead of internal IDs (e.g. "social-media").
-- **VoiceCallPanel: fix WSOD on HTTP LAN** — guard `navigator.mediaDevices` before using the `in` operator; `mediaDevices` is `undefined` in insecure contexts (HTTP non-localhost), which caused a crash on render.
-- **InterfacesTab: warn when mic unavailable** — Voice calls and Steno rows now show an ⚠ SSL required badge when `navigator.mediaDevices` is unavailable (HTTP non-localhost), so emcees know those interfaces won't work without HTTPS.
-- **Moments: migrate storage from localStorage to IndexedDB** — importing large Polis CSVs no longer throws `QuotaExceededError`; moments are now stored in IndexedDB (no practical size limit) via a new `app/utils/idbStorage.ts` helper.
 
 ### Added
 - **MapViewerPanel: moment pagination** — ‹ › arrows and an x/y counter appear beside the moment label in the header when colour mode is "Valence: Moments", letting you step through all stored moments without opening settings; resets to the configured moment when the settings change.
@@ -99,13 +48,37 @@ All notable changes to this project will be documented in this file. Releases cu
 - **MapMakerPanel: advanced settings** — collapsible Advanced section exposes algorithm-specific tuning params (epochs, seed, learning rate, repulsion strength, etc.) and KNN backend options (Annoy / HNSW with their own param sliders) for PaCMAP and LocalMAP algorithms; backend selection and params are wired through to the reduction worker.
 - **MapMakerPanel** — new emcee-facing interface that reads moment data (including Polis CSV imports), builds a sparse participant × moment vote matrix, mean-imputes missing values, and reduces it to 2D using UMAP, PaCMAP, or LocalMAP (via reddwarf-ts). The reduction runs in a dedicated esbuild Web Worker (`druidWorker.ts`) to keep the UI responsive. Progress bar updates every 10 iterations. On completion, the 2D projection is broadcast to all connected clients via server state.
 - **MapViewerPanel** — participant-facing interface that receives the computed projection from server state and renders a minimal D3 scatter plot (zoom/pan supported). Shows a placeholder when no projection has been computed yet. Both panels appear in the Interfaces tab and OfferInterfaceModal.
+- **ReactionCanvas Storybook stories** — two stories (`Interactive`, `Recorder`) under `Canvas/ReactionCanvas` let you try the voting canvas outside the full app; `Recorder` captures cursor events via `onCursorEvent` and displays copyable JSON fixture data for use in future stories.
+- **ValenceBeatPadPanel** — new V4 interface panel: a 4×4 musical pad whose valence (scale/timbre/reverb) is driven by audience cursor positions when audience sync is on. Supports keyboard play (`7890 / uiop / jkl; / m,./`), auto-oscillating valence, chord detection (up to 6 diatonic chords from anchor pad), a chord-chip strip above the grid for touch-based chord activation, and manual chord saving via multi-touch. No instructional text on mobile — chips are the sole chord affordance.
+- **`shortLabel` on `PanelMeta`** — optional field used in the interface chip bar when a shorter display name is desired; `ValenceBeatPadPanel` uses `shortLabel: 'Beat Pad'`.
+- **Fakeable Storybook socket mock** — `.storybook/mocks/partysocket-react.ts` now subscribes to a shared message bus; stories can call `emitToRoom(room, data)` from their `play` functions to push fake socket messages into components. `MoodTonesPanel` migrated from a hand-rolled `WebSocket` to `usePartySocket` so it benefits from the same mock. `MapViewerPanel`'s `initialProjection` prop (a Storybook-only hack) removed; its `WithGaussianBlob` story now drives projection via `emitToRoom`. New `OscillatingAudienceMood` story for `MoodTonesPanel` shows the mood slider animating from simulated audience cursor positions. Closes [#123](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/123).
+
+### Changed
+- **Unified panel rendering** — the 18-branch conditional render in `ReactionCanvasAppV4` replaced by a `PANEL_COMPONENTS` map; chip-based and activity-based paths unified into a single derived `activePanelId`; canvas visibility check simplified from a long `activity !== X` chain to `!PANEL_COMPONENTS[activity]`.
+- **PanelDefinition type** — `app/panelRegistry.ts` now exports `PanelDefinition` extending `PanelMeta` with a `component: React.ComponentType` field; `inviteEdges` added to `PanelContextValue` and `TreevitesPanel` migrated to context, making all nine non-emcee panels fully prop-free and typeable as `PanelDefinition`.
+- **PanelConfigs contexts** — `greeterConfig`, `socialMediaConfig`, and `mapViewerConfig` now injected via panel-specific React contexts (`app/context/PanelConfigs.tsx`); `GreeterPanel`, `SocialMediaPanel`, and `MapViewerPanel` migrated to `useGreeterConfig()`, `useSocialMediaConfig()`, and `useMapViewerConfig()` respectively. All nine non-emcee panels are now prop-free.
+- **PanelContext** — `room` and `userId` are now injected via React context (`app/context/PanelContext.tsx`) rather than props; six panels (`MoodTonesPanel`, `StenoPanel`, `StoryTracerPanel`, `VoiceCallPanel`, `MapMakerPanel`, `MapViewerPanel`) migrated to `usePanelContext()`. Foundation for panel package extraction.
+- **Panel registry** — introduced `app/panelRegistry.ts` as a single source of truth for all panel metadata (id, label, description, patchable, activityMode); `KNOWN_CHIPS` in `ReactionCanvasAppV4`, `ROWS` in `InterfacesTab`, and the hardcoded `<option>` list in `OfferInterfaceModal` now all derive from this registry. Adding a new panel no longer requires edits in three separate files.
+- **Social sharing panel id renamed** — activity/interface key changed from `'social'` → `'social-media'` → `'social-sharing'` to match its label. Affects URL `addInterface` param, localStorage interface lists, and emcee push messages. Old values stored in localStorage will silently fall back to the canvas interface on next load.
+
+### Fixed
+- **CI: preview-cleanup workflow node-version bumped to 22** — `pnpm` now requires Node ≥22.13; the delete-preview job was pinned to Node 18, causing it to fail silently after every PR merge. ([57cdd01](https://github.com/patcon/polislike-partykit-reaction-canvas/commit/57cdd01))
+- **OfferInterfaceModal: show panel labels in dropdown** — the interface selector now shows human-readable labels (e.g. "Social Sharing") instead of internal IDs (e.g. "social-media").
+- **VoiceCallPanel: fix WSOD on HTTP LAN** — guard `navigator.mediaDevices` before using the `in` operator; `mediaDevices` is `undefined` in insecure contexts (HTTP non-localhost), which caused a crash on render.
+- **InterfacesTab: warn when mic unavailable** — Voice calls and Steno rows now show an ⚠ SSL required badge when `navigator.mediaDevices` is unavailable (HTTP non-localhost), so emcees know those interfaces won't work without HTTPS.
+- **Moments: migrate storage from localStorage to IndexedDB** — importing large Polis CSVs no longer throws `QuotaExceededError`; moments are now stored in IndexedDB (no practical size limit) via a new `app/utils/idbStorage.ts` helper.
+- **ValenceBeatPadPanel: ghost tick on valence slider when pads held**
+- **`computeCursorValence` shared utility** — extracted barycentric cursor-to-valence calculation into `app/utils/voteRegion.ts`; `MoodTonesPanel` and `ValenceBeatPadPanel` now both use it, removing three copies of the logic. Also fixes `ValenceBeatPadPanel` mapping Pass/neutral cursors to ~0 instead of 50. — a small white marker overlays the slider track at the locked valence position while any pad is pressed.
+- **ValenceBeatPadPanel: freeze audio/chord to valence at first press** — note frequency, timbre, reverb, and chord detection all lock to the valence captured when the anchor pad is pressed; `getPlayValence()` is the single toggle point.
+- **ValenceBeatPadPanel: freeze pad colour/scale to valence at first press** — pad background, text colour, and note names now lock to the valence value captured when the anchor pad is pressed and release when all pads are lifted.
+- **ValenceBeatPadPanel: highlight chord chip when manually holding all its notes** — assembling a chord by holding its pads one by one now auto-highlights the matching chip; releasing a note un-highlights it.
+- **ValenceBeatPadPanel: stable stat box height** — stat labels (scale/timbre/reverb) now use `white-space: nowrap` + ellipsis so boxes never resize when text changes as valence shifts.
+- **ValenceBeatPadPanel: disable oscillate controls when audience sync is on** — the oscillate row is now dimmed and non-interactive while audience sync is enabled; enabling audience sync also stops any active oscillation.
 
 ## Week 26 (2026-05-18)
 
-### Fixed
-- **Greeter: guild event URL survives server restarts** — `greeterConfig` (including the event URL) is now included in `PersistedState` and written to PartyKit durable storage alongside other room config; previously it was lost on every restart.
-
 ### Added
+- **Moments: import Polis CSV exports** — load a `*comments.csv` and `*votes.csv` from a Polis export to generate synthetic Moments in the emcee Moments tab. Each comment becomes a Moment (labeled with the comment body); votes are mapped onto People-tab participants by randomly assigning the most-participatory Polis voters to seen users. ([#103](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/103))
 - **PhonePanel: wake lock during calls** — screen stays on as soon as a user joins the queue and releases on hang up. A small "screen on" indicator appears while active.
 - **PhonePanel: Media Session API** — lock-screen call card with title and hang-up action on iOS 15+; hardware buttons (headphone remote, AirPods, Bluetooth) can hang up the call. Android notification not yet working ([#112](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/112)).
 - **Refactor: `useWakeLock` hook** — extracted into `app/utils/useWakeLock.ts`; `StenoPanel` and `ReactionCanvasAppV4` now use it instead of inline acquire/release logic.
@@ -116,16 +89,10 @@ All notable changes to this project will be documented in this file. Releases cu
 ### Changed
 - **Event preview workflow: health check before posting URL** — after deploy, the workflow polls the preview URL with Fibonacci backoff (1, 1, 2, 3, 5, 8, 13, 21, 34, 55s — up to ~2m20s total) and only posts the "deployed" comment once it returns 200. Fails the job if it never comes up.
 
-### Added
-- **Moments: import Polis CSV exports** — load a `*comments.csv` and `*votes.csv` from a Polis export to generate synthetic Moments in the emcee Moments tab. Each comment becomes a Moment (labeled with the comment body); votes are mapped onto People-tab participants by randomly assigning the most-participatory Polis voters to seen users. ([#103](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/103))
+### Fixed
+- **Greeter: guild event URL survives server restarts** — `greeterConfig` (including the event URL) is now included in `PersistedState` and written to PartyKit durable storage alongside other room config; previously it was lost on every restart.
 
 ## Week 25 (2026-05-11)
-
-### Changed
-- **Batsignal: Fibonacci-milestone notifications** — instead of a single notification when 3 unique users have ever visited, the batsignal now tracks max concurrent participants and fires at each Fibonacci milestone (3, 5, 8, 13, 21, …). The Telegram message now includes the actual count (e.g. "👀 5 devices in the reaction canvas"). State resets on server restart. Batsignal Telegram credentials are now also pushed to PR preview and event-preview deployments during CI, so the signal fires in those environments too. ([#98](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/98))
-
-### Fixed
-- **Labels tab: custom fields pre-filled on load** — switching to a preset radio now pre-fills the Custom fields even when the selection is restored from the server on arrival, not just on explicit click.
 
 ### Added
 - **Yes / No / Maybe label preset** — added a new `yes` reaction label preset (Yes / No / Maybe) available in the emcee Labels tab.
@@ -149,6 +116,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Renamed PartyKit deployment** — URL changed from `polislike-partykit-reaction-canvas.patcon.partykit.dev` to `whispering-gallery.patcon.partykit.dev`. The slug is now defined only in `partykit.json`; standalone HTML pages derive the host from `window.location` and the CI preview workflow reads it from `partykit.json` at runtime.
 - **Interfaces tab** — renamed from "Interface" to "Interfaces"; added Emcee row at the top with a shareable patch URL so emcee access can be granted without a push.
 - **Interfaces tab: Solo column** — replaced radio inputs with `FaCheckCircle` / `FaCircle` icon buttons; clicking the icon is the only way to select (row label no longer acts as a click target).
+- **Batsignal: Fibonacci-milestone notifications** — instead of a single notification when 3 unique users have ever visited, the batsignal now tracks max concurrent participants and fires at each Fibonacci milestone (3, 5, 8, 13, 21, …). The Telegram message now includes the actual count (e.g. "👀 5 devices in the reaction canvas"). State resets on server restart. Batsignal Telegram credentials are now also pushed to PR preview and event-preview deployments during CI, so the signal fires in those environments too. ([#98](https://github.com/patcon/polislike-partykit-reaction-canvas/issues/98))
 
 ### Fixed
 - **QR codes are now right-click saveable as images** — switched from `QRCodeSVG` to `QRCodeCanvas` throughout; canvas elements support "Save image as" in all browsers.
@@ -159,14 +127,13 @@ All notable changes to this project will be documented in this file. Releases cu
 - WebSocket connections now use `wss://` when the page is served over HTTPS, preventing mixed-content errors on LAN addresses (`192.168.x.x`). Extracted shared `getPartySocketConfig()` utility (`app/utils/partyHost.ts`) used by all six socket-holding components. ([#82](https://github.com/patcon/polislike-partykit-reaction-canvas/pull/82))
 - Standalone HTML pages (`mood-sounds.html`, `valence-onboarding-v2.html`, `valence-onboarding-v3.html`) now derive the WebSocket scheme from `window.location.protocol` rather than hostname/port heuristics, fixing `ws://` mixed-content errors when accessed over HTTPS on LAN addresses.
 - `getPartySocketConfig()` now uses `window.location.protocol` instead of `window.isSecureContext` to pick `ws` vs `wss`, fixing WebSocket failures on `http://localhost:1999` and `http://127.0.0.1:1999` (browsers treat loopback as a secure context even over plain HTTP, so `isSecureContext` was incorrectly returning `wss://` for the plain HTTP dev server).
+- **Labels tab: custom fields pre-filled on load** — switching to a preset radio now pre-fills the Custom fields even when the selection is restored from the server on arrival, not just on explicit click.
 
 ## Week 24 (2026-05-04)
 
 ### Added
 - Add `valence-onboarding-v3.html` with a new **Particle** geometry mode: all chords become physics-driven particles that cluster around a fixed central speaker ("S") point using a configurable per-group force matrix, with 3D time-depth trail support and disabled chord-mode controls.
 - `valence-onboarding-v3.html`: switching into particle mode now transitions cursors from their current geometry positions instead of spawning at random locations.
-
-
 - Greeter: **Attendee QR popup** — clicking any attendee row shows a popup with a QR code that pre-fills `?customPhoto=` with their Guild profile photo URL. The admin shows this to the arriving attendee to scan.
 - Greeter: **Gravatar fallback** — attendee photos now use Guild primary photo → Gravatar (via `emailMd5`) → Guild default avatar, in that priority order. Popup shows "photo set via Guild.host" or "photo set via Gravatar" when applicable.
 - Greeter: **Event title links to Guild.host** — the event name in the header is a link to the event page (or group page in group mode).
