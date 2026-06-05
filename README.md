@@ -1,6 +1,7 @@
 # Polislike Reaction Canvas
 
 [![Perf Test](https://github.com/patcon/polislike-partykit-reaction-canvas/actions/workflows/perf-test.yml/badge.svg)](https://github.com/patcon/polislike-partykit-reaction-canvas/actions/workflows/perf-test.yml)
+[![Storybook](https://raw.githubusercontent.com/storybook-eol/storybook-badges/main/packages/badges/src/storybook.svg)](https://main--6a22541e42df9b5a4da5e047.chromatic.com)
 
 A real-time collaborative voting canvas built on [PartyKit](https://partykit.io) (WebSockets) and React. Participants drag or touch their cursor into **Agree / Disagree / Pass** regions of a shared canvas; positions are broadcast live so everyone can see collective reactions in real time.
 

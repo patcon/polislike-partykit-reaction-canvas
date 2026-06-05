@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
-import React from 'react';
+import React, { useEffect } from 'react';
 import MapViewerPanel from '../app/components/panels/MapViewerPanel';
 import { PanelContextProvider } from '../app/context/PanelContext';
 import { MapViewerConfigProvider } from '../app/context/PanelConfigs';
@@ -66,11 +66,25 @@ export const NoProjection: Story = {
   },
 };
 
+function ProjectionDriver({ room, projection }: { room: string; projection: MapProjection }) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      emitToRoom(room, { type: 'connected', mapProjection: projection, connectedUserIds: [], roomAnchors: null });
+    }, 0);
+    return () => clearTimeout(timer);
+  }, [room, projection]);
+  return null;
+}
+
 export const WithGaussianBlob: Story = {
+  render: (args) => (
+    <>
+      <ProjectionDriver room={(args as any).room ?? 'storybook'} projection={GAUSSIAN_PROJECTION} />
+      <MapViewerPanel />
+    </>
+  ),
   play: async ({ canvasElement }) => {
-    emitToRoom('storybook', { type: 'connected', mapProjection: GAUSSIAN_PROJECTION, connectedUserIds: [], roomAnchors: null });
     const canvas = within(canvasElement);
-    // findByText waits for the async state update triggered by emitToRoom to flush
     await expect(canvas.findByText(/UMAP/)).resolves.toBeInTheDocument();
   },
 };

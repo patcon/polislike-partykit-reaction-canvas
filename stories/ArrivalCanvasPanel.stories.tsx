@@ -51,7 +51,7 @@ export const Default: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
     await expect(canvas.getByText('0')).toBeInTheDocument();
-    await expect(canvas.getByText('/ 20')).toBeInTheDocument();
+    await expect(canvas.findByText('/ 20')).resolves.toBeInTheDocument();
   },
 };
 
