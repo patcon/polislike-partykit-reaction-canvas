@@ -56,22 +56,27 @@ function hueToHex(hue: number): string {
   return `#${f(0)}${f(8)}${f(4)}`;
 }
 
-function OscillatingDriver({ room, periodMs = 4000 }: { room: string; periodMs?: number }) {
+function ColorCycleDriver({ room, periodMs = 4000 }: { room: string; periodMs?: number }) {
   useEffect(() => {
     emitToRoom(room, { type: 'connected', lightColor: { color: '#ff0000', brightness: 100 } });
-
     const start = performance.now();
-    let id: ReturnType<typeof setInterval>;
-
-    id = setInterval(() => {
-      const elapsed = performance.now() - start;
-      // Hue cycles through the full spectrum over periodMs
-      const hue = (elapsed / periodMs * 360) % 360;
-      // Brightness pulses between 40% and 100% at half the period
-      const brightness = Math.round(70 + 30 * Math.sin((elapsed / (periodMs / 2)) * Math.PI));
-      emitToRoom(room, { type: 'lightColor', color: hueToHex(hue), brightness });
+    const id = setInterval(() => {
+      const hue = ((performance.now() - start) / periodMs * 360) % 360;
+      emitToRoom(room, { type: 'lightColor', color: hueToHex(hue), brightness: 100 });
     }, 50);
+    return () => clearInterval(id);
+  }, [room, periodMs]);
+  return null;
+}
 
+function BrightnessPulseDriver({ room, periodMs = 3000 }: { room: string; periodMs?: number }) {
+  useEffect(() => {
+    emitToRoom(room, { type: 'connected', lightColor: { color: '#ffffff', brightness: 100 } });
+    const start = performance.now();
+    const id = setInterval(() => {
+      const brightness = Math.round(50 + 50 * Math.sin(((performance.now() - start) / periodMs) * Math.PI * 2));
+      emitToRoom(room, { type: 'lightColor', color: '#ffffff', brightness });
+    }, 50);
     return () => clearInterval(id);
   }, [room, periodMs]);
   return null;
@@ -92,13 +97,26 @@ export const Idle: Story = {
   },
 };
 
-export const Oscillating: Story = {
-  name: 'Oscillating colors + brightness',
+export const ColorCycle: Story = {
+  name: 'Oscillating colors (full brightness)',
   render: (args) => {
     const room = (args as any).room ?? ROOM;
     return (
       <>
-        <OscillatingDriver room={room} periodMs={4000} />
+        <ColorCycleDriver room={room} periodMs={4000} />
+        <ScreenLightPanel />
+      </>
+    );
+  },
+};
+
+export const BrightnessPulse: Story = {
+  name: 'Oscillating brightness (white)',
+  render: (args) => {
+    const room = (args as any).room ?? ROOM;
+    return (
+      <>
+        <BrightnessPulseDriver room={room} periodMs={3000} />
         <ScreenLightPanel />
       </>
     );
