@@ -40,6 +40,8 @@ import MapViewerPanel from "../panels/MapViewerPanel";
 import ValenceBeatPadPanel from "../panels/ValenceBeatPadPanel";
 import ArrivalCanvasPanel from "../panels/ArrivalCanvasPanel";
 import NeighborPanel from "../panels/NeighborPanel";
+import ScreenLightPanel from "../panels/ScreenLightPanel";
+import LightShowPanel from "../panels/LightShowPanel";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
@@ -55,6 +57,8 @@ const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = 
   'valence-beat-pad': ValenceBeatPadPanel,
   'arrival-canvas':   ArrivalCanvasPanel,
   'neighbor':         NeighborPanel,
+  'screen-light':     ScreenLightPanel,
+  'light-show':       LightShowPanel,
 };
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
