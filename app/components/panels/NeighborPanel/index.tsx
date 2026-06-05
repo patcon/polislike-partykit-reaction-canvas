@@ -174,15 +174,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         setEdges(prev => [...prev, edge]);
         const id = `${msg.userA}|${msg.userB}`;
         if (!linksRef.current.find(l => l.id === id)) {
-          const { width, height } = sizeRef.current;
-          const cx = width / 2, cy = height / 2;
-          for (const uid of [msg.userA, msg.userB]) {
-            if (!nodesRef.current.find(n => n.id === uid)) {
-              nodesRef.current = [...nodesRef.current, { id: uid, x: cx, y: cy }];
-            }
-          }
-          linksRef.current = [...freshLinks(), { id, source: msg.userA, target: msg.userB }];
-          restartSim();
+          addEdgeLive({ id, source: msg.userA, target: msg.userB });
         }
       } else if (msg.type === 'neighborEdgesCleared') {
         setEdges([]);
