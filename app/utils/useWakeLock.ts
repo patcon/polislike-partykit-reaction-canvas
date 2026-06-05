@@ -28,6 +28,7 @@ export function useWakeLock(active: boolean): { acquired: boolean; supported: bo
 
   useEffect(() => {
     if (active) acquire(); else release();
+    return () => { release(); };
   }, [active, acquire, release]);
 
   useEffect(() => {
