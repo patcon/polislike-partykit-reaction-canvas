@@ -142,12 +142,26 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       } else if (msg.type === 'remove') {
         liveCursorsRef.current.delete(msg.position.userId);
         updateNodeColors();
+      } else if (msg.type === 'userJoined') {
+        const uid: string = msg.userId;
+        if (!nodesRef.current.find(n => n.id === uid)) {
+          const { width, height } = sizeRef.current;
+          nodesRef.current = [...nodesRef.current, { id: uid, x: width / 2, y: height / 2 }];
+          restartSim();
+        }
+      } else if (msg.type === 'userLeft') {
+        const uid: string = msg.userId;
+        liveCursorsRef.current.delete(uid);
+        nodesRef.current = nodesRef.current.filter(n => n.id !== uid);
+        linksRef.current = freshLinks().filter(l => l.source !== uid && l.target !== uid);
+        restartSim();
       } else if (msg.type === 'neighborEdgesSnapshot') {
         setEdges(msg.edges ?? []);
-        const userIds = Object.keys(msg.allCodes ?? {});
+        const edgeUserIds = (msg.edges ?? []).flatMap((e: Edge) => [e.userA, e.userB]);
+        const allIds = [...new Set([...Object.keys(msg.allCodes ?? {}), ...edgeUserIds])];
         const { width, height } = sizeRef.current;
         const cx = width / 2, cy = height / 2;
-        nodesRef.current = userIds.map(id => ({ id, x: cx, y: cy, ...(nodesRef.current.find(n => n.id === id) ?? {}) }));
+        nodesRef.current = allIds.map(id => ({ id, x: cx, y: cy, ...(nodesRef.current.find(n => n.id === id) ?? {}) }));
         linksRef.current = (msg.edges ?? []).map((e: Edge) => ({
           id: `${e.userA}|${e.userB}`,
           source: e.userA,
@@ -159,11 +173,20 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         setEdges(prev => [...prev, edge]);
         const id = `${msg.userA}|${msg.userB}`;
         if (!linksRef.current.find(l => l.id === id)) {
-          addEdgeLive({ id, source: msg.userA, target: msg.userB });
+          const { width, height } = sizeRef.current;
+          const cx = width / 2, cy = height / 2;
+          for (const uid of [msg.userA, msg.userB]) {
+            if (!nodesRef.current.find(n => n.id === uid)) {
+              nodesRef.current = [...nodesRef.current, { id: uid, x: cx, y: cy }];
+            }
+          }
+          linksRef.current = [...freshLinks(), { id, source: msg.userA, target: msg.userB }];
+          restartSim();
         }
       } else if (msg.type === 'neighborEdgesCleared') {
         setEdges([]);
         linksRef.current = [];
+        nodesRef.current = [];
         restartSim();
       } else if (msg.type === 'neighborEdgeError') {
         setErrorReason(msg.reason as EdgeError);
