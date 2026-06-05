@@ -149,6 +149,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
           nodesRef.current = [...nodesRef.current, { id: uid, x: width / 2, y: height / 2 }];
           restartSim();
         }
+        socket.send(JSON.stringify({ type: 'requestNeighborEdges' }));
       } else if (msg.type === 'userLeft') {
         const uid: string = msg.userId;
         liveCursorsRef.current.delete(uid);
