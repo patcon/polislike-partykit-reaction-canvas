@@ -77,6 +77,21 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       .attr('fill', d => getNodeColor(d.id));
   }
 
+  function addNodeLive(uid: string) {
+    const sim = simRef.current;
+    const nodeGroup = nodeGroupRef.current;
+    if (!sim || !nodeGroup) return;
+    sim.nodes(nodesRef.current);
+    nodeGroup.selectAll<SVGCircleElement, D3Node>('circle')
+      .data(nodesRef.current, d => d.id)
+      .join(enter => enter.append('circle')
+        .attr('r', 8).attr('fill', d => getNodeColor(d.id))
+        .attr('stroke', '#fff').attr('stroke-width', 1.5)
+        .call(makeDrag(sim))
+      );
+    sim.alpha(0.3).restart();
+  }
+
   const addEdgeLive = useCallback((link: D3Link) => {
     const sim = simRef.current;
     const linkGroup = linkGroupRef.current;
@@ -147,7 +162,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         if (!nodesRef.current.find(n => n.id === uid)) {
           const { width, height } = sizeRef.current;
           nodesRef.current = [...nodesRef.current, { id: uid, x: width / 2, y: height / 2 }];
-          restartSim();
+          addNodeLive(uid);
         }
         socket.send(JSON.stringify({ type: 'requestNeighborEdges' }));
       } else if (msg.type === 'userLeft') {
@@ -162,13 +177,47 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         const allIds = [...new Set([...Object.keys(msg.allCodes ?? {}), ...edgeUserIds])];
         const { width, height } = sizeRef.current;
         const cx = width / 2, cy = height / 2;
-        nodesRef.current = allIds.map(id => ({ id, x: cx, y: cy, ...(nodesRef.current.find(n => n.id === id) ?? {}) }));
-        linksRef.current = (msg.edges ?? []).map((e: Edge) => ({
-          id: `${e.userA}|${e.userB}`,
-          source: e.userA,
-          target: e.userB,
-        }));
-        restartSim();
+        const sim = simRef.current;
+        const nodeGroup = nodeGroupRef.current;
+        const linkGroup = linkGroupRef.current;
+        if (sim && nodeGroup && linkGroup) {
+          // Live sim running — merge incrementally, no restart
+          let nodesChanged = false;
+          for (const id of allIds) {
+            if (!nodesRef.current.find(n => n.id === id)) {
+              nodesRef.current = [...nodesRef.current, { id, x: cx, y: cy }];
+              nodesChanged = true;
+            }
+          }
+          if (nodesChanged) {
+            sim.nodes(nodesRef.current);
+            nodeGroup.selectAll<SVGCircleElement, D3Node>('circle')
+              .data(nodesRef.current, d => d.id)
+              .join(enter => enter.append('circle')
+                .attr('r', 8).attr('fill', d => getNodeColor(d.id))
+                .attr('stroke', '#fff').attr('stroke-width', 1.5)
+                .call(makeDrag(sim))
+              );
+          }
+          const newLinks = (msg.edges ?? [])
+            .filter((e: Edge) => !linksRef.current.find(l => l.id === `${e.userA}|${e.userB}`))
+            .map((e: Edge) => ({ id: `${e.userA}|${e.userB}`, source: e.userA, target: e.userB }));
+          if (newLinks.length > 0) {
+            linksRef.current = [...freshLinks(), ...newLinks];
+            (sim.force('link') as d3.ForceLink<D3Node, D3Link>).links(linksRef.current);
+            linkGroup.selectAll<SVGLineElement, D3Link>('line')
+              .data(linksRef.current, d => d.id)
+              .join(enter => enter.append('line').attr('stroke', EDGE_COLOR).attr('stroke-width', 1.5));
+            sim.alpha(0.3).restart();
+          }
+        } else {
+          // No live sim — update refs so restartSim picks them up
+          nodesRef.current = allIds.map(id => ({ id, x: cx, y: cy, ...(nodesRef.current.find(n => n.id === id) ?? {}) }));
+          linksRef.current = (msg.edges ?? []).map((e: Edge) => ({
+            id: `${e.userA}|${e.userB}`, source: e.userA, target: e.userB,
+          }));
+          restartSim();
+        }
       } else if (msg.type === 'neighborEdgeAdded') {
         const edge: Edge = { userA: msg.userA, userB: msg.userB };
         setEdges(prev => [...prev, edge]);
