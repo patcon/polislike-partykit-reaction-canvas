@@ -135,6 +135,15 @@ type HistoryEntry = { projection: MapProjection; flipX: boolean; flipY: boolean 
 type ProjState = { history: HistoryEntry[]; idx: number };
 
 const MAX_HISTORY = 5;
+const PROJ_HISTORY_KEY = 'map-viewer-proj-history';
+
+function loadProjState(): ProjState {
+  try {
+    const saved = JSON.parse(localStorage.getItem(PROJ_HISTORY_KEY) ?? 'null');
+    if (saved && Array.isArray(saved.history)) return saved as ProjState;
+  } catch { /* ignore */ }
+  return { history: [], idx: -1 };
+}
 
 const btnStyle = (active: boolean, disabled?: boolean): React.CSSProperties => ({
   background: active ? '#2a4a3a' : '#1a1a1a',
@@ -154,7 +163,7 @@ const btnStyle = (active: boolean, disabled?: boolean): React.CSSProperties => (
 export default function MapViewerPanel() {
   const { room, userId } = usePanelContext();
   const { config } = useMapViewerConfig();
-  const [projState, setProjState] = useState<ProjState>({ history: [], idx: -1 });
+  const [projState, setProjState] = useState<ProjState>(loadProjState);
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [liveCursors, setLiveCursors] = useState<Map<string, { x: number; y: number }>>(new Map());
@@ -214,6 +223,10 @@ export default function MapViewerPanel() {
       if (stored) setMoments(stored);
     });
   }, [room]);
+
+  useEffect(() => {
+    localStorage.setItem(PROJ_HISTORY_KEY, JSON.stringify(projState));
+  }, [projState]);
 
   useEffect(() => {
     setMomentPageIdx(null);

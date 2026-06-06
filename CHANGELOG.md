@@ -52,6 +52,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Soccer config modal** — modal was invisible and contents floated in the bottom-left corner because `SoccerConfigModal` still used the removed `github-modal-*` CSS classes; updated to `app-modal-*`.
 - **Map Viewer: × button deletes current projection** — previously cleared all history except the current entry; now removes only the viewed projection and advances the index to the next one (or steps back if it was the last).
 - **Map Maker: persist algorithm settings to localStorage** — algorithm choice, standard params, advanced params, KNN backend, and KNN params are restored when returning to the panel.
+- **Map Viewer: persist projection history to localStorage** — history ring buffer (up to 5 entries), current index, and per-entry flip states survive panel switches and page refreshes; duplicate-detection on reconnect prevents double-entries.
 
 ## Week 27 (2026-05-25)
 
