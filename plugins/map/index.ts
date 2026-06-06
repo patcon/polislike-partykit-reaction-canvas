@@ -24,7 +24,6 @@ const mapViewerPlugin: PanelPlugin = {
   activityMode: true,
   component: MapViewerPanel,
   configModal: MapViewerConfigModal,
-  server: mapServer,
 };
 
 export default [mapMakerPlugin, mapViewerPlugin] as PanelPlugin[];
