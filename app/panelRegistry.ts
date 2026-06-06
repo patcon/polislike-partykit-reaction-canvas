@@ -1,5 +1,5 @@
 import type React from 'react';
-import { PLUGIN_MAP } from '../plugins/index';
+import { PLUGINS } from '../plugins/index';
 
 export const SOLO_SCREEN_LABEL = 'Canvas';
 
@@ -17,8 +17,7 @@ export const PANEL_REGISTRY: PanelMeta[] = [
   { id: 'canvas',       label: 'Reaction Canvas', description: 'Standard reaction canvas',                              patchable: false, activityMode: true  },
   { id: 'image-canvas', label: 'Image Canvas',    description: 'React over a shared background image',                  patchable: false, activityMode: true  },
   { id: 'signature',    label: 'Signature Canvas',description: 'Collect participant signatures live',                   patchable: false, activityMode: true  },
-  { ...PLUGIN_MAP['soccer'] },
-  { ...PLUGIN_MAP['greeter'] },
+  ...PLUGINS,
   { id: 'social-sharing', label: 'Social Sharing',  description: 'Bluesky · Twitter / X · Mastodon',                     patchable: true,  activityMode: true  },
   { id: 'mood-tones',   label: 'Mood Tones',      description: 'Generative audio keyed to audience reactions',          patchable: true,  activityMode: true  },
   { id: 'treevites',    label: 'Leaderboard',     description: 'Invite stats — who invited whom',                       patchable: true,  activityMode: true  },
