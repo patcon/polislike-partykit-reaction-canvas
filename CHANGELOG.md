@@ -30,6 +30,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Plugins auto-register in Interfaces tab** — adding a plugin to `plugins/index.ts` is sufficient for it to appear; no other changes needed. ([c569167](https://github.com/patcon/polislike-partykit-reaction-canvas/commit/c569167))
 - **Rename modal CSS classes** — `github-modal-*` → `app-modal-*` for the shared modal system.
 - **Image Canvas migrated to plugin** — introduces `CanvasOverlay` API for canvas-mode activities that configure the canvas rather than replacing it.
+- **Extract `makeImageCoordTransform` utility** — letterbox coordinate math moved from Canvas.tsx into `app/utils/imageCanvasCoords.ts`, removing the duplication between the smooth-cursor RAF tick and the actual-cursor drawing effect; 16 Vitest unit tests added covering linear fallback, pillarbox, letterbox, centre mapping, and out-of-bounds clamping.
 
 ### Fixed
 - **Smooth cursor: tune damping to 0.5** — reduces trailing lag while keeping motion smooth.

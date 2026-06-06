@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import usePartySocket from "partysocket/react";
 import * as d3 from "d3";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
+import { makeImageCoordTransform } from "../../utils/imageCanvasCoords";
 import { getPartySocketConfig } from "../../utils/partyHost";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 import type { ActivityMode, GreeterConfig } from "../../types";
@@ -261,22 +262,8 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
   });
   useEffect(() => { dimensionsRef.current = dimensions; }, [dimensions]);
   useEffect(() => {
-    if (activity === 'image-canvas' && imageUrl && imageNaturalSize) {
-      const scale = Math.min(dimensions.width / imageNaturalSize.w, dimensions.height / imageNaturalSize.h);
-      const dispW = imageNaturalSize.w * scale;
-      const dispH = imageNaturalSize.h * scale;
-      const offX = (dimensions.width - dispW) / 2;
-      const offY = (dimensions.height - dispH) / 2;
-      toScreenCoordsRef.current = (x, y) => ({
-        x: Math.max(0, Math.min(dimensions.width, offX + (x / 100) * dispW)),
-        y: Math.max(0, Math.min(dimensions.height, offY + (y / 100) * dispH)),
-      });
-    } else {
-      toScreenCoordsRef.current = (x, y) => ({
-        x: (x / 100) * dimensions.width,
-        y: (y / 100) * dimensions.height,
-      });
-    }
+    const size = (activity === 'image-canvas' && imageUrl) ? imageNaturalSize : null;
+    toScreenCoordsRef.current = makeImageCoordTransform(dimensions, size);
   }, [activity, imageUrl, imageNaturalSize, dimensions]);
 
   // Precompute per-cursor style (color + radius) so the RAF tick can read it without closure staleness.
@@ -790,17 +777,10 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
     if (hideActualCursors) return;
 
     // When an image is active, map image-relative 0-100 coords to screen pixels
-    let toScreenX = (n: number) => (n / 100) * dimensions.width;
-    let toScreenY = (n: number) => (n / 100) * dimensions.height;
-    if (activity === 'image-canvas' && imageUrl && imageNaturalSize) {
-      const scale = Math.min(dimensions.width / imageNaturalSize.w, dimensions.height / imageNaturalSize.h);
-      const dispW = imageNaturalSize.w * scale;
-      const dispH = imageNaturalSize.h * scale;
-      const offX = (dimensions.width - dispW) / 2;
-      const offY = (dimensions.height - dispH) / 2;
-      toScreenX = (n: number) => Math.max(0, Math.min(dimensions.width, offX + (n / 100) * dispW));
-      toScreenY = (n: number) => Math.max(0, Math.min(dimensions.height, offY + (n / 100) * dispH));
-    }
+    const imgSize = (activity === 'image-canvas' && imageUrl) ? imageNaturalSize : null;
+    const toScreenCoords = makeImageCoordTransform(dimensions, imgSize);
+    const toScreenX = (n: number) => toScreenCoords(n, 0).x;
+    const toScreenY = (n: number) => toScreenCoords(0, n).y;
 
     const cursorData = Array.from(cursors.entries()).map(([cursorUserId, cursor]) => ({
       cursorUserId,
