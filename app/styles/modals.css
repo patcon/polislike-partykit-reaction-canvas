@@ -1,5 +1,5 @@
-/* GitHub username modal */
-.github-modal-overlay {
+/* App modal (shared across all config/push modals) */
+.app-modal-overlay {
   position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.72);
@@ -9,7 +9,7 @@
   justify-content: center;
   padding: 24px;
 }
-.github-modal {
+.app-modal {
   background: #1a1a1a;
   border: 1px solid #444;
   border-radius: 12px;
@@ -21,17 +21,17 @@
   gap: 12px;
   color: #eee;
 }
-.github-modal-title {
+.app-modal-title {
   font-size: 18px;
   font-weight: 700;
   margin: 0;
 }
-.github-modal-body {
+.app-modal-body {
   font-size: 14px;
   color: #aaa;
   margin: 0;
 }
-.github-modal-input {
+.app-modal-input {
   background: #333;
   border: 1px solid #555;
   color: #eee;
@@ -41,16 +41,16 @@
   width: 100%;
   box-sizing: border-box;
 }
-.github-modal-input:focus {
+.app-modal-input:focus {
   outline: none;
   border-color: #888;
 }
-.github-modal-error {
+.app-modal-error {
   color: #f77;
   font-size: 13px;
   margin: 0;
 }
-.github-modal-btn-primary {
+.app-modal-btn-primary {
   background: #2a5cba;
   color: #fff;
   border: none;
@@ -61,14 +61,14 @@
   cursor: pointer;
   width: 100%;
 }
-.github-modal-btn-primary:hover:not(:disabled) {
+.app-modal-btn-primary:hover:not(:disabled) {
   background: #3a6ccf;
 }
-.github-modal-btn-primary:disabled {
+.app-modal-btn-primary:disabled {
   opacity: 0.45;
   cursor: not-allowed;
 }
-.github-modal-btn-dismiss {
+.app-modal-btn-dismiss {
   background: none;
   border: none;
   color: #888;
@@ -78,10 +78,10 @@
   text-align: center;
   width: 100%;
 }
-.github-modal-btn-dismiss:hover {
+.app-modal-btn-dismiss:hover {
   color: #ccc;
 }
-.github-modal-user-card {
+.app-modal-user-card {
   display: flex;
   align-items: center;
   gap: 14px;
@@ -90,14 +90,14 @@
   border-radius: 8px;
   padding: 12px 14px;
 }
-.github-modal-avatar {
+.app-modal-avatar {
   width: 52px;
   height: 52px;
   border-radius: 50%;
   border: 2px solid #555;
   flex-shrink: 0;
 }
-.github-modal-display-name {
+.app-modal-display-name {
   font-weight: 600;
   font-size: 15px;
   margin: 0 0 2px;

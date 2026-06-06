@@ -19,12 +19,12 @@ export default function FeedbackStarsModal({ onSubmit, onDismiss }: FeedbackStar
   const display = hovered ?? selected ?? -1;
 
   return (
-    <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onDismiss(); }}>
-      <div className="github-modal">
+    <div className="app-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onDismiss(); }}>
+      <div className="app-modal">
         {!done ? (
           <>
-            <p className="github-modal-title">How's it going?</p>
-            <p className="github-modal-body">Rate your experience so far.</p>
+            <p className="app-modal-title">How's it going?</p>
+            <p className="app-modal-body">Rate your experience so far.</p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: 8, margin: '8px 0 16px' }}>
               {[1, 2, 3, 4, 5].map(star => (
                 <button
@@ -39,19 +39,19 @@ export default function FeedbackStarsModal({ onSubmit, onDismiss }: FeedbackStar
               ))}
             </div>
             <button
-              className="github-modal-btn-primary"
+              className="app-modal-btn-primary"
               onClick={handleSubmit}
               disabled={selected === null}
             >
               Submit
             </button>
-            <button className="github-modal-btn-dismiss" onClick={onDismiss}>Not now</button>
+            <button className="app-modal-btn-dismiss" onClick={onDismiss}>Not now</button>
           </>
         ) : (
           <>
-            <p className="github-modal-title">Thanks!</p>
-            <p className="github-modal-body">Your feedback has been shared with the emcee.</p>
-            <button className="github-modal-btn-primary" onClick={onDismiss}>Close</button>
+            <p className="app-modal-title">Thanks!</p>
+            <p className="app-modal-body">Your feedback has been shared with the emcee.</p>
+            <button className="app-modal-btn-primary" onClick={onDismiss}>Close</button>
           </>
         )}
       </div>

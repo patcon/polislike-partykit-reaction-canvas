@@ -20,15 +20,15 @@ export default function PanelSettingsModalSocialMedia({ onSubmit, onClose, curre
   };
 
   return (
-    <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="github-modal">
-        <p className="github-modal-title">Social sharing config</p>
-        <p className="github-modal-body">Set the prefilled text for each platform. Fields are joined with a space. Leave a field empty to hide that platform's button.</p>
+    <div className="app-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="app-modal">
+        <p className="app-modal-title">Social sharing config</p>
+        <p className="app-modal-body">Set the prefilled text for each platform. Fields are joined with a space. Leave a field empty to hide that platform's button.</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 12, color: '#aaa' }}>Default (all platforms)</span>
             <input
-              className="github-modal-input"
+              className="app-modal-input"
               type="text"
               value={defaultText}
               onChange={e => setDefaultText(e.target.value)}
@@ -39,7 +39,7 @@ export default function PanelSettingsModalSocialMedia({ onSubmit, onClose, curre
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 12, color: '#aaa' }}>Twitter / X</span>
             <input
-              className="github-modal-input"
+              className="app-modal-input"
               type="text"
               value={twitter}
               onChange={e => setTwitter(e.target.value)}
@@ -49,7 +49,7 @@ export default function PanelSettingsModalSocialMedia({ onSubmit, onClose, curre
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 12, color: '#aaa' }}>Bluesky</span>
             <input
-              className="github-modal-input"
+              className="app-modal-input"
               type="text"
               value={bluesky}
               onChange={e => setBluesky(e.target.value)}
@@ -59,7 +59,7 @@ export default function PanelSettingsModalSocialMedia({ onSubmit, onClose, curre
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 12, color: '#aaa' }}>Mastodon</span>
             <input
-              className="github-modal-input"
+              className="app-modal-input"
               type="text"
               value={mastodon}
               onChange={e => setMastodon(e.target.value)}
@@ -69,7 +69,7 @@ export default function PanelSettingsModalSocialMedia({ onSubmit, onClose, curre
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 12, color: '#aaa' }}>Instagram (text copied to clipboard)</span>
             <input
-              className="github-modal-input"
+              className="app-modal-input"
               type="text"
               value={instagram}
               onChange={e => setInstagram(e.target.value)}
@@ -77,10 +77,10 @@ export default function PanelSettingsModalSocialMedia({ onSubmit, onClose, curre
             />
           </label>
         </div>
-        <button className="github-modal-btn-primary" onClick={handleSave} style={{ marginTop: 16 }}>
+        <button className="app-modal-btn-primary" onClick={handleSave} style={{ marginTop: 16 }}>
           Save
         </button>
-        <button className="github-modal-btn-dismiss" onClick={onClose}>Cancel</button>
+        <button className="app-modal-btn-dismiss" onClick={onClose}>Cancel</button>
       </div>
     </div>
   );

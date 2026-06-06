@@ -18,15 +18,15 @@ export default function PanelSettingsModalArrivalCanvas({ currentCapacity, onSub
   };
 
   return (
-    <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="github-modal">
-        <p className="github-modal-title">Arrival Canvas settings</p>
-        <p className="github-modal-body">Set the room capacity. The THX deep note crescendo plays when this many participants have arrived.</p>
+    <div className="app-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="app-modal">
+        <p className="app-modal-title">Arrival Canvas settings</p>
+        <p className="app-modal-body">Set the room capacity. The THX deep note crescendo plays when this many participants have arrived.</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 12, color: '#aaa' }}>Room capacity</span>
             <input
-              className="github-modal-input"
+              className="app-modal-input"
               type="number"
               min={1}
               value={input}
@@ -35,10 +35,10 @@ export default function PanelSettingsModalArrivalCanvas({ currentCapacity, onSub
             />
           </label>
         </div>
-        <button className="github-modal-btn-primary" onClick={handleSave} disabled={!isValid} style={{ marginTop: 16 }}>
+        <button className="app-modal-btn-primary" onClick={handleSave} disabled={!isValid} style={{ marginTop: 16 }}>
           Save
         </button>
-        <button className="github-modal-btn-dismiss" onClick={onClose}>Cancel</button>
+        <button className="app-modal-btn-dismiss" onClick={onClose}>Cancel</button>
       </div>
     </div>
   );

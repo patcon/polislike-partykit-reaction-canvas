@@ -48,13 +48,13 @@ export default function PanelSettingsModalImageCanvas({ onSubmit, onClose, curre
   };
 
   return (
-    <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="github-modal">
-        <p className="github-modal-title">Image Canvas</p>
-        <p className="github-modal-body">Enter a public image URL to display as the canvas background. All participants will see the same image.</p>
+    <div className="app-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="app-modal">
+        <p className="app-modal-title">Image Canvas</p>
+        <p className="app-modal-body">Enter a public image URL to display as the canvas background. All participants will see the same image.</p>
         <div>
           <input
-            className="github-modal-input"
+            className="app-modal-input"
             type="url"
             value={urlInput}
             onChange={e => setUrlInput(e.target.value)}
@@ -102,11 +102,11 @@ export default function PanelSettingsModalImageCanvas({ onSubmit, onClose, curre
             </div>
           )}
         </div>
-        <button className="github-modal-btn-primary" onClick={handleSubmit}>
+        <button className="app-modal-btn-primary" onClick={handleSubmit}>
           Set image
         </button>
-        <button className="github-modal-btn-dismiss" onClick={handleClear}>Clear image</button>
-        <button className="github-modal-btn-dismiss" onClick={onClose}>Cancel</button>
+        <button className="app-modal-btn-dismiss" onClick={handleClear}>Clear image</button>
+        <button className="app-modal-btn-dismiss" onClick={onClose}>Cancel</button>
       </div>
     </div>
   );

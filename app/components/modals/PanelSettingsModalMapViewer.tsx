@@ -30,15 +30,15 @@ export default function PanelSettingsModalMapViewer({ room, current, onSubmit, o
   const showVoteLegend = colorMode === 'moment' || colorMode === 'now';
 
   return (
-    <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="github-modal">
-        <p className="github-modal-title">Map Viewer config</p>
-        <p className="github-modal-body">Choose how participant dots are colored on the map.</p>
+    <div className="app-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="app-modal">
+        <p className="app-modal-title">Map Viewer config</p>
+        <p className="app-modal-body">Choose how participant dots are colored on the map.</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             <span style={{ fontSize: 12, color: '#aaa' }}>Color mode</span>
             <select
-              className="github-modal-input"
+              className="app-modal-input"
               value={colorMode}
               onChange={e => setColorMode(e.target.value as 'none' | 'moment' | 'now')}
               style={{ cursor: 'pointer' }}
@@ -56,7 +56,7 @@ export default function PanelSettingsModalMapViewer({ room, current, onSubmit, o
                 <p style={{ fontSize: 12, color: '#666', margin: 0 }}>No moments loaded. Import a Polis CSV or snap moments first.</p>
               ) : (
                 <select
-                  className="github-modal-input"
+                  className="app-modal-input"
                   value={momentId ?? ''}
                   onChange={e => setMomentId(e.target.value || null)}
                   style={{ cursor: 'pointer' }}
@@ -99,10 +99,10 @@ export default function PanelSettingsModalMapViewer({ room, current, onSubmit, o
             </div>
           )}
         </div>
-        <button className="github-modal-btn-primary" onClick={handleSave} style={{ marginTop: 16 }}>
+        <button className="app-modal-btn-primary" onClick={handleSave} style={{ marginTop: 16 }}>
           Save
         </button>
-        <button className="github-modal-btn-dismiss" onClick={onClose}>Cancel</button>
+        <button className="app-modal-btn-dismiss" onClick={onClose}>Cancel</button>
       </div>
     </div>
   );

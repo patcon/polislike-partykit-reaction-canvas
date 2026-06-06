@@ -10,9 +10,9 @@ interface PanelSettingsModalVoiceCallProps {
 
 export default function PanelSettingsModalVoiceCall({ currentAlgorithm, onSubmit, onClose }: PanelSettingsModalVoiceCallProps) {
   return (
-    <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="github-modal">
-        <p className="github-modal-title">Voice calls settings</p>
+    <div className="app-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="app-modal">
+        <p className="app-modal-title">Voice calls settings</p>
 
         <p style={{ color: '#ccc', fontSize: 14, fontWeight: 600, marginBottom: 8 }}>Matching Mode</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
@@ -34,7 +34,7 @@ export default function PanelSettingsModalVoiceCall({ currentAlgorithm, onSubmit
           ))}
         </div>
 
-        <button className="github-modal-btn-dismiss" onClick={onClose}>Close</button>
+        <button className="app-modal-btn-dismiss" onClick={onClose}>Close</button>
       </div>
     </div>
   );
