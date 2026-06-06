@@ -10,6 +10,7 @@ const screenLightPlugin: PanelPlugin<LightState> = {
   description: 'Full-screen colored light controlled remotely',
   patchable: false,
   activityMode: true,
+  requiresHttps: true,
   component: ScreenLight,
   server: lightServer,
 };

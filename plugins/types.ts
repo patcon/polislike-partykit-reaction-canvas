@@ -84,4 +84,6 @@ export interface PanelPlugin<S = unknown> {
   configModal?: React.ComponentType<{ onClose: () => void }>;
   /** Server-side handlers. Omit for purely client-side panels. */
   server?: ServerPlugin<S>;
+  /** True if the panel requires a secure context (HTTPS/localhost). Shown as a warning in the Interfaces tab on HTTP. */
+  requiresHttps?: boolean;
 }

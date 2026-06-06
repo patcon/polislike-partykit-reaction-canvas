@@ -10,6 +10,8 @@ export interface PanelMeta {
   description: string;
   patchable: boolean;
   activityMode: boolean;
+  /** True if the panel requires a secure context (HTTPS/localhost). Shown as a warning in the Interfaces tab on HTTP. */
+  requiresHttps?: boolean;
 }
 
 export const PANEL_REGISTRY: PanelMeta[] = [
@@ -20,9 +22,9 @@ export const PANEL_REGISTRY: PanelMeta[] = [
   { id: 'social-sharing', label: 'Social Sharing',  description: 'Bluesky · Twitter / X · Mastodon',                     patchable: true,  activityMode: true  },
   { id: 'mood-tones',   label: 'Mood Tones',      description: 'Generative audio keyed to audience reactions',          patchable: true,  activityMode: true  },
   { id: 'treevites',    label: 'Leaderboard',     description: 'Invite stats — who invited whom',                       patchable: true,  activityMode: true  },
-  { id: 'steno',        label: 'Steno',           description: 'Live shared speech-to-text transcript',                 patchable: true,  activityMode: true  },
+  { id: 'steno',        label: 'Steno',           description: 'Live shared speech-to-text transcript',                 patchable: true,  activityMode: true,  requiresHttps: true },
   { id: 'story-tracer', label: 'Story Tracer',    description: 'Semantic 3D narrative path from VTT transcript',        patchable: true,  activityMode: true  },
-  { id: 'voice-call',   label: 'Voice Calls',     description: 'Peer-to-peer voice calls via WebRTC',                   patchable: true,  activityMode: true  },
+  { id: 'voice-call',   label: 'Voice Calls',     description: 'Peer-to-peer voice calls via WebRTC',                   patchable: true,  activityMode: true,  requiresHttps: true },
   { id: 'map-maker',    label: 'Map Maker',       description: 'Compute UMAP/PaCMAP/LocalMAP projection from moments',  patchable: true,  activityMode: true  },
   { id: 'map-viewer',      label: 'Map Viewer',      description: 'View the computed participant map',                     patchable: true,  activityMode: true  },
   { id: 'valence-beat-pad', label: 'Valence Beat Pad', shortLabel: 'Beat Pad', description: 'Interactive musical pad driven by audience valence', patchable: true, activityMode: true },
