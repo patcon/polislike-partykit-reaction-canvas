@@ -50,16 +50,23 @@ function buildMatrix(moments: MomentSnapshot[]): { matrix: number[][]; participa
   return { matrix, participantIds };
 }
 
+const SETTINGS_KEY = 'map-maker-settings';
+
+function loadSettings() {
+  try { return JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? 'null') ?? {}; } catch { return {}; }
+}
+
 export default function MapMakerPanel() {
   const { room, userId } = usePanelContext();
-  const [algorithm, setAlgorithm] = useState<ReducerAlgorithm>('umap');
-  const [params, setParams] = useState<Record<string, number>>(() => defaultParamsFor('umap'));
-  const [advancedParams, setAdvancedParams] = useState<Record<string, number>>(() => defaultAdvancedParamsFor('umap'));
-  const [knnBackend, setKnnBackend] = useState<KnnBackend>('annoy');
-  const [knnParamsByBackend, setKnnParamsByBackend] = useState<Record<KnnBackend, Record<string, number>>>(() => ({
+  const saved = loadSettings();
+  const [algorithm, setAlgorithm] = useState<ReducerAlgorithm>(() => saved.algorithm ?? 'umap');
+  const [params, setParams] = useState<Record<string, number>>(() => saved.params ?? defaultParamsFor(saved.algorithm ?? 'umap'));
+  const [advancedParams, setAdvancedParams] = useState<Record<string, number>>(() => saved.advancedParams ?? defaultAdvancedParamsFor(saved.algorithm ?? 'umap'));
+  const [knnBackend, setKnnBackend] = useState<KnnBackend>(() => saved.knnBackend ?? 'annoy');
+  const [knnParamsByBackend, setKnnParamsByBackend] = useState<Record<KnnBackend, Record<string, number>>>(() => saved.knnParamsByBackend ?? {
     annoy: defaultKnnParamsFor('annoy'),
     hnsw: defaultKnnParamsFor('hnsw'),
-  }));
+  });
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
   const [status, setStatus] = useState<RunStatus>('idle');
   const [progress, setProgress] = useState<number | null>(null);
@@ -72,6 +79,10 @@ export default function MapMakerPanel() {
       if (stored) setMoments(stored);
     });
   }, [room]);
+
+  useEffect(() => {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify({ algorithm, params, advancedParams, knnBackend, knnParamsByBackend }));
+  }, [algorithm, params, advancedParams, knnBackend, knnParamsByBackend]);
 
   const socket = usePartySocket({
     ...getPartySocketConfig(),

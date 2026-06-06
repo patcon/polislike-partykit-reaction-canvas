@@ -50,6 +50,8 @@ All notable changes to this project will be documented in this file. Releases cu
 - **NeighborPanel graph view** — added ↺ refresh button to re-randomise the force layout; added ±180° rotation slider beside the flip buttons; removed active-state highlighting from flip buttons since orientation has no canonical "true" state.
 - **Image canvas: restore cursor coordinate remapping for smooth cursors** — smooth cursor RAF tick was mapping 0–100 coords to raw screen pixels, ignoring the letterbox transform; cursors now spring toward the correct image-relative position on all screen sizes, and edge-clamping is preserved.
 - **Soccer config modal** — modal was invisible and contents floated in the bottom-left corner because `SoccerConfigModal` still used the removed `github-modal-*` CSS classes; updated to `app-modal-*`.
+- **Map Viewer: × button deletes current projection** — previously cleared all history except the current entry; now removes only the viewed projection and advances the index to the next one (or steps back if it was the last).
+- **Map Maker: persist algorithm settings to localStorage** — algorithm choice, standard params, advanced params, KNN backend, and KNN params are restored when returning to the panel.
 
 ## Week 27 (2026-05-25)
 
