@@ -1,4 +1,4 @@
-import type { ActivityMode, StoryTracerPoint, StoryTracerMeta, MapProjection } from "../app/types";
+import type { ActivityMode, StoryTracerPoint, StoryTracerMeta } from "../app/types";
 import type { ReactionAnchors } from './lib/reactionRegion';
 
 export type { ReactionAnchors };
@@ -52,8 +52,7 @@ export interface PersistedState {
   stenoVtt: string;
   storyTracerPoints?: StoryTracerPoint[] | null;
   storyTracerMeta?: StoryTracerMeta | null;
-  mapProjection?: MapProjection | null;
-  pluginStates?: Record<string, unknown>;
+pluginStates?: Record<string, unknown>;
 }
 
 export interface StatementEvent          { type: 'setActiveStatement'; statementId: number }
@@ -149,9 +148,6 @@ export interface StenoSetTextEvent        { type: 'stenoSetText';        userId:
 export interface StoryTracerSetPointsEvent   { type: 'storyTracerSetPoints';  userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta }
 export interface StoryTracerClearPointsEvent { type: 'storyTracerClearPoints'; userId: string }
 
-export interface MapProjectionSetEvent   { type: 'mapProjectionSet';   userId: string; projection: MapProjection }
-export interface MapProjectionClearEvent { type: 'mapProjectionClear'; userId: string }
-
 export interface JoinCallQueueEvent      { type: 'joinCallQueue' }
 export interface LeaveCallQueueEvent     { type: 'leaveCallQueue' }
 export interface WebRTCOfferEvent        { type: 'webrtcOffer';  targetUserId: string; offer: unknown }
@@ -181,7 +177,7 @@ export type ClientEvent =
   | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent
   | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent
   | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent
-  | StoryTracerClearPointsEvent | MapProjectionSetEvent | MapProjectionClearEvent
+  | StoryTracerClearPointsEvent
   | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent
   | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent | SetArrivalCapacityEvent
   | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent

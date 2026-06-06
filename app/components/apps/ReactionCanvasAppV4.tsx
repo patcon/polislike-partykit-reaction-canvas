@@ -7,11 +7,11 @@ import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import InterfaceChipBar from "../shared/InterfaceChipBar";
 import SocialMediaPanel from "../panels/SocialMediaPanel";
 import MoodTonesPanel from "../panels/MoodTonesPanel";
-import type { ActivityMode, GreeterConfig, MapViewerConfig, SocialConfig, ValenceInputMode } from "../../types";
+import type { ActivityMode, GreeterConfig, SocialConfig, ValenceInputMode } from "../../types";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
 import type { PanelDefinition } from "../../panelRegistry";
 import { PanelContextProvider } from "../../context/PanelContext";
-import { GreeterConfigProvider, SocialMediaConfigProvider, MapViewerConfigProvider, ImageCanvasConfigProvider } from "../../context/PanelConfigs";
+import { GreeterConfigProvider, SocialMediaConfigProvider, ImageCanvasConfigProvider } from "../../context/PanelConfigs";
 import GithubUsernameModal from "../modals/GithubUsernameModal";
 import FeedbackStarsModal from "../modals/FeedbackStarsModal";
 import InterfacePushModal from "../modals/InterfacePushModal";
@@ -34,8 +34,6 @@ import TreevitesPanel from "../panels/TreevitesPanel";
 import StenoPanel from "../panels/StenoPanel";
 import StoryTracerPanel from "../panels/StoryTracerPanel";
 import VoiceCallPanel from "../panels/VoiceCallPanel";
-import MapMakerPanel from "../panels/MapMakerPanel";
-import MapViewerPanel from "../panels/MapViewerPanel";
 import ValenceBeatPadPanel from "../panels/ValenceBeatPadPanel";
 import ArrivalCanvasPanel from "../panels/ArrivalCanvasPanel";
 import NeighborPanel from "../panels/NeighborPanel";
@@ -49,8 +47,6 @@ const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = 
   steno:           StenoPanel,
   'story-tracer':  StoryTracerPanel,
   'voice-call':    VoiceCallPanel,
-  'map-maker':     MapMakerPanel,
-  'map-viewer':      MapViewerPanel,
   'valence-beat-pad': ValenceBeatPadPanel,
   'arrival-canvas':   ArrivalCanvasPanel,
   'neighbor':         NeighborPanel,
@@ -192,8 +188,7 @@ export default function ReactionCanvasAppV4() {
   const [serverImageUrl, setServerImageUrl] = useState('');
   const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
   const [serverGreeterConfig, setServerGreeterConfig] = useState<GreeterConfig | null>(null);
-  const [mapViewerConfig, setMapViewerConfig] = useState<MapViewerConfig | null>(null);
-  const [nowLabel, setNowLabel] = useState('');
+const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
@@ -403,20 +398,18 @@ export default function ReactionCanvasAppV4() {
       <PanelContextProvider value={panelContextValue}>
         <SocialMediaConfigProvider value={{ socialMediaConfig: serverSocialConfig }}>
         <GreeterConfigProvider value={{ greeterConfig: serverGreeterConfig }}>
-        <MapViewerConfigProvider value={{ config: mapViewerConfig }}>
-          {activeInterface === 'emcee' && (
-            <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} mapViewerConfig={mapViewerConfig} onMapViewerConfigChange={setMapViewerConfig} />
-          )}
-          {(() => {
-            const panelId = activeInterface !== 'canvas' && activeInterface !== 'emcee'
-              ? activeInterface
-              : activeInterface === 'canvas' ? activity : null;
-            const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
-            // When a panel activity is active, show it as a flex sibling; the canvas
-            // container stays mounted below to keep the WebSocket alive.
-            return ActivePanel ? <ActivePanel /> : null;
-          })()}
-        </MapViewerConfigProvider>
+        {activeInterface === 'emcee' && (
+          <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} />
+        )}
+        {(() => {
+          const panelId = activeInterface !== 'canvas' && activeInterface !== 'emcee'
+            ? activeInterface
+            : activeInterface === 'canvas' ? activity : null;
+          const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
+          // When a panel activity is active, show it as a flex sibling; the canvas
+          // container stays mounted below to keep the WebSocket alive.
+          return ActivePanel ? <ActivePanel /> : null;
+        })()}
         </GreeterConfigProvider>
         </SocialMediaConfigProvider>
       </PanelContextProvider>

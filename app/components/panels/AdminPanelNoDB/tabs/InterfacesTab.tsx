@@ -13,7 +13,6 @@ interface InterfacesTabProps {
   setSocialConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
   setVoiceCallConfigOpen: (v: boolean) => void;
-  setMapViewerConfigOpen: (v: boolean) => void;
   setArrivalConfigOpen: (v: boolean) => void;
   setActiveConfigPlugin: (id: string) => void;
   onClearRoleAssignments: () => void;
@@ -46,7 +45,7 @@ export default function InterfacesTab({
   activity,
   sendActivity,
   setSocialConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
-  setMapViewerConfigOpen, setArrivalConfigOpen, setActiveConfigPlugin,
+  setArrivalConfigOpen, setActiveConfigPlugin,
   onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
@@ -87,10 +86,7 @@ export default function InterfacesTab({
                   {id === 'voice-call' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setVoiceCallConfigOpen(true); }}><IoMdSettings /></button>
                   )}
-                  {id === 'map-viewer' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setMapViewerConfigOpen(true); }}><IoMdSettings /></button>
-                  )}
-                  {id === 'arrival-canvas' && (
+{id === 'arrival-canvas' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setArrivalConfigOpen(true); }}><IoMdSettings /></button>
                   )}
                   {PLUGIN_MAP[id]?.configModal && (

@@ -3,7 +3,7 @@ import usePartySocket from 'partysocket/react';
 import * as d3 from 'd3';
 import { getPartySocketConfig } from '../../../utils/partyHost';
 import { usePanelContext } from '../../../context/PanelContext';
-import { useMapViewerConfig } from '../../../context/PanelConfigs';
+import { useMapViewerConfig } from '../../../../plugins/map/useMapViewerConfig';
 import { idbGet } from '../../../utils/idbStorage';
 import { computeReactionRegion, DEFAULT_ANCHORS } from '../../../utils/voteRegion';
 import type { ReactionAnchors } from '../../../utils/voteRegion';

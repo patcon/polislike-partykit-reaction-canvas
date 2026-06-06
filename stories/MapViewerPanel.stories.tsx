@@ -3,7 +3,6 @@ import { expect, within } from 'storybook/test';
 import React, { useEffect } from 'react';
 import MapViewerPanel from '../app/components/panels/MapViewerPanel';
 import { PanelContextProvider } from '../app/context/PanelContext';
-import { MapViewerConfigProvider } from '../app/context/PanelConfigs';
 import type { MapViewerConfig, MapProjection } from '../app/types';
 import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 
@@ -38,15 +37,17 @@ const meta = {
   parameters: { layout: 'fullscreen' },
   tags: ['autodocs'],
   decorators: [
-    (Story, ctx) => (
-      <div className="v2-app-container" style={{ height: '100vh' }}>
-        <PanelContextProvider value={ctx.args as never}>
-          <MapViewerConfigProvider value={{ config: (ctx.args as { config: MapViewerConfig }).config }}>
+    (Story, ctx) => {
+      const config = (ctx.args as { config: MapViewerConfig }).config;
+      if (config) localStorage.setItem('map-viewer-config', JSON.stringify(config));
+      return (
+        <div className="v2-app-container" style={{ height: '100vh' }}>
+          <PanelContextProvider value={ctx.args as never}>
             <Story />
-          </MapViewerConfigProvider>
-        </PanelContextProvider>
-      </div>
-    ),
+          </PanelContextProvider>
+        </div>
+      );
+    },
   ],
   args: {
     room: 'storybook',

@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { GreeterConfig, SocialConfig, MapViewerConfig } from "../types";
+import type { GreeterConfig, SocialConfig } from "../types";
 
 // ── Greeter ────────────────────────────────────────────────────────────────
 
@@ -24,19 +24,6 @@ export const SocialMediaConfigProvider = SocialMediaConfigContext.Provider;
 export function useSocialMediaConfig(): SocialMediaConfigContextValue {
   const ctx = useContext(SocialMediaConfigContext);
   if (!ctx) throw new Error('useSocialMediaConfig() called outside SocialMediaConfigProvider');
-  return ctx;
-}
-
-// ── Map Viewer ─────────────────────────────────────────────────────────────
-
-interface MapViewerConfigContextValue {
-  config: MapViewerConfig | null;
-}
-const MapViewerConfigContext = createContext<MapViewerConfigContextValue | null>(null);
-export const MapViewerConfigProvider = MapViewerConfigContext.Provider;
-export function useMapViewerConfig(): MapViewerConfigContextValue {
-  const ctx = useContext(MapViewerConfigContext);
-  if (!ctx) throw new Error('useMapViewerConfig() called outside MapViewerConfigProvider');
   return ctx;
 }
 

@@ -18,8 +18,7 @@ export function useRoomConfig(socket: PartySocket) {
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
   const [voiceCallConfigOpen, setVoiceCallConfigOpen] = useState(false);
-  const [mapViewerConfigOpen, setMapViewerConfigOpen] = useState(false);
-  const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available');
+const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available');
   const [arrivalCapacity, setArrivalCapacity] = useState<number>(50);
   const [arrivalConfigOpen, setArrivalConfigOpen] = useState(false);
 
@@ -139,7 +138,6 @@ export function useRoomConfig(socket: PartySocket) {
     voiceCallConfigOpen, setVoiceCallConfigOpen,
     callAlgorithm,
     sendCallAlgorithm,
-    mapViewerConfigOpen, setMapViewerConfigOpen,
     arrivalCapacity, setArrivalCapacity,
     arrivalConfigOpen, setArrivalConfigOpen,
     sendArrivalCapacity,

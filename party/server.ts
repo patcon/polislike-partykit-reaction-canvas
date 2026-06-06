@@ -1,5 +1,5 @@
 import type * as Party from "partykit/server";
-import type { ActivityMode, StoryTracerPoint, StoryTracerMeta, MapProjection } from "../app/types";
+import type { ActivityMode, StoryTracerPoint, StoryTracerMeta } from "../app/types";
 import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } from './lib/reactionRegion';
 import type { ReactionAnchors } from './lib/reactionRegion';
 import { getCurrentActiveStatementId, computeNextDisplayTimestamp, computeClearedQueue } from './lib/queueLogic';
@@ -18,7 +18,7 @@ import type {
   PushHapticEvent, RegisterCustomAvatarEvent, SetColorCursorsByVoteEvent,
   SetDefaultCursorColorEvent, SetOwnValenceDisplayEvent, SetValenceInputModeEvent,
   RecordInvitationsEvent, StenoStartRecordingEvent, StenoStopRecordingEvent,
-  StenoAppendTextEvent, StenoSetTextEvent, StoryTracerSetPointsEvent, MapProjectionSetEvent,
+  StenoAppendTextEvent, StenoSetTextEvent, StoryTracerSetPointsEvent,
   WebRTCOfferEvent, WebRTCAnswerEvent, WebRTCIceEvent, HangUpCallEvent,
   SetCallAlgorithmEvent, SetArrivalCapacityEvent, NeighborEdgeEvent,
 } from './types';
@@ -59,8 +59,7 @@ export default class Server implements Party.Server {
   private stenoLockUserId: string | null = null;
   private storyTracerPoints: StoryTracerPoint[] | null = null;
   private storyTracerMeta: StoryTracerMeta | null = null;
-  private mapProjection: MapProjection | null = null;
-  private callQueue: string[] = [];
+private callQueue: string[] = [];
   private callPairs: Map<string, string> = new Map();
   private callAlgorithm: string = 'first-available';
   private arrivalCapacity: number = 50;
@@ -108,7 +107,6 @@ export default class Server implements Party.Server {
       stenoVtt: this.stenoVtt,
       storyTracerPoints: this.storyTracerPoints,
       storyTracerMeta: this.storyTracerMeta,
-      mapProjection: this.mapProjection,
       pluginStates,
     };
   }
@@ -118,8 +116,7 @@ export default class Server implements Party.Server {
     if (saved.stenoVtt !== undefined) this.stenoVtt = saved.stenoVtt;
     if (saved.storyTracerPoints !== undefined) this.storyTracerPoints = saved.storyTracerPoints ?? null;
     if (saved.storyTracerMeta !== undefined) this.storyTracerMeta = saved.storyTracerMeta ?? null;
-    if (saved.mapProjection !== undefined) this.mapProjection = saved.mapProjection ?? null;
-    if (saved.pluginStates) {
+if (saved.pluginStates) {
       for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
         if (plugin.server?.applyPersistedState && saved.pluginStates[id] !== undefined) {
           plugin.server.applyPersistedState(this.pluginStates.get(id), saved.pluginStates[id]);
@@ -288,7 +285,6 @@ export default class Server implements Party.Server {
       stenoLockUserId: this.stenoLockUserId,
       storyTracerPoints: this.storyTracerPoints,
       storyTracerMeta: this.storyTracerMeta,
-      mapProjection: this.mapProjection,
       callAlgorithm: this.callAlgorithm,
       arrivalCapacity: this.arrivalCapacity,
       myNeighborCode: this.neighborCodes.get(userId) ?? null,
@@ -407,9 +403,7 @@ export default class Server implements Party.Server {
         case 'stenoSetText': this.handleStenoSetText(event); break;
         case 'storyTracerSetPoints': this.handleStoryTracerSetPoints(event); break;
         case 'storyTracerClearPoints': this.handleStoryTracerClearPoints(); break;
-        case 'mapProjectionSet': this.handleMapProjectionSet(event); break;
-        case 'mapProjectionClear': this.handleMapProjectionClear(); break;
-        case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
+case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
         case 'leaveCallQueue': this.handleLeaveCallQueue(sender); break;
         case 'webrtcOffer':
         case 'webrtcAnswer':
@@ -699,18 +693,6 @@ export default class Server implements Party.Server {
     this.storyTracerMeta = null;
     void this.persistState();
     this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: null, meta: null }));
-  }
-
-  private handleMapProjectionSet(event: MapProjectionSetEvent): void {
-    this.mapProjection = event.projection;
-    void this.persistState();
-    this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: event.projection }));
-  }
-
-  private handleMapProjectionClear(): void {
-    this.mapProjection = null;
-    void this.persistState();
-    this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: null }));
   }
 
   // --- Voice call handlers ---

@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../../../utils/partyHost";
 import PanelSettingsModalSocialMedia from "../../modals/PanelSettingsModalSocialMedia";
-import PanelSettingsModalMapViewer from "../../modals/PanelSettingsModalMapViewer";
 import { useAnchors } from "./hooks/useAnchors";
 import { useLabels } from "./hooks/useLabels";
 import { useRoomConfig } from "./hooks/useRoomConfig";
@@ -26,7 +25,6 @@ import EventsTab from "./tabs/EventsTab";
 import ParticipantsTab from "./tabs/ParticipantsTab";
 import MomentsTab from "./tabs/MomentsTab";
 import type { AdminTab, GithubSubmission, PushTarget } from "./types";
-import type { MapViewerConfig } from "../../../types";
 import type { ReactionAnchors } from "../../../utils/voteRegion";
 import type { ReactionLabelSet } from "../../../voteLabels";
 
@@ -36,11 +34,9 @@ interface AdminPanelNoDBProps {
   room: string;
   userId?: string;
   selfChain?: string[];
-  mapViewerConfig?: MapViewerConfig | null;
-  onMapViewerConfigChange?: (config: MapViewerConfig) => void;
 }
 
-export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfig, onMapViewerConfigChange }: AdminPanelNoDBProps) {
+export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNoDBProps) {
   const tabStorageKey = `v4-admin-tab-${room}`;
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     const saved = localStorage.getItem(tabStorageKey);
@@ -309,8 +305,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             setVoiceCallConfigOpen={roomConfig.setVoiceCallConfigOpen}
-            setMapViewerConfigOpen={roomConfig.setMapViewerConfigOpen}
-            setArrivalConfigOpen={roomConfig.setArrivalConfigOpen}
+setArrivalConfigOpen={roomConfig.setArrivalConfigOpen}
             setActiveConfigPlugin={setActiveConfigPluginId}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
             userId={userId}
@@ -488,14 +483,6 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
           currentCapacity={roomConfig.arrivalCapacity}
           onSubmit={roomConfig.sendArrivalCapacity}
           onClose={() => roomConfig.setArrivalConfigOpen(false)}
-        />
-      )}
-      {roomConfig.mapViewerConfigOpen && (
-        <PanelSettingsModalMapViewer
-          room={room}
-          current={mapViewerConfig ?? null}
-          onSubmit={(config) => { onMapViewerConfigChange?.(config); }}
-          onClose={() => roomConfig.setMapViewerConfigOpen(false)}
         />
       )}
       {activeConfigPluginId && (() => {
