@@ -6,7 +6,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 **Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) — e.g. `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`.
 
-## Week 29 (2026-06-02)
+## Week 28 (2026-06-01)
 
 ### Added
 - **Perf test CI workflow** — `deploy:perf` npm script and `.github/workflows/perf-test.yml` deploy to a persistent `perf` PartyKit preview and run the k6 load test suite (200 VUs, 30s) against `wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default`; triggered manually or on a daily schedule (skipped if no commits in 24h).
@@ -45,6 +45,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **NeighborPanel graph** — nodes now appear/disappear in real time: `userJoined` adds a dot immediately (no need to leave and re-open the graph); `userLeft` removes the dot and any associated edges; `neighborEdgesCleared` also clears all dots; `neighborEdgeAdded` now drives ref updates + `restartSim` directly instead of the unreliable live-patch path.
 - **NeighborPanel graph** — joining users and their prior edges now merge into the live simulation without resetting it; `userJoined` adds the node directly via `addNodeLive`; the subsequent snapshot response merges new nodes/edges incrementally (`addEdgeLive`-style, no flash); `restartSim` is only called on initial graph open or full clears.
 - **NeighborPanel graph view** — added ↺ refresh button to re-randomise the force layout; added ±180° rotation slider beside the flip buttons; removed active-state highlighting from flip buttons since orientation has no canonical "true" state.
+- **Image canvas: restore cursor coordinate remapping for smooth cursors** — smooth cursor RAF tick was mapping 0–100 coords to raw screen pixels, ignoring the letterbox transform; cursors now spring toward the correct image-relative position on all screen sizes, and edge-clamping is preserved.
 
 ## Week 27 (2026-05-25)
 

@@ -125,6 +125,9 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
   const smoothCursorStateRef = useRef<Map<string, { x: number; y: number; vx: number; vy: number }>>(new Map());
   const dimensionsRef = useRef({ width: window.innerWidth, height: window.innerHeight });
+  const toScreenCoordsRef = useRef<(x: number, y: number) => { x: number; y: number }>(
+    (x, y) => ({ x: (x / 100) * dimensionsRef.current.width, y: (y / 100) * dimensionsRef.current.height })
+  );
 
   const smoothCursorStyleRef = useRef<Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string; avatarUrl: string | null; needsClip: boolean }>>(new Map());
   const avatarStyleRef = useRef<string | null>(null);
@@ -153,8 +156,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
       // Step physics for each target cursor
       for (const [id, cursor] of targets) {
-        const tx = (cursor.x / 100) * dimensionsRef.current.width;
-        const ty = (cursor.y / 100) * dimensionsRef.current.height;
+        const { x: tx, y: ty } = toScreenCoordsRef.current(cursor.x, cursor.y);
         let s = state.get(id);
         if (!s) {
           s = { x: tx, y: ty, vx: 0, vy: 0 };
@@ -258,6 +260,24 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
     height: window.innerHeight - (heightOffset ?? 140)
   });
   useEffect(() => { dimensionsRef.current = dimensions; }, [dimensions]);
+  useEffect(() => {
+    if (activity === 'image-canvas' && imageUrl && imageNaturalSize) {
+      const scale = Math.min(dimensions.width / imageNaturalSize.w, dimensions.height / imageNaturalSize.h);
+      const dispW = imageNaturalSize.w * scale;
+      const dispH = imageNaturalSize.h * scale;
+      const offX = (dimensions.width - dispW) / 2;
+      const offY = (dimensions.height - dispH) / 2;
+      toScreenCoordsRef.current = (x, y) => ({
+        x: Math.max(0, Math.min(dimensions.width, offX + (x / 100) * dispW)),
+        y: Math.max(0, Math.min(dimensions.height, offY + (y / 100) * dispH)),
+      });
+    } else {
+      toScreenCoordsRef.current = (x, y) => ({
+        x: (x / 100) * dimensions.width,
+        y: (y / 100) * dimensions.height,
+      });
+    }
+  }, [activity, imageUrl, imageNaturalSize, dimensions]);
 
   // Precompute per-cursor style (color + radius) so the RAF tick can read it without closure staleness.
   useEffect(() => {
