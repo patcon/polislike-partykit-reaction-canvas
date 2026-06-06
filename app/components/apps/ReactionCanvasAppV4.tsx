@@ -7,7 +7,6 @@ import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import InterfaceChipBar from "../shared/InterfaceChipBar";
 import SocialMediaPanel from "../panels/SocialMediaPanel";
 import MoodTonesPanel from "../panels/MoodTonesPanel";
-import GreeterPanel from "../panels/GreeterPanel";
 import type { ActivityMode, GreeterConfig, MapViewerConfig, SocialConfig, ValenceInputMode } from "../../types";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
 import type { PanelDefinition } from "../../panelRegistry";
@@ -49,7 +48,6 @@ const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = 
   'social-sharing': SocialMediaPanel,
   'mood-tones':    MoodTonesPanel,
   treevites:       TreevitesPanel,
-  greeter:         GreeterPanel,
   steno:           StenoPanel,
   'story-tracer':  StoryTracerPanel,
   'voice-call':    VoiceCallPanel,

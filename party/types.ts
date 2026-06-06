@@ -52,8 +52,8 @@ export interface PersistedState {
   stenoVtt: string;
   storyTracerPoints?: StoryTracerPoint[] | null;
   storyTracerMeta?: StoryTracerMeta | null;
-  greeterConfig?: { eventUrl: string } | null;
   mapProjection?: MapProjection | null;
+  pluginStates?: Record<string, unknown>;
 }
 
 export interface StatementEvent          { type: 'setActiveStatement'; statementId: number }

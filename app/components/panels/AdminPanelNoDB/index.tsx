@@ -3,7 +3,6 @@ import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../../../utils/partyHost";
 import PanelSettingsModalImageCanvas from "../../modals/PanelSettingsModalImageCanvas";
 import PanelSettingsModalSocialMedia from "../../modals/PanelSettingsModalSocialMedia";
-import PanelSettingsModalGreeter from "../../modals/PanelSettingsModalGreeter";
 import PanelSettingsModalMapViewer from "../../modals/PanelSettingsModalMapViewer";
 import { useAnchors } from "./hooks/useAnchors";
 import { useLabels } from "./hooks/useLabels";
@@ -18,6 +17,7 @@ import PanelSettingsModalReactionCanvas from "./PanelSettingsModalReactionCanvas
 import PanelSettingsModalVoiceCall from "./PanelSettingsModalVoiceCall";
 import PanelSettingsModalArrivalCanvas from "./PanelSettingsModalArrivalCanvas";
 import SoccerConfigModal from "../../../../plugins/soccer/component";
+import GreeterConfigModal from "../../../../plugins/greeter/configModal";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -52,6 +52,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
   const [githubSubmissions, setGithubSubmissions] = useState<GithubSubmission[]>([]);
   const [pendingHapticTarget, setPendingHapticTarget] = useState<PushTarget | null>(null);
   const [pendingPopupTarget, setPendingPopupTarget]   = useState<PushTarget | null>(null);
+  const [activeConfigPluginId, setActiveConfigPluginId] = useState<string | null>(null);
 
   // Mic state for Moments tab voice annotation
   type MicState = 'idle' | 'requesting' | 'ready' | 'recording' | 'error';
@@ -300,12 +301,11 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
             sendActivity={roomConfig.sendActivity}
             setImageConfigOpen={roomConfig.setImageConfigOpen}
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
-            setGreeterConfigOpen={roomConfig.setGreeterConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             setVoiceCallConfigOpen={roomConfig.setVoiceCallConfigOpen}
             setMapViewerConfigOpen={roomConfig.setMapViewerConfigOpen}
             setArrivalConfigOpen={roomConfig.setArrivalConfigOpen}
-            setSoccerConfigOpen={roomConfig.setSoccerConfigOpen}
+            setActiveConfigPlugin={setActiveConfigPluginId}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
             userId={userId}
             selfChain={selfChain}
@@ -477,13 +477,6 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
           onClose={() => roomConfig.setSocialConfigOpen(false)}
         />
       )}
-      {roomConfig.greeterConfigOpen && (
-        <PanelSettingsModalGreeter
-          current={roomConfig.greeterConfig}
-          onSubmit={roomConfig.sendGreeterConfig}
-          onClose={() => roomConfig.setGreeterConfigOpen(false)}
-        />
-      )}
       {roomConfig.voiceCallConfigOpen && (
         <PanelSettingsModalVoiceCall
           currentAlgorithm={roomConfig.callAlgorithm}
@@ -506,11 +499,18 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
           onClose={() => roomConfig.setMapViewerConfigOpen(false)}
         />
       )}
-      {roomConfig.soccerConfigOpen && (
+      {activeConfigPluginId === 'soccer' && (
         <SoccerConfigModal
           score={roomConfig.soccerScore}
           onReset={roomConfig.resetSoccerScore}
-          onClose={() => roomConfig.setSoccerConfigOpen(false)}
+          onClose={() => setActiveConfigPluginId(null)}
+        />
+      )}
+      {activeConfigPluginId === 'greeter' && (
+        <GreeterConfigModal
+          current={roomConfig.greeterConfig}
+          onSubmit={roomConfig.sendGreeterConfig}
+          onClose={() => setActiveConfigPluginId(null)}
         />
       )}
     </div>

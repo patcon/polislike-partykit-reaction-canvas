@@ -41,7 +41,6 @@ export default class Server implements Party.Server {
   private roomImageUrl: string = '';
   private nowLabel: string = '';
   private roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null = null;
-  private greeterConfig: { eventUrl: string } | null = null;
   private msgCount = 0;
   private msgRateInterval?: NodeJS.Timeout;
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
@@ -85,6 +84,7 @@ export default class Server implements Party.Server {
     return {
       broadcast: (msg) => this.room.broadcast(msg),
       getCursorPositions: () => this.cursorPositions,
+      persistState: () => this.persistState(),
     };
   }
 
@@ -99,13 +99,19 @@ export default class Server implements Party.Server {
   }
 
   private getPersistedState(): PersistedState {
+    const pluginStates: Record<string, unknown> = {};
+    for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+      if (plugin.server?.getPersistedState) {
+        pluginStates[id] = plugin.server.getPersistedState(this.pluginStates.get(id));
+      }
+    }
     return {
       roomSocialConfig: this.roomSocialConfig,
       stenoVtt: this.stenoVtt,
       storyTracerPoints: this.storyTracerPoints,
       storyTracerMeta: this.storyTracerMeta,
-      greeterConfig: this.greeterConfig,
       mapProjection: this.mapProjection,
+      pluginStates,
     };
   }
 
@@ -114,8 +120,14 @@ export default class Server implements Party.Server {
     if (saved.stenoVtt !== undefined) this.stenoVtt = saved.stenoVtt;
     if (saved.storyTracerPoints !== undefined) this.storyTracerPoints = saved.storyTracerPoints ?? null;
     if (saved.storyTracerMeta !== undefined) this.storyTracerMeta = saved.storyTracerMeta ?? null;
-    if (saved.greeterConfig !== undefined) this.greeterConfig = saved.greeterConfig ?? null;
     if (saved.mapProjection !== undefined) this.mapProjection = saved.mapProjection ?? null;
+    if (saved.pluginStates) {
+      for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+        if (plugin.server?.applyPersistedState && saved.pluginStates[id] !== undefined) {
+          plugin.server.applyPersistedState(this.pluginStates.get(id), saved.pluginStates[id]);
+        }
+      }
+    }
   }
 
   private generateNeighborCode(): string {
@@ -262,7 +274,6 @@ export default class Server implements Party.Server {
       roomImageUrl: this.roomImageUrl,
       nowLabel: this.nowLabel,
       roomSocialConfig: this.roomSocialConfig,
-      greeterConfig: this.greeterConfig,
       ballState: this.currentActivity === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
       soccerScore: getSoccerScore(this.pluginStates.get('soccer')),
       isViewer,
@@ -380,7 +391,6 @@ export default class Server implements Party.Server {
         case 'submitGithubUsername': this.handleSubmitGithubUsername(event); break;
         case 'submitFeedbackStars': this.handleSubmitFeedbackStars(event); break;
         case 'setSocialConfig': this.handleSetSocialConfig(event); break;
-        case 'setGreeterConfig': this.handleSetGreeterConfig(event); break;
         case 'requestJoin': this.handleRequestJoin(sender); break;
         case 'clearPushedInterfaces': this.handleClearPushedInterfaces(sender); break;
         case 'pushInterface': this.handlePushInterface(event, sender); break;
@@ -628,11 +638,6 @@ export default class Server implements Party.Server {
     this.roomSocialConfig = event.config;
     this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
     void this.persistState();
-  }
-
-  private handleSetGreeterConfig(event: SetGreeterConfigEvent): void {
-    this.greeterConfig = event.config;
-    this.room.broadcast(JSON.stringify({ type: 'greeterConfigChanged', config: this.greeterConfig }));
   }
 
   private handleRegisterCustomAvatar(event: RegisterCustomAvatarEvent): void {

@@ -13,6 +13,8 @@ export interface PluginConnection {
 export interface PluginContext {
   broadcast: (msg: string) => void;
   getCursorPositions: () => Map<string, { x: number; y: number }>;
+  /** Signal that plugin state has changed and should be durably persisted. */
+  persistState: () => Promise<void>;
 }
 
 /** Server-side lifecycle handlers. S = plugin-owned state. */
@@ -37,6 +39,16 @@ export interface ServerPlugin<S> {
   onActivate(ctx: PluginContext, state: S): void;
   /** Called when another activity replaces this plugin's activity. */
   onDeactivate(ctx: PluginContext, state: S): void;
+  /**
+   * Return the portion of plugin state to persist. Called by the server before writing storage.
+   * Use a wrapper object (e.g. `{ config: S }`) so state is always an object reference.
+   */
+  getPersistedState?(state: S): unknown;
+  /**
+   * Restore previously persisted state into the live state object.
+   * Mutate `state` in-place rather than replacing the reference.
+   */
+  applyPersistedState?(state: S, saved: unknown): void;
 }
 
 /**

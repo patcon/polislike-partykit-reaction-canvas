@@ -19,10 +19,8 @@ export function useRoomConfig(socket: PartySocket) {
   );
   const [roomSocialConfig, setRoomSocialConfig] = useState<SocialConfig | null>(null);
   const [greeterConfig, setGreeterConfig]     = useState<GreeterConfig | null>(null);
-  const [greeterConfigOpen, setGreeterConfigOpen] = useState(false);
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
-  const [soccerConfigOpen, setSoccerConfigOpen] = useState(false);
   const [voiceCallConfigOpen, setVoiceCallConfigOpen] = useState(false);
   const [mapViewerConfigOpen, setMapViewerConfigOpen] = useState(false);
   const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available');
@@ -103,7 +101,6 @@ export function useRoomConfig(socket: PartySocket) {
     if ('currentActivity' in data) setActivity((data.currentActivity as ActivityMode) ?? 'canvas');
     if ('roomImageUrl' in data) setRoomImageUrl((data.roomImageUrl as string) ?? '');
     if ('roomSocialConfig' in data) setRoomSocialConfig((data.roomSocialConfig as SocialConfig | null) ?? null);
-    if ('greeterConfig' in data) setGreeterConfig((data.greeterConfig as GreeterConfig | null) ?? null);
     if ('callAlgorithm' in data && data.callAlgorithm) setCallAlgorithm(data.callAlgorithm as string);
     if ('arrivalCapacity' in data && typeof data.arrivalCapacity === 'number') setArrivalCapacity(data.arrivalCapacity as number);
     if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore as { left: number; right: number });
@@ -161,7 +158,6 @@ export function useRoomConfig(socket: PartySocket) {
     sendImageUrl,
     sendSocialConfig,
     greeterConfig, setGreeterConfig,
-    greeterConfigOpen, setGreeterConfigOpen,
     sendGreeterConfig,
     resetSoccerScore,
     sendUserCap,
@@ -173,7 +169,6 @@ export function useRoomConfig(socket: PartySocket) {
     sendOwnValenceDisplay,
     valenceInputMode, setValenceInputMode,
     sendValenceInputMode,
-    soccerConfigOpen, setSoccerConfigOpen,
     voiceCallConfigOpen, setVoiceCallConfigOpen,
     callAlgorithm,
     sendCallAlgorithm,

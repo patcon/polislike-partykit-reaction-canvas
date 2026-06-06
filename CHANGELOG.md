@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 29 (2026-06-02)
 
+### Changed
+- **Greeter panel migrated to plugin system** — greeter is now a fully self-contained `PanelPlugin` in `plugins/greeter/`; server logic, component, and config modal are plugin-owned. Establishes the persisted-state pattern (`getPersistedState` / `applyPersistedState` hooks on `ServerPlugin`) for future panel migrations. InterfacesTab config gear now routes all plugin config modals through a single `setActiveConfigPlugin` handler instead of per-plugin open-state props.
+
 ### Added
 - **Perf test CI workflow** — `deploy:perf` npm script and `.github/workflows/perf-test.yml` deploy to a persistent `perf` PartyKit preview and run the k6 load test suite (200 VUs, 30s) against `wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default`; triggered manually or on a daily schedule (skipped if no commits in 24h).
 - **k6 load test improvements** — adds `cursor_delivery_ms` end-to-end latency metric (sender timestamp echoed back via `cursorBatch`), `connection_success` rate metric replacing the meaningless `ws_sessions` threshold, fixes `cursors_received` to count only cursor events (not `presenceCount` messages), staggered 18–22s VU close timer to avoid reconnect storms, and a `handleSummary` fanout ratio display.

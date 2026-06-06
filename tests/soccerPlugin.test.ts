@@ -7,6 +7,7 @@ function makeCtx(): PluginContext {
   return {
     broadcast: vi.fn(),
     getCursorPositions: () => new Map(),
+    persistState: vi.fn().mockResolvedValue(undefined),
   };
 }
 

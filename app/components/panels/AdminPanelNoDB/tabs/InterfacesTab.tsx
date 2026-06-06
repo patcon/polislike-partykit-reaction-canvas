@@ -12,12 +12,11 @@ interface InterfacesTabProps {
   sendActivity: (act: ActivityMode) => void;
   setImageConfigOpen: (v: boolean) => void;
   setSocialConfigOpen: (v: boolean) => void;
-  setGreeterConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
   setVoiceCallConfigOpen: (v: boolean) => void;
   setMapViewerConfigOpen: (v: boolean) => void;
   setArrivalConfigOpen: (v: boolean) => void;
-  setSoccerConfigOpen: (v: boolean) => void;
+  setActiveConfigPlugin: (id: string) => void;
   onClearRoleAssignments: () => void;
   userId?: string;
   selfChain?: string[];
@@ -47,8 +46,8 @@ function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[
 export default function InterfacesTab({
   activity,
   sendActivity,
-  setImageConfigOpen, setSocialConfigOpen, setGreeterConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
-  setMapViewerConfigOpen, setArrivalConfigOpen, setSoccerConfigOpen,
+  setImageConfigOpen, setSocialConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
+  setMapViewerConfigOpen, setArrivalConfigOpen, setActiveConfigPlugin,
   onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
@@ -86,9 +85,6 @@ export default function InterfacesTab({
                   {id === 'social-sharing' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>
                   )}
-                  {id === 'greeter' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setGreeterConfigOpen(true); }}><IoMdSettings /></button>
-                  )}
                   {(id === 'voice-call' || id === 'steno') && !navigator.mediaDevices && (
                     <span title="SSL required — microphone unavailable on HTTP" style={{ marginLeft: 6, color: '#f90', fontSize: 12, cursor: 'default' }}>⚠ SSL required</span>
                   )}
@@ -102,7 +98,7 @@ export default function InterfacesTab({
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setArrivalConfigOpen(true); }}><IoMdSettings /></button>
                   )}
                   {PLUGIN_MAP[id]?.configModal && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSoccerConfigOpen(true); }}><IoMdSettings /></button>
+                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setActiveConfigPlugin(id); }}><IoMdSettings /></button>
                   )}
                 </td>
                 {/* Solo */}

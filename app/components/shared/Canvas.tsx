@@ -365,7 +365,6 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
           if ('ballState' in data && data.ballState) setBallPos({ x: data.ballState.x, y: data.ballState.y });
           if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore);
           if ('roomSocialConfig' in data) onSocialConfigChange?.(data.roomSocialConfig ?? null);
-          if ('greeterConfig' in data) onGreeterConfigChange?.(data.greeterConfig ?? null);
           if ('connectedUserIds' in data) onConnectedUsers?.(data.connectedUserIds ?? []);
           onConnectedAsViewer?.(data.isViewer ?? false, data.userCap ?? null);
           onViewerCount?.(data.viewerCount ?? 0);
