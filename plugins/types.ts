@@ -64,9 +64,8 @@ export interface PanelPlugin<S = unknown> {
   activityMode: boolean;
   /** React component rendered in the chip bar / activity overlay. Omit for canvas-based activities. */
   component?: React.ComponentType;
-  /** Config modal opened from the InterfacesTab settings button. Props are plugin-specific; caller casts. */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  configModal?: React.ComponentType<any>;
+  /** Config modal opened from the InterfacesTab settings button. Receives only onClose; reads state via useAdminSocket(). */
+  configModal?: React.ComponentType<{ onClose: () => void }>;
   /** Server-side handlers. Omit for purely client-side panels. */
   server?: ServerPlugin<S>;
 }

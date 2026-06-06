@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ActivityMode, GreeterConfig, SocialConfig, ValenceInputMode } from "../../../../types";
+import type { ActivityMode, SocialConfig, ValenceInputMode } from "../../../../types";
 import type PartySocket from "partysocket";
 
 export function useRoomConfig(socket: PartySocket) {
@@ -9,7 +9,6 @@ export function useRoomConfig(socket: PartySocket) {
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
   const [activity, setActivity]               = useState<ActivityMode>('canvas');
-  const [soccerScore, setSoccerScore]         = useState({ left: 0, right: 0 });
   const [imageConfigOpen, setImageConfigOpen] = useState(false);
   const [roomImageUrl, setRoomImageUrl]       = useState('');
   const [socialConfigOpen, setSocialConfigOpen] = useState(false);
@@ -18,7 +17,6 @@ export function useRoomConfig(socket: PartySocket) {
     localStorage.getItem('v4-showNowLabelOnCanvas') === 'true'
   );
   const [roomSocialConfig, setRoomSocialConfig] = useState<SocialConfig | null>(null);
-  const [greeterConfig, setGreeterConfig]     = useState<GreeterConfig | null>(null);
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
   const [voiceCallConfigOpen, setVoiceCallConfigOpen] = useState(false);
@@ -67,11 +65,6 @@ export function useRoomConfig(socket: PartySocket) {
     socket.send(JSON.stringify({ type: 'setSocialConfig', config }));
   };
 
-  const sendGreeterConfig = (config: GreeterConfig) => {
-    setGreeterConfig(config);
-    socket.send(JSON.stringify({ type: 'setGreeterConfig', config }));
-  };
-
   const sendCallAlgorithm = (algorithm: string) => {
     setCallAlgorithm(algorithm);
     socket.send(JSON.stringify({ type: 'setCallAlgorithm', algorithm }));
@@ -80,10 +73,6 @@ export function useRoomConfig(socket: PartySocket) {
   const sendArrivalCapacity = (capacity: number) => {
     setArrivalCapacity(capacity);
     socket.send(JSON.stringify({ type: 'setArrivalCapacity', capacity }));
-  };
-
-  const resetSoccerScore = () => {
-    socket.send(JSON.stringify({ type: 'resetSoccerScore' }));
   };
 
   const sendUserCap = (inputValue: string) => {
@@ -103,7 +92,6 @@ export function useRoomConfig(socket: PartySocket) {
     if ('roomSocialConfig' in data) setRoomSocialConfig((data.roomSocialConfig as SocialConfig | null) ?? null);
     if ('callAlgorithm' in data && data.callAlgorithm) setCallAlgorithm(data.callAlgorithm as string);
     if ('arrivalCapacity' in data && typeof data.arrivalCapacity === 'number') setArrivalCapacity(data.arrivalCapacity as number);
-    if ('soccerScore' in data && data.soccerScore) setSoccerScore(data.soccerScore as { left: number; right: number });
     if (data.userCap !== undefined) {
       setUserCap(data.userCap as number | null);
       setCapInput(data.userCap !== null ? String(data.userCap) : '');
@@ -123,10 +111,6 @@ export function useRoomConfig(socket: PartySocket) {
       setRoomImageUrl((data.url as string) ?? '');
     } else if (data.type === 'socialConfigChanged') {
       setRoomSocialConfig((data.config as SocialConfig | null) ?? null);
-    } else if (data.type === 'greeterConfigChanged') {
-      setGreeterConfig((data.config as GreeterConfig | null) ?? null);
-    } else if (data.type === 'goalScored') {
-      setSoccerScore(data.score as { left: number; right: number });
     } else if (data.type === 'userCapChanged') {
       setUserCap(data.cap as number | null);
       setCapInput(data.cap !== null ? String(data.cap) : '');
@@ -146,7 +130,6 @@ export function useRoomConfig(socket: PartySocket) {
     defaultCursorColor, setDefaultCursorColor,
     sendDefaultCursorColor,
     activity, setActivity,
-    soccerScore, setSoccerScore,
     imageConfigOpen, setImageConfigOpen,
     roomImageUrl, setRoomImageUrl,
     socialConfigOpen, setSocialConfigOpen,
@@ -157,9 +140,6 @@ export function useRoomConfig(socket: PartySocket) {
     sendActivity,
     sendImageUrl,
     sendSocialConfig,
-    greeterConfig, setGreeterConfig,
-    sendGreeterConfig,
-    resetSoccerScore,
     sendUserCap,
     applyConnected,
     handleSocketEvent,

@@ -1,12 +1,23 @@
+import { useState, useEffect } from 'react';
+import { useAdminSocket } from '../../app/components/panels/AdminPanelNoDB/AdminSocketContext';
 import type { SoccerScore } from './types';
 
-interface SoccerConfigModalProps {
-  score: SoccerScore;
-  onReset: () => void;
-  onClose: () => void;
-}
+export default function SoccerConfigModal({ onClose }: { onClose: () => void }) {
+  const { send, subscribe, getLastMessage } = useAdminSocket();
 
-export default function SoccerConfigModal({ score, onReset, onClose }: SoccerConfigModalProps) {
+  const [score, setScore] = useState<SoccerScore>(() => {
+    const connected = getLastMessage('connected');
+    return (connected?.soccerScore as SoccerScore) ?? { left: 0, right: 0 };
+  });
+
+  useEffect(() => {
+    return subscribe(data => {
+      if (data.type === 'goalScored') setScore(data.score as SoccerScore);
+    });
+  }, [subscribe]);
+
+  const handleReset = () => send({ type: 'resetSoccerScore' });
+
   return (
     <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="github-modal">
@@ -17,7 +28,7 @@ export default function SoccerConfigModal({ score, onReset, onClose }: SoccerCon
             {score.left} – {score.right}
           </span>
         </div>
-        <button className="v3-admin-btn v3-admin-btn--destructive" onClick={onReset}>
+        <button className="v3-admin-btn v3-admin-btn--destructive" onClick={handleReset}>
           Reset Score
         </button>
         <button className="github-modal-btn-dismiss" onClick={onClose} style={{ marginTop: 8 }}>

@@ -16,8 +16,8 @@ import SendPopupModal from "./SendPopupModal";
 import PanelSettingsModalReactionCanvas from "./PanelSettingsModalReactionCanvas";
 import PanelSettingsModalVoiceCall from "./PanelSettingsModalVoiceCall";
 import PanelSettingsModalArrivalCanvas from "./PanelSettingsModalArrivalCanvas";
-import SoccerConfigModal from "../../../../plugins/soccer/component";
-import GreeterConfigModal from "../../../../plugins/greeter/configModal";
+import { AdminSocketContext, createAdminSocketBus } from "./AdminSocketContext";
+import { PLUGIN_MAP } from "../../../../plugins";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -100,18 +100,25 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
   // Ref-based dispatch so all hooks see the same handler regardless of creation order
   const dispatchRef = useRef<(data: Record<string, unknown>) => void>(() => {});
 
+  // socketRef lets the bus send without capturing socket in a stale closure
+  const socketRef = useRef<ReturnType<typeof usePartySocket> | null>(null);
+  const busRef = useRef(createAdminSocketBus((msg) => socketRef.current?.send(JSON.stringify(msg))));
+
   const socket = usePartySocket({
     ...getPartySocketConfig(),
     room,
     query: { isAdmin: 'true' },
     onMessage(evt) {
       try {
-        dispatchRef.current(JSON.parse(evt.data));
+        const data = JSON.parse(evt.data);
+        dispatchRef.current(data);
+        busRef.current.notify(data);
       } catch (e) {
         console.error('AdminPanelV4: failed to parse message', e);
       }
     },
   });
+  socketRef.current = socket;
 
   const anchors      = useAnchors(socket);
   const labels       = useLabels(socket);
@@ -176,6 +183,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
   };
 
   return (
+    <AdminSocketContext.Provider value={busRef.current.value}>
     <div
       className="v3-admin-panel"
       style={{ padding: 0, flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
@@ -499,20 +507,11 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
           onClose={() => roomConfig.setMapViewerConfigOpen(false)}
         />
       )}
-      {activeConfigPluginId === 'soccer' && (
-        <SoccerConfigModal
-          score={roomConfig.soccerScore}
-          onReset={roomConfig.resetSoccerScore}
-          onClose={() => setActiveConfigPluginId(null)}
-        />
-      )}
-      {activeConfigPluginId === 'greeter' && (
-        <GreeterConfigModal
-          current={roomConfig.greeterConfig}
-          onSubmit={roomConfig.sendGreeterConfig}
-          onClose={() => setActiveConfigPluginId(null)}
-        />
-      )}
+      {activeConfigPluginId && (() => {
+        const ConfigModal = PLUGIN_MAP[activeConfigPluginId]?.configModal;
+        return ConfigModal ? <ConfigModal onClose={() => setActiveConfigPluginId(null)} /> : null;
+      })()}
     </div>
+    </AdminSocketContext.Provider>
   );
 }
