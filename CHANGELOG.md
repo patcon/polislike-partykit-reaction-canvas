@@ -48,6 +48,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **NeighborPanel graph** — joining users and their prior edges now merge into the live simulation without resetting it; `userJoined` adds the node directly via `addNodeLive`; the subsequent snapshot response merges new nodes/edges incrementally (`addEdgeLive`-style, no flash); `restartSim` is only called on initial graph open or full clears.
 - **NeighborPanel graph view** — added ↺ refresh button to re-randomise the force layout; added ±180° rotation slider beside the flip buttons; removed active-state highlighting from flip buttons since orientation has no canonical "true" state.
 - **Image canvas: restore cursor coordinate remapping for smooth cursors** — smooth cursor RAF tick was mapping 0–100 coords to raw screen pixels, ignoring the letterbox transform; cursors now spring toward the correct image-relative position on all screen sizes, and edge-clamping is preserved.
+- **Soccer config modal** — modal was invisible and contents floated in the bottom-left corner because `SoccerConfigModal` still used the removed `github-modal-*` CSS classes; updated to `app-modal-*`.
 
 ## Week 27 (2026-05-25)
 

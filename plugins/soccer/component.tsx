@@ -19,9 +19,9 @@ export default function SoccerConfigModal({ onClose }: { onClose: () => void }) 
   const handleReset = () => send({ type: 'resetSoccerScore' });
 
   return (
-    <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="github-modal">
-        <p className="github-modal-title">Soccer settings</p>
+    <div className="app-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="app-modal">
+        <p className="app-modal-title">Soccer settings</p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 12 }}>
           <span style={{ color: '#aaa', fontSize: 15 }}>Score</span>
           <span style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 700, color: '#eee' }}>
@@ -31,7 +31,7 @@ export default function SoccerConfigModal({ onClose }: { onClose: () => void }) 
         <button className="v3-admin-btn v3-admin-btn--destructive" onClick={handleReset}>
           Reset Score
         </button>
-        <button className="github-modal-btn-dismiss" onClick={onClose} style={{ marginTop: 8 }}>
+        <button className="app-modal-btn-dismiss" onClick={onClose} style={{ marginTop: 8 }}>
           Close
         </button>
       </div>
