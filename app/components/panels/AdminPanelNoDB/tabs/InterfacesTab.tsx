@@ -10,7 +10,6 @@ import { PLUGIN_MAP } from "../../../../../plugins/index";
 interface InterfacesTabProps {
   activity: ActivityMode;
   sendActivity: (act: ActivityMode) => void;
-  setImageConfigOpen: (v: boolean) => void;
   setSocialConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
   setVoiceCallConfigOpen: (v: boolean) => void;
@@ -46,7 +45,7 @@ function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[
 export default function InterfacesTab({
   activity,
   sendActivity,
-  setImageConfigOpen, setSocialConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
+  setSocialConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
   setMapViewerConfigOpen, setArrivalConfigOpen, setActiveConfigPlugin,
   onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
@@ -78,9 +77,6 @@ export default function InterfacesTab({
                   <span style={{ color: '#666', marginLeft: 8 }}>{description}</span>
                   {id === 'canvas' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setCanvasSettingsOpen(true); }}><IoMdSettings /></button>
-                  )}
-                  {id === 'image-canvas' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}><IoMdSettings /></button>
                   )}
                   {id === 'social-sharing' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>

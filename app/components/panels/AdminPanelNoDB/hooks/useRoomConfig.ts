@@ -9,8 +9,6 @@ export function useRoomConfig(socket: PartySocket) {
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
   const [activity, setActivity]               = useState<ActivityMode>('canvas');
-  const [imageConfigOpen, setImageConfigOpen] = useState(false);
-  const [roomImageUrl, setRoomImageUrl]       = useState('');
   const [socialConfigOpen, setSocialConfigOpen] = useState(false);
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false);
   const [showNowLabelOnCanvas, setShowNowLabelOnCanvas] = useState(() =>
@@ -55,11 +53,6 @@ export function useRoomConfig(socket: PartySocket) {
     socket.send(JSON.stringify({ type: 'setActivity', activity: act }));
   };
 
-  const sendImageUrl = (url: string) => {
-    setRoomImageUrl(url);
-    socket.send(JSON.stringify({ type: 'setImageUrl', url }));
-  };
-
   const sendSocialConfig = (config: SocialConfig) => {
     setRoomSocialConfig(config);
     socket.send(JSON.stringify({ type: 'setSocialConfig', config }));
@@ -88,7 +81,6 @@ export function useRoomConfig(socket: PartySocket) {
     if ('ownValenceDisplay' in data && data.ownValenceDisplay) setOwnValenceDisplay(data.ownValenceDisplay as 'background' | 'labels' | 'none');
     if ('valenceInputMode' in data && data.valenceInputMode) setValenceInputMode(data.valenceInputMode as ValenceInputMode);
     if ('currentActivity' in data) setActivity((data.currentActivity as ActivityMode) ?? 'canvas');
-    if ('roomImageUrl' in data) setRoomImageUrl((data.roomImageUrl as string) ?? '');
     if ('roomSocialConfig' in data) setRoomSocialConfig((data.roomSocialConfig as SocialConfig | null) ?? null);
     if ('callAlgorithm' in data && data.callAlgorithm) setCallAlgorithm(data.callAlgorithm as string);
     if ('arrivalCapacity' in data && typeof data.arrivalCapacity === 'number') setArrivalCapacity(data.arrivalCapacity as number);
@@ -107,8 +99,6 @@ export function useRoomConfig(socket: PartySocket) {
       setAvatarStyle((data.avatarStyle as string | null) ?? null);
     } else if (data.type === 'activityChanged') {
       setActivity((data.activity as ActivityMode) ?? 'canvas');
-    } else if (data.type === 'imageUrlChanged') {
-      setRoomImageUrl((data.url as string) ?? '');
     } else if (data.type === 'socialConfigChanged') {
       setRoomSocialConfig((data.config as SocialConfig | null) ?? null);
     } else if (data.type === 'userCapChanged') {
@@ -130,15 +120,12 @@ export function useRoomConfig(socket: PartySocket) {
     defaultCursorColor, setDefaultCursorColor,
     sendDefaultCursorColor,
     activity, setActivity,
-    imageConfigOpen, setImageConfigOpen,
-    roomImageUrl, setRoomImageUrl,
     socialConfigOpen, setSocialConfigOpen,
     roomSocialConfig, setRoomSocialConfig,
     userCap, setUserCap,
     capInput, setCapInput,
     sendAvatarStyle,
     sendActivity,
-    sendImageUrl,
     sendSocialConfig,
     sendUserCap,
     applyConnected,

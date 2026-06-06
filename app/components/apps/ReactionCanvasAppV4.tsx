@@ -11,7 +11,7 @@ import type { ActivityMode, GreeterConfig, MapViewerConfig, SocialConfig, Valenc
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
 import type { PanelDefinition } from "../../panelRegistry";
 import { PanelContextProvider } from "../../context/PanelContext";
-import { GreeterConfigProvider, SocialMediaConfigProvider, MapViewerConfigProvider } from "../../context/PanelConfigs";
+import { GreeterConfigProvider, SocialMediaConfigProvider, MapViewerConfigProvider, ImageCanvasConfigProvider } from "../../context/PanelConfigs";
 import GithubUsernameModal from "../modals/GithubUsernameModal";
 import FeedbackStarsModal from "../modals/FeedbackStarsModal";
 import InterfacePushModal from "../modals/InterfacePushModal";
@@ -425,14 +425,9 @@ export default function ReactionCanvasAppV4() {
         </SocialMediaConfigProvider>
       </PanelContextProvider>
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
+      <ImageCanvasConfigProvider value={{ imageUrl: serverImageUrl }}>
       <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && !PANEL_COMPONENTS[activity]) ? undefined : 'none' }}>
-          {activity === 'image-canvas' && serverImageUrl && (
-            <img
-              src={serverImageUrl}
-              className="image-canvas-bg"
-              alt=""
-            />
-          )}
+          {(() => { const Bg = PLUGIN_MAP[activity]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
           {labels && activity === 'canvas' && <div className="reaction-label reaction-label-positive" style={{ ...reactionLabelStyle(anchors.positive), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'positive' ? { background: 'rgba(0, 255, 0, 0.2)' } : {}) }}>{labels.positive}</div>}
           {labels && activity === 'canvas' && <div className="reaction-label reaction-label-negative" style={{ ...reactionLabelStyle(anchors.negative), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'negative' ? { background: 'rgba(255, 0, 0, 0.2)' } : {}) }}>{labels.negative}</div>}
           {labels && activity === 'canvas' && <div className="reaction-label reaction-label-neutral" style={{ ...reactionLabelStyle(anchors.neutral), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'neutral' ? { background: 'rgba(255, 255, 0, 0.2)' } : {}) }}>{labels.neutral}</div>}
@@ -483,8 +478,8 @@ export default function ReactionCanvasAppV4() {
             colorCursorsByVote={true}
             cursorSmoothingConfig={SMOOTH_CURSOR_ENABLED ? { ...SMOOTH_CURSOR_CONFIG, showSmoothCursor: true } : undefined}
             hideActualCursors={SMOOTH_CURSOR_ENABLED}
-            disableCursorValence={activity === 'image-canvas'}
-            disableBackgroundValence={activity === 'image-canvas'}
+            disableCursorValence={!!PLUGIN_MAP[activity]?.canvasOverlay?.canvasProps?.disableCursorValence}
+            disableBackgroundValence={!!PLUGIN_MAP[activity]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
             onOwnValenceDisplayChange={setOwnValenceDisplay}
             onValenceInputModeChange={(mode) => {
               if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
@@ -594,7 +589,7 @@ export default function ReactionCanvasAppV4() {
               onTouchPosition={setTouchPos}
               heightOffset={chipBarOffset}
               anchors={anchors}
-              imageUrl={activity === 'image-canvas' ? (serverImageUrl || undefined) : undefined}
+              imageUrl={PLUGIN_MAP[activity]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
               disabled={valenceInputMode !== 'touch'}
             />
           )}
@@ -636,6 +631,7 @@ export default function ReactionCanvasAppV4() {
             </button>
           )}
         </div>
+      </ImageCanvasConfigProvider>
       {showGithubModal && (
         <GithubUsernameModal
           onSubmit={(username, displayName, avatarUrl) => {

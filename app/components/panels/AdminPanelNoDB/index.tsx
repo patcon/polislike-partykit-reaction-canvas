@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../../../utils/partyHost";
-import PanelSettingsModalImageCanvas from "../../modals/PanelSettingsModalImageCanvas";
 import PanelSettingsModalSocialMedia from "../../modals/PanelSettingsModalSocialMedia";
 import PanelSettingsModalMapViewer from "../../modals/PanelSettingsModalMapViewer";
 import { useAnchors } from "./hooks/useAnchors";
@@ -307,7 +306,6 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
           <InterfacesTab
             activity={roomConfig.activity}
             sendActivity={roomConfig.sendActivity}
-            setImageConfigOpen={roomConfig.setImageConfigOpen}
             setSocialConfigOpen={roomConfig.setSocialConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             setVoiceCallConfigOpen={roomConfig.setVoiceCallConfigOpen}
@@ -455,13 +453,6 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
             setPendingPopupTarget(null);
           }}
           onClose={() => setPendingPopupTarget(null)}
-        />
-      )}
-      {roomConfig.imageConfigOpen && (
-        <PanelSettingsModalImageCanvas
-          currentUrl={roomConfig.roomImageUrl}
-          onSubmit={roomConfig.sendImageUrl}
-          onClose={() => roomConfig.setImageConfigOpen(false)}
         />
       )}
       {roomConfig.canvasSettingsOpen && (

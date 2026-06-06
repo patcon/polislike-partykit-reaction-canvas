@@ -51,9 +51,23 @@ export interface ServerPlugin<S> {
   applyPersistedState?(state: S, saved: unknown): void;
 }
 
+/** Configuration for canvas-mode activities that overlay the main canvas rather than replacing it. */
+export interface CanvasOverlay {
+  /** Rendered absolutely inside the canvas container behind the touch layer (e.g. a background image). */
+  background?: React.ComponentType;
+  /** Overrides forwarded to the <Canvas> component when this activity is active. */
+  canvasProps?: {
+    disableCursorValence?: boolean;
+    disableBackgroundValence?: boolean;
+  };
+}
+
 /**
  * A fully self-contained panel plugin: metadata, optional client UI, and optional server logic.
  * Designed so future panels can be distributed as npm packages that export a PanelPlugin.
+ *
+ * A plugin is either panel-mode (component replaces the canvas view) or canvas-mode
+ * (canvasOverlay configures the canvas). Providing both is not supported.
  */
 export interface PanelPlugin<S = unknown> {
   id: string;
@@ -62,8 +76,10 @@ export interface PanelPlugin<S = unknown> {
   description: string;
   patchable: boolean;
   activityMode: boolean;
-  /** React component rendered in the chip bar / activity overlay. Omit for canvas-based activities. */
+  /** Panel-mode: React component rendered in the chip bar / activity overlay. */
   component?: React.ComponentType;
+  /** Canvas-mode: configures the always-mounted canvas container instead of replacing it. */
+  canvasOverlay?: CanvasOverlay;
   /** Config modal opened from the InterfacesTab settings button. Receives only onClose; reads state via useAdminSocket(). */
   configModal?: React.ComponentType<{ onClose: () => void }>;
   /** Server-side handlers. Omit for purely client-side panels. */

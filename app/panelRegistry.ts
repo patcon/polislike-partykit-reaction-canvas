@@ -15,7 +15,6 @@ export interface PanelMeta {
 export const PANEL_REGISTRY: PanelMeta[] = [
   { id: 'emcee',        label: 'Emcee',           description: 'Event host controls and tools',                         patchable: true,  activityMode: false },
   { id: 'canvas',       label: 'Reaction Canvas', description: 'Standard reaction canvas',                              patchable: false, activityMode: true  },
-  { id: 'image-canvas', label: 'Image Canvas',    description: 'React over a shared background image',                  patchable: false, activityMode: true  },
   { id: 'signature',    label: 'Signature Canvas',description: 'Collect participant signatures live',                   patchable: false, activityMode: true  },
   ...PLUGINS,
   { id: 'social-sharing', label: 'Social Sharing',  description: 'Bluesky · Twitter / X · Mastodon',                     patchable: true,  activityMode: true  },
