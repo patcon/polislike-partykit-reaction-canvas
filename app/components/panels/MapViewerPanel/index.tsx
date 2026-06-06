@@ -195,9 +195,12 @@ export default function MapViewerPanel() {
     history[prev.idx] = { ...history[prev.idx], flipY: !history[prev.idx].flipY };
     return { ...prev, history };
   });
-  const clearHistory = () => setProjState(prev => {
+  const deleteCurrent = () => setProjState(prev => {
     if (prev.idx < 0) return prev;
-    return { history: [prev.history[prev.idx]], idx: 0 };
+    const history = prev.history.filter((_, i) => i !== prev.idx);
+    if (history.length === 0) return { history: [], idx: -1 };
+    const idx = Math.min(prev.idx, history.length - 1);
+    return { history, idx };
   });
 
   useEffect(() => {
@@ -358,7 +361,7 @@ export default function MapViewerPanel() {
         <ScatterPlot data={mapProjection.coords} selfId={userId} colorById={colorById} flipX={flipX} flipY={flipY} />
       </div>
       <div style={{ position: 'absolute', bottom: 10, left: 10, display: 'flex', gap: 4, alignItems: 'center' }}>
-        <button onClick={clearHistory} disabled={projState.history.length <= 1} title="Clear history" style={btnStyle(false, projState.history.length <= 1)}>×</button>
+        <button onClick={deleteCurrent} disabled={projState.idx < 0} title="Delete this projection" style={btnStyle(false, projState.idx < 0)}>×</button>
         <span style={{ fontSize: 10, color: '#444', minWidth: 28, textAlign: 'center' }}>
           {projState.idx + 1}/{projState.history.length}
         </span>
