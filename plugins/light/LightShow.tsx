@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import usePartySocket from 'partysocket/react';
-import { usePanelContext } from '../../../context/PanelContext';
-import { getPartySocketConfig } from '../../../utils/partyHost';
+import { usePanelContext } from '../../app/context/PanelContext';
+import { getPartySocketConfig } from '../../app/utils/partyHost';
 
 const PRESETS = [
   { label: 'Red',     color: '#ff0000' },
@@ -15,7 +15,7 @@ const PRESETS = [
   { label: 'Black',   color: '#000000' },
 ];
 
-export default function LightShowPanel() {
+export default function LightShow() {
   const { room, userId } = usePanelContext();
   const [color, setColor] = useState('#ffffff');
   const [brightness, setBrightness] = useState(100);
@@ -31,9 +31,9 @@ export default function LightShowPanel() {
     query: { userId },
     onMessage(evt) {
       const msg = JSON.parse(evt.data);
-      if (msg.type === 'connected' && msg.lightColor) {
-        setColor(msg.lightColor.color);
-        setBrightness(msg.lightColor.brightness);
+      if (msg.type === 'screenLightState') {
+        setColor(msg.color);
+        setBrightness(msg.brightness);
       }
     },
   });
@@ -49,7 +49,6 @@ export default function LightShowPanel() {
     sendLight(color, next);
   };
 
-  // Compute preview: actual screen color after brightness dimming
   const overlayOpacity = 1 - brightness / 100;
 
   return (

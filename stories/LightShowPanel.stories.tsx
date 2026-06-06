@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useEffect } from 'react';
-import LightShowPanel from '../app/components/panels/LightShowPanel';
+import LightShowPanel from '../plugins/light/LightShow';
 import { PanelContextProvider } from '../app/context/PanelContext';
 import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 
@@ -33,7 +33,7 @@ type Story = StoryObj<typeof meta>;
 function DefaultDriver({ room }: { room: string }) {
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
-      emitToRoom(room, { type: 'connected', lightColor: { color: '#ffffff', brightness: 100 } });
+      emitToRoom(room, { type: 'screenLightState', color: '#ffffff', brightness: 100 });
     });
     return () => cancelAnimationFrame(raf);
   }, [room]);

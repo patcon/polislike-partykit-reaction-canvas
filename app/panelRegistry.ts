@@ -28,8 +28,6 @@ export const PANEL_REGISTRY: PanelMeta[] = [
   { id: 'valence-beat-pad', label: 'Valence Beat Pad', shortLabel: 'Beat Pad', description: 'Interactive musical pad driven by audience valence', patchable: true, activityMode: true },
   { id: 'arrival-canvas', label: 'Arrival Canvas', shortLabel: 'Arrival', description: 'Room-fill visualizer with THX-style audio convergence', patchable: true, activityMode: true },
   { id: 'neighbor',      label: 'Neighbor Network', shortLabel: 'Neighbor', description: 'Social graph of nearby audience members',             patchable: true,  activityMode: true  },
-  { id: 'screen-light', label: 'Screen Light',    shortLabel: 'Light',    description: 'Full-screen colored light controlled remotely',         patchable: false, activityMode: true  },
-  { id: 'light-show',   label: 'Light Show',      shortLabel: 'LShow',   description: 'Control the screen-light color on all connected phones', patchable: true,  activityMode: false },
 ];
 
 export const PATCHABLE_PANELS = PANEL_REGISTRY.filter(p => p.patchable);

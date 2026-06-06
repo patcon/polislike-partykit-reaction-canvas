@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Rename modal CSS classes** — `github-modal-*` → `app-modal-*` for the shared modal system.
 - **Image Canvas migrated to plugin** — introduces `CanvasOverlay` API for canvas-mode activities that configure the canvas rather than replacing it.
 - **Extract `makeImageCoordTransform` utility** — letterbox coordinate math moved from Canvas.tsx into `app/utils/imageCanvasCoords.ts`, removing the duplication between the smooth-cursor RAF tick and the actual-cursor drawing effect; 16 Vitest unit tests added covering linear fallback, pillarbox, letterbox, centre mapping, and out-of-bounds clamping.
+- **Screen Light + Light Show migrated to plugin** — introduces multi-panel plugin packages: both panels live in `plugins/light/` and are enabled independently. The `screen-light` plugin owns `lightColor` server state (persisted); `light-show` is client-only. Because the plugin router calls all plugins' `onMessage` for every message, `setLightColor` is now a general-purpose server event — any future panel can send it without additional routing plumbing.
 
 ### Fixed
 - **Smooth cursor: tune damping to 0.5** — reduces trailing lag while keeping motion smooth.

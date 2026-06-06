@@ -20,7 +20,7 @@ import type {
   RecordInvitationsEvent, StenoStartRecordingEvent, StenoStopRecordingEvent,
   StenoAppendTextEvent, StenoSetTextEvent, StoryTracerSetPointsEvent, MapProjectionSetEvent,
   WebRTCOfferEvent, WebRTCAnswerEvent, WebRTCIceEvent, HangUpCallEvent,
-  SetCallAlgorithmEvent, SetArrivalCapacityEvent, NeighborEdgeEvent, SetLightColorEvent,
+  SetCallAlgorithmEvent, SetArrivalCapacityEvent, NeighborEdgeEvent,
 } from './types';
 
 export default class Server implements Party.Server {
@@ -66,8 +66,6 @@ export default class Server implements Party.Server {
   private arrivalCapacity: number = 50;
   private neighborCodes = new Map<string, string>(); // userId → 4-digit code
   private neighborEdges = new Set<string>();          // canonical "userA|userB" strings
-  private lightColor: { color: string; brightness: number } = { color: '#000000', brightness: 100 };
-
   private pluginStates = new Map<string, unknown>(
     Object.entries(PLUGIN_MAP)
       .filter(([, p]) => p.server)
@@ -294,7 +292,6 @@ export default class Server implements Party.Server {
       callAlgorithm: this.callAlgorithm,
       arrivalCapacity: this.arrivalCapacity,
       myNeighborCode: this.neighborCodes.get(userId) ?? null,
-      lightColor: this.lightColor,
     }));
 
     const pluginCtx = this.makePluginContext();
@@ -423,7 +420,6 @@ export default class Server implements Party.Server {
         case 'neighborEdge': this.handleNeighborEdge(event, sender); break;
         case 'requestNeighborEdges': this.handleRequestNeighborEdges(sender); break;
         case 'clearNeighborEdges': this.handleClearNeighborEdges(); break;
-        case 'setLightColor': this.handleSetLightColor(event); break;
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
@@ -812,13 +808,6 @@ export default class Server implements Party.Server {
   private handleClearNeighborEdges(): void {
     this.neighborEdges.clear();
     this.room.broadcast(JSON.stringify({ type: 'neighborEdgesCleared' }));
-  }
-
-  // --- Light handler ---
-
-  private handleSetLightColor(event: SetLightColorEvent): void {
-    this.lightColor = { color: event.color, brightness: event.brightness };
-    this.room.broadcast(JSON.stringify({ type: 'lightColor', color: event.color, brightness: event.brightness }));
   }
 
   // --- Core statement/queue methods ---

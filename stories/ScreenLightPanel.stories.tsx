@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useEffect, useRef } from 'react';
-import ScreenLightPanel from '../app/components/panels/ScreenLightPanel';
+import ScreenLightPanel from '../plugins/light/ScreenLight';
 import { PanelContextProvider } from '../app/context/PanelContext';
 import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 
@@ -44,7 +44,7 @@ function DefaultDriver({ room, color, brightness }: { room: string; color: strin
   // Defer the connected message until after siblings have subscribed
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
-      emitToRoom(room, { type: 'connected', lightColor: { color, brightness } });
+      emitToRoom(room, { type: 'screenLightState', color, brightness });
       mounted.current = true;
     });
     return () => cancelAnimationFrame(raf);
@@ -76,7 +76,7 @@ function hueToHex(hue: number): string {
 
 function ColorCycleDriver({ room, periodMs = 4000 }: { room: string; periodMs?: number }) {
   useEffect(() => {
-    emitToRoom(room, { type: 'connected', lightColor: { color: '#ff0000', brightness: 100 } });
+    emitToRoom(room, { type: 'screenLightState', color: '#ff0000', brightness: 100 });
     const start = performance.now();
     const id = setInterval(() => {
       const hue = ((performance.now() - start) / periodMs * 360) % 360;
@@ -89,7 +89,7 @@ function ColorCycleDriver({ room, periodMs = 4000 }: { room: string; periodMs?: 
 
 function BrightnessPulseDriver({ room, periodMs = 3000 }: { room: string; periodMs?: number }) {
   useEffect(() => {
-    emitToRoom(room, { type: 'connected', lightColor: { color: '#ffffff', brightness: 100 } });
+    emitToRoom(room, { type: 'screenLightState', color: '#ffffff', brightness: 100 });
     const start = performance.now();
     const id = setInterval(() => {
       const brightness = Math.round(50 + 50 * Math.sin(((performance.now() - start) / periodMs) * Math.PI * 2));
