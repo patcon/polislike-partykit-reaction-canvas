@@ -972,6 +972,20 @@ case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
       });
     }
 
+    if (request.method === "GET" && url.pathname.endsWith("/debug-state")) {
+      const raw = await this.room.storage.get<PersistedState>("state");
+      return new Response(JSON.stringify({ raw, inMemoryPluginStates: Object.fromEntries(this.pluginStates) }, null, 2), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (request.method === "DELETE" && url.pathname.endsWith("/debug-state")) {
+      await this.room.storage.delete("state");
+      return new Response(JSON.stringify({ success: true, message: "Persisted state deleted from storage" }), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
     // Default response
     console.log(`[VOTE] Default response for ${request.method} ${url.pathname}`);
     return new Response("Cursor tracking server is running", {
