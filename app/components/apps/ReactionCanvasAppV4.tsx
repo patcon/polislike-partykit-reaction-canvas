@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
-import SignatureLayer from "../canvas/SignatureLayer";
-import SignatureCanvas from "../canvas/SignatureCanvas";
 import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import InterfaceChipBar from "../shared/InterfaceChipBar";
 import type { ActivityMode, GreeterConfig, SocialConfig, ValenceInputMode } from "../../types";
@@ -183,8 +181,6 @@ const [nowLabel, setNowLabel] = useState('');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
   const [orientationPermission, setOrientationPermission] = useState<'unknown' | 'granted' | 'denied' | 'not-required'>('unknown');
-  const [isPresenter, setIsPresenter] = useState(false);
-  const [signatureStrokes, setSignatureStrokes] = useState<Record<string, Array<{ strokeId: string; points: Array<{ x: number; y: number }> }>>>({});
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
@@ -357,7 +353,7 @@ const [nowLabel, setNowLabel] = useState('');
     socketSendRef.current?.(JSON.stringify({ type: 'requestJoin' }));
   };
 
-  if (!isEmcee && !isPresenter && !isTouchDevice() && !isMobileForced()) {
+  if (!isEmcee && !isTouchDevice() && !isMobileForced()) {
     return <MobileOnlyGate />;
   }
 
@@ -427,17 +423,15 @@ const [nowLabel, setNowLabel] = useState('');
           <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
           <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
           <ShareQRButton userId={userId} selfChain={selfChain} />
-          {activity !== 'signature' && (
-            <div onPointerDown={hapticOnPointerDown}>
-              <HapticIndicatorButton
-                enabled={hapticEffectivelyEnabled}
-                flashing={hapticFlashing}
-                canVibrate={WebHaptics.isSupported}
-                onToggle={hapticOnToggle}
-                onShowInfo={() => setHapticPending(true)}
-              />
-            </div>
-          )}
+          <div onPointerDown={hapticOnPointerDown}>
+            <HapticIndicatorButton
+              enabled={hapticEffectivelyEnabled}
+              flashing={hapticFlashing}
+              canVibrate={WebHaptics.isSupported}
+              onToggle={hapticOnToggle}
+              onShowInfo={() => setHapticPending(true)}
+            />
+          </div>
           {isOrientationMode && (
             <WakeLockIndicatorButton
               enabled={wakeLockEnabled}
@@ -520,17 +514,6 @@ const [nowLabel, setNowLabel] = useState('');
             onGreeterConfigChange={setServerGreeterConfig}
             onNowLabelChange={setNowLabel}
             onInviteEdges={(edges) => setInviteEdges(prev => ({ ...prev, ...edges }))}
-            onStrokeSegment={(uid, strokeId, points) => {
-              setSignatureStrokes(prev => {
-                const user = [...(prev[uid] ?? [])];
-                const idx = user.findIndex(s => s.strokeId === strokeId);
-                if (idx === -1) return { ...prev, [uid]: [...user, { strokeId, points }] };
-                const updated = [...user];
-                updated[idx] = { strokeId, points: [...updated[idx].points, ...points] };
-                return { ...prev, [uid]: updated };
-              });
-            }}
-            onSignatureCleared={(uid) => setSignatureStrokes(prev => { const n = { ...prev }; delete n[uid]; return n; })}
             onConnectedUsers={(ids) => setConnectedUserIds(ids)}
             onUserJoined={(uid) => setConnectedUserIds(prev => prev.includes(uid) ? prev : [...prev, uid])}
             onUserLeft={(uid) => setConnectedUserIds(prev => prev.filter(id => id !== uid))}
@@ -571,43 +554,6 @@ const [nowLabel, setNowLabel] = useState('');
               imageUrl={PLUGIN_MAP[activity]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
               disabled={valenceInputMode !== 'touch'}
             />
-          )}
-          {activity === 'signature' && !isPresenter && !isViewer && (
-            <SignatureLayer
-              userId={userId}
-              onSendMessage={(msg) => socketSendRef.current?.(msg)}
-              heightOffset={chipBarOffset}
-            />
-          )}
-          {activity === 'signature' && isPresenter && (
-            <SignatureCanvas
-              userId={userId}
-              strokes={signatureStrokes}
-              heightOffset={chipBarOffset}
-            />
-          )}
-          {activity === 'signature' && !isViewer && (
-            <button
-              onClick={() => setIsPresenter(p => !p)}
-              style={{
-                position: 'absolute',
-                top: 7,
-                right: 'calc(6% + 46px)',
-                zIndex: 30,
-                height: 30,
-                padding: '0 14px',
-                borderRadius: 999,
-                border: '1px solid rgba(255,255,255,0.7)',
-                background: 'rgba(60,60,60,0.72)',
-                color: 'rgba(255,255,255,0.95)',
-                fontSize: 13,
-                cursor: 'pointer',
-                letterSpacing: '0.04em',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {isPresenter ? 'Sign' : 'Show: Grid'}
-            </button>
           )}
         </div>
       </ImageCanvasConfigProvider>

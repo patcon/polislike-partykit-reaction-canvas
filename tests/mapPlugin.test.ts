@@ -30,7 +30,7 @@ describe('mapServer', () => {
     const state = mapServer.createState();
     state.projection = sampleProjection;
     const conn = makeConn();
-    mapServer.onConnect(conn, makeCtx(), state);
+    mapServer.onConnect(conn, makeCtx(), state, 'map-viewer');
     expect(conn.send).toHaveBeenCalledOnce();
     expect(JSON.parse((conn.send as ReturnType<typeof vi.fn>).mock.calls[0][0])).toEqual({
       type: 'mapProjectionChanged',
@@ -41,7 +41,7 @@ describe('mapServer', () => {
   it('onConnect sends null projection when not yet set', () => {
     const state = mapServer.createState();
     const conn = makeConn();
-    mapServer.onConnect(conn, makeCtx(), state);
+    mapServer.onConnect(conn, makeCtx(), state, 'map-viewer');
     const msg = JSON.parse((conn.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
     expect(msg.projection).toBeNull();
   });
@@ -49,7 +49,7 @@ describe('mapServer', () => {
   it('onMessage handles mapProjectionSet and broadcasts', () => {
     const state = mapServer.createState();
     const ctx = makeCtx();
-    const handled = mapServer.onMessage('mapProjectionSet', { projection: sampleProjection }, makeConn(), ctx, state);
+    const handled = mapServer.onMessage('mapProjectionSet', { projection: sampleProjection }, makeConn(), ctx, state, 'map-viewer');
     expect(handled).toBe(true);
     expect(state.projection).toEqual(sampleProjection);
     expect(ctx.persistState).toHaveBeenCalled();
@@ -64,7 +64,7 @@ describe('mapServer', () => {
     const state = mapServer.createState();
     state.projection = sampleProjection;
     const ctx = makeCtx();
-    const handled = mapServer.onMessage('mapProjectionClear', {}, makeConn(), ctx, state);
+    const handled = mapServer.onMessage('mapProjectionClear', {}, makeConn(), ctx, state, 'map-viewer');
     expect(handled).toBe(true);
     expect(state.projection).toBeNull();
     expect(ctx.persistState).toHaveBeenCalled();
@@ -76,7 +76,7 @@ describe('mapServer', () => {
 
   it('onMessage returns false for unknown message types', () => {
     const state = mapServer.createState();
-    const handled = mapServer.onMessage('unknownEvent', {}, makeConn(), makeCtx(), state);
+    const handled = mapServer.onMessage('unknownEvent', {}, makeConn(), makeCtx(), state, 'map-viewer');
     expect(handled).toBe(false);
   });
 

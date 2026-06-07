@@ -23,7 +23,7 @@ describe('GreeterServerPlugin', () => {
     const state = GreeterServerPlugin.createState();
     state.config = { eventUrl: 'https://example.com/event' };
     const conn = makeConn();
-    GreeterServerPlugin.onConnect(conn, makeCtx(), state);
+    GreeterServerPlugin.onConnect(conn, makeCtx(), state, 'greeter');
     expect(conn.send).toHaveBeenCalledOnce();
     expect(JSON.parse((conn.send as ReturnType<typeof vi.fn>).mock.calls[0][0])).toEqual({
       type: 'greeterConfigChanged',
@@ -34,7 +34,7 @@ describe('GreeterServerPlugin', () => {
   it('onConnect sends null config when not yet set', () => {
     const state = GreeterServerPlugin.createState();
     const conn = makeConn();
-    GreeterServerPlugin.onConnect(conn, makeCtx(), state);
+    GreeterServerPlugin.onConnect(conn, makeCtx(), state, 'greeter');
     const msg = JSON.parse((conn.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
     expect(msg.config).toBeNull();
   });
@@ -44,7 +44,7 @@ describe('GreeterServerPlugin', () => {
     const ctx = makeCtx();
     const conn = makeConn();
     const config = { eventUrl: 'https://example.com/event' };
-    const handled = GreeterServerPlugin.onMessage('setGreeterConfig', { config }, conn, ctx, state);
+    const handled = GreeterServerPlugin.onMessage('setGreeterConfig', { config }, conn, ctx, state, 'greeter');
     expect(handled).toBe(true);
     expect(state.config).toEqual(config);
     expect(ctx.broadcast).toHaveBeenCalledOnce();
@@ -59,13 +59,13 @@ describe('GreeterServerPlugin', () => {
     const state = GreeterServerPlugin.createState();
     state.config = { eventUrl: 'https://example.com/event' };
     const ctx = makeCtx();
-    GreeterServerPlugin.onMessage('setGreeterConfig', { config: null }, makeConn(), ctx, state);
+    GreeterServerPlugin.onMessage('setGreeterConfig', { config: null }, makeConn(), ctx, state, 'greeter');
     expect(state.config).toBeNull();
   });
 
   it('onMessage returns false for unknown message types', () => {
     const state = GreeterServerPlugin.createState();
-    const handled = GreeterServerPlugin.onMessage('unknownEvent', {}, makeConn(), makeCtx(), state);
+    const handled = GreeterServerPlugin.onMessage('unknownEvent', {}, makeConn(), makeCtx(), state, 'greeter');
     expect(handled).toBe(false);
   });
 

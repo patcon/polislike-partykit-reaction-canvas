@@ -388,8 +388,6 @@ if (saved.pluginStates) {
         case 'setColorCursorsByVote': this.handleSetColorCursorsByVote(event, sender); break;
         case 'registerCustomAvatar': this.handleRegisterCustomAvatar(event); break;
         case 'recordInvitations': this.handleRecordInvitations(event); break;
-        case 'strokeSegment': this.room.broadcast(message); break;
-        case 'clearSignature': this.room.broadcast(JSON.stringify({ type: 'signatureCleared', userId: event.userId })); break;
         case 'stenoStartRecording': this.handleStenoStartRecording(event, sender); break;
         case 'stenoStopRecording': this.handleStenoStopRecording(event); break;
         case 'stenoAppendText': this.handleStenoAppendText(event); break;

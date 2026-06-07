@@ -24,7 +24,7 @@ describe('lightServer', () => {
     state.color = '#ff0000';
     state.brightness = 75;
     const conn = makeConn();
-    lightServer.onConnect(conn, makeCtx(), state);
+    lightServer.onConnect(conn, makeCtx(), state, 'screen-light');
     expect(conn.send).toHaveBeenCalledOnce();
     expect(JSON.parse((conn.send as ReturnType<typeof vi.fn>).mock.calls[0][0])).toEqual({
       type: 'screenLightState',
@@ -36,7 +36,7 @@ describe('lightServer', () => {
   it('onMessage handles setLightColor and broadcasts lightColor', () => {
     const state = lightServer.createState();
     const ctx = makeCtx();
-    const handled = lightServer.onMessage('setLightColor', { color: '#00ff00', brightness: 50 }, makeConn(), ctx, state);
+    const handled = lightServer.onMessage('setLightColor', { color: '#00ff00', brightness: 50 }, makeConn(), ctx, state, 'screen-light');
     expect(handled).toBe(true);
     expect(state.color).toBe('#00ff00');
     expect(state.brightness).toBe(50);
@@ -51,13 +51,13 @@ describe('lightServer', () => {
   it('onMessage does not persist state (light is not persisted on change)', () => {
     const state = lightServer.createState();
     const ctx = makeCtx();
-    lightServer.onMessage('setLightColor', { color: '#ffffff', brightness: 100 }, makeConn(), ctx, state);
+    lightServer.onMessage('setLightColor', { color: '#ffffff', brightness: 100 }, makeConn(), ctx, state, 'screen-light');
     expect(ctx.persistState).not.toHaveBeenCalled();
   });
 
   it('onMessage returns false for unknown message types', () => {
     const state = lightServer.createState();
-    const handled = lightServer.onMessage('unknownEvent', {}, makeConn(), makeCtx(), state);
+    const handled = lightServer.onMessage('unknownEvent', {}, makeConn(), makeCtx(), state, 'screen-light');
     expect(handled).toBe(false);
   });
 
