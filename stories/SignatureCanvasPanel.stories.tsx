@@ -54,7 +54,7 @@ export const ParticipantView: Story = {
   name: 'Participant — drawing mode',
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('Sign here')).toBeInTheDocument();
+    await expect(await canvas.findByText('Sign here')).toBeInTheDocument();
     await expect(canvas.getByRole('button', { name: 'Show: Grid' })).toBeInTheDocument();
   },
 };
