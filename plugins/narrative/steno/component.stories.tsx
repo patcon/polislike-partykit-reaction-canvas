@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import React from 'react';
-import StenoPanel from '../plugins/narrative/steno/component';
-import { PanelContextProvider } from '../app/context/PanelContext';
+import StenoPanel from './component';
+import { PanelContextProvider } from '../../../app/context/PanelContext';
 
 const meta = {
   title: 'Panels/StenoPanel',

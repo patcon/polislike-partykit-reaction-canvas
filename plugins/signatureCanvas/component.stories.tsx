@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within, userEvent } from 'storybook/test';
 import React, { useEffect } from 'react';
-import SignatureCanvasPanel from '../plugins/signatureCanvas/component';
-import { PanelContextProvider } from '../app/context/PanelContext';
-import { emitToRoom } from '../.storybook/mocks/partysocket-react';
+import SignatureCanvasPanel from './component';
+import { PanelContextProvider } from '../../app/context/PanelContext';
+import { emitToRoom } from '../../.storybook/mocks/partysocket-react';
 
 const meta = {
   title: 'Panels/SignatureCanvasPanel',

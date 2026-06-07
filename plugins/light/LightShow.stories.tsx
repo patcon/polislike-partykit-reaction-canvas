@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useEffect } from 'react';
-import LightShowPanel from '../plugins/light/LightShow';
-import { PanelContextProvider } from '../app/context/PanelContext';
-import { emitToRoom } from '../.storybook/mocks/partysocket-react';
+import LightShowPanel from './LightShow';
+import { PanelContextProvider } from '../../app/context/PanelContext';
+import { emitToRoom } from '../../.storybook/mocks/partysocket-react';
 
 const ROOM = 'storybook-light-show';
 

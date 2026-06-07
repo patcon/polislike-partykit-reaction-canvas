@@ -28,15 +28,29 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Empty: Story = {
+export const EmptyState: Story = {
   play: async ({ canvasElement }) => {
     const canvas = within(canvasElement);
-    await expect(canvas.getByText('No participants yet')).toBeInTheDocument();
+    await expect(canvas.getByText('Leaderboard')).toBeInTheDocument();
+    await expect(canvas.getByText(/No invite chains recorded yet/)).toBeInTheDocument();
   },
 };
 
-export const WithTree: Story = {
+export const WithInviteTree: Story = {
   args: {
-    inviteEdges: { 'user-2': 'user-1', 'user-3': 'user-1', 'user-4': 'user-2' },
+    inviteEdges: {
+      'user-2': 'user-1',
+      'user-3': 'user-1',
+      'user-4': 'user-2',
+    },
+  },
+  play: async ({ canvasElement }) => {
+    const canvas = within(canvasElement);
+    await expect(canvas.getByText('Leaderboard')).toBeInTheDocument();
+    await expect(canvas.getByText('(you)')).toBeInTheDocument();
+    await expect(canvas.getByText('user-1')).toBeInTheDocument();
+    await expect(canvas.getByText('user-2')).toBeInTheDocument();
+    await expect(canvas.getByText('user-3')).toBeInTheDocument();
+    await expect(canvas.getByText('user-4')).toBeInTheDocument();
   },
 };
