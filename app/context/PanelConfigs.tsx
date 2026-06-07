@@ -1,18 +1,5 @@
 import { createContext, useContext } from "react";
-import type { GreeterConfig, SocialConfig } from "../types";
-
-// ── Greeter ────────────────────────────────────────────────────────────────
-
-interface GreeterConfigContextValue {
-  greeterConfig: GreeterConfig | null;
-}
-const GreeterConfigContext = createContext<GreeterConfigContextValue | null>(null);
-export const GreeterConfigProvider = GreeterConfigContext.Provider;
-export function useGreeterConfig(): GreeterConfigContextValue {
-  const ctx = useContext(GreeterConfigContext);
-  if (!ctx) throw new Error('useGreeterConfig() called outside GreeterConfigProvider');
-  return ctx;
-}
+import type { SocialConfig } from "../types";
 
 // ── Social Media ───────────────────────────────────────────────────────────
 

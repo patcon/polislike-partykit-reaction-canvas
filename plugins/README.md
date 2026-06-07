@@ -21,12 +21,21 @@ export const PLUGINS: PanelPlugin[] = [soccerPlugin, greeterPlugin, helloWorldPl
 ```
 plugins/
   helloWorld/
-    index.ts          ← plugin metadata + wiring
-    types.ts          ← plugin-owned state shape
-    server.ts         ← server-side lifecycle handlers
-    component.tsx     ← panel UI (shown in chip bar / activity overlay)
-    configModal.tsx   ← settings modal opened from the gear icon
+    index.ts               ← plugin metadata + wiring
+    types.ts               ← plugin-owned state shape
+    server.ts              ← server-side lifecycle handlers
+    server.test.ts         ← unit tests for server plugin logic
+    component.tsx          ← panel UI (shown in chip bar / activity overlay)
+    component.stories.tsx  ← Storybook stories for the panel
+    configModal.tsx        ← settings modal opened from the gear icon
+    MySubComponent.tsx     ← any additional internal components (PascalCase)
 ```
+
+#### File naming convention
+
+The five entry-point files (`index.ts`, `types.ts`, `server.ts`, `component.tsx`, `configModal.tsx`) use **camelCase** — they are a uniform API contract across all plugins, and the lowercase names signal "plugin slot" rather than standalone component.
+
+Any additional files internal to the plugin follow normal React conventions: **PascalCase for components** (`QuizMode.tsx`, `SettingsForm.tsx`), camelCase for hooks and utilities (`useMyConfig.ts`, `helpers.ts`).
 
 ### 2. Define the state shape (`types.ts`)
 

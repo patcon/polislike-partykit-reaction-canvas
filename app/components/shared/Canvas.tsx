@@ -5,7 +5,8 @@ import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
 import { makeImageCoordTransform } from "../../utils/imageCanvasCoords";
 import { getPartySocketConfig } from "../../utils/partyHost";
 import type { ReactionAnchors } from "../../utils/voteRegion";
-import type { ActivityMode, GreeterConfig } from "../../types";
+import type { ActivityMode } from "../../types";
+import type { GreeterConfig } from "../../../plugins/greeter/types";
 
 interface CursorPosition {
   x: number; // Normalized coordinates (0-100)

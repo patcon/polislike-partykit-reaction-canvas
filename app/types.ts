@@ -38,10 +38,6 @@ export interface MapProjection {
 
 export type ValenceInputMode = 'touch' | 'orientation-horizontal' | 'orientation-vertical' | 'orientation-rotation';
 
-export interface GreeterConfig {
-  eventUrl: string;
-}
-
 export interface MapViewerConfig {
   colorMode: 'none' | 'moment' | 'now';
   momentId: string | null;

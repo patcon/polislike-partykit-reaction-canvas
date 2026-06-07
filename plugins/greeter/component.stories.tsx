@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import React from 'react';
-import GreeterPanel from '../app/components/panels/GreeterPanel';
-import { GreeterConfigProvider } from '../app/context/PanelConfigs';
+import GreeterPanel from './component';
+import { GreeterConfigProvider } from './useGreeterConfig';
 
 const meta = {
   title: 'Panels/GreeterPanel',
