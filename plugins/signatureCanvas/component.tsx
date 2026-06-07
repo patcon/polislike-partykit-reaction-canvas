@@ -2,8 +2,8 @@ import { useState, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
 import { usePanelContext } from '../../app/context/PanelContext';
 import { getPartySocketConfig } from '../../app/utils/partyHost';
-import SignatureLayer from '../../app/components/canvas/SignatureLayer';
-import SignatureCanvas from '../../app/components/canvas/SignatureCanvas';
+import SignatureLayer from './SignatureLayer';
+import SignatureCanvas from './SignatureCanvas';
 
 type Stroke = { strokeId: string; points: Array<{ x: number; y: number }> };
 

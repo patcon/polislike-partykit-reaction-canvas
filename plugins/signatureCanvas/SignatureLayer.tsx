@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from "react";
-import { generateUUID } from "../../utils/userId";
+import { generateUUID } from "../../app/utils/userId";
 
 interface Stroke {
   strokeId: string;
