@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ActivityMode, SocialConfig, ValenceInputMode } from "../../../../types";
+import type { ActivityMode, ValenceInputMode } from "../../../../types";
 import type PartySocket from "partysocket";
 
 export function useRoomConfig(socket: PartySocket) {
@@ -9,18 +9,14 @@ export function useRoomConfig(socket: PartySocket) {
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
   const [activity, setActivity]               = useState<ActivityMode>('canvas');
-  const [socialConfigOpen, setSocialConfigOpen] = useState(false);
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false);
   const [showNowLabelOnCanvas, setShowNowLabelOnCanvas] = useState(() =>
     localStorage.getItem('v4-showNowLabelOnCanvas') === 'true'
   );
-  const [roomSocialConfig, setRoomSocialConfig] = useState<SocialConfig | null>(null);
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
   const [voiceCallConfigOpen, setVoiceCallConfigOpen] = useState(false);
 const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available');
-  const [arrivalCapacity, setArrivalCapacity] = useState<number>(50);
-  const [arrivalConfigOpen, setArrivalConfigOpen] = useState(false);
 
   const sendAvatarStyle = (style: string | null) => {
     setAvatarStyle(style);
@@ -52,19 +48,9 @@ const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available'
     socket.send(JSON.stringify({ type: 'setActivity', activity: act }));
   };
 
-  const sendSocialConfig = (config: SocialConfig) => {
-    setRoomSocialConfig(config);
-    socket.send(JSON.stringify({ type: 'setSocialConfig', config }));
-  };
-
   const sendCallAlgorithm = (algorithm: string) => {
     setCallAlgorithm(algorithm);
     socket.send(JSON.stringify({ type: 'setCallAlgorithm', algorithm }));
-  };
-
-  const sendArrivalCapacity = (capacity: number) => {
-    setArrivalCapacity(capacity);
-    socket.send(JSON.stringify({ type: 'setArrivalCapacity', capacity }));
   };
 
   const sendUserCap = (inputValue: string) => {
@@ -80,9 +66,7 @@ const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available'
     if ('ownValenceDisplay' in data && data.ownValenceDisplay) setOwnValenceDisplay(data.ownValenceDisplay as 'background' | 'labels' | 'none');
     if ('valenceInputMode' in data && data.valenceInputMode) setValenceInputMode(data.valenceInputMode as ValenceInputMode);
     if ('currentActivity' in data) setActivity((data.currentActivity as ActivityMode) ?? 'canvas');
-    if ('roomSocialConfig' in data) setRoomSocialConfig((data.roomSocialConfig as SocialConfig | null) ?? null);
     if ('callAlgorithm' in data && data.callAlgorithm) setCallAlgorithm(data.callAlgorithm as string);
-    if ('arrivalCapacity' in data && typeof data.arrivalCapacity === 'number') setArrivalCapacity(data.arrivalCapacity as number);
     if (data.userCap !== undefined) {
       setUserCap(data.userCap as number | null);
       setCapInput(data.userCap !== null ? String(data.userCap) : '');
@@ -98,8 +82,6 @@ const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available'
       setAvatarStyle((data.avatarStyle as string | null) ?? null);
     } else if (data.type === 'activityChanged') {
       setActivity((data.activity as ActivityMode) ?? 'canvas');
-    } else if (data.type === 'socialConfigChanged') {
-      setRoomSocialConfig((data.config as SocialConfig | null) ?? null);
     } else if (data.type === 'userCapChanged') {
       setUserCap(data.cap as number | null);
       setCapInput(data.cap !== null ? String(data.cap) : '');
@@ -107,8 +89,6 @@ const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available'
       setOwnValenceDisplay(data.ownValenceDisplay as 'background' | 'labels' | 'none');
     } else if (data.type === 'valenceInputModeChanged') {
       setValenceInputMode(data.valenceInputMode as ValenceInputMode);
-    } else if (data.type === 'arrivalCapacityChanged') {
-      setArrivalCapacity(data.capacity as number);
     }
   };
 
@@ -119,13 +99,10 @@ const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available'
     defaultCursorColor, setDefaultCursorColor,
     sendDefaultCursorColor,
     activity, setActivity,
-    socialConfigOpen, setSocialConfigOpen,
-    roomSocialConfig, setRoomSocialConfig,
     userCap, setUserCap,
     capInput, setCapInput,
     sendAvatarStyle,
     sendActivity,
-    sendSocialConfig,
     sendUserCap,
     applyConnected,
     handleSocketEvent,
@@ -138,8 +115,5 @@ const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available'
     voiceCallConfigOpen, setVoiceCallConfigOpen,
     callAlgorithm,
     sendCallAlgorithm,
-    arrivalCapacity, setArrivalCapacity,
-    arrivalConfigOpen, setArrivalConfigOpen,
-    sendArrivalCapacity,
   };
 }

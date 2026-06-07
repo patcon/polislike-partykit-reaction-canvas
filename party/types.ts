@@ -48,7 +48,6 @@ export interface Vote {
 }
 
 export interface PersistedState {
-  roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null;
   stenoVtt: string;
   storyTracerPoints?: StoryTracerPoint[] | null;
   storyTracerMeta?: StoryTracerMeta | null;

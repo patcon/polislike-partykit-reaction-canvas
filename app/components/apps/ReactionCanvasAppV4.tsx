@@ -5,8 +5,6 @@ import SignatureLayer from "../canvas/SignatureLayer";
 import SignatureCanvas from "../canvas/SignatureCanvas";
 import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import InterfaceChipBar from "../shared/InterfaceChipBar";
-import SocialMediaPanel from "../panels/SocialMediaPanel";
-import MoodTonesPanel from "../panels/MoodTonesPanel";
 import type { ActivityMode, GreeterConfig, SocialConfig, ValenceInputMode } from "../../types";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
 import type { PanelDefinition } from "../../panelRegistry";
@@ -30,25 +28,17 @@ import HapticIndicatorButton from "../shared/HapticIndicatorButton";
 import { useHapticPriming } from "../../hooks/useHapticPriming";
 import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
 import { useWakeLock } from "../../utils/useWakeLock";
-import TreevitesPanel from "../panels/TreevitesPanel";
 import StenoPanel from "../panels/StenoPanel";
 import StoryTracerPanel from "../panels/StoryTracerPanel";
 import VoiceCallPanel from "../panels/VoiceCallPanel";
-import ValenceBeatPadPanel from "../panels/ValenceBeatPadPanel";
-import ArrivalCanvasPanel from "../panels/ArrivalCanvasPanel";
 import NeighborPanel from "../panels/NeighborPanel";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 import { PLUGIN_MAP } from "../../../plugins/index";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
-  'social-sharing': SocialMediaPanel,
-  'mood-tones':    MoodTonesPanel,
-  treevites:       TreevitesPanel,
   steno:           StenoPanel,
   'story-tracer':  StoryTracerPanel,
   'voice-call':    VoiceCallPanel,
-  'valence-beat-pad': ValenceBeatPadPanel,
-  'arrival-canvas':   ArrivalCanvasPanel,
   'neighbor':         NeighborPanel,
   // Plugin-provided components (panels distributed as packages)
   ...Object.fromEntries(

@@ -40,7 +40,6 @@ export default class Server implements Party.Server {
   private currentActivity: ActivityMode = 'canvas';
   private roomImageUrl: string = '';
   private nowLabel: string = '';
-  private roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null = null;
   private msgCount = 0;
   private msgRateInterval?: NodeJS.Timeout;
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
@@ -62,7 +61,6 @@ export default class Server implements Party.Server {
 private callQueue: string[] = [];
   private callPairs: Map<string, string> = new Map();
   private callAlgorithm: string = 'first-available';
-  private arrivalCapacity: number = 50;
   private neighborCodes = new Map<string, string>(); // userId → 4-digit code
   private neighborEdges = new Set<string>();          // canonical "userA|userB" strings
   private pluginStates = new Map<string, unknown>(
@@ -103,7 +101,6 @@ private callQueue: string[] = [];
       }
     }
     return {
-      roomSocialConfig: this.roomSocialConfig,
       stenoVtt: this.stenoVtt,
       storyTracerPoints: this.storyTracerPoints,
       storyTracerMeta: this.storyTracerMeta,
@@ -112,7 +109,6 @@ private callQueue: string[] = [];
   }
 
   private applyPersistedState(saved: Partial<PersistedState>): void {
-    if (saved.roomSocialConfig !== undefined) this.roomSocialConfig = saved.roomSocialConfig;
     if (saved.stenoVtt !== undefined) this.stenoVtt = saved.stenoVtt;
     if (saved.storyTracerPoints !== undefined) this.storyTracerPoints = saved.storyTracerPoints ?? null;
     if (saved.storyTracerMeta !== undefined) this.storyTracerMeta = saved.storyTracerMeta ?? null;
@@ -268,7 +264,6 @@ if (saved.pluginStates) {
       currentActivity: this.currentActivity,
       roomImageUrl: this.roomImageUrl,
       nowLabel: this.nowLabel,
-      roomSocialConfig: this.roomSocialConfig,
       ballState: this.currentActivity === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
       soccerScore: getSoccerScore(this.pluginStates.get('soccer')),
       isViewer,
@@ -286,7 +281,6 @@ if (saved.pluginStates) {
       storyTracerPoints: this.storyTracerPoints,
       storyTracerMeta: this.storyTracerMeta,
       callAlgorithm: this.callAlgorithm,
-      arrivalCapacity: this.arrivalCapacity,
       myNeighborCode: this.neighborCodes.get(userId) ?? null,
     }));
 
@@ -383,7 +377,6 @@ if (saved.pluginStates) {
         case 'triggerActivity': this.handleTriggerActivity(event); break;
         case 'submitGithubUsername': this.handleSubmitGithubUsername(event); break;
         case 'submitFeedbackStars': this.handleSubmitFeedbackStars(event); break;
-        case 'setSocialConfig': this.handleSetSocialConfig(event); break;
         case 'requestJoin': this.handleRequestJoin(sender); break;
         case 'clearPushedInterfaces': this.handleClearPushedInterfaces(sender); break;
         case 'pushInterface': this.handlePushInterface(event, sender); break;
@@ -410,7 +403,6 @@ case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
         case 'webrtcIce': this.handleWebrtcSignaling(event, sender); break;
         case 'hangUp': this.handleHangUp(event, sender); break;
         case 'setCallAlgorithm': this.handleSetCallAlgorithm(event, sender); break;
-        case 'setArrivalCapacity': this.handleSetArrivalCapacity(event, sender); break;
         case 'neighborEdge': this.handleNeighborEdge(event, sender); break;
         case 'requestNeighborEdges': this.handleRequestNeighborEdges(sender); break;
         case 'clearNeighborEdges': this.handleClearNeighborEdges(); break;
@@ -624,12 +616,6 @@ case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
     this.room.broadcast(JSON.stringify({ type: 'feedbackStarsSubmitted', userId: event.userId, stars: event.stars, timestamp: event.timestamp || Date.now() }));
   }
 
-  private handleSetSocialConfig(event: SetSocialConfigEvent): void {
-    this.roomSocialConfig = event.config;
-    this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
-    void this.persistState();
-  }
-
   private handleRegisterCustomAvatar(event: RegisterCustomAvatarEvent): void {
     this.customAvatars.set(event.userId, event.photoUrl);
     this.room.broadcast(JSON.stringify({ type: 'customAvatarsChanged', customAvatars: Object.fromEntries(this.customAvatars) }));
@@ -745,12 +731,6 @@ case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
     if (this.adminConnectionIds.has(sender.id)) {
       this.callAlgorithm = event.algorithm;
     }
-  }
-
-  private handleSetArrivalCapacity(event: SetArrivalCapacityEvent, sender: Party.Connection): void {
-    if (!this.adminConnectionIds.has(sender.id)) return;
-    this.arrivalCapacity = event.capacity;
-    this.room.broadcast(JSON.stringify({ type: 'arrivalCapacityChanged', capacity: this.arrivalCapacity }));
   }
 
   // --- Neighbor handlers ---

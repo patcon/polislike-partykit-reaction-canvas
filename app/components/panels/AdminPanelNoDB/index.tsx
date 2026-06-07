@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../../../utils/partyHost";
-import PanelSettingsModalSocialMedia from "../../modals/PanelSettingsModalSocialMedia";
 import { useAnchors } from "./hooks/useAnchors";
 import { useLabels } from "./hooks/useLabels";
 import { useRoomConfig } from "./hooks/useRoomConfig";
@@ -13,7 +12,6 @@ import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
 import PanelSettingsModalReactionCanvas from "./PanelSettingsModalReactionCanvas";
 import PanelSettingsModalVoiceCall from "./PanelSettingsModalVoiceCall";
-import PanelSettingsModalArrivalCanvas from "./PanelSettingsModalArrivalCanvas";
 import { AdminSocketContext, createAdminSocketBus } from "./AdminSocketContext";
 import { PLUGIN_MAP } from "../../../../plugins";
 import RecordTab from "./tabs/RecordTab";
@@ -302,10 +300,8 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
           <InterfacesTab
             activity={roomConfig.activity}
             sendActivity={roomConfig.sendActivity}
-            setSocialConfigOpen={roomConfig.setSocialConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             setVoiceCallConfigOpen={roomConfig.setVoiceCallConfigOpen}
-setArrivalConfigOpen={roomConfig.setArrivalConfigOpen}
             setActiveConfigPlugin={setActiveConfigPluginId}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
             userId={userId}
@@ -464,25 +460,11 @@ setArrivalConfigOpen={roomConfig.setArrivalConfigOpen}
           onClose={() => roomConfig.setCanvasSettingsOpen(false)}
         />
       )}
-      {roomConfig.socialConfigOpen && (
-        <PanelSettingsModalSocialMedia
-          current={roomConfig.roomSocialConfig}
-          onSubmit={roomConfig.sendSocialConfig}
-          onClose={() => roomConfig.setSocialConfigOpen(false)}
-        />
-      )}
       {roomConfig.voiceCallConfigOpen && (
         <PanelSettingsModalVoiceCall
           currentAlgorithm={roomConfig.callAlgorithm}
           onSubmit={roomConfig.sendCallAlgorithm}
           onClose={() => roomConfig.setVoiceCallConfigOpen(false)}
-        />
-      )}
-      {roomConfig.arrivalConfigOpen && (
-        <PanelSettingsModalArrivalCanvas
-          currentCapacity={roomConfig.arrivalCapacity}
-          onSubmit={roomConfig.sendArrivalCapacity}
-          onClose={() => roomConfig.setArrivalConfigOpen(false)}
         />
       )}
       {activeConfigPluginId && (() => {

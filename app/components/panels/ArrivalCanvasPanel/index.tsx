@@ -103,14 +103,12 @@ export default function ArrivalCanvasPanel() {
     room,
     query: { isAdmin: 'true', userId: socketUserId.current },
     onMessage(evt) {
-      let data: { type: string; count?: number; capacity?: number; arrivalCapacity?: number };
+      let data: { type: string; count?: number; capacity?: number };
       try { data = JSON.parse(evt.data as string); } catch { return; }
       if (data.type === 'presenceCount' && data.count !== undefined) {
         setPresenceCount(data.count);
       } else if (data.type === 'arrivalCapacityChanged' && data.capacity !== undefined) {
         setCapacity(data.capacity);
-      } else if (data.type === 'connected' && data.arrivalCapacity !== undefined) {
-        setCapacity(data.arrivalCapacity);
       }
     },
   });

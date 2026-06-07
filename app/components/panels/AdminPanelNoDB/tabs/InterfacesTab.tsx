@@ -10,10 +10,8 @@ import { PLUGIN_MAP } from "../../../../../plugins/index";
 interface InterfacesTabProps {
   activity: ActivityMode;
   sendActivity: (act: ActivityMode) => void;
-  setSocialConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
   setVoiceCallConfigOpen: (v: boolean) => void;
-  setArrivalConfigOpen: (v: boolean) => void;
   setActiveConfigPlugin: (id: string) => void;
   onClearRoleAssignments: () => void;
   userId?: string;
@@ -44,8 +42,8 @@ function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[
 export default function InterfacesTab({
   activity,
   sendActivity,
-  setSocialConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
-  setArrivalConfigOpen, setActiveConfigPlugin,
+  setCanvasSettingsOpen, setVoiceCallConfigOpen,
+  setActiveConfigPlugin,
   onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
@@ -77,17 +75,11 @@ export default function InterfacesTab({
                   {id === 'canvas' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setCanvasSettingsOpen(true); }}><IoMdSettings /></button>
                   )}
-                  {id === 'social-sharing' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>
-                  )}
                   {requiresHttps && !window.isSecureContext && (
                     <span title="SSL required — some features unavailable on HTTP" style={{ marginLeft: 6, color: '#f90', fontSize: 12, cursor: 'default' }}>⚠ SSL required</span>
                   )}
                   {id === 'voice-call' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setVoiceCallConfigOpen(true); }}><IoMdSettings /></button>
-                  )}
-{id === 'arrival-canvas' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setArrivalConfigOpen(true); }}><IoMdSettings /></button>
                   )}
                   {PLUGIN_MAP[id]?.configModal && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setActiveConfigPlugin(id); }}><IoMdSettings /></button>
