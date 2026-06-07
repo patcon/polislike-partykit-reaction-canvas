@@ -1,18 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { HelloWorldServerPlugin } from './server';
-import type { PluginConnection, PluginContext } from '../types';
-
-function makeCtx(): PluginContext {
-  return {
-    broadcast: vi.fn(),
-    getCursorPositions: () => new Map(),
-    persistState: vi.fn().mockResolvedValue(undefined),
-  };
-}
-
-function makeConn(id = 'conn-1'): PluginConnection {
-  return { id, userId: id, send: vi.fn() };
-}
+import { makeCtx, makeConn, lastSent, lastBroadcast } from '../testHelpers';
 
 describe('HelloWorldServerPlugin', () => {
   it('createState defaults message to Hello, world!', () => {
@@ -24,11 +12,7 @@ describe('HelloWorldServerPlugin', () => {
     state.message = 'Hi there!';
     const conn = makeConn();
     HelloWorldServerPlugin.onConnect(conn, makeCtx(), state, 'helloWorld');
-    expect(conn.send).toHaveBeenCalledOnce();
-    expect(JSON.parse((conn.send as ReturnType<typeof vi.fn>).mock.calls[0][0])).toEqual({
-      type: 'helloWorldState',
-      message: 'Hi there!',
-    });
+    expect(lastSent(conn)).toEqual({ type: 'helloWorldState', message: 'Hi there!' });
   });
 
   it('onMessage handles setHelloWorldMessage and broadcasts to all', () => {
@@ -37,11 +21,7 @@ describe('HelloWorldServerPlugin', () => {
     const handled = HelloWorldServerPlugin.onMessage('setHelloWorldMessage', { message: 'Howdy!' }, makeConn(), ctx, state, 'helloWorld');
     expect(handled).toBe(true);
     expect(state.message).toBe('Howdy!');
-    expect(ctx.broadcast).toHaveBeenCalledOnce();
-    expect(JSON.parse((ctx.broadcast as ReturnType<typeof vi.fn>).mock.calls[0][0])).toEqual({
-      type: 'helloWorldState',
-      message: 'Howdy!',
-    });
+    expect(lastBroadcast(ctx)).toEqual({ type: 'helloWorldState', message: 'Howdy!' });
     expect(ctx.persistState).toHaveBeenCalled();
   });
 

@@ -1,18 +1,6 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { GreeterServerPlugin } from './server';
-import type { PluginConnection, PluginContext } from '../types';
-
-function makeCtx(): PluginContext {
-  return {
-    broadcast: vi.fn(),
-    getCursorPositions: () => new Map(),
-    persistState: vi.fn().mockResolvedValue(undefined),
-  };
-}
-
-function makeConn(id = 'conn-1'): PluginConnection {
-  return { id, userId: id, send: vi.fn() };
-}
+import { makeCtx, makeConn, lastSent, lastBroadcast } from '../testHelpers';
 
 describe('GreeterServerPlugin', () => {
   it('createState defaults config to null', () => {
@@ -24,49 +12,37 @@ describe('GreeterServerPlugin', () => {
     state.config = { eventUrl: 'https://example.com/event' };
     const conn = makeConn();
     GreeterServerPlugin.onConnect(conn, makeCtx(), state, 'greeter');
-    expect(conn.send).toHaveBeenCalledOnce();
-    expect(JSON.parse((conn.send as ReturnType<typeof vi.fn>).mock.calls[0][0])).toEqual({
-      type: 'greeterConfigChanged',
-      config: { eventUrl: 'https://example.com/event' },
-    });
+    expect(lastSent(conn)).toEqual({ type: 'greeterConfigChanged', config: { eventUrl: 'https://example.com/event' } });
   });
 
   it('onConnect sends null config when not yet set', () => {
     const state = GreeterServerPlugin.createState();
     const conn = makeConn();
     GreeterServerPlugin.onConnect(conn, makeCtx(), state, 'greeter');
-    const msg = JSON.parse((conn.send as ReturnType<typeof vi.fn>).mock.calls[0][0]);
-    expect(msg.config).toBeNull();
+    expect((lastSent(conn) as { config: unknown }).config).toBeNull();
   });
 
   it('onMessage handles setGreeterConfig and broadcasts to all', () => {
     const state = GreeterServerPlugin.createState();
     const ctx = makeCtx();
-    const conn = makeConn();
     const config = { eventUrl: 'https://example.com/event' };
-    const handled = GreeterServerPlugin.onMessage('setGreeterConfig', { config }, conn, ctx, state, 'greeter');
+    const handled = GreeterServerPlugin.onMessage('setGreeterConfig', { config }, makeConn(), ctx, state, 'greeter');
     expect(handled).toBe(true);
     expect(state.config).toEqual(config);
-    expect(ctx.broadcast).toHaveBeenCalledOnce();
-    expect(JSON.parse((ctx.broadcast as ReturnType<typeof vi.fn>).mock.calls[0][0])).toEqual({
-      type: 'greeterConfigChanged',
-      config,
-    });
+    expect(lastBroadcast(ctx)).toEqual({ type: 'greeterConfigChanged', config });
     expect(ctx.persistState).toHaveBeenCalled();
   });
 
   it('onMessage handles setGreeterConfig with null to clear', () => {
     const state = GreeterServerPlugin.createState();
     state.config = { eventUrl: 'https://example.com/event' };
-    const ctx = makeCtx();
-    GreeterServerPlugin.onMessage('setGreeterConfig', { config: null }, makeConn(), ctx, state, 'greeter');
+    GreeterServerPlugin.onMessage('setGreeterConfig', { config: null }, makeConn(), makeCtx(), state, 'greeter');
     expect(state.config).toBeNull();
   });
 
   it('onMessage returns false for unknown message types', () => {
     const state = GreeterServerPlugin.createState();
-    const handled = GreeterServerPlugin.onMessage('unknownEvent', {}, makeConn(), makeCtx(), state, 'greeter');
-    expect(handled).toBe(false);
+    expect(GreeterServerPlugin.onMessage('unknownEvent', {}, makeConn(), makeCtx(), state, 'greeter')).toBe(false);
   });
 
   it('getPersistedState returns config', () => {
@@ -81,7 +57,7 @@ describe('GreeterServerPlugin', () => {
     expect(state.config).toEqual({ eventUrl: 'https://restored.com' });
   });
 
-  it('applyPersistedState ignores null/missing saved state', () => {
+  it('applyPersistedState ignores null saved state', () => {
     const state = GreeterServerPlugin.createState();
     state.config = { eventUrl: 'https://example.com/event' };
     GreeterServerPlugin.applyPersistedState!(state, null);
