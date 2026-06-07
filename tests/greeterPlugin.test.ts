@@ -11,7 +11,7 @@ function makeCtx(): PluginContext {
 }
 
 function makeConn(id = 'conn-1'): PluginConnection {
-  return { id, send: vi.fn() };
+  return { id, userId: id, send: vi.fn() };
 }
 
 describe('GreeterServerPlugin', () => {

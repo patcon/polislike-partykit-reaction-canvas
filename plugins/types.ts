@@ -3,6 +3,8 @@ import type React from 'react';
 /** Minimal connection abstraction — avoids coupling plugins to partykit internals. */
 export interface PluginConnection {
   id: string;
+  /** Persistent user UUID (from ?userId= query param, falls back to conn.id). */
+  userId: string;
   send(msg: string): void;
 }
 
@@ -39,6 +41,8 @@ export interface ServerPlugin<S> {
   onActivate(ctx: PluginContext, state: S): void;
   /** Called when another activity replaces this plugin's activity. */
   onDeactivate(ctx: PluginContext, state: S): void;
+  /** Called when a client disconnects. Use for per-user cleanup (e.g. removing codes when last connection drops). */
+  onClose?(conn: PluginConnection, ctx: PluginContext, state: S): void;
   /**
    * Return the portion of plugin state to persist. Called by the server before writing storage.
    * Use a wrapper object (e.g. `{ config: S }`) so state is always an object reference.

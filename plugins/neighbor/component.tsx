@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
 import * as d3 from 'd3';
-import { usePanelContext } from '../../../context/PanelContext';
-import { getPartySocketConfig } from '../../../utils/partyHost';
-import { generateUUID } from '../../../utils/userId';
-import { computeReactionRegion, DEFAULT_ANCHORS } from '../../../utils/voteRegion';
-import type { ReactionAnchors } from '../../../utils/voteRegion';
-import { VOTE_COLORS, USER_STATUS_COLORS, EDGE_COLOR, EDGE_FLASH_COLOR, EDGE_FLASH_MS } from '../../../constants/userStatus';
+import { usePanelContext } from '../../app/context/PanelContext';
+import { getPartySocketConfig } from '../../app/utils/partyHost';
+import { generateUUID } from '../../app/utils/userId';
+import { computeReactionRegion, DEFAULT_ANCHORS } from '../../app/utils/voteRegion';
+import type { ReactionAnchors } from '../../app/utils/voteRegion';
+import { VOTE_COLORS, USER_STATUS_COLORS, EDGE_COLOR, EDGE_FLASH_COLOR, EDGE_FLASH_MS } from '../../app/constants/userStatus';
 
 type View = 'entry' | 'graph';
 type EdgeError = 'not_found' | 'self' | 'duplicate';
@@ -164,8 +164,9 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     query: { userId: socketUserId.current },
     onMessage(evt) {
       const msg = JSON.parse(evt.data);
-      if (msg.type === 'connected') {
-        if (msg.myNeighborCode) setMyCode(msg.myNeighborCode);
+      if (msg.type === 'neighborCode') {
+        setMyCode(msg.code);
+      } else if (msg.type === 'connected') {
         if (msg.roomAnchors) anchorsRef.current = msg.roomAnchors;
       } else if (msg.type === 'roomAnchorsChanged') {
         anchorsRef.current = msg.anchors ?? DEFAULT_ANCHORS;

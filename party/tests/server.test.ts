@@ -324,8 +324,8 @@ describe('Server onMessage handlers', () => {
       const { conn: aliceConn } = connectUser('alice');
       connectUser('bob');
 
-      // Read bob's assigned neighbor code directly from server state
-      const bobCode = (server as any).neighborCodes.get('bob') as string;
+      // Read bob's assigned neighbor code from plugin state
+      const bobCode = (server as any).pluginStates.get('neighbor').codes.get('bob') as string;
 
       server.onMessage(msg({ type: 'neighborEdge', toCode: bobCode }), aliceConn);
       const last = lastBroadcast(broadcast) as { type: string; userA: string; userB: string };
@@ -335,7 +335,7 @@ describe('Server onMessage handlers', () => {
 
     it('self-connection: sends neighborEdgeError with reason self', () => {
       const { conn, send } = connectUser('alice');
-      const aliceCode = (server as any).neighborCodes.get('alice') as string;
+      const aliceCode = (server as any).pluginStates.get('neighbor').codes.get('alice') as string;
 
       server.onMessage(msg({ type: 'neighborEdge', toCode: aliceCode }), conn);
 
@@ -357,7 +357,7 @@ describe('Server onMessage handlers', () => {
     it('duplicate edge: sends neighborEdgeError with reason duplicate', () => {
       const { conn: aliceConn, send: aliceSend } = connectUser('alice');
       connectUser('bob');
-      const bobCode = (server as any).neighborCodes.get('bob') as string;
+      const bobCode = (server as any).pluginStates.get('neighbor').codes.get('bob') as string;
 
       server.onMessage(msg({ type: 'neighborEdge', toCode: bobCode }), aliceConn);
       broadcast.mockClear();
@@ -455,7 +455,7 @@ describe('Server onMessage handlers', () => {
     it('sends neighborEdgesSnapshot with current edges and codes', () => {
       const { conn: aliceConn } = connectUser('alice');
       const { conn: bobConn, send: bobSend } = connectUser('bob');
-      const bobCode = (server as any).neighborCodes.get('bob') as string;
+      const bobCode = (server as any).pluginStates.get('neighbor').codes.get('bob') as string;
       server.onMessage(msg({ type: 'neighborEdge', toCode: bobCode }), aliceConn);
       bobSend.mockClear();
 
@@ -471,13 +471,13 @@ describe('Server onMessage handlers', () => {
     it('clears all edges and broadcasts neighborEdgesCleared', () => {
       const { conn: aliceConn } = connectUser('alice');
       connectUser('bob');
-      const bobCode = (server as any).neighborCodes.get('bob') as string;
+      const bobCode = (server as any).pluginStates.get('neighbor').codes.get('bob') as string;
       server.onMessage(msg({ type: 'neighborEdge', toCode: bobCode }), aliceConn);
       broadcast.mockClear();
 
       server.onMessage(msg({ type: 'clearNeighborEdges' }), aliceConn);
       expect(lastBroadcast(broadcast)).toEqual({ type: 'neighborEdgesCleared' });
-      expect((server as any).neighborEdges.size).toBe(0);
+      expect((server as any).pluginStates.get('neighbor').edges.size).toBe(0);
     });
   });
 

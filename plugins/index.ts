@@ -10,6 +10,7 @@ import moodTonesPlugin from './moodTones/index';
 import treevitesPlugin from './treevites/index';
 import valenceBeatPadPlugin from './valenceBeatPad/index';
 import signatureCanvasPlugin from './signatureCanvas/index';
+import { neighborPlugin } from './neighbor/index';
 // import helloWorldPlugin from './helloWorld/index';  // uncomment to activate the helloWorld example plugin
 
 type PluginExport = PanelPlugin | PanelPlugin[];
@@ -26,6 +27,7 @@ const pluginExports: PluginExport[] = [
   treevitesPlugin,
   valenceBeatPadPlugin,
   signatureCanvasPlugin,
+  neighborPlugin,
   // helloWorldPlugin,
 ];
 

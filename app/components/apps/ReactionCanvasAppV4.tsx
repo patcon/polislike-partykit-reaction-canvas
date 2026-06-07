@@ -29,7 +29,6 @@ import { useWakeLock } from "../../utils/useWakeLock";
 import StenoPanel from "../panels/StenoPanel";
 import StoryTracerPanel from "../panels/StoryTracerPanel";
 import VoiceCallPanel from "../panels/VoiceCallPanel";
-import NeighborPanel from "../panels/NeighborPanel";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 import { PLUGIN_MAP } from "../../../plugins/index";
 
@@ -37,7 +36,6 @@ const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = 
   steno:           StenoPanel,
   'story-tracer':  StoryTracerPanel,
   'voice-call':    VoiceCallPanel,
-  'neighbor':         NeighborPanel,
   // Plugin-provided components (panels distributed as packages)
   ...Object.fromEntries(
     Object.entries(PLUGIN_MAP)

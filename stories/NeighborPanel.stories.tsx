@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import React, { useEffect } from 'react';
-import NeighborPanel from '../app/components/panels/NeighborPanel';
+import NeighborPanel from '../plugins/neighbor/component';
 import { PanelContextProvider } from '../app/context/PanelContext';
 import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 

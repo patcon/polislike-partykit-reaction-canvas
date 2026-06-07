@@ -6,7 +6,7 @@ import { getCurrentActiveStatementId, computeNextDisplayTimestamp, computeCleare
 import type { QueueItem } from './lib/queueLogic';
 import { GhostCursorManager } from './lib/ghostCursors';
 import { PLUGIN_MAP } from '../plugins/index';
-import type { PluginContext } from '../plugins/types';
+import type { PluginContext, PluginConnection } from '../plugins/types';
 import { getSoccerBallState, getSoccerScore } from '../plugins/soccer/server';
 import type {
   CursorEvent, PolisStatement, Vote, PersistedState, ClientEvent,
@@ -20,7 +20,7 @@ import type {
   RecordInvitationsEvent, StenoStartRecordingEvent, StenoStopRecordingEvent,
   StenoAppendTextEvent, StenoSetTextEvent, StoryTracerSetPointsEvent,
   WebRTCOfferEvent, WebRTCAnswerEvent, WebRTCIceEvent, HangUpCallEvent,
-  SetCallAlgorithmEvent, SetArrivalCapacityEvent, NeighborEdgeEvent,
+  SetCallAlgorithmEvent, SetArrivalCapacityEvent,
 } from './types';
 
 export default class Server implements Party.Server {
@@ -61,8 +61,6 @@ export default class Server implements Party.Server {
 private callQueue: string[] = [];
   private callPairs: Map<string, string> = new Map();
   private callAlgorithm: string = 'first-available';
-  private neighborCodes = new Map<string, string>(); // userId → 4-digit code
-  private neighborEdges = new Set<string>();          // canonical "userA|userB" strings
   private pluginStates = new Map<string, unknown>(
     Object.entries(PLUGIN_MAP)
       .filter(([, p]) => p.server)
@@ -81,6 +79,10 @@ private callQueue: string[] = [];
       getCursorPositions: () => this.cursorPositions,
       persistState: () => this.persistState(),
     };
+  }
+
+  private makePluginConn(conn: Party.Connection): PluginConnection {
+    return { id: conn.id, userId: this.connectionUserMap.get(conn.id) ?? conn.id, send: (msg) => conn.send(msg) };
   }
 
   private get persistenceEnabled(): boolean {
@@ -119,15 +121,6 @@ if (saved.pluginStates) {
         }
       }
     }
-  }
-
-  private generateNeighborCode(): string {
-    const used = new Set(this.neighborCodes.values());
-    let code: string;
-    do {
-      code = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-    } while (used.has(code));
-    return code;
   }
 
   private async persistState(): Promise<void> {
@@ -210,9 +203,6 @@ if (saved.pluginStates) {
 
     const userId = url.searchParams.get('userId') ?? conn.id;
     this.connectionUserMap.set(conn.id, userId);
-    if (!this.neighborCodes.has(userId)) {
-      this.neighborCodes.set(userId, this.generateNeighborCode());
-    }
     if (isViewer) {
       this.viewerConnectionIds.add(conn.id);
     }
@@ -281,12 +271,12 @@ if (saved.pluginStates) {
       storyTracerPoints: this.storyTracerPoints,
       storyTracerMeta: this.storyTracerMeta,
       callAlgorithm: this.callAlgorithm,
-      myNeighborCode: this.neighborCodes.get(userId) ?? null,
     }));
 
     const pluginCtx = this.makePluginContext();
+    const pluginConn = this.makePluginConn(conn);
     for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
-      if (plugin.server) plugin.server.onConnect(conn, pluginCtx, this.pluginStates.get(id), this.currentActivity);
+      if (plugin.server) plugin.server.onConnect(pluginConn, pluginCtx, this.pluginStates.get(id), this.currentActivity);
     }
   }
 
@@ -306,7 +296,6 @@ if (saved.pluginStates) {
 
     if (userId && !userStillConnected) {
       this.cursorPositions.delete(userId);
-      this.neighborCodes.delete(userId);
     }
 
     if (!isAdmin && userId && !userStillConnected) {
@@ -330,6 +319,12 @@ if (saved.pluginStates) {
 
     const count = this.participantCount();
     this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: this.viewerCount() }));
+
+    const pluginCtx = this.makePluginContext();
+    const pluginConn = this.makePluginConn(conn);
+    for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+      if (plugin.server?.onClose) plugin.server.onClose(pluginConn, pluginCtx, this.pluginStates.get(id));
+    }
   }
 
   onMessage(message: string, sender: Party.Connection) {
@@ -351,8 +346,9 @@ if (saved.pluginStates) {
 
       // Plugin message router — runs before the main switch; return early if handled
       const pluginCtx = this.makePluginContext();
+      const pluginConn = this.makePluginConn(sender);
       for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
-        if (plugin.server?.onMessage(event.type, event, sender, pluginCtx, this.pluginStates.get(id), this.currentActivity)) return;
+        if (plugin.server?.onMessage(event.type, event, pluginConn, pluginCtx, this.pluginStates.get(id), this.currentActivity)) return;
       }
 
       switch (event.type) {
@@ -401,9 +397,6 @@ case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
         case 'webrtcIce': this.handleWebrtcSignaling(event, sender); break;
         case 'hangUp': this.handleHangUp(event, sender); break;
         case 'setCallAlgorithm': this.handleSetCallAlgorithm(event, sender); break;
-        case 'neighborEdge': this.handleNeighborEdge(event, sender); break;
-        case 'requestNeighborEdges': this.handleRequestNeighborEdges(sender); break;
-        case 'clearNeighborEdges': this.handleClearNeighborEdges(); break;
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
@@ -729,45 +722,6 @@ case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
     if (this.adminConnectionIds.has(sender.id)) {
       this.callAlgorithm = event.algorithm;
     }
-  }
-
-  // --- Neighbor handlers ---
-
-  private handleNeighborEdge(event: NeighborEdgeEvent, sender: Party.Connection): void {
-    const fromUserId = this.connectionUserMap.get(sender.id);
-    if (!fromUserId) return;
-    const toCode = event.toCode;
-    if (this.neighborCodes.get(fromUserId) === toCode) {
-      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'self' }));
-      return;
-    }
-    let toUserId: string | null = null;
-    for (const [uid, code] of this.neighborCodes) {
-      if (code === toCode) { toUserId = uid; break; }
-    }
-    if (!toUserId) {
-      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'not_found' }));
-      return;
-    }
-    const canonical = [fromUserId, toUserId].sort().join('|');
-    if (this.neighborEdges.has(canonical)) {
-      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'duplicate' }));
-      return;
-    }
-    this.neighborEdges.add(canonical);
-    const [userA, userB] = canonical.split('|');
-    this.room.broadcast(JSON.stringify({ type: 'neighborEdgeAdded', userA, userB }));
-  }
-
-  private handleRequestNeighborEdges(sender: Party.Connection): void {
-    const edges = [...this.neighborEdges].map(e => { const [userA, userB] = e.split('|'); return { userA, userB }; });
-    const allCodes = Object.fromEntries(this.neighborCodes);
-    sender.send(JSON.stringify({ type: 'neighborEdgesSnapshot', edges, allCodes }));
-  }
-
-  private handleClearNeighborEdges(): void {
-    this.neighborEdges.clear();
-    this.room.broadcast(JSON.stringify({ type: 'neighborEdgesCleared' }));
   }
 
   // --- Core statement/queue methods ---
