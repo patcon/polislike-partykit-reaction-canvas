@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { SoccerServerPlugin, getSoccerScore } from '../plugins/soccer/server';
-import { SOCCER_RESET_SCORE } from '../plugins/soccer/types';
-import type { PluginConnection, PluginContext } from '../plugins/types';
+import { SoccerServerPlugin, getSoccerScore } from './server';
+import { SOCCER_RESET_SCORE } from './types';
+import type { PluginConnection, PluginContext } from '../types';
 
 function makeCtx(): PluginContext {
   return {

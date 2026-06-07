@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { ArrivalCanvasServerPlugin } from '../plugins/arrivalCanvas/server';
-import type { PluginConnection, PluginContext } from '../plugins/types';
+import { ArrivalCanvasServerPlugin } from './server';
+import type { PluginConnection, PluginContext } from '../types';
 
 function makeCtx(): PluginContext {
   return {

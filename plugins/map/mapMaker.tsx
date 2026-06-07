@@ -12,12 +12,12 @@ import {
   KNN_PARAM_DEFS,
 } from 'reddwarf-ts';
 import type { KnnBackend, ReducerAlgorithm } from 'reddwarf-ts';
-import { getPartySocketConfig } from '../../../utils/partyHost';
-import { idbGet } from '../../../utils/idbStorage';
-import type { MomentSnapshot } from '../AdminPanelNoDB/types';
-import type { MapProjection } from '../../../types';
-import type { DruidWorkerEvent } from '../../../workers/druidWorker.types';
-import { usePanelContext } from '../../../context/PanelContext';
+import { getPartySocketConfig } from '../../app/utils/partyHost';
+import { idbGet } from '../../app/utils/idbStorage';
+import type { MomentSnapshot } from '../../app/components/panels/AdminPanelNoDB/types';
+import type { MapProjection } from '../../app/types';
+import type { DruidWorkerEvent } from '../../app/workers/druidWorker.types';
+import { usePanelContext } from '../../app/context/PanelContext';
 
 type RunStatus = 'idle' | 'running' | 'done' | 'error';
 

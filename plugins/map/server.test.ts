@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { mapServer } from '../plugins/map/server';
-import type { PluginConnection, PluginContext } from '../plugins/types';
-import type { MapProjection } from '../app/types';
+import { mapServer } from './server';
+import type { PluginConnection, PluginContext } from '../types';
+import type { MapProjection } from '../../app/types';
 
 function makeCtx(): PluginContext {
   return {

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { SocialSharingServerPlugin } from '../plugins/socialSharing/server';
-import type { PluginConnection, PluginContext } from '../plugins/types';
-import type { SocialConfig } from '../app/types';
+import { SocialSharingServerPlugin } from './server';
+import type { PluginConnection, PluginContext } from '../types';
+import type { SocialConfig } from '../../app/types';
 
 function makeCtx(): PluginContext {
   return {

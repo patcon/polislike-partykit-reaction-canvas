@@ -1,8 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import React from 'react';
-import MapMakerPanel from '../app/components/panels/MapMakerPanel';
-import { PanelContextProvider } from '../app/context/PanelContext';
+import MapMakerPanel from './mapMaker';
+import { PanelContextProvider } from '../../app/context/PanelContext';
 
 const meta = {
   title: 'Panels/MapMakerPanel',

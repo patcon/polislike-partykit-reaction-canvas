@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import usePartySocket from 'partysocket/react';
 import * as d3 from 'd3';
-import { getPartySocketConfig } from '../../../utils/partyHost';
-import { usePanelContext } from '../../../context/PanelContext';
-import { useMapViewerConfig } from '../../../../plugins/map/useMapViewerConfig';
-import { idbGet } from '../../../utils/idbStorage';
-import { computeReactionRegion, DEFAULT_ANCHORS } from '../../../utils/voteRegion';
-import type { ReactionAnchors } from '../../../utils/voteRegion';
-import type { MapProjection, MapViewerConfig } from '../../../types';
-import type { MomentSnapshot } from '../AdminPanelNoDB/types';
-import { VOTE_COLORS, USER_STATUS_COLORS, USER_STATUS_LABELS, MISSING_COLOR } from '../../../constants/userStatus';
+import { getPartySocketConfig } from '../../app/utils/partyHost';
+import { usePanelContext } from '../../app/context/PanelContext';
+import { useMapViewerConfig } from './useMapViewerConfig';
+import { idbGet } from '../../app/utils/idbStorage';
+import { computeReactionRegion, DEFAULT_ANCHORS } from '../../app/utils/voteRegion';
+import type { ReactionAnchors } from '../../app/utils/voteRegion';
+import type { MapProjection, MapViewerConfig } from '../../app/types';
+import type { MomentSnapshot } from '../../app/components/panels/AdminPanelNoDB/types';
+import { VOTE_COLORS, USER_STATUS_COLORS, USER_STATUS_LABELS, MISSING_COLOR } from '../../app/constants/userStatus';
 
 const DEFAULT_COLOR = '#4a8';
 

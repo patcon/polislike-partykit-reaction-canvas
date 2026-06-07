@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { lightServer } from '../plugins/light/server';
-import type { PluginConnection, PluginContext } from '../plugins/types';
+import { lightServer } from './server';
+import type { PluginConnection, PluginContext } from '../types';
 
 function makeCtx(): PluginContext {
   return {

@@ -13,11 +13,11 @@ vi.mock('partysocket/react', () => ({
   },
 }));
 
-vi.mock('../app/utils/partyHost', () => ({
+vi.mock('../../app/utils/partyHost', () => ({
   getPartySocketConfig: () => ({ host: 'localhost:1999' }),
 }));
 
-vi.mock('../app/utils/userId', () => ({
+vi.mock('../../app/utils/userId', () => ({
   generateUUID: () => 'test-user-id',
   getPersistentUserId: () => 'test-user-id',
 }));
@@ -28,8 +28,8 @@ function triggerMessage(data: object) {
   });
 }
 
-import NeighborPanel from '../plugins/neighbor/component';
-import { PanelContextProvider } from '../app/context/PanelContext';
+import NeighborPanel from './component';
+import { PanelContextProvider } from '../../app/context/PanelContext';
 
 function renderPanel(props: { initialView?: 'entry' | 'graph' } = {}) {
   return render(

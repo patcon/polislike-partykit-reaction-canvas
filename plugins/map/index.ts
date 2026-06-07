@@ -1,7 +1,7 @@
 import type { PanelPlugin } from '../types';
 import { mapServer } from './server';
-import MapMakerPanel from '../../app/components/panels/MapMakerPanel';
-import MapViewerPanel from '../../app/components/panels/MapViewerPanel';
+import MapMakerPanel from './mapMaker';
+import MapViewerPanel from './mapViewer';
 import MapViewerConfigModal from './MapViewerConfigModal';
 
 const mapMakerPlugin: PanelPlugin = {

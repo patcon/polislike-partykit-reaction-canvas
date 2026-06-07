@@ -1,9 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import React, { useEffect } from 'react';
-import ArrivalCanvasPanel from '../app/components/panels/ArrivalCanvasPanel';
-import { PanelContextProvider } from '../app/context/PanelContext';
-import { emitToRoom } from '../.storybook/mocks/partysocket-react';
+import ArrivalCanvasPanel from './component';
+import { PanelContextProvider } from '../../app/context/PanelContext';
+import { emitToRoom } from '../../.storybook/mocks/partysocket-react';
 
 const meta = {
   title: 'Panels/ArrivalCanvasPanel',

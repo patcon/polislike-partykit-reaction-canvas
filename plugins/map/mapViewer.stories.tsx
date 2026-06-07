@@ -1,10 +1,10 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import React, { useEffect } from 'react';
-import MapViewerPanel from '../app/components/panels/MapViewerPanel';
-import { PanelContextProvider } from '../app/context/PanelContext';
-import type { MapViewerConfig, MapProjection } from '../app/types';
-import { emitToRoom } from '../.storybook/mocks/partysocket-react';
+import MapViewerPanel from './mapViewer';
+import { PanelContextProvider } from '../../app/context/PanelContext';
+import type { MapViewerConfig, MapProjection } from '../../app/types';
+import { emitToRoom } from '../../.storybook/mocks/partysocket-react';
 
 // Seeded LCG so the blob is deterministic across renders
 function makeSeededRand(seed: number) {

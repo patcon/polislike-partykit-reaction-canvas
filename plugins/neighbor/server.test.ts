@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
-import { NeighborServerPlugin } from '../plugins/neighbor/server';
-import type { PluginConnection, PluginContext } from '../plugins/types';
-import type { NeighborState } from '../plugins/neighbor/types';
+import { NeighborServerPlugin } from './server';
+import type { PluginConnection, PluginContext } from '../types';
+import type { NeighborState } from './types';
 
 function makeCtx(): PluginContext {
   return {

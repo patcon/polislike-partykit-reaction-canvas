@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { makeImageCoordTransform } from '../app/utils/imageCanvasCoords';
+import { makeImageCoordTransform } from '../../app/utils/imageCanvasCoords';
 
 const SCREEN_LANDSCAPE = { width: 1200, height: 800 };
 const SCREEN_PORTRAIT  = { width: 800,  height: 1200 };
