@@ -36,23 +36,6 @@ export interface MapProjection {
   computedAt: string;
 }
 
-export interface StoryTracerPoint {
-  x: number
-  y: number
-  z: number
-  text: string
-  startTime?: string
-}
-
-export interface StoryTracerMeta {
-  modelId: string
-  algorithmId: string
-  windowSize: number
-  overlapPct: number
-  segmentCount: number
-  computedAt: string
-}
-
 export type ValenceInputMode = 'touch' | 'orientation-horizontal' | 'orientation-vertical' | 'orientation-rotation';
 
 export interface GreeterConfig {

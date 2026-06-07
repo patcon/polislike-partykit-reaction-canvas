@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import usePartySocket from "partysocket/react";
-import { getPartySocketConfig } from "../../../utils/partyHost";
+import { getPartySocketConfig } from "../../../app/utils/partyHost";
 import { MdKeyboard, MdStopCircle } from "react-icons/md";
-import WakeLockIndicatorButton from "../../shared/WakeLockIndicatorButton";
-import { extractPlainText } from "../../../utils/vttUtils";
-import { useWakeLock } from "../../../utils/useWakeLock";
-import { usePanelContext } from "../../../context/PanelContext";
+import WakeLockIndicatorButton from "../../../app/components/shared/WakeLockIndicatorButton";
+import { extractPlainText } from "../../../app/utils/vttUtils";
+import { useWakeLock } from "../../../app/utils/useWakeLock";
+import { usePanelContext } from "../../../app/context/PanelContext";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-const SpeechRecognitionCtor: (new () => any) | null =
-  (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null; // eslint-disable-line @typescript-eslint/no-explicit-any
+const SpeechRecognitionCtor: (new () => any) | null = typeof window !== 'undefined'
+  ? ((window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition ?? null) // eslint-disable-line @typescript-eslint/no-explicit-any
+  : null;
 
 export default function StenoPanel() {
   const { room, userId } = usePanelContext();
@@ -35,11 +36,6 @@ export default function StenoPanel() {
     query: { userId },
     onMessage(evt) {
       const data = JSON.parse(evt.data);
-      if (data.type === 'connected') {
-        setStenoVtt(data.stenoVtt ?? 'WEBVTT\n');
-        setLockHolder(data.stenoLockUserId ?? null);
-        return;
-      }
       if (data.type === 'stenoTextChanged') { setStenoVtt(data.text); return; }
       if (data.type === 'stenoLockAcquired') { setLockHolder(data.userId); return; }
       if (data.type === 'stenoLockReleased') {

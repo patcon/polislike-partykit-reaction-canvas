@@ -1,4 +1,4 @@
-import type { ActivityMode, StoryTracerPoint, StoryTracerMeta } from "../app/types";
+import type { ActivityMode } from "../app/types";
 import type { ReactionAnchors } from './lib/reactionRegion';
 
 export type { ReactionAnchors };
@@ -48,10 +48,7 @@ export interface Vote {
 }
 
 export interface PersistedState {
-  stenoVtt: string;
-  storyTracerPoints?: StoryTracerPoint[] | null;
-  storyTracerMeta?: StoryTracerMeta | null;
-pluginStates?: Record<string, unknown>;
+  pluginStates?: Record<string, unknown>;
 }
 
 export interface StatementEvent          { type: 'setActiveStatement'; statementId: number }
@@ -139,13 +136,6 @@ export interface StrokeSegmentEvent {
 
 export interface ClearSignatureEvent     { type: 'clearSignature'; userId: string }
 
-export interface StenoStartRecordingEvent { type: 'stenoStartRecording'; userId: string }
-export interface StenoStopRecordingEvent  { type: 'stenoStopRecording';  userId: string }
-export interface StenoAppendTextEvent     { type: 'stenoAppendText';     userId: string; text: string }
-export interface StenoSetTextEvent        { type: 'stenoSetText';        userId: string; text: string }
-
-export interface StoryTracerSetPointsEvent   { type: 'storyTracerSetPoints';  userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta }
-export interface StoryTracerClearPointsEvent { type: 'storyTracerClearPoints'; userId: string }
 
 export interface JoinCallQueueEvent      { type: 'joinCallQueue' }
 export interface LeaveCallQueueEvent     { type: 'leaveCallQueue' }
@@ -174,9 +164,7 @@ export type ClientEvent =
   | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent
   | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent
   | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent
-  | ClearSignatureEvent | StenoStartRecordingEvent | StenoStopRecordingEvent
-  | StenoAppendTextEvent | StenoSetTextEvent | StoryTracerSetPointsEvent
-  | StoryTracerClearPointsEvent
+  | ClearSignatureEvent
   | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent
   | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent | SetArrivalCapacityEvent
   | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent

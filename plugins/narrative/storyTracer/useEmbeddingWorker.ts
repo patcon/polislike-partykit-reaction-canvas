@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react'
-import type { ReducerAlgorithmId, ReducerParams, WorkerEvent } from '../workers/embeddingWorker.types'
+import type { ReducerAlgorithmId, ReducerParams, WorkerEvent } from '../../../app/workers/embeddingWorker.types'
 
 export type { ReducerAlgorithmId, ReducerParams }
 

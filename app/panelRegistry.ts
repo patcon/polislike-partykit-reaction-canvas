@@ -18,8 +18,6 @@ export const PANEL_REGISTRY: PanelMeta[] = [
   { id: 'emcee',        label: 'Emcee',           description: 'Event host controls and tools',                         patchable: true,  activityMode: false },
   { id: 'canvas',       label: 'Reaction Canvas', description: 'Standard reaction canvas',                              patchable: false, activityMode: true  },
   ...PLUGINS,
-  { id: 'steno',        label: 'Steno',           description: 'Live shared speech-to-text transcript',                 patchable: true,  activityMode: true,  requiresHttps: true },
-  { id: 'story-tracer', label: 'Story Tracer',    description: 'Semantic 3D narrative path from VTT transcript',        patchable: true,  activityMode: true  },
   { id: 'voice-call',   label: 'Voice Calls',     description: 'Peer-to-peer voice calls via WebRTC',                   patchable: true,  activityMode: true,  requiresHttps: true },
 ];
 

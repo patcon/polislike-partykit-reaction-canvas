@@ -1,4 +1,5 @@
 import type React from 'react';
+import type * as Party from 'partykit/server';
 
 /** Minimal connection abstraction — avoids coupling plugins to partykit internals. */
 export interface PluginConnection {
@@ -43,6 +44,11 @@ export interface ServerPlugin<S> {
   onDeactivate(ctx: PluginContext, state: S): void;
   /** Called when a client disconnects. Use for per-user cleanup (e.g. removing codes when last connection drops). */
   onClose?(conn: PluginConnection, ctx: PluginContext, state: S): void;
+  /**
+   * Called by the main server's onRequest for every HTTP request to the room.
+   * Return a Response to handle it; return null to fall through to the main handler.
+   */
+  onRequest?(request: Party.Request, ctx: PluginContext, state: S): Promise<Response | null> | Response | null;
   /**
    * Return the portion of plugin state to persist. Called by the server before writing storage.
    * Use a wrapper object (e.g. `{ config: S }`) so state is always an object reference.

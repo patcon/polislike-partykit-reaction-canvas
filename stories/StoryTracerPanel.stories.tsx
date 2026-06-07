@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import { expect, within } from 'storybook/test';
 import React from 'react';
-import StoryTracerPanel from '../app/components/panels/StoryTracerPanel';
+import StoryTracerPanel from '../plugins/narrative/storyTracer/component';
 import { PanelContextProvider } from '../app/context/PanelContext';
 
 const meta = {

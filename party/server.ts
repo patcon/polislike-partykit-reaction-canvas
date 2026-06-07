@@ -1,5 +1,5 @@
 import type * as Party from "partykit/server";
-import type { ActivityMode, StoryTracerPoint, StoryTracerMeta } from "../app/types";
+import type { ActivityMode } from "../app/types";
 import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } from './lib/reactionRegion';
 import type { ReactionAnchors } from './lib/reactionRegion';
 import { getCurrentActiveStatementId, computeNextDisplayTimestamp, computeClearedQueue } from './lib/queueLogic';
@@ -17,8 +17,7 @@ import type {
   SetSocialConfigEvent, SetGreeterConfigEvent, PushInterfaceEvent, AcceptInterfaceEvent,
   PushHapticEvent, RegisterCustomAvatarEvent, SetColorCursorsByVoteEvent,
   SetDefaultCursorColorEvent, SetOwnValenceDisplayEvent, SetValenceInputModeEvent,
-  RecordInvitationsEvent, StenoStartRecordingEvent, StenoStopRecordingEvent,
-  StenoAppendTextEvent, StenoSetTextEvent, StoryTracerSetPointsEvent,
+  RecordInvitationsEvent,
   WebRTCOfferEvent, WebRTCAnswerEvent, WebRTCIceEvent, HangUpCallEvent,
   SetCallAlgorithmEvent, SetArrivalCapacityEvent,
 } from './types';
@@ -54,10 +53,6 @@ export default class Server implements Party.Server {
   private readonly BAT_SIGNAL_FIBONACCI = [3, 5, 8, 13, 21, 34, 55, 89, 144, 233];
   private maxParticipantCount = 0;
   private lastFibNotifiedIndex = -1;
-  private stenoVtt: string = 'WEBVTT\n';
-  private stenoLockUserId: string | null = null;
-  private storyTracerPoints: StoryTracerPoint[] | null = null;
-  private storyTracerMeta: StoryTracerMeta | null = null;
 private callQueue: string[] = [];
   private callPairs: Map<string, string> = new Map();
   private callAlgorithm: string = 'first-available';
@@ -102,19 +97,11 @@ private callQueue: string[] = [];
         pluginStates[id] = plugin.server.getPersistedState(this.pluginStates.get(id));
       }
     }
-    return {
-      stenoVtt: this.stenoVtt,
-      storyTracerPoints: this.storyTracerPoints,
-      storyTracerMeta: this.storyTracerMeta,
-      pluginStates,
-    };
+    return { pluginStates };
   }
 
   private applyPersistedState(saved: Partial<PersistedState>): void {
-    if (saved.stenoVtt !== undefined) this.stenoVtt = saved.stenoVtt;
-    if (saved.storyTracerPoints !== undefined) this.storyTracerPoints = saved.storyTracerPoints ?? null;
-    if (saved.storyTracerMeta !== undefined) this.storyTracerMeta = saved.storyTracerMeta ?? null;
-if (saved.pluginStates) {
+    if (saved.pluginStates) {
       for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
         if (plugin.server?.applyPersistedState && saved.pluginStates[id] !== undefined) {
           plugin.server.applyPersistedState(this.pluginStates.get(id), saved.pluginStates[id]);
@@ -266,10 +253,6 @@ if (saved.pluginStates) {
       defaultCursorColor: this.defaultCursorColor,
       ownValenceDisplay: this.ownValenceDisplay,
       valenceInputMode: this.valenceInputMode,
-      stenoVtt: this.stenoVtt,
-      stenoLockUserId: this.stenoLockUserId,
-      storyTracerPoints: this.storyTracerPoints,
-      storyTracerMeta: this.storyTracerMeta,
       callAlgorithm: this.callAlgorithm,
     }));
 
@@ -300,10 +283,6 @@ if (saved.pluginStates) {
 
     if (!isAdmin && userId && !userStillConnected) {
       this.room.broadcast(JSON.stringify({ type: 'userLeft', userId, wasViewer }));
-      if (this.stenoLockUserId === userId) {
-        this.stenoLockUserId = null;
-        this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId }));
-      }
       // Call queue cleanup
       const qIdx = this.callQueue.indexOf(userId);
       if (qIdx !== -1) this.callQueue.splice(qIdx, 1);
@@ -384,12 +363,6 @@ if (saved.pluginStates) {
         case 'setColorCursorsByVote': this.handleSetColorCursorsByVote(event, sender); break;
         case 'registerCustomAvatar': this.handleRegisterCustomAvatar(event); break;
         case 'recordInvitations': this.handleRecordInvitations(event); break;
-        case 'stenoStartRecording': this.handleStenoStartRecording(event, sender); break;
-        case 'stenoStopRecording': this.handleStenoStopRecording(event); break;
-        case 'stenoAppendText': this.handleStenoAppendText(event); break;
-        case 'stenoSetText': this.handleStenoSetText(event); break;
-        case 'storyTracerSetPoints': this.handleStoryTracerSetPoints(event); break;
-        case 'storyTracerClearPoints': this.handleStoryTracerClearPoints(); break;
 case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
         case 'leaveCallQueue': this.handleLeaveCallQueue(sender); break;
         case 'webrtcOffer':
@@ -625,53 +598,6 @@ case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
     }
   }
 
-  // --- Steno handlers ---
-
-  private handleStenoStartRecording(event: StenoStartRecordingEvent, sender: Party.Connection): void {
-    if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) {
-      sender.send(JSON.stringify({ type: 'stenoLockDenied', lockHolderUserId: this.stenoLockUserId }));
-      return;
-    }
-    this.stenoLockUserId = event.userId;
-    this.room.broadcast(JSON.stringify({ type: 'stenoLockAcquired', userId: event.userId }));
-  }
-
-  private handleStenoStopRecording(event: StenoStopRecordingEvent): void {
-    if (this.stenoLockUserId !== event.userId) return;
-    this.stenoLockUserId = null;
-    this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId: event.userId }));
-  }
-
-  private handleStenoAppendText(event: StenoAppendTextEvent): void {
-    if (this.stenoLockUserId !== event.userId) return;
-    this.stenoVtt += '\n' + event.text + '\n';
-    this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
-    void this.persistState();
-  }
-
-  private handleStenoSetText(event: StenoSetTextEvent): void {
-    if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) return;
-    this.stenoVtt = event.text;
-    this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
-    void this.persistState();
-  }
-
-  // --- StoryTracer / Map handlers ---
-
-  private handleStoryTracerSetPoints(event: StoryTracerSetPointsEvent): void {
-    this.storyTracerPoints = event.points;
-    this.storyTracerMeta = event.meta;
-    void this.persistState();
-    this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: event.points, meta: event.meta }));
-  }
-
-  private handleStoryTracerClearPoints(): void {
-    this.storyTracerPoints = null;
-    this.storyTracerMeta = null;
-    void this.persistState();
-    this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: null, meta: null }));
-  }
-
   // --- Voice call handlers ---
 
   private handleJoinCallQueue(sender: Party.Connection): void {
@@ -819,17 +745,12 @@ case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
     const url = new URL(request.url);
     console.log(`[VOTE] Incoming request: ${request.method} ${url.pathname}`);
 
-    if (request.method === "POST" && url.pathname.endsWith("/storyTracerSetPoints")) {
-      try {
-        const body = await request.json<{ userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta }>()
-        this.storyTracerPoints = body.points
-        this.storyTracerMeta = body.meta
-        void this.persistState()
-        this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: body.points, meta: body.meta }))
-        return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } })
-      } catch (err) {
-        console.error('[storyTracer] error processing setPoints:', err)
-        return new Response('Invalid request', { status: 400 })
+    // Delegate to plugins first
+    const pluginCtx = this.makePluginContext();
+    for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+      if (plugin.server?.onRequest) {
+        const res = await plugin.server.onRequest(request, pluginCtx, this.pluginStates.get(id)!);
+        if (res) return res;
       }
     }
 
@@ -906,7 +827,12 @@ case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
 
     if (request.method === "GET" && url.pathname.endsWith("/debug-state")) {
       const raw = await this.room.storage.get<PersistedState>("state");
-      return new Response(JSON.stringify({ raw, inMemoryPluginStates: Object.fromEntries(this.pluginStates) }, null, 2), {
+      const debugReplacer = (_k: string, v: unknown) => {
+        if (v instanceof Map) return Object.fromEntries(v);
+        if (v instanceof Set) return [...v];
+        return v;
+      };
+      return new Response(JSON.stringify({ raw, inMemoryPluginStates: Object.fromEntries(this.pluginStates) }, debugReplacer, 2), {
         headers: { "Content-Type": "application/json" },
       });
     }

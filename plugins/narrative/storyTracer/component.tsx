@@ -1,11 +1,11 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import usePartySocket from 'partysocket/react';
-import { getPartySocketConfig } from '../../../utils/partyHost';
-import { useEmbeddingWorker, EMBEDDING_MODELS, REDUCERS, REDUCER_PARAM_DEFS, defaultReducerParams, type EmbeddingModelId, type ReducerAlgorithmId, type ReducerParams } from '../../../utils/useEmbeddingWorker';
-import { parseVttCues, computeChunks, getTimestampForWordIndex } from '../../../utils/storyTracerUtils';
-import type { StoryTracerMeta, StoryTracerPoint } from '../../../types';
+import { getPartySocketConfig } from '../../../app/utils/partyHost';
+import { useEmbeddingWorker, EMBEDDING_MODELS, REDUCERS, REDUCER_PARAM_DEFS, defaultReducerParams, type EmbeddingModelId, type ReducerAlgorithmId, type ReducerParams } from './useEmbeddingWorker';
+import { parseVttCues, computeChunks, getTimestampForWordIndex } from './storyTracerUtils';
+import type { StoryTracerMeta, StoryTracerPoint } from '../types';
 import NarrativePath3D from './NarrativePath3D';
-import { usePanelContext } from '../../../context/PanelContext';
+import { usePanelContext } from '../../../app/context/PanelContext';
 
 const LS_MODEL = 'story-tracer-model';
 const LS_ALGO = 'story-tracer-algo';
@@ -56,12 +56,6 @@ export default function StoryTracerPanel() {
     query: { userId },
     onMessage(evt) {
       const data = JSON.parse(evt.data);
-      if (data.type === 'connected') {
-        setStenoVtt(data.stenoVtt ?? 'WEBVTT\n');
-        setStoredMeta(data.storyTracerMeta ?? null);
-        setStoredPoints(data.storyTracerPoints ?? null);
-        return;
-      }
       if (data.type === 'stenoTextChanged') { setStenoVtt(data.text); return; }
       if (data.type === 'storyTracerPointsChanged') {
         setStoredMeta(data.meta ?? null);

@@ -26,15 +26,11 @@ import HapticIndicatorButton from "../shared/HapticIndicatorButton";
 import { useHapticPriming } from "../../hooks/useHapticPriming";
 import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
 import { useWakeLock } from "../../utils/useWakeLock";
-import StenoPanel from "../panels/StenoPanel";
-import StoryTracerPanel from "../panels/StoryTracerPanel";
 import VoiceCallPanel from "../panels/VoiceCallPanel";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 import { PLUGIN_MAP } from "../../../plugins/index";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
-  steno:           StenoPanel,
-  'story-tracer':  StoryTracerPanel,
   'voice-call':    VoiceCallPanel,
   // Plugin-provided components (panels distributed as packages)
   ...Object.fromEntries(
