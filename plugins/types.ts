@@ -15,6 +15,8 @@ export interface PluginConnection {
  */
 export interface PluginContext {
   broadcast: (msg: string) => void;
+  /** Send a message to all connections belonging to a specific userId. */
+  sendToUser: (userId: string, msg: string) => void;
   getCursorPositions: () => Map<string, { x: number; y: number }>;
   /** Signal that plugin state has changed and should be durably persisted. */
   persistState: () => Promise<void>;

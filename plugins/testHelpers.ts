@@ -4,13 +4,14 @@ import type { PluginConnection, PluginContext } from './types';
 export function makeCtx(): PluginContext {
   return {
     broadcast: vi.fn(),
+    sendToUser: vi.fn(),
     getCursorPositions: () => new Map(),
     persistState: vi.fn().mockResolvedValue(undefined),
   };
 }
 
-export function makeConn(id = 'conn-1'): PluginConnection {
-  return { id, userId: id, send: vi.fn() };
+export function makeConn(id = 'conn-1', userId?: string): PluginConnection {
+  return { id, userId: userId ?? id, send: vi.fn() };
 }
 
 export function lastSent(conn: PluginConnection): unknown {

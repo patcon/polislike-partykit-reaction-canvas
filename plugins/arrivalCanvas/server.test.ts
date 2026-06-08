@@ -1,18 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { ArrivalCanvasServerPlugin } from './server';
-import type { PluginConnection, PluginContext } from '../types';
-
-function makeCtx(): PluginContext {
-  return {
-    broadcast: vi.fn(),
-    getCursorPositions: () => new Map(),
-    persistState: vi.fn().mockResolvedValue(undefined),
-  };
-}
-
-function makeConn(id = 'conn-1'): PluginConnection {
-  return { id, userId: id, send: vi.fn() };
-}
+import { makeCtx, makeConn } from '../testHelpers';
 
 describe('ArrivalCanvasServerPlugin', () => {
   it('createState defaults capacity to 50', () => {

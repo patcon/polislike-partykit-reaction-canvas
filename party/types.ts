@@ -137,13 +137,6 @@ export interface StrokeSegmentEvent {
 export interface ClearSignatureEvent     { type: 'clearSignature'; userId: string }
 
 
-export interface JoinCallQueueEvent      { type: 'joinCallQueue' }
-export interface LeaveCallQueueEvent     { type: 'leaveCallQueue' }
-export interface WebRTCOfferEvent        { type: 'webrtcOffer';  targetUserId: string; offer: unknown }
-export interface WebRTCAnswerEvent       { type: 'webrtcAnswer'; targetUserId: string; answer: unknown }
-export interface WebRTCIceEvent          { type: 'webrtcIce';    targetUserId: string; candidate: unknown }
-export interface HangUpCallEvent         { type: 'hangUp';       targetUserId: string }
-export interface SetCallAlgorithmEvent   { type: 'setCallAlgorithm'; algorithm: string }
 export interface SetArrivalCapacityEvent { type: 'setArrivalCapacity'; capacity: number }
 
 export interface NeighborEdgeEvent          { type: 'neighborEdge';       from: string; toCode: string }
@@ -165,7 +158,6 @@ export type ClientEvent =
   | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent
   | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent
   | ClearSignatureEvent
-  | JoinCallQueueEvent | LeaveCallQueueEvent | WebRTCOfferEvent | WebRTCAnswerEvent
-  | WebRTCIceEvent | HangUpCallEvent | SetCallAlgorithmEvent | SetArrivalCapacityEvent
+  | SetArrivalCapacityEvent
   | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent
   | SetLightColorEvent;

@@ -1,19 +1,8 @@
 import { describe, it, expect, vi } from 'vitest';
 import { NeighborServerPlugin } from './server';
+import { makeCtx, makeConn } from '../testHelpers';
 import type { PluginConnection, PluginContext } from '../types';
 import type { NeighborState } from './types';
-
-function makeCtx(): PluginContext {
-  return {
-    broadcast: vi.fn(),
-    getCursorPositions: () => new Map(),
-    persistState: vi.fn().mockResolvedValue(undefined),
-  };
-}
-
-function makeConn(id = 'conn-1', userId = 'user-1'): PluginConnection {
-  return { id, userId, send: vi.fn() };
-}
 
 function sent(conn: PluginConnection): unknown[] {
   return (conn.send as ReturnType<typeof vi.fn>).mock.calls.map((c) => JSON.parse(c[0]));

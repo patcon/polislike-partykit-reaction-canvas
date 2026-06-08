@@ -1,19 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { SocialSharingServerPlugin } from './server';
-import type { PluginConnection, PluginContext } from '../types';
+import { makeCtx, makeConn } from '../testHelpers';
 import type { SocialConfig } from '../../app/types';
-
-function makeCtx(): PluginContext {
-  return {
-    broadcast: vi.fn(),
-    getCursorPositions: () => new Map(),
-    persistState: vi.fn().mockResolvedValue(undefined),
-  };
-}
-
-function makeConn(id = 'conn-1'): PluginConnection {
-  return { id, userId: id, send: vi.fn() };
-}
 
 const sampleConfig: SocialConfig = {
   default: 'hello #event',

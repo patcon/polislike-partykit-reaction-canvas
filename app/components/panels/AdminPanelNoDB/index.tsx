@@ -11,7 +11,6 @@ import OfferInterfaceModal from "./OfferInterfaceModal";
 import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
 import PanelSettingsModalReactionCanvas from "./PanelSettingsModalReactionCanvas";
-import PanelSettingsModalVoiceCall from "./PanelSettingsModalVoiceCall";
 import { AdminSocketContext, createAdminSocketBus } from "./AdminSocketContext";
 import { PLUGIN_MAP } from "../../../../plugins";
 import RecordTab from "./tabs/RecordTab";
@@ -301,7 +300,6 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
             activity={roomConfig.activity}
             sendActivity={roomConfig.sendActivity}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
-            setVoiceCallConfigOpen={roomConfig.setVoiceCallConfigOpen}
             setActiveConfigPlugin={setActiveConfigPluginId}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
             userId={userId}
@@ -458,13 +456,6 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
           valenceInputMode={roomConfig.valenceInputMode}
           onChangeValenceInputMode={roomConfig.sendValenceInputMode}
           onClose={() => roomConfig.setCanvasSettingsOpen(false)}
-        />
-      )}
-      {roomConfig.voiceCallConfigOpen && (
-        <PanelSettingsModalVoiceCall
-          currentAlgorithm={roomConfig.callAlgorithm}
-          onSubmit={roomConfig.sendCallAlgorithm}
-          onClose={() => roomConfig.setVoiceCallConfigOpen(false)}
         />
       )}
       {activeConfigPluginId && (() => {

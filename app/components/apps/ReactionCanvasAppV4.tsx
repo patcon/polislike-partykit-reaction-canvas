@@ -28,13 +28,10 @@ import HapticIndicatorButton from "../shared/HapticIndicatorButton";
 import { useHapticPriming } from "../../hooks/useHapticPriming";
 import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
 import { useWakeLock } from "../../utils/useWakeLock";
-import VoiceCallPanel from "../panels/VoiceCallPanel";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 import { PLUGIN_MAP } from "../../../plugins/index";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
-  'voice-call':    VoiceCallPanel,
-  // Plugin-provided components (panels distributed as packages)
   ...Object.fromEntries(
     Object.entries(PLUGIN_MAP)
       .filter(([, p]) => p.component)

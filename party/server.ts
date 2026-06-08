@@ -18,8 +18,7 @@ import type {
   PushHapticEvent, RegisterCustomAvatarEvent, SetColorCursorsByVoteEvent,
   SetDefaultCursorColorEvent, SetOwnValenceDisplayEvent, SetValenceInputModeEvent,
   RecordInvitationsEvent,
-  WebRTCOfferEvent, WebRTCAnswerEvent, WebRTCIceEvent, HangUpCallEvent,
-  SetCallAlgorithmEvent, SetArrivalCapacityEvent,
+  SetArrivalCapacityEvent,
 } from './types';
 
 export default class Server implements Party.Server {
@@ -53,10 +52,7 @@ export default class Server implements Party.Server {
   private readonly BAT_SIGNAL_FIBONACCI = [3, 5, 8, 13, 21, 34, 55, 89, 144, 233];
   private maxParticipantCount = 0;
   private lastFibNotifiedIndex = -1;
-private callQueue: string[] = [];
-  private callPairs: Map<string, string> = new Map();
-  private callAlgorithm: string = 'first-available';
-  private pluginStates = new Map<string, unknown>(
+private pluginStates = new Map<string, unknown>(
     Object.entries(PLUGIN_MAP)
       .filter(([, p]) => p.server)
       .map(([id, p]) => [id, p.server!.createState()]),
@@ -71,6 +67,9 @@ private callQueue: string[] = [];
   private makePluginContext(): PluginContext {
     return {
       broadcast: (msg) => this.room.broadcast(msg),
+      sendToUser: (userId, msg) => {
+        for (const conn of this.getTargetConnections(userId)) conn.send(msg);
+      },
       getCursorPositions: () => this.cursorPositions,
       persistState: () => this.persistState(),
     };
@@ -253,7 +252,6 @@ private callQueue: string[] = [];
       defaultCursorColor: this.defaultCursorColor,
       ownValenceDisplay: this.ownValenceDisplay,
       valenceInputMode: this.valenceInputMode,
-      callAlgorithm: this.callAlgorithm,
     }));
 
     const pluginCtx = this.makePluginContext();
@@ -283,17 +281,6 @@ private callQueue: string[] = [];
 
     if (!isAdmin && userId && !userStillConnected) {
       this.room.broadcast(JSON.stringify({ type: 'userLeft', userId, wasViewer }));
-      // Call queue cleanup
-      const qIdx = this.callQueue.indexOf(userId);
-      if (qIdx !== -1) this.callQueue.splice(qIdx, 1);
-      const peerId = this.callPairs.get(userId);
-      if (peerId) {
-        this.callPairs.delete(userId);
-        this.callPairs.delete(peerId);
-        for (const conn of this.getTargetConnections(peerId)) {
-          conn.send(JSON.stringify({ type: 'hangUp', fromUserId: userId }));
-        }
-      }
     }
 
     const count = this.participantCount();
@@ -363,13 +350,6 @@ private callQueue: string[] = [];
         case 'setColorCursorsByVote': this.handleSetColorCursorsByVote(event, sender); break;
         case 'registerCustomAvatar': this.handleRegisterCustomAvatar(event); break;
         case 'recordInvitations': this.handleRecordInvitations(event); break;
-case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
-        case 'leaveCallQueue': this.handleLeaveCallQueue(sender); break;
-        case 'webrtcOffer':
-        case 'webrtcAnswer':
-        case 'webrtcIce': this.handleWebrtcSignaling(event, sender); break;
-        case 'hangUp': this.handleHangUp(event, sender); break;
-        case 'setCallAlgorithm': this.handleSetCallAlgorithm(event, sender); break;
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
@@ -595,58 +575,6 @@ case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
     }
     if (newEdges.length > 0) {
       this.room.broadcast(JSON.stringify({ type: 'inviteEdges', edges: newEdges }));
-    }
-  }
-
-  // --- Voice call handlers ---
-
-  private handleJoinCallQueue(sender: Party.Connection): void {
-    const senderId = this.connectionUserMap.get(sender.id);
-    if (!senderId) return;
-    if (this.callPairs.has(senderId)) return; // already in a call
-    if (this.callQueue.length > 0) {
-      const waiterId = this.callQueue.shift()!;
-      this.callPairs.set(waiterId, senderId);
-      this.callPairs.set(senderId, waiterId);
-      for (const conn of this.getTargetConnections(waiterId)) {
-        conn.send(JSON.stringify({ type: 'callPaired', role: 'initiator', peerId: senderId }));
-      }
-      sender.send(JSON.stringify({ type: 'callPaired', role: 'receiver', peerId: waiterId }));
-    } else {
-      this.callQueue.push(senderId);
-      sender.send(JSON.stringify({ type: 'callQueued' }));
-    }
-  }
-
-  private handleLeaveCallQueue(sender: Party.Connection): void {
-    const senderId = this.connectionUserMap.get(sender.id);
-    if (!senderId) return;
-    const idx = this.callQueue.indexOf(senderId);
-    if (idx !== -1) this.callQueue.splice(idx, 1);
-  }
-
-  private handleWebrtcSignaling(event: WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent, sender: Party.Connection): void {
-    const senderId = this.connectionUserMap.get(sender.id);
-    if (!senderId) return;
-    for (const conn of this.getTargetConnections(event.targetUserId)) {
-      conn.send(JSON.stringify({ ...event, fromUserId: senderId }));
-    }
-  }
-
-  private handleHangUp(event: HangUpCallEvent, sender: Party.Connection): void {
-    const senderId = this.connectionUserMap.get(sender.id);
-    if (!senderId) return;
-    this.callPairs.delete(senderId);
-    const peerId = event.targetUserId;
-    this.callPairs.delete(peerId);
-    for (const conn of this.getTargetConnections(peerId)) {
-      conn.send(JSON.stringify({ type: 'hangUp', fromUserId: senderId }));
-    }
-  }
-
-  private handleSetCallAlgorithm(event: SetCallAlgorithmEvent, sender: Party.Connection): void {
-    if (this.adminConnectionIds.has(sender.id)) {
-      this.callAlgorithm = event.algorithm;
     }
   }
 

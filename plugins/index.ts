@@ -12,6 +12,7 @@ import valenceBeatPadPlugin from './valenceBeatPad/index';
 import signatureCanvasPlugin from './signatureCanvas/index';
 import { neighborPlugin } from './neighbor/index';
 import narrativePlugins from './narrative/index';
+import voiceCallPlugin from './voiceCall/index';
 // import helloWorldPlugin from './helloWorld/index';  // uncomment to activate the helloWorld example plugin
 
 type PluginExport = PanelPlugin | PanelPlugin[];
@@ -30,6 +31,7 @@ const pluginExports: PluginExport[] = [
   signatureCanvasPlugin,
   neighborPlugin,
   narrativePlugins,
+  voiceCallPlugin,
   // helloWorldPlugin,
 ];
 

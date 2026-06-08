@@ -11,7 +11,6 @@ interface InterfacesTabProps {
   activity: ActivityMode;
   sendActivity: (act: ActivityMode) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
-  setVoiceCallConfigOpen: (v: boolean) => void;
   setActiveConfigPlugin: (id: string) => void;
   onClearRoleAssignments: () => void;
   userId?: string;
@@ -42,7 +41,7 @@ function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[
 export default function InterfacesTab({
   activity,
   sendActivity,
-  setCanvasSettingsOpen, setVoiceCallConfigOpen,
+  setCanvasSettingsOpen,
   setActiveConfigPlugin,
   onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
@@ -77,9 +76,6 @@ export default function InterfacesTab({
                   )}
                   {requiresHttps && !window.isSecureContext && (
                     <span title="SSL required — some features unavailable on HTTP" style={{ marginLeft: 6, color: '#f90', fontSize: 12, cursor: 'default' }}>⚠ SSL required</span>
-                  )}
-                  {id === 'voice-call' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setVoiceCallConfigOpen(true); }}><IoMdSettings /></button>
                   )}
                   {PLUGIN_MAP[id]?.configModal && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setActiveConfigPlugin(id); }}><IoMdSettings /></button>

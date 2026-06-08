@@ -15,8 +15,6 @@ export function useRoomConfig(socket: PartySocket) {
   );
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
-  const [voiceCallConfigOpen, setVoiceCallConfigOpen] = useState(false);
-const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available');
 
   const sendAvatarStyle = (style: string | null) => {
     setAvatarStyle(style);
@@ -48,11 +46,6 @@ const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available'
     socket.send(JSON.stringify({ type: 'setActivity', activity: act }));
   };
 
-  const sendCallAlgorithm = (algorithm: string) => {
-    setCallAlgorithm(algorithm);
-    socket.send(JSON.stringify({ type: 'setCallAlgorithm', algorithm }));
-  };
-
   const sendUserCap = (inputValue: string) => {
     const parsed = parseInt(inputValue, 10);
     const cap = inputValue === '' || parsed <= 0 ? null : parsed;
@@ -66,7 +59,6 @@ const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available'
     if ('ownValenceDisplay' in data && data.ownValenceDisplay) setOwnValenceDisplay(data.ownValenceDisplay as 'background' | 'labels' | 'none');
     if ('valenceInputMode' in data && data.valenceInputMode) setValenceInputMode(data.valenceInputMode as ValenceInputMode);
     if ('currentActivity' in data) setActivity((data.currentActivity as ActivityMode) ?? 'canvas');
-    if ('callAlgorithm' in data && data.callAlgorithm) setCallAlgorithm(data.callAlgorithm as string);
     if (data.userCap !== undefined) {
       setUserCap(data.userCap as number | null);
       setCapInput(data.userCap !== null ? String(data.userCap) : '');
@@ -112,8 +104,5 @@ const [callAlgorithm, setCallAlgorithm]     = useState<string>('first-available'
     sendOwnValenceDisplay,
     valenceInputMode, setValenceInputMode,
     sendValenceInputMode,
-    voiceCallConfigOpen, setVoiceCallConfigOpen,
-    callAlgorithm,
-    sendCallAlgorithm,
   };
 }
