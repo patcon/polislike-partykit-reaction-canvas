@@ -4,6 +4,11 @@
 // reflect real client behaviour.
 export const CURSOR_THROTTLE_MS = 33;
 
+// Server-side batching window in ms. The server coalesces cursor events within
+// this window into a single cursorBatch broadcast. Set to 0 to disable batching
+// and broadcast each event immediately (useful for perf comparison).
+export const SERVER_CURSOR_BATCH_MS = 50;
+
 // Smooth cursor config — applied in the main app and perf app.
 // Tune these values in PerfCanvasApp's debug UI, then update here.
 export const SMOOTH_CURSOR_ENABLED = true;

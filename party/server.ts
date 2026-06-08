@@ -5,6 +5,7 @@ import type { ReactionAnchors } from './lib/reactionRegion';
 import { getCurrentActiveStatementId, computeNextDisplayTimestamp, computeClearedQueue } from './lib/queueLogic';
 import type { QueueItem } from './lib/queueLogic';
 import { GhostCursorManager } from './lib/ghostCursors';
+import { SERVER_CURSOR_BATCH_MS } from '../app/utils/cursor';
 import { PLUGIN_MAP } from '../plugins/index';
 import type { PluginContext, PluginConnection } from '../plugins/types';
 import { getSoccerBallState, getSoccerScore } from '../plugins/soccer/server';
@@ -42,6 +43,8 @@ export default class Server implements Party.Server {
   private msgRateInterval?: NodeJS.Timeout;
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
   private cursorPositions = new Map<string, { x: number; y: number }>();
+  private pendingCursorUpdates = new Map<string, CursorEvent>();
+  private batchTimer: ReturnType<typeof setTimeout> | null = null;
   private inviteEdges = new Map<string, string>(); // inviteeId -> inviterId
   private customAvatars = new Map<string, string>(); // userId -> photoUrl
   private colorCursorsByVote: boolean = false;
@@ -360,6 +363,14 @@ private pluginStates = new Map<string, unknown>(
 
   // --- Cursor handlers ---
 
+  private flushCursorBatch(): void {
+    if (this.pendingCursorUpdates.size === 0) return;
+    const cursors = [...this.pendingCursorUpdates.values()];
+    this.pendingCursorUpdates.clear();
+    this.batchTimer = null;
+    this.room.broadcast(JSON.stringify({ type: 'cursorBatch', cursors }));
+  }
+
   private handlePlaybackCursorBroadcast(event: PlaybackCursorBroadcastEvent): void {
     // Admin replaying recorded events — broadcast to ALL clients (including sender)
     // so the admin's own "Peek Canvas" tab also sees playback cursors
@@ -378,7 +389,14 @@ private pluginStates = new Map<string, unknown>(
     } else if (event.type === 'remove') {
       this.cursorPositions.delete(event.position.userId);
     }
-    this.room.broadcast(message, [sender.id]);
+    if (SERVER_CURSOR_BATCH_MS > 0) {
+      this.pendingCursorUpdates.set(event.position.userId, event);
+      if (!this.batchTimer) {
+        this.batchTimer = setTimeout(() => this.flushCursorBatch(), SERVER_CURSOR_BATCH_MS);
+      }
+    } else {
+      this.room.broadcast(message, [sender.id]);
+    }
   }
 
   // --- Statement / queue handlers ---
