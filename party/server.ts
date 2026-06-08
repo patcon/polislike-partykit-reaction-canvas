@@ -265,6 +265,9 @@ private pluginStates = new Map<string, unknown>(
     const userId = this.connectionUserMap.get(conn.id);
     const isAdmin = this.adminConnectionIds.has(conn.id);
     const wasViewer = this.viewerConnectionIds.has(conn.id);
+    // Capture pluginConn before deleting from connectionUserMap — makePluginConn
+    // reads the map, so it must run while the entry is still present.
+    const pluginConn = this.makePluginConn(conn);
 
     this.adminConnectionIds.delete(conn.id);
     this.viewerConnectionIds.delete(conn.id);
@@ -287,7 +290,6 @@ private pluginStates = new Map<string, unknown>(
     this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: this.viewerCount() }));
 
     const pluginCtx = this.makePluginContext();
-    const pluginConn = this.makePluginConn(conn);
     for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
       if (plugin.server?.onClose) plugin.server.onClose(pluginConn, pluginCtx, this.pluginStates.get(id));
     }
