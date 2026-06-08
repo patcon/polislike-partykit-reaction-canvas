@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import usePartySocket from 'partysocket/react';
 import { usePanelContext } from "../../app/context/PanelContext";
 import { getPartySocketConfig } from '../../app/utils/partyHost';
+import { expandCursorEvents } from '../../app/utils/cursor';
 import { generateUUID } from '../../app/utils/userId';
 import { computeCursorValence, computeReactionRegion } from '../../app/utils/voteRegion';
 
@@ -282,20 +283,24 @@ export default function MoodTonesPanel() {
       try { data = JSON.parse(evt.data as string); } catch { return; }
       if (data.type === 'presenceCount') {
         setAudienceCount(data.count ?? 0);
-      } else if (data.type === 'move' || data.type === 'touch') {
-        const { userId, x, y } = data.position!;
-        const region = computeReactionRegion(x, y) ?? 'neutral';
-        const prevRegion = cursorRegionsRef.current.get(userId);
-        cursorsRef.current.set(userId, { x, y, region });
-        if (valenceModeRef.current === 'continuous' || region !== prevRegion) {
-          cursorRegionsRef.current.set(userId, region);
-          applyAudienceMood();
+      } else {
+        for (const e of expandCursorEvents(data)) {
+          if (e.type === 'move' || e.type === 'touch') {
+            const { userId, x, y } = e.position;
+            const region = computeReactionRegion(x, y) ?? 'neutral';
+            const prevRegion = cursorRegionsRef.current.get(userId);
+            cursorsRef.current.set(userId, { x, y, region });
+            if (valenceModeRef.current === 'continuous' || region !== prevRegion) {
+              cursorRegionsRef.current.set(userId, region);
+              applyAudienceMood();
+            }
+          } else if (e.type === 'remove') {
+            const { userId } = e.position;
+            cursorsRef.current.delete(userId);
+            cursorRegionsRef.current.delete(userId);
+            applyAudienceMood();
+          }
         }
-      } else if (data.type === 'remove') {
-        const { userId } = data.position!;
-        cursorsRef.current.delete(userId);
-        cursorRegionsRef.current.delete(userId);
-        applyAudienceMood();
       }
     },
   });

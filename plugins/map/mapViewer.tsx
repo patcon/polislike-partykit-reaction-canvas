@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import usePartySocket from 'partysocket/react';
 import * as d3 from 'd3';
 import { getPartySocketConfig } from '../../app/utils/partyHost';
+import { expandCursorEvents } from '../../app/utils/cursor';
 import { usePanelContext } from '../../app/context/PanelContext';
 import { useMapViewerConfig } from './useMapViewerConfig';
 import { idbGet } from '../../app/utils/idbStorage';
@@ -295,20 +296,18 @@ export default function MapViewerPanel() {
         setLiveCursors(prev => { const next = new Map(prev); next.delete(data.userId); return next; });
         return;
       }
-      if (data.type === 'move' || data.type === 'touch') {
-        const { userId: uid, x, y } = data.position;
-        setLiveCursors(prev => new Map(prev).set(uid, { x, y }));
-        const existing = cursorTimers.current.get(uid);
-        if (existing) clearTimeout(existing);
-        cursorTimers.current.set(uid, setTimeout(() => {
-          setLiveCursors(prev => { const next = new Map(prev); next.delete(uid); return next; });
-          cursorTimers.current.delete(uid);
-        }, 3000));
-        return;
-      }
-      if (data.type === 'remove') {
-        const uid = data.position?.userId;
-        if (uid) {
+      for (const e of expandCursorEvents(data)) {
+        if (e.type === 'move' || e.type === 'touch') {
+          const { userId: uid, x, y } = e.position;
+          setLiveCursors(prev => new Map(prev).set(uid, { x, y }));
+          const existing = cursorTimers.current.get(uid);
+          if (existing) clearTimeout(existing);
+          cursorTimers.current.set(uid, setTimeout(() => {
+            setLiveCursors(prev => { const next = new Map(prev); next.delete(uid); return next; });
+            cursorTimers.current.delete(uid);
+          }, 3000));
+        } else if (e.type === 'remove') {
+          const { userId: uid } = e.position;
           setLiveCursors(prev => { const next = new Map(prev); next.delete(uid); return next; });
           const t = cursorTimers.current.get(uid);
           if (t) { clearTimeout(t); cursorTimers.current.delete(uid); }

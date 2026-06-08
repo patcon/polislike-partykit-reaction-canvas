@@ -103,8 +103,15 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
     onMessage(evt) {
       try {
         const data = JSON.parse(evt.data);
-        dispatchRef.current(data);
-        busRef.current.notify(data);
+        if (data.type === 'cursorBatch' && Array.isArray(data.cursors)) {
+          for (const cursorEvent of data.cursors) {
+            dispatchRef.current(cursorEvent);
+            busRef.current.notify(cursorEvent);
+          }
+        } else {
+          dispatchRef.current(data);
+          busRef.current.notify(data);
+        }
       } catch (e) {
         console.error('AdminPanelV4: failed to parse message', e);
       }

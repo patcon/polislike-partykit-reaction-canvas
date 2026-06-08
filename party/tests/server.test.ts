@@ -3,6 +3,10 @@ import type * as Party from 'partykit/server';
 import Server from '../server';
 import { createMockRoom, createMockConnection, makeConnectCtx } from './helpers/mockParty';
 
+// Mutable mock so individual describe blocks can test both batching modes.
+const cursorMock = vi.hoisted(() => ({ SERVER_CURSOR_BATCH_MS: 50 }));
+vi.mock('../../app/utils/cursor', () => cursorMock);
+
 // Helper: JSON-encode a client event for onMessage
 function msg(event: object): string {
   return JSON.stringify(event);
@@ -51,28 +55,90 @@ describe('Server onMessage handlers', () => {
   // -----------------------------------------------------------------------
 
   describe('cursor: move / touch / remove', () => {
-    it('move: tracks position and broadcasts to others', () => {
-      const { conn } = connectUser('alice');
-      server.onMessage(msg({ type: 'move', position: { userId: 'alice', x: 0.5, y: 0.3, timestamp: 1 } }), conn);
-      expect(broadcast).toHaveBeenCalledOnce();
-      expect(broadcast.mock.calls[0][1]).toEqual([conn.id]); // excludes sender
+    describe('batching disabled (SERVER_CURSOR_BATCH_MS = 0)', () => {
+      beforeEach(() => { cursorMock.SERVER_CURSOR_BATCH_MS = 0; });
+      afterEach(() => { cursorMock.SERVER_CURSOR_BATCH_MS = 50; });
+
+      it('move: tracks position and broadcasts immediately to others', () => {
+        const { conn } = connectUser('alice');
+        server.onMessage(msg({ type: 'move', position: { userId: 'alice', x: 0.5, y: 0.3, timestamp: 1 } }), conn);
+        expect(broadcast).toHaveBeenCalledOnce();
+        expect(broadcast.mock.calls[0][1]).toEqual([conn.id]); // excludes sender
+        const payload = JSON.parse(broadcast.mock.calls[0][0] as string);
+        expect(payload.type).toBe('move');
+      });
+
+      it('touch: tracks position and broadcasts immediately to others', () => {
+        const { conn } = connectUser('alice');
+        server.onMessage(msg({ type: 'touch', position: { userId: 'alice', x: 0.2, y: 0.8, timestamp: 1 } }), conn);
+        expect(broadcast).toHaveBeenCalledOnce();
+        expect(broadcast.mock.calls[0][1]).toEqual([conn.id]);
+        const payload = JSON.parse(broadcast.mock.calls[0][0] as string);
+        expect(payload.type).toBe('touch');
+      });
+
+      it('remove: removes tracked position and broadcasts immediately to others', () => {
+        const { conn } = connectUser('alice');
+        server.onMessage(msg({ type: 'move', position: { userId: 'alice', x: 0.5, y: 0.5, timestamp: 1 } }), conn);
+        broadcast.mockClear();
+        server.onMessage(msg({ type: 'remove', position: { userId: 'alice', x: 0, y: 0, timestamp: 2 } }), conn);
+        expect(broadcast).toHaveBeenCalledOnce();
+        expect(broadcast.mock.calls[0][1]).toEqual([conn.id]);
+        const payload = JSON.parse(broadcast.mock.calls[0][0] as string);
+        expect(payload.type).toBe('remove');
+      });
     });
 
-    it('touch: tracks position and broadcasts to others', () => {
-      const { conn } = connectUser('alice');
-      server.onMessage(msg({ type: 'touch', position: { userId: 'alice', x: 0.2, y: 0.8, timestamp: 1 } }), conn);
-      expect(broadcast).toHaveBeenCalledOnce();
-      expect(broadcast.mock.calls[0][1]).toEqual([conn.id]);
-    });
+    describe('batching enabled (SERVER_CURSOR_BATCH_MS = 50)', () => {
+      beforeEach(() => { cursorMock.SERVER_CURSOR_BATCH_MS = 50; vi.useFakeTimers(); });
+      afterEach(() => { vi.useRealTimers(); });
 
-    it('remove: removes tracked position and broadcasts to others', () => {
-      const { conn } = connectUser('alice');
-      // First establish a position
-      server.onMessage(msg({ type: 'move', position: { userId: 'alice', x: 0.5, y: 0.5, timestamp: 1 } }), conn);
-      broadcast.mockClear();
-      server.onMessage(msg({ type: 'remove', position: { userId: 'alice', x: 0, y: 0, timestamp: 2 } }), conn);
-      expect(broadcast).toHaveBeenCalledOnce();
-      expect(broadcast.mock.calls[0][1]).toEqual([conn.id]);
+      it('move: not broadcast until timer fires, then cursorBatch to all', () => {
+        const { conn } = connectUser('alice');
+        server.onMessage(msg({ type: 'move', position: { userId: 'alice', x: 0.5, y: 0.3, timestamp: 1 } }), conn);
+        expect(broadcast).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(50);
+        expect(broadcast).toHaveBeenCalledOnce();
+        const payload = JSON.parse(broadcast.mock.calls[0][0] as string);
+        expect(payload.type).toBe('cursorBatch');
+        expect(payload.cursors[0]).toMatchObject({ type: 'move', position: { userId: 'alice' } });
+      });
+
+      it('touch: not broadcast until timer fires, then cursorBatch to all', () => {
+        const { conn } = connectUser('alice');
+        server.onMessage(msg({ type: 'touch', position: { userId: 'alice', x: 0.2, y: 0.8, timestamp: 1 } }), conn);
+        expect(broadcast).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(50);
+        expect(broadcast).toHaveBeenCalledOnce();
+        const payload = JSON.parse(broadcast.mock.calls[0][0] as string);
+        expect(payload.type).toBe('cursorBatch');
+        expect(payload.cursors[0]).toMatchObject({ type: 'touch', position: { userId: 'alice' } });
+      });
+
+      it('remove: not broadcast until timer fires, then cursorBatch to all', () => {
+        const { conn } = connectUser('alice');
+        server.onMessage(msg({ type: 'move', position: { userId: 'alice', x: 0.5, y: 0.5, timestamp: 1 } }), conn);
+        vi.advanceTimersByTime(50);
+        broadcast.mockClear();
+        server.onMessage(msg({ type: 'remove', position: { userId: 'alice', x: 0, y: 0, timestamp: 2 } }), conn);
+        expect(broadcast).not.toHaveBeenCalled();
+        vi.advanceTimersByTime(50);
+        expect(broadcast).toHaveBeenCalledOnce();
+        const payload = JSON.parse(broadcast.mock.calls[0][0] as string);
+        expect(payload.type).toBe('cursorBatch');
+        expect(payload.cursors[0]).toMatchObject({ type: 'remove', position: { userId: 'alice' } });
+      });
+
+      it('coalesces rapid moves from the same user into one cursor entry', () => {
+        const { conn } = connectUser('alice');
+        server.onMessage(msg({ type: 'move', position: { userId: 'alice', x: 0.1, y: 0.1, timestamp: 1 } }), conn);
+        server.onMessage(msg({ type: 'move', position: { userId: 'alice', x: 0.9, y: 0.9, timestamp: 2 } }), conn);
+        vi.advanceTimersByTime(50);
+        expect(broadcast).toHaveBeenCalledOnce();
+        const payload = JSON.parse(broadcast.mock.calls[0][0] as string);
+        expect(payload.cursors).toHaveLength(1); // coalesced
+        expect(payload.cursors[0].position).toMatchObject({ x: 0.9, y: 0.9 }); // latest wins
+      });
     });
   });
 

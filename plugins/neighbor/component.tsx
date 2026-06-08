@@ -3,6 +3,7 @@ import usePartySocket from 'partysocket/react';
 import * as d3 from 'd3';
 import { usePanelContext } from '../../app/context/PanelContext';
 import { getPartySocketConfig } from '../../app/utils/partyHost';
+import { expandCursorEvents } from '../../app/utils/cursor';
 import { generateUUID } from '../../app/utils/userId';
 import { computeReactionRegion, DEFAULT_ANCHORS } from '../../app/utils/voteRegion';
 import type { ReactionAnchors } from '../../app/utils/voteRegion';
@@ -171,13 +172,18 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       } else if (msg.type === 'roomAnchorsChanged') {
         anchorsRef.current = msg.anchors ?? DEFAULT_ANCHORS;
         updateNodeColors();
-      } else if (msg.type === 'move' || msg.type === 'touch') {
-        const { userId, x, y } = msg.position;
-        liveCursorsRef.current.set(userId, { x, y });
-        updateNodeColors();
-      } else if (msg.type === 'remove') {
-        liveCursorsRef.current.delete(msg.position.userId);
-        updateNodeColors();
+      } else if (msg.type === 'move' || msg.type === 'touch' || msg.type === 'remove' || msg.type === 'cursorBatch') {
+        let changed = false;
+        for (const e of expandCursorEvents(msg)) {
+          if (e.type === 'move' || e.type === 'touch') {
+            liveCursorsRef.current.set(e.position.userId, { x: e.position.x, y: e.position.y });
+            changed = true;
+          } else if (e.type === 'remove') {
+            liveCursorsRef.current.delete(e.position.userId);
+            changed = true;
+          }
+        }
+        if (changed) updateNodeColors();
       } else if (msg.type === 'userJoined') {
         const uid: string = msg.userId;
         const existing = nodesRef.current.find(n => n.id === uid);

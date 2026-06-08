@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import usePartySocket from 'partysocket/react';
 import { usePanelContext } from "../../app/context/PanelContext";
 import { getPartySocketConfig } from '../../app/utils/partyHost';
+import { expandCursorEvents } from '../../app/utils/cursor';
 import { generateUUID } from '../../app/utils/userId';
 import { computeCursorValence } from '../../app/utils/voteRegion';
 
@@ -337,13 +338,17 @@ export default function ValenceBeatPadPanel() {
       try { data = JSON.parse(evt.data as string); } catch { return; }
       if (data.type === 'presenceCount') {
         setAudienceCount(data.count ?? 0);
-      } else if (data.type === 'move' || data.type === 'touch') {
-        const { userId, x, y } = data.position!;
-        cursorsRef.current.set(userId, { x, y });
-        applyAudienceMood();
-      } else if (data.type === 'remove') {
-        cursorsRef.current.delete(data.position!.userId);
-        applyAudienceMood();
+      } else {
+        for (const e of expandCursorEvents(data)) {
+          if (e.type === 'move' || e.type === 'touch') {
+            const { userId, x, y } = e.position;
+            cursorsRef.current.set(userId, { x, y });
+            applyAudienceMood();
+          } else if (e.type === 'remove') {
+            cursorsRef.current.delete(e.position.userId);
+            applyAudienceMood();
+          }
+        }
       }
     },
   });
