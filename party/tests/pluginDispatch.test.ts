@@ -52,6 +52,10 @@ vi.mock('../../plugins/soccer/server', () => ({
   getSoccerScore:     () => ({ left: 0, right: 0 }),
 }));
 
+// Disable cursor batching so dispatch tests get immediate broadcasts
+// without needing fake timers. Batching behaviour is tested in server.test.ts.
+vi.mock('../../app/utils/cursor', () => ({ SERVER_CURSOR_BATCH_MS: 0 }));
+
 import Server from '../server';
 import { createMockRoom, createMockConnection, makeConnectCtx } from './helpers/mockParty';
 
