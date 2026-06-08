@@ -1,5 +1,5 @@
+import { useState } from "react";
 import { useAdminSocket } from '../../app/components/panels/AdminPanelNoDB/AdminSocketContext';
-import PanelSettingsModalSocialMedia from '../../app/components/modals/PanelSettingsModalSocialMedia';
 import type { SocialConfig } from '../../app/types';
 
 export default function SocialSharingConfigModal({ onClose }: { onClose: () => void }) {
@@ -7,15 +7,79 @@ export default function SocialSharingConfigModal({ onClose }: { onClose: () => v
 
   const current = getLastMessage('socialConfigChanged')?.config as SocialConfig | null | undefined;
 
-  const handleSubmit = (config: SocialConfig) => {
-    send({ type: 'setSocialConfig', config });
+  const [defaultText, setDefaultText] = useState(current?.default ?? '');
+  const [twitter, setTwitter] = useState(current?.twitter ?? '');
+  const [bluesky, setBluesky] = useState(current?.bluesky ?? '');
+  const [mastodon, setMastodon] = useState(current?.mastodon ?? '');
+  const [instagram, setInstagram] = useState(current?.instagram ?? '');
+
+  const handleSave = () => {
+    send({ type: 'setSocialConfig', config: { default: defaultText, twitter, bluesky, mastodon, instagram } });
+    onClose();
   };
 
   return (
-    <PanelSettingsModalSocialMedia
-      current={current}
-      onSubmit={handleSubmit}
-      onClose={onClose}
-    />
+    <div className="app-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="app-modal">
+        <p className="app-modal-title">Social sharing config</p>
+        <p className="app-modal-body">Set the prefilled text for each platform. Fields are joined with a space. Leave a field empty to hide that platform's button.</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 12, color: '#aaa' }}>Default (all platforms)</span>
+            <input
+              className="app-modal-input"
+              type="text"
+              value={defaultText}
+              onChange={e => setDefaultText(e.target.value)}
+              placeholder="some text and #hashtag"
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 12, color: '#aaa' }}>Twitter / X</span>
+            <input
+              className="app-modal-input"
+              type="text"
+              value={twitter}
+              onChange={e => setTwitter(e.target.value)}
+              placeholder="@handle"
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 12, color: '#aaa' }}>Bluesky</span>
+            <input
+              className="app-modal-input"
+              type="text"
+              value={bluesky}
+              onChange={e => setBluesky(e.target.value)}
+              placeholder="@handle"
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 12, color: '#aaa' }}>Mastodon</span>
+            <input
+              className="app-modal-input"
+              type="text"
+              value={mastodon}
+              onChange={e => setMastodon(e.target.value)}
+              placeholder="@handle@instance"
+            />
+          </label>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+            <span style={{ fontSize: 12, color: '#aaa' }}>Instagram (text copied to clipboard)</span>
+            <input
+              className="app-modal-input"
+              type="text"
+              value={instagram}
+              onChange={e => setInstagram(e.target.value)}
+              placeholder="@handle"
+            />
+          </label>
+        </div>
+        <button className="app-modal-btn-primary" onClick={handleSave} style={{ marginTop: 16 }}>
+          Save
+        </button>
+        <button className="app-modal-btn-dismiss" onClick={onClose}>Cancel</button>
+      </div>
+    </div>
   );
 }
