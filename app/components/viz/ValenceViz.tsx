@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { generateUUID } from "../../utils/userId";
+import { expandCursorEvents } from "../../utils/cursor";
 
 const CAM_MODES = ['static', 'lerp', 'exp', 'spring', 'quat'];
 
@@ -818,8 +819,9 @@ export default function ValenceViz() {
           assignLiveSlot(data.userId);
         } else if (data.type==='userLeft') {
           cursors.delete(data.userId); freeLiveSlot(data.userId);
-        } else if (data.type==='cursorBatch') {
-          for (const e of (data.cursors??[])) {
+        } else {
+          const events = expandCursorEvents(data);
+          for (const e of events) {
             if (e.type==='move'||e.type==='touch') {
               const {userId,x,y}=e.position;
               cursors.set(userId,{x,y}); assignLiveSlot(userId);
@@ -828,14 +830,7 @@ export default function ValenceViz() {
               if (userId.startsWith('replay_')) freeLiveSlot(userId);
             }
           }
-          setAudienceN(cursors.size);
-        } else if (data.type==='move'||data.type==='touch') {
-          const {userId,x,y}=data.position;
-          cursors.set(userId,{x,y}); assignLiveSlot(userId); setAudienceN(cursors.size);
-        } else if (data.type==='remove') {
-          const {userId}=data.position; cursors.delete(userId);
-          if (userId.startsWith('replay_')) freeLiveSlot(userId);
-          setAudienceN(cursors.size);
+          if (events.length > 0) setAudienceN(cursors.size);
         }
       };
       ws.onerror=()=>{ setWsStatusText('connection error'); setWsStatusCls('warn'); };
