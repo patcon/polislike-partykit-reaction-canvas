@@ -204,13 +204,19 @@ export default function VoiceCallPanel() {
   const wrtc = useWebRTCCall(sendRef, localStream);
   dispatchRef.current = wrtc.handleServerMessage;
 
-  // Attach remote audio stream, then try to route to earpiece (best-effort, Firefox Android)
+  // Attach remote audio stream, then try to route to earpiece on Android.
+  // Desktop browsers handle output routing via the OS — setSinkId() is skipped
+  // there to avoid accidentally selecting virtual/aggregate devices (e.g. BlackHole).
   useEffect(() => {
     const el = remoteAudioRef.current;
     if (!el || !wrtc.remoteStream) return;
     el.srcObject = wrtc.remoteStream;
     el.play().catch(() => {});
 
+    if (!platform.isAndroid) {
+      setSelectedSinkLabel('(desktop — OS handles routing)');
+      return;
+    }
     if (!('setSinkId' in el)) {
       setSelectedSinkLabel('(setSinkId not supported)');
       return;
@@ -227,7 +233,7 @@ export default function VoiceCallPanel() {
         setSelectedSinkLabel('(no earpiece device found)');
       }
     }).catch(() => setSelectedSinkLabel('(enumerateDevices failed)'));
-  }, [wrtc.remoteStream]);
+  }, [wrtc.remoteStream]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Call duration timer
   useEffect(() => {
