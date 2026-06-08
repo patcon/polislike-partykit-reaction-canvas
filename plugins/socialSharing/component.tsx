@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { FaXTwitter, FaBluesky, FaMastodon, FaInstagram } from "react-icons/fa6";
 import type { SocialConfig } from "../../app/types";
-import { useSocialMediaConfig } from "../../app/context/PanelConfigs";
+import { useSocialMediaConfig } from "./context";
 
 function buildPostText(defaultText: string, platformText: string): string {
   return [defaultText.trim(), platformText.trim()].filter(Boolean).join(' ');

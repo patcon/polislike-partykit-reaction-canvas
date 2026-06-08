@@ -9,7 +9,11 @@ import type { PanelDefinition } from "../../panelRegistry";
 import { PanelContextProvider } from "../../context/PanelContext";
 import { GreeterConfigProvider } from "../../../plugins/greeter/useGreeterConfig";
 import type { GreeterConfig } from "../../../plugins/greeter/types";
-import { SocialMediaConfigProvider, ImageCanvasConfigProvider } from "../../context/PanelConfigs";
+// TODO: plugins should declare their own providers so the app can wrap them
+// generically (e.g. via a PanelPlugin.provider field) rather than importing
+// each by name here.
+import { SocialMediaConfigProvider } from "../../../plugins/socialSharing/context";
+import { ImageCanvasConfigProvider } from "../../../plugins/imageCanvas/context";
 import GithubUsernameModal from "../modals/GithubUsernameModal";
 import FeedbackStarsModal from "../modals/FeedbackStarsModal";
 import InterfacePushModal from "../modals/InterfacePushModal";

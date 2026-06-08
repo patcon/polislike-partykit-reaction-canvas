@@ -1,4 +1,4 @@
-import { useImageCanvasConfig } from '../../app/context/PanelConfigs';
+import { useImageCanvasConfig } from './context';
 
 export default function ImageCanvasBackground() {
   const { imageUrl } = useImageCanvasConfig();

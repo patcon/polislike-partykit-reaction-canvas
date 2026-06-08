@@ -24,8 +24,8 @@ export const PATCHABLE_PANELS = PANEL_REGISTRY.filter(p => p.patchable);
 
 /**
  * A fully registered panel: metadata + a prop-free component.
- * All dependencies are provided via PanelContext and the panel-specific
- * config contexts in app/context/PanelConfigs.tsx.
+ * All dependencies are provided via PanelContext and plugin-owned contexts
+ * (e.g. plugins/socialSharing/context.ts, plugins/imageCanvas/context.ts).
  */
 export interface PanelDefinition extends PanelMeta {
   component: React.ComponentType;
