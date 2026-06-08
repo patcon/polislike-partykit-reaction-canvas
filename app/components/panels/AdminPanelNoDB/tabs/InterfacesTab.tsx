@@ -5,19 +5,13 @@ import QRWithCopy from '../../../shared/QRWithCopy';
 import type { ActivityMode } from "../../../../types";
 import { appendSelfToChain } from "../../../../utils/inviteChain";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../../../panelRegistry";
+import { PLUGIN_MAP } from "../../../../../plugins/index";
 
 interface InterfacesTabProps {
   activity: ActivityMode;
-  soccerScore: { left: number; right: number };
   sendActivity: (act: ActivityMode) => void;
-  resetSoccerScore: () => void;
-  setImageConfigOpen: (v: boolean) => void;
-  setSocialConfigOpen: (v: boolean) => void;
-  setGreeterConfigOpen: (v: boolean) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
-  setVoiceCallConfigOpen: (v: boolean) => void;
-  setMapViewerConfigOpen: (v: boolean) => void;
-  setArrivalConfigOpen: (v: boolean) => void;
+  setActiveConfigPlugin: (id: string) => void;
   onClearRoleAssignments: () => void;
   userId?: string;
   selfChain?: string[];
@@ -45,10 +39,10 @@ function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[
 
 
 export default function InterfacesTab({
-  activity, soccerScore,
-  sendActivity, resetSoccerScore,
-  setImageConfigOpen, setSocialConfigOpen, setGreeterConfigOpen, setCanvasSettingsOpen, setVoiceCallConfigOpen,
-  setMapViewerConfigOpen, setArrivalConfigOpen,
+  activity,
+  sendActivity,
+  setCanvasSettingsOpen,
+  setActiveConfigPlugin,
   onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
@@ -69,7 +63,7 @@ export default function InterfacesTab({
           </tr>
         </thead>
         <tbody>
-          {PANEL_REGISTRY.map(({ id, label, description, patchable, activityMode }) => {
+          {PANEL_REGISTRY.map(({ id, label, description, patchable, activityMode, requiresHttps }) => {
             const isActive = activity === id;
             return (
               <tr key={id} style={{ borderTop: '1px solid #2a2a2a' }}>
@@ -80,26 +74,11 @@ export default function InterfacesTab({
                   {id === 'canvas' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setCanvasSettingsOpen(true); }}><IoMdSettings /></button>
                   )}
-                  {id === 'image-canvas' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setImageConfigOpen(true); }}><IoMdSettings /></button>
+                  {requiresHttps && !window.isSecureContext && (
+                    <span title="SSL required — some features unavailable on HTTP" style={{ marginLeft: 6, color: '#f90', fontSize: 12, cursor: 'default' }}>⚠ SSL required</span>
                   )}
-                  {id === 'social-sharing' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setSocialConfigOpen(true); }}><IoMdSettings /></button>
-                  )}
-                  {id === 'greeter' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setGreeterConfigOpen(true); }}><IoMdSettings /></button>
-                  )}
-                  {(id === 'voice-call' || id === 'steno') && !navigator.mediaDevices && (
-                    <span title="SSL required — microphone unavailable on HTTP" style={{ marginLeft: 6, color: '#f90', fontSize: 12, cursor: 'default' }}>⚠ SSL required</span>
-                  )}
-                  {id === 'voice-call' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setVoiceCallConfigOpen(true); }}><IoMdSettings /></button>
-                  )}
-                  {id === 'map-viewer' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setMapViewerConfigOpen(true); }}><IoMdSettings /></button>
-                  )}
-                  {id === 'arrival-canvas' && (
-                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setArrivalConfigOpen(true); }}><IoMdSettings /></button>
+                  {PLUGIN_MAP[id]?.configModal && (
+                    <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setActiveConfigPlugin(id); }}><IoMdSettings /></button>
                   )}
                 </td>
                 {/* Solo */}
@@ -141,20 +120,6 @@ export default function InterfacesTab({
           })}
         </tbody>
       </table>
-
-      {/* Soccer score — shown when soccer is active */}
-      {activity === 'soccer' && (
-        <div style={{ marginTop: 20, borderTop: '1px solid #444', paddingTop: 16 }}>
-          <p style={{ marginBottom: 10, fontWeight: 600 }}>Soccer settings:</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 12 }}>
-            <span style={{ color: '#aaa', fontSize: 15 }}>Score:</span>
-            <span style={{ fontFamily: 'monospace', fontSize: 22, fontWeight: 700, color: '#eee' }}>
-              {soccerScore.left} – {soccerScore.right}
-            </span>
-          </div>
-          <button className="v3-admin-btn v3-admin-btn--destructive" onClick={resetSoccerScore}>Reset Score</button>
-        </div>
-      )}
 
       {/* Role assignments */}
       <div style={{ marginTop: 32, borderTop: '1px solid #444', paddingTop: 20 }}>

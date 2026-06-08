@@ -12,13 +12,22 @@ const dirname =
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
+  esbuild: { jsx: 'automatic', jsxImportSource: 'react' },
   test: {
     projects: [
       {
         test: {
           name: 'unit',
-          include: ['tests/**/*.test.ts', 'party/**/*.test.ts'],
+          include: ['tests/**/*.test.ts', 'party/**/*.test.ts', 'plugins/**/*.test.ts'],
           environment: 'node',
+        },
+      },
+      {
+        test: {
+          name: 'components',
+          include: ['tests/**/*.test.tsx', 'plugins/**/*.test.tsx'],
+          environment: 'jsdom',
+          setupFiles: ['tests/setup.tsx'],
         },
       },
       {

@@ -51,24 +51,24 @@ export default function GithubUsernameModal({ onSubmit, onDismiss }: GithubUsern
   };
 
   return (
-    <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onDismiss(); }}>
-      <div className="github-modal">
+    <div className="app-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onDismiss(); }}>
+      <div className="app-modal">
         {step === 'prompt' && (
           <>
-            <p className="github-modal-title">Seeking [vibe] coders</p>
-            <p className="github-modal-body">Do you have your laptop? Willing to help improve the system running this event?</p>
-            <button className="github-modal-btn-primary" onClick={() => setStep('input')}>
+            <p className="app-modal-title">Seeking [vibe] coders</p>
+            <p className="app-modal-body">Do you have your laptop? Willing to help improve the system running this event?</p>
+            <button className="app-modal-btn-primary" onClick={() => setStep('input')}>
               Share your GitHub handle
             </button>
-            <button className="github-modal-btn-dismiss" onClick={onDismiss}>Not now</button>
+            <button className="app-modal-btn-dismiss" onClick={onDismiss}>Not now</button>
           </>
         )}
 
         {step === 'input' && (
           <>
-            <p className="github-modal-title">Enter your GitHub username</p>
+            <p className="app-modal-title">Enter your GitHub username</p>
             <input
-              className="github-modal-input"
+              className="app-modal-input"
               type="text"
               value={usernameInput}
               onChange={e => { setUsernameInput(e.target.value); setError(null); }}
@@ -78,36 +78,36 @@ export default function GithubUsernameModal({ onSubmit, onDismiss }: GithubUsern
               autoCapitalize="none"
               autoCorrect="off"
             />
-            {error && <p className="github-modal-error">{error}</p>}
+            {error && <p className="app-modal-error">{error}</p>}
             <button
-              className="github-modal-btn-primary"
+              className="app-modal-btn-primary"
               onClick={lookupUsername}
               disabled={loading || !usernameInput.trim()}
             >
               {loading ? 'Checking…' : 'Verify'}
             </button>
-            <button className="github-modal-btn-dismiss" onClick={() => setStep('prompt')}>Back</button>
+            <button className="app-modal-btn-dismiss" onClick={() => setStep('prompt')}>Back</button>
           </>
         )}
 
         {step === 'confirm' && resolvedUser && (
           <>
-            <p className="github-modal-title">Is this you?</p>
-            <div className="github-modal-user-card">
+            <p className="app-modal-title">Is this you?</p>
+            <div className="app-modal-user-card">
               <img
                 src={resolvedUser.avatar_url}
                 alt={resolvedUser.login}
-                className="github-modal-avatar"
+                className="app-modal-avatar"
               />
               <div>
-                <p className="github-modal-display-name">{resolvedUser.name || resolvedUser.login}</p>
-                <p className="github-modal-login">@{resolvedUser.login}</p>
+                <p className="app-modal-display-name">{resolvedUser.name || resolvedUser.login}</p>
+                <p className="app-modal-login">@{resolvedUser.login}</p>
               </div>
             </div>
-            <button className="github-modal-btn-primary" onClick={handleConfirm}>
+            <button className="app-modal-btn-primary" onClick={handleConfirm}>
               Yes, that's me
             </button>
-            <button className="github-modal-btn-dismiss" onClick={() => { setStep('input'); setResolvedUser(null); }}>
+            <button className="app-modal-btn-dismiss" onClick={() => { setStep('input'); setResolvedUser(null); }}>
               Not me
             </button>
           </>
@@ -115,9 +115,9 @@ export default function GithubUsernameModal({ onSubmit, onDismiss }: GithubUsern
 
         {step === 'done' && (
           <>
-            <p className="github-modal-title">Thanks!</p>
-            <p className="github-modal-body">Your GitHub username has been shared with the emcee.</p>
-            <button className="github-modal-btn-primary" onClick={onDismiss}>Close</button>
+            <p className="app-modal-title">Thanks!</p>
+            <p className="app-modal-body">Your GitHub username has been shared with the emcee.</p>
+            <button className="app-modal-btn-primary" onClick={onDismiss}>Close</button>
           </>
         )}
       </div>

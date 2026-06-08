@@ -1,11 +1,13 @@
 import type * as Party from "partykit/server";
-import type { ActivityMode, StoryTracerPoint, StoryTracerMeta, MapProjection } from "../app/types";
+import type { ActivityMode } from "../app/types";
 import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } from './lib/reactionRegion';
 import type { ReactionAnchors } from './lib/reactionRegion';
 import { getCurrentActiveStatementId, computeNextDisplayTimestamp, computeClearedQueue } from './lib/queueLogic';
 import type { QueueItem } from './lib/queueLogic';
-import { SoccerPhysicsEngine } from './lib/soccerPhysics';
 import { GhostCursorManager } from './lib/ghostCursors';
+import { PLUGIN_MAP } from '../plugins/index';
+import type { PluginContext, PluginConnection } from '../plugins/types';
+import { getSoccerBallState, getSoccerScore } from '../plugins/soccer/server';
 import type {
   CursorEvent, PolisStatement, Vote, PersistedState, ClientEvent,
   PlaybackCursorBroadcastEvent, StatementEvent, UpdateStatementsPoolEvent,
@@ -15,10 +17,8 @@ import type {
   SetSocialConfigEvent, SetGreeterConfigEvent, PushInterfaceEvent, AcceptInterfaceEvent,
   PushHapticEvent, RegisterCustomAvatarEvent, SetColorCursorsByVoteEvent,
   SetDefaultCursorColorEvent, SetOwnValenceDisplayEvent, SetValenceInputModeEvent,
-  RecordInvitationsEvent, StenoStartRecordingEvent, StenoStopRecordingEvent,
-  StenoAppendTextEvent, StenoSetTextEvent, StoryTracerSetPointsEvent, MapProjectionSetEvent,
-  WebRTCOfferEvent, WebRTCAnswerEvent, WebRTCIceEvent, HangUpCallEvent,
-  SetCallAlgorithmEvent, SetArrivalCapacityEvent, NeighborEdgeEvent, SetLightColorEvent,
+  RecordInvitationsEvent,
+  SetArrivalCapacityEvent,
 } from './types';
 
 export default class Server implements Party.Server {
@@ -38,8 +38,6 @@ export default class Server implements Party.Server {
   private currentActivity: ActivityMode = 'canvas';
   private roomImageUrl: string = '';
   private nowLabel: string = '';
-  private roomSocialConfig: { default: string; twitter: string; bluesky: string; mastodon: string } | null = null;
-  private greeterConfig: { eventUrl: string } | null = null;
   private msgCount = 0;
   private msgRateInterval?: NodeJS.Timeout;
   private githubSubmissions: { username: string; displayName: string | null; avatarUrl: string | null; timestamp: number }[] = [];
@@ -54,22 +52,10 @@ export default class Server implements Party.Server {
   private readonly BAT_SIGNAL_FIBONACCI = [3, 5, 8, 13, 21, 34, 55, 89, 144, 233];
   private maxParticipantCount = 0;
   private lastFibNotifiedIndex = -1;
-  private stenoVtt: string = 'WEBVTT\n';
-  private stenoLockUserId: string | null = null;
-  private storyTracerPoints: StoryTracerPoint[] | null = null;
-  private storyTracerMeta: StoryTracerMeta | null = null;
-  private mapProjection: MapProjection | null = null;
-  private callQueue: string[] = [];
-  private callPairs: Map<string, string> = new Map();
-  private callAlgorithm: string = 'first-available';
-  private arrivalCapacity: number = 50;
-  private neighborCodes = new Map<string, string>(); // userId → 4-digit code
-  private neighborEdges = new Set<string>();          // canonical "userA|userB" strings
-  private lightColor: { color: string; brightness: number } = { color: '#000000', brightness: 100 };
-
-  private soccer = new SoccerPhysicsEngine(
-    (msg) => this.room.broadcast(msg),
-    () => this.cursorPositions,
+private pluginStates = new Map<string, unknown>(
+    Object.entries(PLUGIN_MAP)
+      .filter(([, p]) => p.server)
+      .map(([id, p]) => [id, p.server!.createState()]),
   );
   private ghosts = new GhostCursorManager(
     (msg) => this.room.broadcast(msg),
@@ -77,6 +63,21 @@ export default class Server implements Party.Server {
   );
 
   constructor(readonly room: Party.Room) {}
+
+  private makePluginContext(): PluginContext {
+    return {
+      broadcast: (msg) => this.room.broadcast(msg),
+      sendToUser: (userId, msg) => {
+        for (const conn of this.getTargetConnections(userId)) conn.send(msg);
+      },
+      getCursorPositions: () => this.cursorPositions,
+      persistState: () => this.persistState(),
+    };
+  }
+
+  private makePluginConn(conn: Party.Connection): PluginConnection {
+    return { id: conn.id, userId: this.connectionUserMap.get(conn.id) ?? conn.id, send: (msg) => conn.send(msg) };
+  }
 
   private get persistenceEnabled(): boolean {
     return this.room.env.DISABLE_STORAGE_PERSISTENCE !== 'true';
@@ -89,32 +90,23 @@ export default class Server implements Party.Server {
   }
 
   private getPersistedState(): PersistedState {
-    return {
-      roomSocialConfig: this.roomSocialConfig,
-      stenoVtt: this.stenoVtt,
-      storyTracerPoints: this.storyTracerPoints,
-      storyTracerMeta: this.storyTracerMeta,
-      greeterConfig: this.greeterConfig,
-      mapProjection: this.mapProjection,
-    };
+    const pluginStates: Record<string, unknown> = {};
+    for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+      if (plugin.server?.getPersistedState) {
+        pluginStates[id] = plugin.server.getPersistedState(this.pluginStates.get(id));
+      }
+    }
+    return { pluginStates };
   }
 
   private applyPersistedState(saved: Partial<PersistedState>): void {
-    if (saved.roomSocialConfig !== undefined) this.roomSocialConfig = saved.roomSocialConfig;
-    if (saved.stenoVtt !== undefined) this.stenoVtt = saved.stenoVtt;
-    if (saved.storyTracerPoints !== undefined) this.storyTracerPoints = saved.storyTracerPoints ?? null;
-    if (saved.storyTracerMeta !== undefined) this.storyTracerMeta = saved.storyTracerMeta ?? null;
-    if (saved.greeterConfig !== undefined) this.greeterConfig = saved.greeterConfig ?? null;
-    if (saved.mapProjection !== undefined) this.mapProjection = saved.mapProjection ?? null;
-  }
-
-  private generateNeighborCode(): string {
-    const used = new Set(this.neighborCodes.values());
-    let code: string;
-    do {
-      code = String(Math.floor(Math.random() * 10000)).padStart(4, '0');
-    } while (used.has(code));
-    return code;
+    if (saved.pluginStates) {
+      for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+        if (plugin.server?.applyPersistedState && saved.pluginStates[id] !== undefined) {
+          plugin.server.applyPersistedState(this.pluginStates.get(id), saved.pluginStates[id]);
+        }
+      }
+    }
   }
 
   private async persistState(): Promise<void> {
@@ -197,9 +189,6 @@ export default class Server implements Party.Server {
 
     const userId = url.searchParams.get('userId') ?? conn.id;
     this.connectionUserMap.set(conn.id, userId);
-    if (!this.neighborCodes.has(userId)) {
-      this.neighborCodes.set(userId, this.generateNeighborCode());
-    }
     if (isViewer) {
       this.viewerConnectionIds.add(conn.id);
     }
@@ -251,10 +240,8 @@ export default class Server implements Party.Server {
       currentActivity: this.currentActivity,
       roomImageUrl: this.roomImageUrl,
       nowLabel: this.nowLabel,
-      roomSocialConfig: this.roomSocialConfig,
-      greeterConfig: this.greeterConfig,
-      ballState: this.currentActivity === 'soccer' ? this.soccer.ballState : null,
-      soccerScore: this.soccer.score,
+      ballState: this.currentActivity === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
+      soccerScore: getSoccerScore(this.pluginStates.get('soccer')),
       isViewer,
       userCap: this.userCap,
       viewerCount: vCount,
@@ -265,22 +252,22 @@ export default class Server implements Party.Server {
       defaultCursorColor: this.defaultCursorColor,
       ownValenceDisplay: this.ownValenceDisplay,
       valenceInputMode: this.valenceInputMode,
-      stenoVtt: this.stenoVtt,
-      stenoLockUserId: this.stenoLockUserId,
-      storyTracerPoints: this.storyTracerPoints,
-      storyTracerMeta: this.storyTracerMeta,
-      mapProjection: this.mapProjection,
-      callAlgorithm: this.callAlgorithm,
-      arrivalCapacity: this.arrivalCapacity,
-      myNeighborCode: this.neighborCodes.get(userId) ?? null,
-      lightColor: this.lightColor,
     }));
+
+    const pluginCtx = this.makePluginContext();
+    const pluginConn = this.makePluginConn(conn);
+    for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+      if (plugin.server) plugin.server.onConnect(pluginConn, pluginCtx, this.pluginStates.get(id), this.currentActivity);
+    }
   }
 
   onClose(conn: Party.Connection) {
     const userId = this.connectionUserMap.get(conn.id);
     const isAdmin = this.adminConnectionIds.has(conn.id);
     const wasViewer = this.viewerConnectionIds.has(conn.id);
+    // Capture pluginConn before deleting from connectionUserMap — makePluginConn
+    // reads the map, so it must run while the entry is still present.
+    const pluginConn = this.makePluginConn(conn);
 
     this.adminConnectionIds.delete(conn.id);
     this.viewerConnectionIds.delete(conn.id);
@@ -293,30 +280,19 @@ export default class Server implements Party.Server {
 
     if (userId && !userStillConnected) {
       this.cursorPositions.delete(userId);
-      this.neighborCodes.delete(userId);
     }
 
     if (!isAdmin && userId && !userStillConnected) {
       this.room.broadcast(JSON.stringify({ type: 'userLeft', userId, wasViewer }));
-      if (this.stenoLockUserId === userId) {
-        this.stenoLockUserId = null;
-        this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId }));
-      }
-      // Call queue cleanup
-      const qIdx = this.callQueue.indexOf(userId);
-      if (qIdx !== -1) this.callQueue.splice(qIdx, 1);
-      const peerId = this.callPairs.get(userId);
-      if (peerId) {
-        this.callPairs.delete(userId);
-        this.callPairs.delete(peerId);
-        for (const conn of this.getTargetConnections(peerId)) {
-          conn.send(JSON.stringify({ type: 'hangUp', fromUserId: userId }));
-        }
-      }
     }
 
     const count = this.participantCount();
     this.room.broadcast(JSON.stringify({ type: 'presenceCount', count, viewerCount: this.viewerCount() }));
+
+    const pluginCtx = this.makePluginContext();
+    for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+      if (plugin.server?.onClose) plugin.server.onClose(pluginConn, pluginCtx, this.pluginStates.get(id));
+    }
   }
 
   onMessage(message: string, sender: Party.Connection) {
@@ -335,6 +311,14 @@ export default class Server implements Party.Server {
 
     try {
       const event: ClientEvent = JSON.parse(message);
+
+      // Plugin message router — runs before the main switch; return early if handled
+      const pluginCtx = this.makePluginContext();
+      const pluginConn = this.makePluginConn(sender);
+      for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+        if (plugin.server?.onMessage(event.type, event, pluginConn, pluginCtx, this.pluginStates.get(id), this.currentActivity)) return;
+      }
+
       switch (event.type) {
         case 'playbackCursorBroadcast': this.handlePlaybackCursorBroadcast(event); break;
         case 'move':
@@ -353,13 +337,10 @@ export default class Server implements Party.Server {
         case 'setActivity': this.handleSetActivity(event); break;
         case 'setNowLabel': this.handleSetNowLabel(event); break;
         case 'setImageUrl': this.handleSetImageUrl(event); break;
-        case 'resetSoccerScore': this.soccer.resetScore(); break;
         case 'setUserCap': this.handleSetUserCap(event, sender); break;
         case 'triggerActivity': this.handleTriggerActivity(event); break;
         case 'submitGithubUsername': this.handleSubmitGithubUsername(event); break;
         case 'submitFeedbackStars': this.handleSubmitFeedbackStars(event); break;
-        case 'setSocialConfig': this.handleSetSocialConfig(event); break;
-        case 'setGreeterConfig': this.handleSetGreeterConfig(event); break;
         case 'requestJoin': this.handleRequestJoin(sender); break;
         case 'clearPushedInterfaces': this.handleClearPushedInterfaces(sender); break;
         case 'pushInterface': this.handlePushInterface(event, sender); break;
@@ -371,28 +352,6 @@ export default class Server implements Party.Server {
         case 'setColorCursorsByVote': this.handleSetColorCursorsByVote(event, sender); break;
         case 'registerCustomAvatar': this.handleRegisterCustomAvatar(event); break;
         case 'recordInvitations': this.handleRecordInvitations(event); break;
-        case 'strokeSegment': this.room.broadcast(message); break;
-        case 'clearSignature': this.room.broadcast(JSON.stringify({ type: 'signatureCleared', userId: event.userId })); break;
-        case 'stenoStartRecording': this.handleStenoStartRecording(event, sender); break;
-        case 'stenoStopRecording': this.handleStenoStopRecording(event); break;
-        case 'stenoAppendText': this.handleStenoAppendText(event); break;
-        case 'stenoSetText': this.handleStenoSetText(event); break;
-        case 'storyTracerSetPoints': this.handleStoryTracerSetPoints(event); break;
-        case 'storyTracerClearPoints': this.handleStoryTracerClearPoints(); break;
-        case 'mapProjectionSet': this.handleMapProjectionSet(event); break;
-        case 'mapProjectionClear': this.handleMapProjectionClear(); break;
-        case 'joinCallQueue': this.handleJoinCallQueue(sender); break;
-        case 'leaveCallQueue': this.handleLeaveCallQueue(sender); break;
-        case 'webrtcOffer':
-        case 'webrtcAnswer':
-        case 'webrtcIce': this.handleWebrtcSignaling(event, sender); break;
-        case 'hangUp': this.handleHangUp(event, sender); break;
-        case 'setCallAlgorithm': this.handleSetCallAlgorithm(event, sender); break;
-        case 'setArrivalCapacity': this.handleSetArrivalCapacity(event, sender); break;
-        case 'neighborEdge': this.handleNeighborEdge(event, sender); break;
-        case 'requestNeighborEdges': this.handleRequestNeighborEdges(sender); break;
-        case 'clearNeighborEdges': this.handleClearNeighborEdges(); break;
-        case 'setLightColor': this.handleSetLightColor(event); break;
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
@@ -479,20 +438,23 @@ export default class Server implements Party.Server {
     this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
   }
 
-  // --- Soccer handlers ---
-
   private handleSetActivity(event: SetActivityEvent): void {
+    const prevActivity = this.currentActivity;
     this.currentActivity = event.activity;
-    if (event.activity === 'soccer') {
-      this.soccer.start();
-    } else {
-      this.soccer.stop();
-    }
+    const ctx = this.makePluginContext();
+
+    const prevPlugin = PLUGIN_MAP[prevActivity];
+    if (prevPlugin?.server) prevPlugin.server.onDeactivate(ctx, this.pluginStates.get(prevActivity));
+
+    const nextPlugin = PLUGIN_MAP[this.currentActivity];
+    if (nextPlugin?.server) nextPlugin.server.onActivate(ctx, this.pluginStates.get(this.currentActivity));
+
+    const soccerState = this.pluginStates.get('soccer');
     this.room.broadcast(JSON.stringify({
       type: 'activityChanged',
       activity: this.currentActivity,
-      ball: this.currentActivity === 'soccer' ? this.soccer.ballState : null,
-      score: this.soccer.score,
+      ball: this.currentActivity === 'soccer' ? getSoccerBallState(soccerState) : null,
+      score: getSoccerScore(soccerState),
     }));
   }
 
@@ -600,17 +562,6 @@ export default class Server implements Party.Server {
     this.room.broadcast(JSON.stringify({ type: 'feedbackStarsSubmitted', userId: event.userId, stars: event.stars, timestamp: event.timestamp || Date.now() }));
   }
 
-  private handleSetSocialConfig(event: SetSocialConfigEvent): void {
-    this.roomSocialConfig = event.config;
-    this.room.broadcast(JSON.stringify({ type: 'socialConfigChanged', config: this.roomSocialConfig }));
-    void this.persistState();
-  }
-
-  private handleSetGreeterConfig(event: SetGreeterConfigEvent): void {
-    this.greeterConfig = event.config;
-    this.room.broadcast(JSON.stringify({ type: 'greeterConfigChanged', config: this.greeterConfig }));
-  }
-
   private handleRegisterCustomAvatar(event: RegisterCustomAvatarEvent): void {
     this.customAvatars.set(event.userId, event.photoUrl);
     this.room.broadcast(JSON.stringify({ type: 'customAvatarsChanged', customAvatars: Object.fromEntries(this.customAvatars) }));
@@ -627,169 +578,6 @@ export default class Server implements Party.Server {
     if (newEdges.length > 0) {
       this.room.broadcast(JSON.stringify({ type: 'inviteEdges', edges: newEdges }));
     }
-  }
-
-  // --- Steno handlers ---
-
-  private handleStenoStartRecording(event: StenoStartRecordingEvent, sender: Party.Connection): void {
-    if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) {
-      sender.send(JSON.stringify({ type: 'stenoLockDenied', lockHolderUserId: this.stenoLockUserId }));
-      return;
-    }
-    this.stenoLockUserId = event.userId;
-    this.room.broadcast(JSON.stringify({ type: 'stenoLockAcquired', userId: event.userId }));
-  }
-
-  private handleStenoStopRecording(event: StenoStopRecordingEvent): void {
-    if (this.stenoLockUserId !== event.userId) return;
-    this.stenoLockUserId = null;
-    this.room.broadcast(JSON.stringify({ type: 'stenoLockReleased', userId: event.userId }));
-  }
-
-  private handleStenoAppendText(event: StenoAppendTextEvent): void {
-    if (this.stenoLockUserId !== event.userId) return;
-    this.stenoVtt += '\n' + event.text + '\n';
-    this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
-    void this.persistState();
-  }
-
-  private handleStenoSetText(event: StenoSetTextEvent): void {
-    if (this.stenoLockUserId !== null && this.stenoLockUserId !== event.userId) return;
-    this.stenoVtt = event.text;
-    this.room.broadcast(JSON.stringify({ type: 'stenoTextChanged', text: this.stenoVtt }));
-    void this.persistState();
-  }
-
-  // --- StoryTracer / Map handlers ---
-
-  private handleStoryTracerSetPoints(event: StoryTracerSetPointsEvent): void {
-    this.storyTracerPoints = event.points;
-    this.storyTracerMeta = event.meta;
-    void this.persistState();
-    this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: event.points, meta: event.meta }));
-  }
-
-  private handleStoryTracerClearPoints(): void {
-    this.storyTracerPoints = null;
-    this.storyTracerMeta = null;
-    void this.persistState();
-    this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: null, meta: null }));
-  }
-
-  private handleMapProjectionSet(event: MapProjectionSetEvent): void {
-    this.mapProjection = event.projection;
-    void this.persistState();
-    this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: event.projection }));
-  }
-
-  private handleMapProjectionClear(): void {
-    this.mapProjection = null;
-    void this.persistState();
-    this.room.broadcast(JSON.stringify({ type: 'mapProjectionChanged', projection: null }));
-  }
-
-  // --- Voice call handlers ---
-
-  private handleJoinCallQueue(sender: Party.Connection): void {
-    const senderId = this.connectionUserMap.get(sender.id);
-    if (!senderId) return;
-    if (this.callPairs.has(senderId)) return; // already in a call
-    if (this.callQueue.length > 0) {
-      const waiterId = this.callQueue.shift()!;
-      this.callPairs.set(waiterId, senderId);
-      this.callPairs.set(senderId, waiterId);
-      for (const conn of this.getTargetConnections(waiterId)) {
-        conn.send(JSON.stringify({ type: 'callPaired', role: 'initiator', peerId: senderId }));
-      }
-      sender.send(JSON.stringify({ type: 'callPaired', role: 'receiver', peerId: waiterId }));
-    } else {
-      this.callQueue.push(senderId);
-      sender.send(JSON.stringify({ type: 'callQueued' }));
-    }
-  }
-
-  private handleLeaveCallQueue(sender: Party.Connection): void {
-    const senderId = this.connectionUserMap.get(sender.id);
-    if (!senderId) return;
-    const idx = this.callQueue.indexOf(senderId);
-    if (idx !== -1) this.callQueue.splice(idx, 1);
-  }
-
-  private handleWebrtcSignaling(event: WebRTCOfferEvent | WebRTCAnswerEvent | WebRTCIceEvent, sender: Party.Connection): void {
-    const senderId = this.connectionUserMap.get(sender.id);
-    if (!senderId) return;
-    for (const conn of this.getTargetConnections(event.targetUserId)) {
-      conn.send(JSON.stringify({ ...event, fromUserId: senderId }));
-    }
-  }
-
-  private handleHangUp(event: HangUpCallEvent, sender: Party.Connection): void {
-    const senderId = this.connectionUserMap.get(sender.id);
-    if (!senderId) return;
-    this.callPairs.delete(senderId);
-    const peerId = event.targetUserId;
-    this.callPairs.delete(peerId);
-    for (const conn of this.getTargetConnections(peerId)) {
-      conn.send(JSON.stringify({ type: 'hangUp', fromUserId: senderId }));
-    }
-  }
-
-  private handleSetCallAlgorithm(event: SetCallAlgorithmEvent, sender: Party.Connection): void {
-    if (this.adminConnectionIds.has(sender.id)) {
-      this.callAlgorithm = event.algorithm;
-    }
-  }
-
-  private handleSetArrivalCapacity(event: SetArrivalCapacityEvent, sender: Party.Connection): void {
-    if (!this.adminConnectionIds.has(sender.id)) return;
-    this.arrivalCapacity = event.capacity;
-    this.room.broadcast(JSON.stringify({ type: 'arrivalCapacityChanged', capacity: this.arrivalCapacity }));
-  }
-
-  // --- Neighbor handlers ---
-
-  private handleNeighborEdge(event: NeighborEdgeEvent, sender: Party.Connection): void {
-    const fromUserId = this.connectionUserMap.get(sender.id);
-    if (!fromUserId) return;
-    const toCode = event.toCode;
-    if (this.neighborCodes.get(fromUserId) === toCode) {
-      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'self' }));
-      return;
-    }
-    let toUserId: string | null = null;
-    for (const [uid, code] of this.neighborCodes) {
-      if (code === toCode) { toUserId = uid; break; }
-    }
-    if (!toUserId) {
-      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'not_found' }));
-      return;
-    }
-    const canonical = [fromUserId, toUserId].sort().join('|');
-    if (this.neighborEdges.has(canonical)) {
-      sender.send(JSON.stringify({ type: 'neighborEdgeError', reason: 'duplicate' }));
-      return;
-    }
-    this.neighborEdges.add(canonical);
-    const [userA, userB] = canonical.split('|');
-    this.room.broadcast(JSON.stringify({ type: 'neighborEdgeAdded', userA, userB }));
-  }
-
-  private handleRequestNeighborEdges(sender: Party.Connection): void {
-    const edges = [...this.neighborEdges].map(e => { const [userA, userB] = e.split('|'); return { userA, userB }; });
-    const allCodes = Object.fromEntries(this.neighborCodes);
-    sender.send(JSON.stringify({ type: 'neighborEdgesSnapshot', edges, allCodes }));
-  }
-
-  private handleClearNeighborEdges(): void {
-    this.neighborEdges.clear();
-    this.room.broadcast(JSON.stringify({ type: 'neighborEdgesCleared' }));
-  }
-
-  // --- Light handler ---
-
-  private handleSetLightColor(event: SetLightColorEvent): void {
-    this.lightColor = { color: event.color, brightness: event.brightness };
-    this.room.broadcast(JSON.stringify({ type: 'lightColor', color: event.color, brightness: event.brightness }));
   }
 
   // --- Core statement/queue methods ---
@@ -887,17 +675,12 @@ export default class Server implements Party.Server {
     const url = new URL(request.url);
     console.log(`[VOTE] Incoming request: ${request.method} ${url.pathname}`);
 
-    if (request.method === "POST" && url.pathname.endsWith("/storyTracerSetPoints")) {
-      try {
-        const body = await request.json<{ userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta }>()
-        this.storyTracerPoints = body.points
-        this.storyTracerMeta = body.meta
-        void this.persistState()
-        this.room.broadcast(JSON.stringify({ type: 'storyTracerPointsChanged', points: body.points, meta: body.meta }))
-        return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } })
-      } catch (err) {
-        console.error('[storyTracer] error processing setPoints:', err)
-        return new Response('Invalid request', { status: 400 })
+    // Delegate to plugins first
+    const pluginCtx = this.makePluginContext();
+    for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
+      if (plugin.server?.onRequest) {
+        const res = await plugin.server.onRequest(request, pluginCtx, this.pluginStates.get(id)!);
+        if (res) return res;
       }
     }
 
@@ -969,6 +752,25 @@ export default class Server implements Party.Server {
       this.githubSubmissions = [];
       return new Response(JSON.stringify({ success: true }), {
         headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    if (request.method === "GET" && url.pathname.endsWith("/debug-state")) {
+      const raw = await this.room.storage.get<PersistedState>("state");
+      const debugReplacer = (_k: string, v: unknown) => {
+        if (v instanceof Map) return Object.fromEntries(v);
+        if (v instanceof Set) return [...v];
+        return v;
+      };
+      return new Response(JSON.stringify({ raw, inMemoryPluginStates: Object.fromEntries(this.pluginStates) }, debugReplacer, 2), {
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+
+    if (request.method === "DELETE" && url.pathname.endsWith("/debug-state")) {
+      await this.room.storage.delete("state");
+      return new Response(JSON.stringify({ success: true, message: "Persisted state deleted from storage" }), {
+        headers: { "Content-Type": "application/json" },
       });
     }
 

@@ -1,18 +1,19 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
-import SignatureLayer from "../canvas/SignatureLayer";
-import SignatureCanvas from "../canvas/SignatureCanvas";
 import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import InterfaceChipBar from "../shared/InterfaceChipBar";
-import SocialMediaPanel from "../panels/SocialMediaPanel";
-import MoodTonesPanel from "../panels/MoodTonesPanel";
-import GreeterPanel from "../panels/GreeterPanel";
-import type { ActivityMode, GreeterConfig, MapViewerConfig, SocialConfig, ValenceInputMode } from "../../types";
+import type { ActivityMode, SocialConfig, ValenceInputMode } from "../../types";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
 import type { PanelDefinition } from "../../panelRegistry";
 import { PanelContextProvider } from "../../context/PanelContext";
-import { GreeterConfigProvider, SocialMediaConfigProvider, MapViewerConfigProvider } from "../../context/PanelConfigs";
+import { GreeterConfigProvider } from "../../../plugins/greeter/useGreeterConfig";
+import type { GreeterConfig } from "../../../plugins/greeter/types";
+// TODO: plugins should declare their own providers so the app can wrap them
+// generically (e.g. via a PanelPlugin.provider field) rather than importing
+// each by name here.
+import { SocialMediaConfigProvider } from "../../../plugins/socialSharing/context";
+import { ImageCanvasConfigProvider } from "../../../plugins/imageCanvas/context";
 import GithubUsernameModal from "../modals/GithubUsernameModal";
 import FeedbackStarsModal from "../modals/FeedbackStarsModal";
 import InterfacePushModal from "../modals/InterfacePushModal";
@@ -31,34 +32,15 @@ import HapticIndicatorButton from "../shared/HapticIndicatorButton";
 import { useHapticPriming } from "../../hooks/useHapticPriming";
 import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
 import { useWakeLock } from "../../utils/useWakeLock";
-import TreevitesPanel from "../panels/TreevitesPanel";
-import StenoPanel from "../panels/StenoPanel";
-import StoryTracerPanel from "../panels/StoryTracerPanel";
-import VoiceCallPanel from "../panels/VoiceCallPanel";
-import MapMakerPanel from "../panels/MapMakerPanel";
-import MapViewerPanel from "../panels/MapViewerPanel";
-import ValenceBeatPadPanel from "../panels/ValenceBeatPadPanel";
-import ArrivalCanvasPanel from "../panels/ArrivalCanvasPanel";
-import NeighborPanel from "../panels/NeighborPanel";
-import ScreenLightPanel from "../panels/ScreenLightPanel";
-import LightShowPanel from "../panels/LightShowPanel";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
+import { PLUGIN_MAP } from "../../../plugins/index";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
-  'social-sharing': SocialMediaPanel,
-  'mood-tones':    MoodTonesPanel,
-  treevites:       TreevitesPanel,
-  greeter:         GreeterPanel,
-  steno:           StenoPanel,
-  'story-tracer':  StoryTracerPanel,
-  'voice-call':    VoiceCallPanel,
-  'map-maker':     MapMakerPanel,
-  'map-viewer':      MapViewerPanel,
-  'valence-beat-pad': ValenceBeatPadPanel,
-  'arrival-canvas':   ArrivalCanvasPanel,
-  'neighbor':         NeighborPanel,
-  'screen-light':     ScreenLightPanel,
-  'light-show':       LightShowPanel,
+  ...Object.fromEntries(
+    Object.entries(PLUGIN_MAP)
+      .filter(([, p]) => p.component)
+      .map(([id, p]) => [id, p.component!])
+  ),
 };
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
@@ -191,14 +173,11 @@ export default function ReactionCanvasAppV4() {
   const [serverImageUrl, setServerImageUrl] = useState('');
   const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
   const [serverGreeterConfig, setServerGreeterConfig] = useState<GreeterConfig | null>(null);
-  const [mapViewerConfig, setMapViewerConfig] = useState<MapViewerConfig | null>(null);
-  const [nowLabel, setNowLabel] = useState('');
+const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
   const [orientationPermission, setOrientationPermission] = useState<'unknown' | 'granted' | 'denied' | 'not-required'>('unknown');
-  const [isPresenter, setIsPresenter] = useState(false);
-  const [signatureStrokes, setSignatureStrokes] = useState<Record<string, Array<{ strokeId: string; points: Array<{ x: number; y: number }> }>>>({});
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const reactionStateRef = useRef<ReactionState>(null);
@@ -371,7 +350,7 @@ export default function ReactionCanvasAppV4() {
     socketSendRef.current?.(JSON.stringify({ type: 'requestJoin' }));
   };
 
-  if (!isEmcee && !isPresenter && !isTouchDevice() && !isMobileForced()) {
+  if (!isEmcee && !isTouchDevice() && !isMobileForced()) {
     return <MobileOnlyGate />;
   }
 
@@ -402,32 +381,25 @@ export default function ReactionCanvasAppV4() {
       <PanelContextProvider value={panelContextValue}>
         <SocialMediaConfigProvider value={{ socialMediaConfig: serverSocialConfig }}>
         <GreeterConfigProvider value={{ greeterConfig: serverGreeterConfig }}>
-        <MapViewerConfigProvider value={{ config: mapViewerConfig }}>
-          {activeInterface === 'emcee' && (
-            <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} mapViewerConfig={mapViewerConfig} onMapViewerConfigChange={setMapViewerConfig} />
-          )}
-          {(() => {
-            const panelId = activeInterface !== 'canvas' && activeInterface !== 'emcee'
-              ? activeInterface
-              : activeInterface === 'canvas' ? activity : null;
-            const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
-            // When a panel activity is active, show it as a flex sibling; the canvas
-            // container stays mounted below to keep the WebSocket alive.
-            return ActivePanel ? <ActivePanel /> : null;
-          })()}
-        </MapViewerConfigProvider>
+        {activeInterface === 'emcee' && (
+          <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} />
+        )}
+        {(() => {
+          const panelId = activeInterface !== 'canvas' && activeInterface !== 'emcee'
+            ? activeInterface
+            : activeInterface === 'canvas' ? activity : null;
+          const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
+          // When a panel activity is active, show it as a flex sibling; the canvas
+          // container stays mounted below to keep the WebSocket alive.
+          return ActivePanel ? <ActivePanel /> : null;
+        })()}
         </GreeterConfigProvider>
         </SocialMediaConfigProvider>
       </PanelContextProvider>
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
+      <ImageCanvasConfigProvider value={{ imageUrl: serverImageUrl }}>
       <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && !PANEL_COMPONENTS[activity]) ? undefined : 'none' }}>
-          {activity === 'image-canvas' && serverImageUrl && (
-            <img
-              src={serverImageUrl}
-              className="image-canvas-bg"
-              alt=""
-            />
-          )}
+          {(() => { const Bg = PLUGIN_MAP[activity]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
           {labels && activity === 'canvas' && <div className="reaction-label reaction-label-positive" style={{ ...reactionLabelStyle(anchors.positive), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'positive' ? { background: 'rgba(0, 255, 0, 0.2)' } : {}) }}>{labels.positive}</div>}
           {labels && activity === 'canvas' && <div className="reaction-label reaction-label-negative" style={{ ...reactionLabelStyle(anchors.negative), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'negative' ? { background: 'rgba(255, 0, 0, 0.2)' } : {}) }}>{labels.negative}</div>}
           {labels && activity === 'canvas' && <div className="reaction-label reaction-label-neutral" style={{ ...reactionLabelStyle(anchors.neutral), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'neutral' ? { background: 'rgba(255, 255, 0, 0.2)' } : {}) }}>{labels.neutral}</div>}
@@ -448,17 +420,15 @@ export default function ReactionCanvasAppV4() {
           <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
           <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
           <ShareQRButton userId={userId} selfChain={selfChain} />
-          {activity !== 'signature' && (
-            <div onPointerDown={hapticOnPointerDown}>
-              <HapticIndicatorButton
-                enabled={hapticEffectivelyEnabled}
-                flashing={hapticFlashing}
-                canVibrate={WebHaptics.isSupported}
-                onToggle={hapticOnToggle}
-                onShowInfo={() => setHapticPending(true)}
-              />
-            </div>
-          )}
+          <div onPointerDown={hapticOnPointerDown}>
+            <HapticIndicatorButton
+              enabled={hapticEffectivelyEnabled}
+              flashing={hapticFlashing}
+              canVibrate={WebHaptics.isSupported}
+              onToggle={hapticOnToggle}
+              onShowInfo={() => setHapticPending(true)}
+            />
+          </div>
           {isOrientationMode && (
             <WakeLockIndicatorButton
               enabled={wakeLockEnabled}
@@ -478,8 +448,8 @@ export default function ReactionCanvasAppV4() {
             colorCursorsByVote={true}
             cursorSmoothingConfig={SMOOTH_CURSOR_ENABLED ? { ...SMOOTH_CURSOR_CONFIG, showSmoothCursor: true } : undefined}
             hideActualCursors={SMOOTH_CURSOR_ENABLED}
-            disableCursorValence={activity === 'image-canvas'}
-            disableBackgroundValence={activity === 'image-canvas'}
+            disableCursorValence={!!PLUGIN_MAP[activity]?.canvasOverlay?.canvasProps?.disableCursorValence}
+            disableBackgroundValence={!!PLUGIN_MAP[activity]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
             onOwnValenceDisplayChange={setOwnValenceDisplay}
             onValenceInputModeChange={(mode) => {
               if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
@@ -541,17 +511,6 @@ export default function ReactionCanvasAppV4() {
             onGreeterConfigChange={setServerGreeterConfig}
             onNowLabelChange={setNowLabel}
             onInviteEdges={(edges) => setInviteEdges(prev => ({ ...prev, ...edges }))}
-            onStrokeSegment={(uid, strokeId, points) => {
-              setSignatureStrokes(prev => {
-                const user = [...(prev[uid] ?? [])];
-                const idx = user.findIndex(s => s.strokeId === strokeId);
-                if (idx === -1) return { ...prev, [uid]: [...user, { strokeId, points }] };
-                const updated = [...user];
-                updated[idx] = { strokeId, points: [...updated[idx].points, ...points] };
-                return { ...prev, [uid]: updated };
-              });
-            }}
-            onSignatureCleared={(uid) => setSignatureStrokes(prev => { const n = { ...prev }; delete n[uid]; return n; })}
             onConnectedUsers={(ids) => setConnectedUserIds(ids)}
             onUserJoined={(uid) => setConnectedUserIds(prev => prev.includes(uid) ? prev : [...prev, uid])}
             onUserLeft={(uid) => setConnectedUserIds(prev => prev.filter(id => id !== uid))}
@@ -589,48 +548,12 @@ export default function ReactionCanvasAppV4() {
               onTouchPosition={setTouchPos}
               heightOffset={chipBarOffset}
               anchors={anchors}
-              imageUrl={activity === 'image-canvas' ? (serverImageUrl || undefined) : undefined}
+              imageUrl={PLUGIN_MAP[activity]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
               disabled={valenceInputMode !== 'touch'}
             />
           )}
-          {activity === 'signature' && !isPresenter && !isViewer && (
-            <SignatureLayer
-              userId={userId}
-              onSendMessage={(msg) => socketSendRef.current?.(msg)}
-              heightOffset={chipBarOffset}
-            />
-          )}
-          {activity === 'signature' && isPresenter && (
-            <SignatureCanvas
-              userId={userId}
-              strokes={signatureStrokes}
-              heightOffset={chipBarOffset}
-            />
-          )}
-          {activity === 'signature' && !isViewer && (
-            <button
-              onClick={() => setIsPresenter(p => !p)}
-              style={{
-                position: 'absolute',
-                top: 7,
-                right: 'calc(6% + 46px)',
-                zIndex: 30,
-                height: 30,
-                padding: '0 14px',
-                borderRadius: 999,
-                border: '1px solid rgba(255,255,255,0.7)',
-                background: 'rgba(60,60,60,0.72)',
-                color: 'rgba(255,255,255,0.95)',
-                fontSize: 13,
-                cursor: 'pointer',
-                letterSpacing: '0.04em',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {isPresenter ? 'Sign' : 'Show: Grid'}
-            </button>
-          )}
         </div>
+      </ImageCanvasConfigProvider>
       {showGithubModal && (
         <GithubUsernameModal
           onSubmit={(username, displayName, avatarUrl) => {

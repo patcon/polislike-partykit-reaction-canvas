@@ -1,10 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../../../utils/partyHost";
-import PanelSettingsModalImageCanvas from "../../modals/PanelSettingsModalImageCanvas";
-import PanelSettingsModalSocialMedia from "../../modals/PanelSettingsModalSocialMedia";
-import PanelSettingsModalGreeter from "../../modals/PanelSettingsModalGreeter";
-import PanelSettingsModalMapViewer from "../../modals/PanelSettingsModalMapViewer";
 import { useAnchors } from "./hooks/useAnchors";
 import { useLabels } from "./hooks/useLabels";
 import { useRoomConfig } from "./hooks/useRoomConfig";
@@ -15,8 +11,8 @@ import OfferInterfaceModal from "./OfferInterfaceModal";
 import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
 import PanelSettingsModalReactionCanvas from "./PanelSettingsModalReactionCanvas";
-import PanelSettingsModalVoiceCall from "./PanelSettingsModalVoiceCall";
-import PanelSettingsModalArrivalCanvas from "./PanelSettingsModalArrivalCanvas";
+import { AdminSocketContext, createAdminSocketBus } from "./AdminSocketContext";
+import { PLUGIN_MAP } from "../../../../plugins";
 import RecordTab from "./tabs/RecordTab";
 import LabelsTab from "./tabs/LabelsTab";
 import AnchorsTab from "./tabs/AnchorsTab";
@@ -26,7 +22,6 @@ import EventsTab from "./tabs/EventsTab";
 import ParticipantsTab from "./tabs/ParticipantsTab";
 import MomentsTab from "./tabs/MomentsTab";
 import type { AdminTab, GithubSubmission, PushTarget } from "./types";
-import type { MapViewerConfig } from "../../../types";
 import type { ReactionAnchors } from "../../../utils/voteRegion";
 import type { ReactionLabelSet } from "../../../voteLabels";
 
@@ -36,11 +31,9 @@ interface AdminPanelNoDBProps {
   room: string;
   userId?: string;
   selfChain?: string[];
-  mapViewerConfig?: MapViewerConfig | null;
-  onMapViewerConfigChange?: (config: MapViewerConfig) => void;
 }
 
-export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfig, onMapViewerConfigChange }: AdminPanelNoDBProps) {
+export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNoDBProps) {
   const tabStorageKey = `v4-admin-tab-${room}`;
   const [activeTab, setActiveTab] = useState<AdminTab>(() => {
     const saved = localStorage.getItem(tabStorageKey);
@@ -51,6 +44,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
   const [githubSubmissions, setGithubSubmissions] = useState<GithubSubmission[]>([]);
   const [pendingHapticTarget, setPendingHapticTarget] = useState<PushTarget | null>(null);
   const [pendingPopupTarget, setPendingPopupTarget]   = useState<PushTarget | null>(null);
+  const [activeConfigPluginId, setActiveConfigPluginId] = useState<string | null>(null);
 
   // Mic state for Moments tab voice annotation
   type MicState = 'idle' | 'requesting' | 'ready' | 'recording' | 'error';
@@ -98,18 +92,25 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
   // Ref-based dispatch so all hooks see the same handler regardless of creation order
   const dispatchRef = useRef<(data: Record<string, unknown>) => void>(() => {});
 
+  // socketRef lets the bus send without capturing socket in a stale closure
+  const socketRef = useRef<ReturnType<typeof usePartySocket> | null>(null);
+  const busRef = useRef(createAdminSocketBus((msg) => socketRef.current?.send(JSON.stringify(msg))));
+
   const socket = usePartySocket({
     ...getPartySocketConfig(),
     room,
     query: { isAdmin: 'true' },
     onMessage(evt) {
       try {
-        dispatchRef.current(JSON.parse(evt.data));
+        const data = JSON.parse(evt.data);
+        dispatchRef.current(data);
+        busRef.current.notify(data);
       } catch (e) {
         console.error('AdminPanelV4: failed to parse message', e);
       }
     },
   });
+  socketRef.current = socket;
 
   const anchors      = useAnchors(socket);
   const labels       = useLabels(socket);
@@ -174,6 +175,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
   };
 
   return (
+    <AdminSocketContext.Provider value={busRef.current.value}>
     <div
       className="v3-admin-panel"
       style={{ padding: 0, flex: 1, minHeight: 0, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}
@@ -296,16 +298,9 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
         {activeTab === 'interfaces' && (
           <InterfacesTab
             activity={roomConfig.activity}
-            soccerScore={roomConfig.soccerScore}
             sendActivity={roomConfig.sendActivity}
-            resetSoccerScore={roomConfig.resetSoccerScore}
-            setImageConfigOpen={roomConfig.setImageConfigOpen}
-            setSocialConfigOpen={roomConfig.setSocialConfigOpen}
-            setGreeterConfigOpen={roomConfig.setGreeterConfigOpen}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
-            setVoiceCallConfigOpen={roomConfig.setVoiceCallConfigOpen}
-            setMapViewerConfigOpen={roomConfig.setMapViewerConfigOpen}
-            setArrivalConfigOpen={roomConfig.setArrivalConfigOpen}
+            setActiveConfigPlugin={setActiveConfigPluginId}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}
             userId={userId}
             selfChain={selfChain}
@@ -449,13 +444,6 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
           onClose={() => setPendingPopupTarget(null)}
         />
       )}
-      {roomConfig.imageConfigOpen && (
-        <PanelSettingsModalImageCanvas
-          currentUrl={roomConfig.roomImageUrl}
-          onSubmit={roomConfig.sendImageUrl}
-          onClose={() => roomConfig.setImageConfigOpen(false)}
-        />
-      )}
       {roomConfig.canvasSettingsOpen && (
         <PanelSettingsModalReactionCanvas
           showNowLabel={roomConfig.showNowLabelOnCanvas}
@@ -470,42 +458,11 @@ export default function AdminPanelNoDB({ room, userId, selfChain, mapViewerConfi
           onClose={() => roomConfig.setCanvasSettingsOpen(false)}
         />
       )}
-      {roomConfig.socialConfigOpen && (
-        <PanelSettingsModalSocialMedia
-          current={roomConfig.roomSocialConfig}
-          onSubmit={roomConfig.sendSocialConfig}
-          onClose={() => roomConfig.setSocialConfigOpen(false)}
-        />
-      )}
-      {roomConfig.greeterConfigOpen && (
-        <PanelSettingsModalGreeter
-          current={roomConfig.greeterConfig}
-          onSubmit={roomConfig.sendGreeterConfig}
-          onClose={() => roomConfig.setGreeterConfigOpen(false)}
-        />
-      )}
-      {roomConfig.voiceCallConfigOpen && (
-        <PanelSettingsModalVoiceCall
-          currentAlgorithm={roomConfig.callAlgorithm}
-          onSubmit={roomConfig.sendCallAlgorithm}
-          onClose={() => roomConfig.setVoiceCallConfigOpen(false)}
-        />
-      )}
-      {roomConfig.arrivalConfigOpen && (
-        <PanelSettingsModalArrivalCanvas
-          currentCapacity={roomConfig.arrivalCapacity}
-          onSubmit={roomConfig.sendArrivalCapacity}
-          onClose={() => roomConfig.setArrivalConfigOpen(false)}
-        />
-      )}
-      {roomConfig.mapViewerConfigOpen && (
-        <PanelSettingsModalMapViewer
-          room={room}
-          current={mapViewerConfig ?? null}
-          onSubmit={(config) => { onMapViewerConfigChange?.(config); }}
-          onClose={() => roomConfig.setMapViewerConfigOpen(false)}
-        />
-      )}
+      {activeConfigPluginId && (() => {
+        const ConfigModal = PLUGIN_MAP[activeConfigPluginId]?.configModal;
+        return ConfigModal ? <ConfigModal onClose={() => setActiveConfigPluginId(null)} /> : null;
+      })()}
     </div>
+    </AdminSocketContext.Provider>
   );
 }

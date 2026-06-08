@@ -28,9 +28,9 @@ export default function PanelSettingsModalReactionCanvas({ showNowLabel, onChang
   const [activeTab, setActiveTab] = useState<'display' | 'input'>('display');
 
   return (
-    <div className="github-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="github-modal">
-        <p className="github-modal-title">Reaction Canvas settings</p>
+    <div className="app-modal-overlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="app-modal">
+        <p className="app-modal-title">Reaction Canvas settings</p>
 
         <div className="share-qr-tab-bar" style={{ marginBottom: 16 }}>
           <button
@@ -111,7 +111,7 @@ export default function PanelSettingsModalReactionCanvas({ showNowLabel, onChang
           </>
         )}
 
-        <button className="github-modal-btn-dismiss" onClick={onClose}>Close</button>
+        <button className="app-modal-btn-dismiss" onClick={onClose}>Close</button>
       </div>
     </div>
   );

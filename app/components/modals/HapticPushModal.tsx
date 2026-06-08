@@ -15,10 +15,10 @@ export default function HapticPushModal({ onDismiss, suppressed, onSuppressChang
   };
 
   return (
-    <div className="github-modal-overlay" onClick={handleOk}>
-      <div className="github-modal" onClick={e => e.stopPropagation()}>
-        <div className="github-modal-title">Haptic feedback unavailable</div>
-        <div className="github-modal-body">
+    <div className="app-modal-overlay" onClick={handleOk}>
+      <div className="app-modal" onClick={e => e.stopPropagation()}>
+        <div className="app-modal-title">Haptic feedback unavailable</div>
+        <div className="app-modal-body">
           Your device doesn't support haptic feedback via web apps. You can watch the vibration icon for a visual cue instead.
         </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#888', cursor: 'pointer' }}>
@@ -29,7 +29,7 @@ export default function HapticPushModal({ onDismiss, suppressed, onSuppressChang
           />
           Show this popup when a buzz is sent
         </label>
-        <button className="github-modal-btn-dismiss" onClick={handleOk}>OK</button>
+        <button className="app-modal-btn-dismiss" onClick={handleOk}>OK</button>
       </div>
     </div>
   );
