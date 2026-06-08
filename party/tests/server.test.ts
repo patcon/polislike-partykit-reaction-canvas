@@ -485,6 +485,69 @@ describe('Server onMessage handlers', () => {
   // Malformed message
   // -----------------------------------------------------------------------
 
+  // -----------------------------------------------------------------------
+  // onClose — disconnect cleanup
+  // -----------------------------------------------------------------------
+  // These tests use connectUser(), which sets conn.id = 'conn-<userId>' and
+  // userId = '<userId>' — deliberately distinct — so they catch any regression
+  // where makePluginConn is called after connectionUserMap.delete() and
+  // conn.userId silently falls back to conn.id.
+
+  describe('onClose', () => {
+    it('paired user disconnecting sends hangUp to their peer', () => {
+      const { conn: aliceConn } = connectUser('alice');
+      const { conn: bobConn, send: bobSend } = connectUser('bob');
+
+      server.onMessage(msg({ type: 'joinCallQueue' }), aliceConn);
+      server.onMessage(msg({ type: 'joinCallQueue' }), bobConn);
+      bobSend.mockClear();
+
+      server.onClose(aliceConn);
+
+      const bobMsgs = bobSend.mock.calls.map((c) => JSON.parse(c[0]));
+      expect(bobMsgs).toContainEqual({ type: 'hangUp', fromUserId: 'alice' });
+    });
+
+    it('disconnected user can re-join the queue after reconnecting', () => {
+      const { conn: aliceConn } = connectUser('alice');
+      const { conn: bobConn } = connectUser('bob');
+
+      server.onMessage(msg({ type: 'joinCallQueue' }), aliceConn);
+      server.onMessage(msg({ type: 'joinCallQueue' }), bobConn);
+
+      // Alice refreshes
+      server.onClose(aliceConn);
+      connections.splice(connections.indexOf(aliceConn), 1);
+
+      // Alice reconnects
+      const { conn: aliceConn2, send: aliceSend2 } = connectUser('alice');
+
+      // Carol joins — should pair with Alice immediately since Bob is still paired
+      const { conn: carolConn, send: carolSend } = connectUser('carol');
+      server.onMessage(msg({ type: 'joinCallQueue' }), aliceConn2);
+      server.onMessage(msg({ type: 'joinCallQueue' }), carolConn);
+
+      const aliceMsgs = aliceSend2.mock.calls.map((c) => JSON.parse(c[0]));
+      const carolMsgs = carolSend.mock.calls.map((c) => JSON.parse(c[0]));
+      expect(aliceMsgs).toContainEqual(expect.objectContaining({ type: 'callPaired', peerId: 'carol' }));
+      expect(carolMsgs).toContainEqual(expect.objectContaining({ type: 'callPaired', peerId: 'alice' }));
+    });
+
+    it('queued user disconnecting is removed from the queue', () => {
+      const { conn: aliceConn } = connectUser('alice');
+      const { conn: bobConn, send: bobSend } = connectUser('bob');
+
+      server.onMessage(msg({ type: 'joinCallQueue' }), aliceConn);
+      server.onClose(aliceConn);
+      bobSend.mockClear();
+
+      // Bob joins — queue should be empty so Bob just waits
+      server.onMessage(msg({ type: 'joinCallQueue' }), bobConn);
+      const bobMsgs = bobSend.mock.calls.map((c) => JSON.parse(c[0]));
+      expect(bobMsgs).toContainEqual({ type: 'callQueued' });
+    });
+  });
+
   describe('malformed message', () => {
     it('does not throw and does not broadcast', () => {
       const { conn } = connectUser('alice');
