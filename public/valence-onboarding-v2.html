@@ -621,6 +621,21 @@ function removeLiveChord(userId){
   if(lc&&lc.departT==null)lc.departT=0;
 }
 
+function handleLiveCursorEvent(e){
+  if(e.type==='move'||e.type==='touch'){
+    const pos=e.position;
+    if(pos){
+      if(!liveChords.find(lc=>lc.userId===pos.userId)) addLiveChord(pos.userId);
+      const lc=liveChords.find(lc=>lc.userId===pos.userId);
+      if(lc){lc.value=cursorToValue(pos.x,pos.y);lc.hasTouched=true;lc.lifted=false;}
+    }
+  }else if(e.type==='remove'){
+    const uid=e.userId||(e.position&&e.position.userId);
+    const lc=liveChords.find(lc=>lc.userId===uid);
+    if(lc){lc.lifted=true;lc.value=0;}
+  }
+}
+
 function connectWs(room){
   if(ws){ws.onclose=null;ws.close();}
   if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
@@ -644,18 +659,10 @@ function connectWs(room){
       addLiveChord(data.userId);
     }else if(data.type==='userLeft'){
       removeLiveChord(data.userId||(data.position&&data.position.userId));
-    }else if(data.type==='move'||data.type==='touch'){
-      const pos=data.position;
-      if(pos){
-        // Auto-add chord if user was already connected when we joined (missed userJoined)
-        if(!liveChords.find(lc=>lc.userId===pos.userId)) addLiveChord(pos.userId);
-        const lc=liveChords.find(lc=>lc.userId===pos.userId);
-        if(lc){lc.value=cursorToValue(pos.x,pos.y);lc.hasTouched=true;lc.lifted=false;}
-      }
-    }else if(data.type==='remove'){
-      const uid=data.userId||(data.position&&data.position.userId);
-      const lc=liveChords.find(lc=>lc.userId===uid);
-      if(lc){lc.lifted=true;lc.value=0;}
+    }else if(data.type==='cursorBatch'){
+      (data.cursors||[]).forEach(e=>handleLiveCursorEvent(e));
+    }else if(data.type==='move'||data.type==='touch'||data.type==='remove'){
+      handleLiveCursorEvent(data);
     }
   };
   ws.onerror=()=>setConnStatus('connection error','warn');

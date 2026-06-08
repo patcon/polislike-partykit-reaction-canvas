@@ -333,17 +333,24 @@ export default function ValenceBeatPadPanel() {
     onClose: () => setWsStatus('disconnected'),
     onError: () => setWsStatus('disconnected'),
     onMessage(evt) {
-      let data: { type: string; count?: number; position?: { userId: string; x: number; y: number } };
+      let data: { type: string; count?: number; position?: { userId: string; x: number; y: number }; cursors?: Array<{ type: string; position: { userId: string; x: number; y: number } }> };
       try { data = JSON.parse(evt.data as string); } catch { return; }
+      const applyOneCursor = (e: { type: string; position: { userId: string; x: number; y: number } }) => {
+        if (e.type === 'move' || e.type === 'touch') {
+          const { userId, x, y } = e.position;
+          cursorsRef.current.set(userId, { x, y });
+          applyAudienceMood();
+        } else if (e.type === 'remove') {
+          cursorsRef.current.delete(e.position.userId);
+          applyAudienceMood();
+        }
+      };
       if (data.type === 'presenceCount') {
         setAudienceCount(data.count ?? 0);
-      } else if (data.type === 'move' || data.type === 'touch') {
-        const { userId, x, y } = data.position!;
-        cursorsRef.current.set(userId, { x, y });
-        applyAudienceMood();
-      } else if (data.type === 'remove') {
-        cursorsRef.current.delete(data.position!.userId);
-        applyAudienceMood();
+      } else if (data.type === 'cursorBatch') {
+        (data.cursors ?? []).forEach(applyOneCursor);
+      } else if (data.type === 'move' || data.type === 'touch' || data.type === 'remove') {
+        applyOneCursor(data as { type: string; position: { userId: string; x: number; y: number } });
       }
     },
   });

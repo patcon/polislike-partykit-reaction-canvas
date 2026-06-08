@@ -1042,6 +1042,24 @@ function setConnStatus(text, cls) {
   connStatus.className = 'conn-status' + (cls ? ' ' + cls : '');
 }
 
+function handleCursorEvent(e) {
+  if (e.type === 'move' || e.type === 'touch') {
+    const { userId, x, y } = e.position;
+    const region = computeRegion(x, y);
+    const prevRegion = cursorRegions.get(userId);
+    cursors.set(userId, { x, y, region });
+    if (valenceMode === 'continuous' || region !== prevRegion) {
+      cursorRegions.set(userId, region);
+      applyAudienceMood();
+    }
+  } else if (e.type === 'remove') {
+    const { userId } = e.position;
+    cursors.delete(userId);
+    cursorRegions.delete(userId);
+    applyAudienceMood();
+  }
+}
+
 function connectWs() {
   if (ws) {
     ws.onclose = null;
@@ -1072,22 +1090,11 @@ function connectWs() {
       const n = data.count ?? 0;
       audienceN.textContent = n;
       setConnStatus(`connected · room: ${room} · ${n} participant${n !== 1 ? 's' : ''}`, 'ok');
-    } else if (data.type === 'move' || data.type === 'touch') {
-      const { userId, x, y } = data.position;
-      const region = computeRegion(x, y);
-      const prevRegion = cursorRegions.get(userId);
-      cursors.set(userId, { x, y, region });
-      // Unit mode: only recalculate on zone transition or new cursor
-      if (valenceMode === 'continuous' || region !== prevRegion) {
-        cursorRegions.set(userId, region);
-        applyAudienceMood();
-      }
+    } else if (data.type === 'cursorBatch') {
+      (data.cursors || []).forEach(handleCursorEvent);
       audienceN.textContent = cursors.size;
-    } else if (data.type === 'remove') {
-      const { userId } = data.position;
-      cursors.delete(userId);
-      cursorRegions.delete(userId);
-      applyAudienceMood();
+    } else if (data.type === 'move' || data.type === 'touch' || data.type === 'remove') {
+      handleCursorEvent(data);
       audienceN.textContent = cursors.size;
     }
   };

@@ -278,24 +278,31 @@ export default function MoodTonesPanel() {
     onClose: () => setWsStatus('disconnected'),
     onError: () => setWsStatus('disconnected'),
     onMessage(evt) {
-      let data: { type: string; count?: number; position?: { userId: string; x: number; y: number } };
+      let data: { type: string; count?: number; position?: { userId: string; x: number; y: number }; cursors?: Array<{ type: string; position: { userId: string; x: number; y: number } }> };
       try { data = JSON.parse(evt.data as string); } catch { return; }
-      if (data.type === 'presenceCount') {
-        setAudienceCount(data.count ?? 0);
-      } else if (data.type === 'move' || data.type === 'touch') {
-        const { userId, x, y } = data.position!;
-        const region = computeReactionRegion(x, y) ?? 'neutral';
-        const prevRegion = cursorRegionsRef.current.get(userId);
-        cursorsRef.current.set(userId, { x, y, region });
-        if (valenceModeRef.current === 'continuous' || region !== prevRegion) {
-          cursorRegionsRef.current.set(userId, region);
+      const applyOneCursor = (e: { type: string; position: { userId: string; x: number; y: number } }) => {
+        if (e.type === 'move' || e.type === 'touch') {
+          const { userId, x, y } = e.position;
+          const region = computeReactionRegion(x, y) ?? 'neutral';
+          const prevRegion = cursorRegionsRef.current.get(userId);
+          cursorsRef.current.set(userId, { x, y, region });
+          if (valenceModeRef.current === 'continuous' || region !== prevRegion) {
+            cursorRegionsRef.current.set(userId, region);
+            applyAudienceMood();
+          }
+        } else if (e.type === 'remove') {
+          const { userId } = e.position;
+          cursorsRef.current.delete(userId);
+          cursorRegionsRef.current.delete(userId);
           applyAudienceMood();
         }
-      } else if (data.type === 'remove') {
-        const { userId } = data.position!;
-        cursorsRef.current.delete(userId);
-        cursorRegionsRef.current.delete(userId);
-        applyAudienceMood();
+      };
+      if (data.type === 'presenceCount') {
+        setAudienceCount(data.count ?? 0);
+      } else if (data.type === 'cursorBatch') {
+        (data.cursors ?? []).forEach(applyOneCursor);
+      } else if (data.type === 'move' || data.type === 'touch' || data.type === 'remove') {
+        applyOneCursor(data as { type: string; position: { userId: string; x: number; y: number } });
       }
     },
   });

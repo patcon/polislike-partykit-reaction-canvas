@@ -171,6 +171,15 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       } else if (msg.type === 'roomAnchorsChanged') {
         anchorsRef.current = msg.anchors ?? DEFAULT_ANCHORS;
         updateNodeColors();
+      } else if (msg.type === 'cursorBatch') {
+        for (const e of (msg.cursors ?? [])) {
+          if (e.type === 'move' || e.type === 'touch') {
+            liveCursorsRef.current.set(e.position.userId, { x: e.position.x, y: e.position.y });
+          } else if (e.type === 'remove') {
+            liveCursorsRef.current.delete(e.position.userId);
+          }
+        }
+        updateNodeColors();
       } else if (msg.type === 'move' || msg.type === 'touch') {
         const { userId, x, y } = msg.position;
         liveCursorsRef.current.set(userId, { x, y });

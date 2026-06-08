@@ -818,6 +818,17 @@ export default function ValenceViz() {
           assignLiveSlot(data.userId);
         } else if (data.type==='userLeft') {
           cursors.delete(data.userId); freeLiveSlot(data.userId);
+        } else if (data.type==='cursorBatch') {
+          for (const e of (data.cursors??[])) {
+            if (e.type==='move'||e.type==='touch') {
+              const {userId,x,y}=e.position;
+              cursors.set(userId,{x,y}); assignLiveSlot(userId);
+            } else if (e.type==='remove') {
+              const {userId}=e.position; cursors.delete(userId);
+              if (userId.startsWith('replay_')) freeLiveSlot(userId);
+            }
+          }
+          setAudienceN(cursors.size);
         } else if (data.type==='move'||data.type==='touch') {
           const {userId,x,y}=data.position;
           cursors.set(userId,{x,y}); assignLiveSlot(userId); setAudienceN(cursors.size);
