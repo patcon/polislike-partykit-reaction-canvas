@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file. Releases cu
 ### Added
 - **Whisper Gallery front page** — new product-style landing page component (`app/components/NewFrontPage.tsx`) with "Whisper Gallery" branding, typewriter room-name suggestions, participant/emcee open buttons, an Experiments section (YouTube Videos → V5, Sync'd YouTube Watch Party → V2) with YouTube URL input and label-preset style selector, and a More Prototypes footer; exposed via Storybook story at `Pages/NewFrontPage` only (does not replace the existing landing page).
 
+### Fixed
+- **V5 silent DB failure** — `#v5` now shows an amber warning banner ("Database unreachable — reactions are not being recorded. Contact admin") when the Supabase connection check fails on mount; previously failed silently with no visible feedback.
+
 ## Week 28 (2026-06-01)
 
 ### Added

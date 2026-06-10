@@ -229,6 +229,27 @@
   min-height: 0;
 }
 
+.v5-db-warning {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(200, 120, 0, 0.9);
+  color: #fff;
+  font-size: 13px;
+  padding: 8px 14px;
+  border-radius: 6px;
+  z-index: 20;
+  text-align: center;
+  pointer-events: auto;
+  max-width: 90%;
+}
+
+.v5-db-warning a {
+  color: #fff;
+  text-decoration: underline;
+}
+
 .v5-touch-indicator {
   position: absolute;
   width: 80px;

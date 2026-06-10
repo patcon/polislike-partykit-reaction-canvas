@@ -91,6 +91,7 @@ export default function ReactionCanvasAppV5() {
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const [recordedEvents, setRecordedEvents] = useState<ReactionEvent[]>([]);
   const [currentTimecode, setCurrentTimecode] = useState(0);
+  const [dbConnected, setDbConnected] = useState<boolean | null>(null);
   const currentTimecodeRef = useRef(0);
   const playerRef = useRef<YTPlayer | null>(null);
   const lastInsertRef = useRef(0);
@@ -177,7 +178,7 @@ export default function ReactionCanvasAppV5() {
   }, [touchPos]);
 
   // Test Supabase connection on mount
-  useEffect(() => { testConnection(); }, []);
+  useEffect(() => { testConnection().then(setDbConnected); }, []);
 
   // Fetch recorded events on mount
   useEffect(() => {
@@ -229,6 +230,12 @@ export default function ReactionCanvasAppV5() {
         )}
       </div>
       <div className="v5-vote-canvas-container">
+        {dbConnected === false && (
+          <div className="v5-db-warning">
+            ⚠ Database unreachable — reactions are not being recorded.{' '}
+            <a href="https://github.com/patcon" target="_blank" rel="noreferrer">Contact admin</a>
+          </div>
+        )}
         {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
         {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
         {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
