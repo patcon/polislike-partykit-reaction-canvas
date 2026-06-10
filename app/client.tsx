@@ -10,6 +10,7 @@ import ReactionCanvasAppV5 from "./components/apps/ReactionCanvasAppV5";
 import ValenceViz from "./components/viz/ValenceViz";
 import PerfCanvasApp from "./components/apps/PerfCanvasApp";
 import { OldFrontPage } from "./components/OldFrontPage";
+import { NewFrontPage } from "./components/NewFrontPage";
 
 const TITLES: Record<string, (admin: boolean) => string> = {
   '#v1': (admin) => admin ? 'Statement Admin — Polislike' : 'Statement Voting — Polislike',
@@ -54,7 +55,8 @@ function App() {
   else if (hash === '#v5') page = <ReactionCanvasAppV5 />;
   else if (hash === '#valence-viz') page = <ValenceViz />;
   else if (hash === '#perf') page = <PerfCanvasApp />;
-  else page = <OldFrontPage />;
+  else if (hash === '#old') page = <OldFrontPage />;
+  else page = <NewFrontPage />;
 
   return <>{page}{!PARTYKIT_EVENT_BUILD && <GithubCorner />}</>;
 }

@@ -69,13 +69,13 @@ function extractYouTubeId(url: string): string {
 
 function buildV4Url(room: string, emcee: boolean) {
   const r = room.trim().replace(/\s+/g, '-') || 'default';
-  return `#v4?room=${encodeURIComponent(r)}${emcee ? '&interface=emcee' : ''}`;
+  return `?room=${encodeURIComponent(r)}${emcee ? '&interface=emcee' : ''}#v4`;
 }
 
 function buildExperimentUrl(type: 'youtube' | 'watch-party', videoId: string) {
   const id = videoId || 'default';
-  if (type === 'youtube') return `#v5?room=${encodeURIComponent(id)}`;
-  return `#v2?room=${encodeURIComponent(id)}`;
+  if (type === 'youtube') return `?room=${encodeURIComponent(id)}#v5`;
+  return `?room=${encodeURIComponent(id)}#v2`;
 }
 
 type ExperimentType = 'youtube' | 'watch-party';
@@ -148,7 +148,7 @@ export function NewFrontPage() {
   }
 
   function handleOpenV5Admin() {
-    window.location.href = '#v5?admin=true';
+    window.location.href = '?admin=true#v5';
   }
 
   return (
