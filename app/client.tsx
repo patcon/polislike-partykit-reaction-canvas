@@ -37,9 +37,19 @@ function App() {
   const [hash, setHash] = useState(window.location.hash);
 
   useEffect(() => {
-    const handleHashChange = () => setHash(window.location.hash);
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    // hashchange: hash-only navigation within the SPA (e.g. #v4 → #old)
+    // popstate: back/forward when history entries differ by more than just hash
+    // pageshow (persisted): bfcache restore — neither of the above fires
+    const update = () => setHash(window.location.hash);
+    const handlePageShow = (e: PageTransitionEvent) => { if (e.persisted) update(); };
+    window.addEventListener('hashchange', update);
+    window.addEventListener('popstate', update);
+    window.addEventListener('pageshow', handlePageShow);
+    return () => {
+      window.removeEventListener('hashchange', update);
+      window.removeEventListener('popstate', update);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   }, []);
 
   useEffect(() => {
