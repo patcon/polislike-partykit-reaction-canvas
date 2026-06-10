@@ -21,7 +21,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ### Fixed
 - **V5 silent DB failure** — `#v5` now shows an amber warning banner ("Database unreachable — reactions are not being recorded. Contact admin") when the Supabase connection check fails on mount; previously failed silently with no visible feedback. Includes a `DatabaseUnreachable` Storybook story that injects a failing connection function to verify the banner renders.
 - **Front page buttons: cmd+click / right-click** — "Participant View", "Emcee View", "Open Experiment", and "Admin" converted from `<button onClick>` to `<a href>` so the browser can open them in a new tab and the right-click context menu works.
-- **SPA routing: direct navigation to room paths** — restored `singlePageApp: true` in `partykit.json` so paths like `/default` serve the app shell instead of "Not found"; fixed `onFetch` to check `asset.ok` (not just truthiness) and fall back via global `fetch` when `lobby.assets` returns null in dev mode.
+- **SPA routing: direct navigation to room paths** — restored `singlePageApp: true` in `partykit.json` so paths like `/default` serve the app shell instead of "Not found"; removed the broken custom `onFetch` that replaced it (`.html` static pages in `public/` are served correctly by `singlePageApp` without special handling).
 
 ## Week 28 (2026-06-01)
 
