@@ -800,17 +800,6 @@ private pluginStates = new Map<string, unknown>(
   }
 }
 
-// SPA fallback: serve static assets directly; only fall back to index.html
-// for extensionless paths (room names). This prevents .html pages in public/
-// from being swallowed by the SPA router.
-export const onFetch = async (req: Party.Request, lobby: Party.FetchLobby) => {
-  const url = new URL(req.url);
-  const hasExtension = url.pathname.includes('.');
-
-  const asset = await lobby.assets.fetch(url.pathname);
-  if (asset) return asset;
-  if (hasExtension) return new Response('Not found', { status: 404 });
-  return lobby.assets.fetch('/index.html');
-};
+export { onFetch } from './utils/onFetch';
 
 Server satisfies Party.Worker;

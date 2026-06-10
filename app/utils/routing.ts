@@ -17,7 +17,6 @@ export function getIndexRedirect(search: string, hash: string): string | null {
 }
 
 export function getRoomRedirect(pathname: string, search: string, hash: string): string | null {
-  if (pathname.endsWith('.html')) return null;
   const params = new URLSearchParams(search);
   const roomParam = params.get('room');
   params.delete('room');
