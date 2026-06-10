@@ -26,6 +26,7 @@
     "@huggingface/transformers": "^4.2.0",
     "@saehrimnir/druidjs": "github:patcon/DruidJS#add-pacmap-support",
     "@supabase/supabase-js": "^2.98.0",
+    "@tanstack/react-router": "^1.170.15",
     "@types/d3": "^7.4.3",
     "@yudiel/react-qr-scanner": "^2.5.1",
     "d3": "^7.9.0",

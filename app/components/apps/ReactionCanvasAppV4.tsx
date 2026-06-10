@@ -45,10 +45,6 @@ const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = 
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
-function getRoomParamFromUrl(): string {
-  const p = new URLSearchParams(window.location.search);
-  return p.get('room') ?? p.get('videoId') ?? 'default';
-}
 
 function isTouchDevice(): boolean {
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
@@ -128,7 +124,7 @@ function MobileOnlyGate() {
   );
 }
 
-export default function ReactionCanvasAppV4() {
+export default function ReactionCanvasAppV4({ room }: { room: string }) {
   const [unlockedInterfaces, setUnlockedInterfaces] = useState(() => getUnlockedInterfaces());
   const [activeInterface, setActiveInterface] = useState(() => {
     const unlocked = getUnlockedInterfaces();
@@ -141,7 +137,6 @@ export default function ReactionCanvasAppV4() {
   });
   const [userId] = useState(() => getPersistentUserId());
   const [selfChain] = useState<string[]>(() => {
-    const room = getRoomParamFromUrl();
     const urlChain = parseInviteChain(window.location.search);
     const storedChain = getStoredChain(room);
     // Stored chain takes priority — once a parent is established, rescanning
@@ -354,7 +349,6 @@ const [nowLabel, setNowLabel] = useState('');
     return <MobileOnlyGate />;
   }
 
-  const room = getRoomParamFromUrl();
   const anchors = serverAnchors ?? DEFAULT_ANCHORS;
   // URL param overrides server; server overrides default; null = admin explicitly hid labels
   const urlLabelParam = getLabelsParamFromUrl();
