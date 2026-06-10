@@ -81,7 +81,11 @@ function MobileOnlyGate() {
   );
 }
 
-export default function ReactionCanvasAppV5() {
+interface Props {
+  testConnectionFn?: () => Promise<boolean>;
+}
+
+export default function ReactionCanvasAppV5({ testConnectionFn = testConnection }: Props) {
   const [sessionId] = useState(() => getPersistentUserId());
   const [userId] = useState(() => getPersistentUserId());
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
@@ -178,7 +182,7 @@ export default function ReactionCanvasAppV5() {
   }, [touchPos]);
 
   // Test Supabase connection on mount
-  useEffect(() => { testConnection().then(setDbConnected); }, []);
+  useEffect(() => { testConnectionFn().then(setDbConnected); }, []);
 
   // Fetch recorded events on mount
   useEffect(() => {
