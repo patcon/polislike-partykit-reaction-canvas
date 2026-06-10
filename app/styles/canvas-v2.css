@@ -472,6 +472,12 @@
   font-weight: 500;
 }
 
+@media (max-width: 480px) {
+  .nfp-open-label {
+    display: none;
+  }
+}
+
 .nfp-btn {
   display: inline-flex;
   align-items: center;
@@ -586,6 +592,18 @@
   height: 56px;
   object-fit: cover;
   display: block;
+}
+
+.nfp-video-preset--custom {
+  height: 56px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #555;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
 }
 
 .nfp-experiment-url-input {
