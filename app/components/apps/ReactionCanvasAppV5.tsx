@@ -236,6 +236,11 @@ export default function ReactionCanvasAppV5({ room: roomProp, testConnectionFn =
         )}
       </div>
       <div className="v5-vote-canvas-container">
+        {dbConnected === null && (
+          <div className="v5-db-warning v5-db-warning--connecting">
+            Database is connecting…
+          </div>
+        )}
         {dbConnected === false && (
           <div className="v5-db-warning">
             ⚠ Database unreachable — reactions are not being recorded.{' '}
@@ -245,7 +250,7 @@ export default function ReactionCanvasAppV5({ room: roomProp, testConnectionFn =
         {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
         {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
         {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
-        <div className={`v3-rec-badge v3-rec-badge--left${isSupabaseConfigured ? '' : ' v3-rec-badge--off'}`}>● REC</div>
+        <div className={`v3-rec-badge v3-rec-badge--left${!isSupabaseConfigured || dbConnected !== true ? ' v3-rec-badge--off' : ''}`}>● REC</div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         <ShareQRButton />
         {touchPos && (
