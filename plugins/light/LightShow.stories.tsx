@@ -33,7 +33,7 @@ type Story = StoryObj<typeof meta>;
 function DefaultDriver({ room }: { room: string }) {
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
-      emitToRoom(room, { type: 'screenLightState', color: '#ffffff', brightness: 100 });
+      emitToRoom(room, { type: 'setBatchScreenLight', mode: 'global', color: '#000000', brightness: 100 });
     });
     return () => cancelAnimationFrame(raf);
   }, [room]);
@@ -41,7 +41,7 @@ function DefaultDriver({ room }: { room: string }) {
 }
 
 export const Default: Story = {
-  name: 'Default (white, full brightness)',
+  name: 'Default (black)',
   render: (args) => {
     const room = (args as any).room ?? ROOM;
     return (

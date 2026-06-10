@@ -5,12 +5,12 @@ import { PanelContextProvider } from '../../app/context/PanelContext';
 import { emitToRoom } from '../../.storybook/mocks/partysocket-react';
 
 const ROOM = 'storybook-screen-light';
+const USER_ID = 'story-user';
 
 const meta = {
   title: 'Panels/ScreenLightPanel',
   component: ScreenLightPanel,
   parameters: { layout: 'fullscreen' },
-  tags: ['autodocs'],
   decorators: [
     (Story, ctx) => (
       <div className="v2-app-container" style={{ height: '100vh' }}>
@@ -26,7 +26,7 @@ const meta = {
   },
   args: {
     room: ROOM,
-    userId: 'story-user',
+    userId: USER_ID,
     inviteEdges: {},
     color: '#ff0000',
     brightness: 100,
@@ -41,26 +41,23 @@ type Story = StoryObj<typeof meta>;
 function DefaultDriver({ room, color, brightness }: { room: string; color: string; brightness: number }) {
   const mounted = useRef(false);
 
-  // Defer the connected message until after siblings have subscribed
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
-      emitToRoom(room, { type: 'screenLightState', color, brightness });
+      emitToRoom(room, { type: 'setBatchScreenLight', mode: 'global', color, brightness });
       mounted.current = true;
     });
     return () => cancelAnimationFrame(raf);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room]);
 
-  // Push control changes after the initial connected message has been sent
   useEffect(() => {
     if (!mounted.current) return;
-    emitToRoom(room, { type: 'lightColor', color, brightness });
+    emitToRoom(room, { type: 'setBatchScreenLight', mode: 'global', color, brightness });
   }, [room, color, brightness]);
 
   return null;
 }
 
-// Converts HSL hue (0–360) to a hex colour string at full saturation and 50% lightness.
 function hueToHex(hue: number): string {
   const h = hue / 60;
   const s = 1;
@@ -76,11 +73,11 @@ function hueToHex(hue: number): string {
 
 function ColorCycleDriver({ room, periodMs = 4000 }: { room: string; periodMs?: number }) {
   useEffect(() => {
-    emitToRoom(room, { type: 'screenLightState', color: '#ff0000', brightness: 100 });
+    emitToRoom(room, { type: 'setBatchScreenLight', mode: 'global', color: '#ff0000', brightness: 100 });
     const start = performance.now();
     const id = setInterval(() => {
       const hue = ((performance.now() - start) / periodMs * 360) % 360;
-      emitToRoom(room, { type: 'lightColor', color: hueToHex(hue), brightness: 100 });
+      emitToRoom(room, { type: 'setBatchScreenLight', mode: 'global', color: hueToHex(hue), brightness: 100 });
     }, 50);
     return () => clearInterval(id);
   }, [room, periodMs]);
@@ -89,12 +86,34 @@ function ColorCycleDriver({ room, periodMs = 4000 }: { room: string; periodMs?: 
 
 function BrightnessPulseDriver({ room, periodMs = 3000 }: { room: string; periodMs?: number }) {
   useEffect(() => {
-    emitToRoom(room, { type: 'screenLightState', color: '#ffffff', brightness: 100 });
+    emitToRoom(room, { type: 'setBatchScreenLight', mode: 'global', color: '#ffffff', brightness: 100 });
     const start = performance.now();
     const id = setInterval(() => {
       const brightness = Math.round(50 + 50 * Math.sin(((performance.now() - start) / periodMs) * Math.PI * 2));
-      emitToRoom(room, { type: 'lightColor', color: '#ffffff', brightness });
+      emitToRoom(room, { type: 'setBatchScreenLight', mode: 'global', color: '#ffffff', brightness });
     }, 50);
+    return () => clearInterval(id);
+  }, [room, periodMs]);
+  return null;
+}
+
+function ForestDriver({ room, periodMs = 100 }: { room: string; periodMs?: number }) {
+  useEffect(() => {
+    const start = performance.now();
+    const id = setInterval(() => {
+      const ts = (performance.now() - start) / 1000;
+      // Simple green drift for story preview — not full greensRandom, just a hue walk
+      const hue = (ts * 20) % 60 + 80; // drift 80–140
+      const h = hue / 60, s = 0.55, l = 0.32;
+      const a = s * Math.min(l, 1 - l);
+      const f = (n: number) => {
+        const k = (n + h) % 12;
+        const v = l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1));
+        return Math.round(255 * v).toString(16).padStart(2, '0');
+      };
+      const color = `#${f(0)}${f(8)}${f(4)}`;
+      emitToRoom(room, { type: 'setBatchScreenLight', mode: 'perParticipant', colors: { [USER_ID]: { color, brightness: 100 } } });
+    }, periodMs);
     return () => clearInterval(id);
   }, [room, periodMs]);
   return null;
@@ -135,6 +154,19 @@ export const BrightnessPulse: Story = {
     return (
       <>
         <BrightnessPulseDriver room={room} periodMs={3000} />
+        <ScreenLightPanel />
+      </>
+    );
+  },
+};
+
+export const ForestProgram: Story = {
+  name: 'Forest program (per-participant drift)',
+  render: (args) => {
+    const room = (args as any).room ?? ROOM;
+    return (
+      <>
+        <ForestDriver room={room} />
         <ScreenLightPanel />
       </>
     );

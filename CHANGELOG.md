@@ -9,6 +9,13 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 29 (2026-06-08)
 
 ### Added
+- **Light Show programs: Pulse + Forest** — emcee can now run animated light programs from the Light Show panel; Pulse cross-fades between two emcee-chosen colors in a 2-second sine cycle (all phones in sync); Forest drifts each phone independently through a deep-forest palette of greens, yellow-greens, and earthy browns using a per-phone seeded algorithm; programs are driven entirely from the LightShow client (no server-side timers); a second program cannot be started until the first is stopped.
+
+### Fixed
+- **Light Show: Forest preview now animates in the emcee panel** — emcee's `userId` is now included in the per-participant color batch, so the preview swatch updates live during the Forest program; previously it stayed frozen at the last manually-set color.
+
+### Changed
+- **Light plugin: unified `setBatchScreenLight` message protocol** — replaces the three-message legacy protocol (`setLightColor` client→server, `lightColor` server→clients, `screenLightState` server→joiner) with a single `{ type: 'setBatchScreenLight', mode: 'global' | 'perParticipant', ... }` shape used in all directions; server state modelled as a discriminated union (`GlobalLight | PerParticipantLight`) with no persistence across room restarts; `ScreenLight` handles both modes from one handler.
 - **Whisper Gallery front page** — new product-style landing page component (`app/components/NewFrontPage.tsx`) with "Whisper Gallery" branding, typewriter room-name suggestions, participant/emcee open buttons, an Experiments section (YouTube Videos → V5, Sync'd YouTube Watch Party → V2) with YouTube URL input and label-preset style selector, and a More Prototypes footer; exposed via Storybook story at `Pages/NewFrontPage` only (does not replace the existing landing page).
 
 ### Fixed
