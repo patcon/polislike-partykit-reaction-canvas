@@ -81,7 +81,11 @@ function MobileOnlyGate() {
   );
 }
 
-export default function ReactionCanvasAppV5() {
+interface Props {
+  testConnectionFn?: () => Promise<boolean>;
+}
+
+export default function ReactionCanvasAppV5({ testConnectionFn = testConnection }: Props) {
   const [sessionId] = useState(() => getPersistentUserId());
   const [userId] = useState(() => getPersistentUserId());
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
@@ -91,6 +95,7 @@ export default function ReactionCanvasAppV5() {
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
   const [recordedEvents, setRecordedEvents] = useState<ReactionEvent[]>([]);
   const [currentTimecode, setCurrentTimecode] = useState(0);
+  const [dbConnected, setDbConnected] = useState<boolean | null>(null);
   const currentTimecodeRef = useRef(0);
   const playerRef = useRef<YTPlayer | null>(null);
   const lastInsertRef = useRef(0);
@@ -123,7 +128,7 @@ export default function ReactionCanvasAppV5() {
   useEffect(() => {
     if (!videoId) return;
 
-    window.onYouTubeIframeAPIReady = () => {
+    const createPlayer = () => {
       playerRef.current = new window.YT.Player('v5-youtube-player', {
         videoId,
         playerVars: { controls: debug ? 1 : 0, modestbranding: 1, rel: 0, iv_load_policy: 3, cc_load_policy: 0 },
@@ -133,15 +138,20 @@ export default function ReactionCanvasAppV5() {
       });
     };
 
-    const script = document.createElement('script');
-    script.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(script);
+    if (window.YT?.Player) {
+      // API already loaded (e.g. remount after navigation) — create player immediately.
+      createPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = createPlayer;
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(script);
+    }
 
     return () => {
-      // Cleanup: remove the script tag and the global callback
-      if (script.parentNode) script.parentNode.removeChild(script);
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       window.onYouTubeIframeAPIReady = () => {};
+      playerRef.current = null;
     };
   }, [videoId]);
 
@@ -177,7 +187,7 @@ export default function ReactionCanvasAppV5() {
   }, [touchPos]);
 
   // Test Supabase connection on mount
-  useEffect(() => { testConnection(); }, []);
+  useEffect(() => { testConnectionFn().then(setDbConnected); }, []);
 
   // Fetch recorded events on mount
   useEffect(() => {
@@ -229,6 +239,12 @@ export default function ReactionCanvasAppV5() {
         )}
       </div>
       <div className="v5-vote-canvas-container">
+        {dbConnected === false && (
+          <div className="v5-db-warning">
+            ⚠ Database unreachable — reactions are not being recorded.{' '}
+            <a href="https://github.com/patcon" target="_blank" rel="noreferrer">Contact admin</a>
+          </div>
+        )}
         {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
         {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
         {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}

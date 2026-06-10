@@ -372,3 +372,369 @@
   }
 }
 
+/* ── NewFrontPage (Whisper Gallery) ─────────────────────────── */
+
+.nfp-page {
+  height: 100vh;
+  overflow-y: auto;
+  background: #ffffff;
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 64px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.nfp-content {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.nfp-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 56px 0 40px;
+}
+
+.nfp-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+
+.nfp-title {
+  font-size: 36px;
+  font-weight: 700;
+  color: #111;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.nfp-tagline {
+  font-size: 17px;
+  color: #6c757d;
+  margin: 0 0 32px;
+}
+
+.nfp-room-field {
+  width: 100%;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.nfp-room-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6c757d;
+  margin-bottom: 6px;
+}
+
+.nfp-room-input {
+  width: 100%;
+  font-size: 20px;
+  padding: 12px 14px;
+  border: 2px solid #dee2e6;
+  border-radius: 10px;
+  outline: none;
+  color: #111;
+  background: #fff;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+}
+
+.nfp-room-input:focus {
+  border-color: #4f6ef7;
+}
+
+.nfp-room-input::placeholder {
+  color: #adb5bd;
+}
+
+.nfp-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.nfp-open-label {
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 500;
+}
+
+.nfp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 22px;
+  border-radius: 9px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.nfp-btn-primary {
+  background: #4f6ef7;
+  color: #fff;
+  border-color: #4f6ef7;
+}
+
+.nfp-btn-primary:hover {
+  background: #3b5be3;
+  border-color: #3b5be3;
+  box-shadow: 0 2px 8px rgba(79, 110, 247, 0.35);
+}
+
+.nfp-btn-secondary {
+  background: #fff;
+  color: #4f6ef7;
+  border-color: #4f6ef7;
+}
+
+.nfp-btn-secondary:hover {
+  background: #f0f3ff;
+}
+
+.nfp-section {
+  border: 1.5px solid #e9ecef;
+  border-radius: 14px;
+  padding: 24px;
+  margin-top: 28px;
+  background: #fafafa;
+}
+
+.nfp-section--prototypes {
+  background: #fff;
+}
+
+.nfp-section-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #adb5bd;
+  margin: 0 0 4px;
+}
+
+.nfp-section-desc {
+  font-size: 13px;
+  color: #868e96;
+  margin: 0 0 18px;
+}
+
+.nfp-experiment-card {
+  border: 1.5px solid #dee2e6;
+  border-radius: 10px;
+  padding: 16px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nfp-experiment-url-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.nfp-video-presets {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.nfp-video-preset {
+  flex: 1;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s, opacity 0.15s;
+  line-height: 0;
+  opacity: 0.35;
+}
+
+.nfp-video-preset:hover {
+  opacity: 0.7;
+}
+
+.nfp-video-preset--active {
+  border-color: #4f6ef7;
+  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.3);
+  opacity: 1;
+}
+
+.nfp-video-preset img {
+  width: 100%;
+  height: 56px;
+  object-fit: cover;
+  display: block;
+}
+
+.nfp-experiment-url-input {
+  font-size: 14px;
+  padding: 9px 12px;
+  border: 1.5px solid #dee2e6;
+  border-radius: 8px;
+  outline: none;
+  color: #343a40;
+  background: #fff;
+  transition: border-color 0.15s;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.nfp-experiment-url-input:focus {
+  border-color: #4f6ef7;
+}
+
+.nfp-experiment-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nfp-experiment-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1.5px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.nfp-experiment-option:hover {
+  border-color: #a5b4fc;
+  background: #f8f9ff;
+}
+
+.nfp-experiment-option--active {
+  border-color: #4f6ef7;
+  background: #f0f3ff;
+}
+
+.nfp-experiment-option input[type="radio"] {
+  accent-color: #4f6ef7;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.nfp-experiment-option-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nfp-experiment-option-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: #343a40;
+}
+
+.nfp-experiment-option-desc {
+  font-size: 12px;
+  color: #868e96;
+  line-height: 1.4;
+}
+
+.nfp-experiment-footer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.nfp-admin-link {
+  font-size: 12px;
+  color: #868e96;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.nfp-admin-link:hover {
+  color: #495057;
+}
+
+.nfp-proto-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.nfp-proto-link {
+  font-size: 14px;
+  font-weight: 600;
+  color: #495057;
+  text-decoration: none;
+  display: inline-block;
+  border-bottom: 1px solid transparent;
+  transition: color 0.12s, border-color 0.12s;
+}
+
+.nfp-proto-link:hover {
+  color: #343a40;
+  border-color: #dee2e6;
+}
+
+.nfp-proto-desc {
+  font-size: 12px;
+  color: #868e96;
+  margin: 3px 0 0;
+  line-height: 1.4;
+}
+
+@media (max-width: 640px) {
+  .nfp-hero {
+    padding: 36px 0 28px;
+  }
+
+  .nfp-title {
+    font-size: 28px;
+  }
+
+  .nfp-room-input {
+    font-size: 17px;
+  }
+
+  .nfp-actions {
+    gap: 8px;
+  }
+
+  .nfp-btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+
+  .nfp-section {
+    padding: 18px 16px;
+  }
+}
+

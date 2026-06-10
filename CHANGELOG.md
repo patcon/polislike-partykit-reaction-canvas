@@ -13,10 +13,15 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Changed
 - **Light plugin: unified `setBatchScreenLight` message protocol** — replaces the three-message legacy protocol (`setLightColor` client→server, `lightColor` server→clients, `screenLightState` server→joiner) with a single `{ type: 'setBatchScreenLight', mode: 'global' | 'perParticipant', ... }` shape used in all directions; server state modelled as a discriminated union (`GlobalLight | PerParticipantLight`) with no persistence across room restarts; `ScreenLight` handles both modes from one handler.
+- **Whisper Gallery front page** — new product-style landing page component (`app/components/NewFrontPage.tsx`) with "Whisper Gallery" branding, typewriter room-name suggestions, participant/emcee open buttons, an Experiments section (YouTube Videos → V5, Sync'd YouTube Watch Party → V2) with YouTube URL input and label-preset style selector, and a More Prototypes footer; exposed via Storybook story at `Pages/NewFrontPage` only (does not replace the existing landing page).
+
+### Fixed
+- **V5 silent DB failure** — `#v5` now shows an amber warning banner ("Database unreachable — reactions are not being recorded. Contact admin") when the Supabase connection check fails on mount; previously failed silently with no visible feedback. Includes a `DatabaseUnreachable` Storybook story that injects a failing connection function to verify the banner renders.
 
 ## Week 28 (2026-06-01)
 
 ### Added
+- **CI: deploy to legacy URL** — production deploy now also pushes to `polislike-partykit-reaction-canvas.patcon.partykit.dev` (old app name) so previously-shared links continue to work after the rename to `whispering-gallery`.
 - **Perf test CI workflow** — `deploy:perf` npm script and `.github/workflows/perf-test.yml` deploy to a persistent `perf` PartyKit preview and run the k6 load test suite (200 VUs, 30s) against `wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/perf-default`; triggered manually or on a daily schedule (skipped if no commits in 24h).
 - **k6 load test improvements** — adds `cursor_delivery_ms` end-to-end latency metric (sender timestamp echoed back via `cursorBatch`), `connection_success` rate metric replacing the meaningless `ws_sessions` threshold, fixes `cursors_received` to count only cursor events (not `presenceCount` messages), staggered 18–22s VU close timer to avoid reconnect storms, and a `handleSummary` fanout ratio display.
 - **ArrivalCanvas panel** — new patchable panel that turns arrivals into an audio-visual moment: the screen transitions black → white and a THX deep note synthesizes and converges to a D major chord as participants join. Emcee sets room capacity via a gear-icon config modal; count and capacity are displayed on screen. Includes a `SimulatingArrivals` Storybook story with a mock driver that steps through arrivals over 10 seconds.
