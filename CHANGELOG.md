@@ -11,17 +11,16 @@ All notable changes to this project will be documented in this file. Releases cu
 ### Added
 - **Light Show programs: Pulse + Forest** — emcee can now run animated light programs from the Light Show panel; Pulse cross-fades between two emcee-chosen colors in a 2-second sine cycle (all phones in sync); Forest drifts each phone independently through a deep-forest palette of greens, yellow-greens, and earthy browns using a per-phone seeded algorithm; programs are driven entirely from the LightShow client (no server-side timers); a second program cannot be started until the first is stopped.
 
-### Fixed
-- **Light Show: Forest preview now animates in the emcee panel** — emcee's `userId` is now included in the per-participant color batch, so the preview swatch updates live during the Forest program; previously it stayed frozen at the last manually-set color.
-
 ### Changed
 - **Light plugin: unified `setBatchScreenLight` message protocol** — replaces the three-message legacy protocol (`setLightColor` client→server, `lightColor` server→clients, `screenLightState` server→joiner) with a single `{ type: 'setBatchScreenLight', mode: 'global' | 'perParticipant', ... }` shape used in all directions; server state modelled as a discriminated union (`GlobalLight | PerParticipantLight`) with no persistence across room restarts; `ScreenLight` handles both modes from one handler.
 - **Whisper Gallery front page** — new product-style landing page component (`app/components/NewFrontPage.tsx`) with "Whisper Gallery" branding, typewriter room-name suggestions, participant/emcee open buttons, an Experiments section (YouTube Videos → V5, Sync'd YouTube Watch Party → V2) with YouTube URL input and label-preset style selector, and a More Prototypes footer; exposed via Storybook story at `Pages/NewFrontPage` only (does not replace the existing landing page).
+- **ScreenLight: smooth color and brightness transitions** — color and brightness overlay now transition over 150ms (CSS `ease`) instead of snapping instantly, masking network latency between emcee ticks.
 
 ### Fixed
 - **V5 silent DB failure** — `#v5` now shows an amber warning banner ("Database unreachable — reactions are not being recorded. Contact admin") when the Supabase connection check fails on mount; previously failed silently with no visible feedback. Includes a `DatabaseUnreachable` Storybook story that injects a failing connection function to verify the banner renders.
 - **Front page buttons: cmd+click / right-click** — "Participant View", "Emcee View", "Open Experiment", and "Admin" converted from `<button onClick>` to `<a href>` so the browser can open them in a new tab and the right-click context menu works.
 - **SPA routing: direct navigation to room paths** — restored `singlePageApp: true` in `partykit.json` so paths like `/default` serve the app shell instead of "Not found"; removed the broken custom `onFetch` that replaced it (`.html` static pages in `public/` are served correctly by `singlePageApp` without special handling).
+- **Light Show: Forest preview now animates in the emcee panel** — emcee's `userId` is now included in the per-participant color batch, so the preview swatch updates live during the Forest program; previously it stayed frozen at the last manually-set color.
 
 ## Week 28 (2026-06-01)
 

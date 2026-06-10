@@ -34,8 +34,8 @@ export default function ScreenLight() {
   const overlayOpacity = 1 - brightness / 100;
 
   return (
-    <div className="screen-light-panel" style={{ flex: 1, position: 'relative', background: color }}>
-      <div style={{ position: 'absolute', inset: 0, background: `rgba(0,0,0,${overlayOpacity})`, pointerEvents: 'none' }} />
+    <div className="screen-light-panel" style={{ flex: 1, position: 'relative', background: color, transition: 'background 150ms ease' }}>
+      <div style={{ position: 'absolute', inset: 0, background: `rgba(0,0,0,${overlayOpacity})`, pointerEvents: 'none', transition: 'background 150ms ease' }} />
       <WakeLockIndicatorButton
         enabled={wakeLockEnabled}
         active={wakeLockAcquired}
