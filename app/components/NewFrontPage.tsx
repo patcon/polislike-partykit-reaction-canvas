@@ -158,7 +158,7 @@ export function NewFrontPage() {
         <div className="nfp-hero">
           <div className="nfp-icon" aria-hidden="true">〰️</div>
           <h1 className="nfp-title">Whisper Gallery</h1>
-          <p className="nfp-tagline">see live reactions from the audience</p>
+          <p className="nfp-tagline">see realtime audience reactions at live events</p>
 
           <div className="nfp-room-field">
             <label className="nfp-room-label" htmlFor="nfp-room-input">Room name</label>
