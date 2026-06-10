@@ -4,7 +4,7 @@ declare const APP_TITLE: string;
 const DEFAULT_TITLE = typeof APP_TITLE !== 'undefined' ? APP_TITLE : 'Whispering Gallery';
 
 export function OldFrontPage({ title = DEFAULT_TITLE }: { title?: string }) {
-  const pageUrl = window.location.origin + window.location.pathname;
+  const pageUrl = window.location.origin + window.location.pathname + window.location.hash;
   return (
     <div className="index-app">
       <h1 className="index-title">{title} Apps</h1>
