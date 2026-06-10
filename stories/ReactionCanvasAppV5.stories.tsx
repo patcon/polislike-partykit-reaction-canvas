@@ -1,19 +1,25 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import ReactionCanvasAppV5 from '../app/components/apps/ReactionCanvasAppV5';
 
+const EXAMPLE_VIDEO_ID = 'irc6creOFGs';
+
 const meta = {
   title: 'App/ReactionCanvasAppV5',
   component: ReactionCanvasAppV5,
   parameters: { layout: 'fullscreen' },
   tags: ['autodocs'],
+  args: {
+    testConnectionFn: () => Promise.resolve(true),
+  },
   beforeEach: () => {
-    // Bypass mobile-only gate so canvas renders in Storybook on desktop.
     const url = new URL(window.location.href);
     url.searchParams.set('forceView', 'mobile');
+    url.searchParams.set('room', EXAMPLE_VIDEO_ID);
     window.history.replaceState({}, '', url.toString());
     return () => {
       const reset = new URL(window.location.href);
       reset.searchParams.delete('forceView');
+      reset.searchParams.delete('room');
       window.history.replaceState({}, '', reset.toString());
     };
   },
@@ -22,9 +28,13 @@ const meta = {
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {
-  args: {
-    testConnectionFn: () => Promise.resolve(true),
+export const Default: Story = {};
+
+export const NoVideo: Story = {
+  beforeEach: () => {
+    const url = new URL(window.location.href);
+    url.searchParams.delete('room');
+    window.history.replaceState({}, '', url.toString());
   },
 };
 
