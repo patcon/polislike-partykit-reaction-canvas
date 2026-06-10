@@ -19,6 +19,7 @@ import ValenceViz from "./components/viz/ValenceViz";
 import PerfCanvasApp from "./components/apps/PerfCanvasApp";
 import { OldFrontPage } from "./components/OldFrontPage";
 import { NewFrontPage } from "./components/NewFrontPage";
+import { getIndexRedirect, getRoomRedirect } from "./utils/routing";
 
 const TITLES: Record<string, (admin: boolean) => string> = {
   '#v1': (admin) => admin ? 'Statement Admin — Polislike' : 'Statement Voting — Polislike',
@@ -83,23 +84,8 @@ const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/',
   beforeLoad: ({ location }) => {
-    const params = new URLSearchParams(location.search);
-    const room = params.get('room');
-    const hash = location.hash;
-    params.delete('room');
-    const qs = params.toString() ? `?${params}` : '';
-
-    if (room) {
-      if (!hash || hash === 'v4') {
-        throw redirect({ href: `/${room}${qs}`, replace: true });
-      } else {
-        throw redirect({ href: `/${room}${qs}#${hash}`, replace: true });
-      }
-    } else if (hash === 'v4') {
-      throw redirect({ href: `/default${qs}`, replace: true });
-    } else if (hash && hash !== 'old') {
-      throw redirect({ href: `/default${qs}#${hash}`, replace: true });
-    }
+    const href = getIndexRedirect(location.searchStr, location.hash);
+    if (href) throw redirect({ href, replace: true });
   },
   component: () => <App room="" />,
 });
@@ -108,26 +94,8 @@ const roomRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/$room',
   beforeLoad: ({ location }) => {
-    const params = new URLSearchParams(location.search);
-    const roomParam = params.get('room');
-    const hash = location.hash;
-
-    // Legacy ?room= param on a room path — redirect to the query-specified room
-    if (roomParam) {
-      params.delete('room');
-      const qs = params.toString() ? `?${params}` : '';
-      if (!hash || hash === 'v4') {
-        throw redirect({ href: `/${roomParam}${qs}`, replace: true });
-      } else {
-        throw redirect({ href: `/${roomParam}${qs}#${hash}`, replace: true });
-      }
-    }
-
-    // Strip redundant #v4 — bare path implies V4
-    if (hash === 'v4') {
-      const qs = params.toString() ? `?${params}` : '';
-      throw redirect({ href: `${location.pathname}${qs}`, replace: true });
-    }
+    const href = getRoomRedirect(location.pathname, location.searchStr, location.hash);
+    if (href) throw redirect({ href, replace: true });
   },
   component: function RoomPage() {
     const { room } = useParams({ from: '/$room' });
