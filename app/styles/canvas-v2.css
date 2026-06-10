@@ -561,22 +561,24 @@
 .nfp-video-preset {
   flex: 1;
   padding: 0;
-  border: 2px solid #dee2e6;
+  border: 2px solid transparent;
   border-radius: 6px;
   background: none;
   cursor: pointer;
   overflow: hidden;
-  transition: border-color 0.15s;
+  transition: border-color 0.15s, opacity 0.15s;
   line-height: 0;
+  opacity: 0.35;
 }
 
 .nfp-video-preset:hover {
-  border-color: #a5b4fc;
+  opacity: 0.7;
 }
 
 .nfp-video-preset--active {
   border-color: #4f6ef7;
-  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.2);
+  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.3);
+  opacity: 1;
 }
 
 .nfp-video-preset img {
