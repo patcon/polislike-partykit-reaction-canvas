@@ -71,6 +71,7 @@ function App({ room }: { room: string }) {
   else if (hash === '#valence-viz') page = <ValenceViz room={room} />;
   else if (hash === '#perf') page = <PerfCanvasApp room={room} />;
   else if (hash === '#old') page = <OldFrontPage />;
+  else if (room) page = <ReactionCanvasAppV4 room={room} />;
   else page = <NewFrontPage />;
 
   return <>{page}{!PARTYKIT_EVENT_BUILD && <GithubCorner />}</>;
@@ -89,15 +90,15 @@ const indexRoute = createRoute({
     const qs = params.toString() ? `?${params}` : '';
 
     if (room) {
-      if (!hash || hash === '#v4') {
+      if (!hash || hash === 'v4') {
         throw redirect({ href: `/${room}${qs}`, replace: true });
       } else {
-        throw redirect({ href: `/${room}${qs}${hash}`, replace: true });
+        throw redirect({ href: `/${room}${qs}#${hash}`, replace: true });
       }
-    } else if (hash === '#v4') {
+    } else if (hash === 'v4') {
       throw redirect({ href: `/default${qs}`, replace: true });
-    } else if (hash && hash !== '#old') {
-      throw redirect({ href: `/default${qs}${hash}`, replace: true });
+    } else if (hash && hash !== 'old') {
+      throw redirect({ href: `/default${qs}#${hash}`, replace: true });
     }
   },
   component: () => <App room="" />,
@@ -115,15 +116,15 @@ const roomRoute = createRoute({
     if (roomParam) {
       params.delete('room');
       const qs = params.toString() ? `?${params}` : '';
-      if (!hash || hash === '#v4') {
+      if (!hash || hash === 'v4') {
         throw redirect({ href: `/${roomParam}${qs}`, replace: true });
       } else {
-        throw redirect({ href: `/${roomParam}${qs}${hash}`, replace: true });
+        throw redirect({ href: `/${roomParam}${qs}#${hash}`, replace: true });
       }
     }
 
     // Strip redundant #v4 — bare path implies V4
-    if (hash === '#v4') {
+    if (hash === 'v4') {
       const qs = params.toString() ? `?${params}` : '';
       throw redirect({ href: `${location.pathname}${qs}`, replace: true });
     }
