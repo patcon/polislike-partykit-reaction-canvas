@@ -128,7 +128,7 @@ export default function ReactionCanvasAppV5({ testConnectionFn = testConnection 
   useEffect(() => {
     if (!videoId) return;
 
-    window.onYouTubeIframeAPIReady = () => {
+    const createPlayer = () => {
       playerRef.current = new window.YT.Player('v5-youtube-player', {
         videoId,
         playerVars: { controls: debug ? 1 : 0, modestbranding: 1, rel: 0, iv_load_policy: 3, cc_load_policy: 0 },
@@ -138,15 +138,20 @@ export default function ReactionCanvasAppV5({ testConnectionFn = testConnection 
       });
     };
 
-    const script = document.createElement('script');
-    script.src = 'https://www.youtube.com/iframe_api';
-    document.head.appendChild(script);
+    if (window.YT?.Player) {
+      // API already loaded (e.g. remount after navigation) — create player immediately.
+      createPlayer();
+    } else {
+      window.onYouTubeIframeAPIReady = createPlayer;
+      const script = document.createElement('script');
+      script.src = 'https://www.youtube.com/iframe_api';
+      document.head.appendChild(script);
+    }
 
     return () => {
-      // Cleanup: remove the script tag and the global callback
-      if (script.parentNode) script.parentNode.removeChild(script);
       // eslint-disable-next-line @typescript-eslint/no-empty-function
       window.onYouTubeIframeAPIReady = () => {};
+      playerRef.current = null;
     };
   }, [videoId]);
 
