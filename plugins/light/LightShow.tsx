@@ -78,20 +78,21 @@ export default function LightShow() {
   const startForest = useCallback((currentParticipants: Set<string>) => {
     stopProgram();
     programStartRef.current = Date.now();
+    const allIds = new Set([...currentParticipants, userId]);
     intervalRef.current = setInterval(() => {
       const ts = (Date.now() - programStartRef.current) / 1000;
       const colors: Record<string, { color: string; brightness: number }> = {};
-      for (const uid of currentParticipants) {
+      for (const uid of allIds) {
         if (!forestStatesRef.current.has(uid)) {
           forestStatesRef.current.set(uid, makePhoneState());
         }
         const state = forestStatesRef.current.get(uid)!;
         colors[uid] = { color: rgbToHex(greensRandom(state, ts)), brightness: 100 };
       }
-      if (Object.keys(colors).length > 0) sendPerParticipant(colors);
+      sendPerParticipant(colors);
     }, 100);
     setActiveProgram('forest');
-  }, [stopProgram, sendPerParticipant]);
+  }, [stopProgram, sendPerParticipant, userId]);
 
   const socket = usePartySocket({
     ...getPartySocketConfig(),
@@ -102,6 +103,9 @@ export default function LightShow() {
       if (msg.type === 'setBatchScreenLight' && msg.mode === 'global') {
         setColor(msg.color);
         setBrightness(msg.brightness);
+      } else if (msg.type === 'setBatchScreenLight' && msg.mode === 'perParticipant') {
+        const mine = (msg.colors as Record<string, { color: string }>)[userId];
+        if (mine) setColor(mine.color);
       } else if (msg.type === 'connected') {
         const ids: string[] = (msg.connectedUserIds ?? []).filter((id: string) => id !== userId);
         setParticipants(new Set(ids));

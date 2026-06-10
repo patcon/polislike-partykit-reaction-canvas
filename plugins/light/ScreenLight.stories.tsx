@@ -11,7 +11,6 @@ const meta = {
   title: 'Panels/ScreenLightPanel',
   component: ScreenLightPanel,
   parameters: { layout: 'fullscreen' },
-  tags: ['autodocs'],
   decorators: [
     (Story, ctx) => (
       <div className="v2-app-container" style={{ height: '100vh' }}>
