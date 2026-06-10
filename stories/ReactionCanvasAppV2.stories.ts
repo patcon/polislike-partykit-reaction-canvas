@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { createElement } from 'react';
 import ReactionCanvasAppV2 from '../app/components/apps/ReactionCanvasAppV2';
 
 const meta = {
@@ -6,6 +7,9 @@ const meta = {
   component: ReactionCanvasAppV2,
   parameters: { layout: 'fullscreen' },
   tags: ['autodocs'],
+  decorators: [
+    (Story) => createElement('div', { style: { height: '100vh', width: '100vw', overflow: 'hidden' } }, createElement(Story)),
+  ],
 } satisfies Meta<typeof ReactionCanvasAppV2>;
 
 export default meta;

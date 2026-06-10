@@ -4,124 +4,13 @@ declare const APP_TITLE: string;
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
 import SimpleReactionCanvasAppV1 from "./components/apps/SimpleReactionCanvasAppV1";
-import QRWithCopy from "./components/shared/QRWithCopy";
 import ReactionCanvasAppV2 from "./components/apps/ReactionCanvasAppV2";
 import ReactionCanvasAppV4 from "./components/apps/ReactionCanvasAppV4";
 import ReactionCanvasAppV5 from "./components/apps/ReactionCanvasAppV5";
 import ValenceViz from "./components/viz/ValenceViz";
 import PerfCanvasApp from "./components/apps/PerfCanvasApp";
-
-function IndexApp() {
-  const pageUrl = window.location.origin + window.location.pathname;
-  return (
-    <div className="index-app">
-      <h1 className="index-title">{APP_TITLE} Apps</h1>
-      <div className="index-qr">
-        <QRWithCopy url={pageUrl} size={120} urlClassName="index-qr-label" qrClassName="index-qr-code" />
-      </div>
-      <div className="app-cards">
-        <a href="?room=irc6creOFGs#v5" className="app-card app-card--youtube">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V5 Participation: YouTube Async</h2>
-            <p className="app-card-description">Async YouTube + reaction canvas with an example video. Past reactions replay as cursors in sync with the video timecode.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?admin=true#v5" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V5 Admin: Database</h2>
-            <p className="app-card-description">Manage labels, anchors, and participant cap. View and clear Supabase reaction recordings.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="#v4" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V4 Participation: Basic Realtime</h2>
-            <p className="app-card-description">Full-page canvas, no video, no statements. Mobile-only with QR gate on desktop.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?admin=true#v4" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V4 Admin: No Database</h2>
-            <p className="app-card-description">Record live audience reaction data for offline analysis. Downloads as JSON.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?room=irc6creOFGs#v2" className="app-card app-card--youtube">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V2 Participation: YouTube Realtime</h2>
-            <p className="app-card-description">YouTube embed + reaction canvas with an example video pre-loaded.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?room=3ntrtcehas#v1" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V1 Participation: Statements (Polis)</h2>
-            <p className="app-card-description">Collaborative voting canvas with real-time cursor tracking and Polis statement display.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="/mood-sounds.html" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">Experience: Mood Sounds</h2>
-            <p className="app-card-description">Facilitator tool: ambient generative sound driven by live audience cursor positions. Open in a separate tab — invisible to participant count.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="#valence-viz" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">Experience: Valence Viz</h2>
-            <p className="app-card-description">Facilitator tool: 3D particle/wave visualization of audience sentiment. Synthetic demo by default; Audience Sync drives it live from cursor positions.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="/valence-onboarding-v1.html" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">Onboarding: Valence V1</h2>
-            <p className="app-card-description">Interactive onboarding experience for the valence wave visualization.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="/valence-onboarding-v2.html" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">Onboarding: Valence V2</h2>
-            <p className="app-card-description">Interactive onboarding experience for the valence wave visualization.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="/valence-onboarding-v3.html" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">Onboarding: Valence V3</h2>
-            <p className="app-card-description">Valence wave with particle-life physics mode.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?ghostCursors=true#v1" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V1 Participation: Fake Users Demo</h2>
-            <p className="app-card-description">Same as above, with 10 simulated ghost cursors moving between voting regions.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="#perf" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">Perf Test Canvas</h2>
-            <p className="app-card-description">Minimal cursor-only canvas wired to a stripped-down server. Use with the load test scripts to assess peak broadcast performance.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-        <a href="?room=3ntrtcehas&admin=true#v1" className="app-card">
-          <div className="app-card-content">
-            <h2 className="app-card-title">V1 Admin: Statement Queue</h2>
-            <p className="app-card-description">Queue statements for display and monitor submitted votes.</p>
-          </div>
-          <span className="app-card-arrow">→</span>
-        </a>
-      </div>
-    </div>
-  );
-}
+import { OldFrontPage } from "./components/OldFrontPage";
+import { NewFrontPage } from "./components/NewFrontPage";
 
 const TITLES: Record<string, (admin: boolean) => string> = {
   '#v1': (admin) => admin ? 'Statement Admin — Polislike' : 'Statement Voting — Polislike',
@@ -148,9 +37,19 @@ function App() {
   const [hash, setHash] = useState(window.location.hash);
 
   useEffect(() => {
-    const handleHashChange = () => setHash(window.location.hash);
-    window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    // hashchange: hash-only navigation within the SPA (e.g. #v4 → #old)
+    // popstate: back/forward when history entries differ by more than just hash
+    // pageshow (persisted): bfcache restore — neither of the above fires
+    const update = () => setHash(window.location.hash);
+    const handlePageShow = (e: PageTransitionEvent) => { if (e.persisted) update(); };
+    window.addEventListener('hashchange', update);
+    window.addEventListener('popstate', update);
+    window.addEventListener('pageshow', handlePageShow);
+    return () => {
+      window.removeEventListener('hashchange', update);
+      window.removeEventListener('popstate', update);
+      window.removeEventListener('pageshow', handlePageShow);
+    };
   }, []);
 
   useEffect(() => {
@@ -166,7 +65,8 @@ function App() {
   else if (hash === '#v5') page = <ReactionCanvasAppV5 />;
   else if (hash === '#valence-viz') page = <ValenceViz />;
   else if (hash === '#perf') page = <PerfCanvasApp />;
-  else page = <IndexApp />;
+  else if (hash === '#old') page = <OldFrontPage />;
+  else page = <NewFrontPage />;
 
   return <>{page}{!PARTYKIT_EVENT_BUILD && <GithubCorner />}</>;
 }
