@@ -68,14 +68,14 @@ function extractYouTubeId(url: string): string {
 }
 
 function buildV4Url(room: string, emcee: boolean) {
-  const r = room.trim().replace(/\s+/g, '-') || 'default';
-  return `?room=${encodeURIComponent(r)}${emcee ? '&interface=emcee' : ''}#v4`;
+  const r = encodeURIComponent(room.trim().replace(/\s+/g, '-') || 'default');
+  return `/${r}${emcee ? '?interface=emcee' : ''}`;
 }
 
 function buildExperimentUrl(type: 'youtube' | 'watch-party', videoId: string) {
-  const id = videoId || 'default';
-  if (type === 'youtube') return `?room=${encodeURIComponent(id)}#v5`;
-  return `?room=${encodeURIComponent(id)}#v2`;
+  const id = encodeURIComponent(videoId || 'default');
+  if (type === 'youtube') return `/${id}#v5`;
+  return `/${id}#v2`;
 }
 
 type ExperimentType = 'youtube' | 'watch-party';
@@ -155,7 +155,7 @@ export function NewFrontPage() {
   }
 
   function handleOpenV5Admin() {
-    window.location.href = '?admin=true#v5';
+    window.location.href = '/default?admin=true#v5';
   }
 
   return (

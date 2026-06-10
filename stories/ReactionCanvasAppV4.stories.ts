@@ -12,4 +12,6 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 // Full-page canvas — shows QR gate on desktop unless ?forceView=mobile is set.
-export const Default: Story = {};
+export const Default: Story = {
+  args: { room: 'default' },
+};

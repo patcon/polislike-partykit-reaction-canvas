@@ -10,10 +10,6 @@ import { getReactionLabelSet } from "../../voteLabels";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../../utils/voteRegion";
 import { getPersistentUserId } from "../../utils/userId";
 
-function getRoomFromUrl(): string {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('room') ?? urlParams.get('videoId') ?? 'default';
-}
 
 function isAdminMode(): boolean {
   const urlParams = new URLSearchParams(window.location.search);
@@ -28,8 +24,7 @@ function getGhostCursorsFromUrl(): boolean | null {
   return null;
 }
 
-export default function SimpleReactionCanvasAppV1() {
-  const room = getRoomFromUrl();
+export default function SimpleReactionCanvasAppV1({ room }: { room: string }) {
   const adminMode = isAdminMode();
   const ghostCursorsFromUrl = getGhostCursorsFromUrl();
   const [allSelectedStatements, setAllSelectedStatements] = useState<QueueItem[]>([]);

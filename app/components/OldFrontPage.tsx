@@ -12,14 +12,14 @@ export function OldFrontPage({ title = DEFAULT_TITLE }: { title?: string }) {
         <QRWithCopy url={pageUrl} size={120} urlClassName="index-qr-label" qrClassName="index-qr-code" />
       </div>
       <div className="app-cards">
-        <a href="?room=irc6creOFGs#v5" className="app-card app-card--youtube">
+        <a href="/irc6creOFGs#v5" className="app-card app-card--youtube">
           <div className="app-card-content">
             <h2 className="app-card-title">V5 Participation: YouTube Async</h2>
             <p className="app-card-description">Async YouTube + reaction canvas with an example video. Past reactions replay as cursors in sync with the video timecode.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="?admin=true#v5" className="app-card">
+        <a href="/default?admin=true#v5" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V5 Admin: Database</h2>
             <p className="app-card-description">Manage labels, anchors, and participant cap. View and clear Supabase reaction recordings.</p>
@@ -33,21 +33,21 @@ export function OldFrontPage({ title = DEFAULT_TITLE }: { title?: string }) {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="?admin=true#v4" className="app-card">
+        <a href="/default?interface=emcee" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V4 Admin: No Database</h2>
             <p className="app-card-description">Record live audience reaction data for offline analysis. Downloads as JSON.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="?room=irc6creOFGs#v2" className="app-card app-card--youtube">
+        <a href="/irc6creOFGs#v2" className="app-card app-card--youtube">
           <div className="app-card-content">
             <h2 className="app-card-title">V2 Participation: YouTube Realtime</h2>
             <p className="app-card-description">YouTube embed + reaction canvas with an example video pre-loaded.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="?room=3ntrtcehas#v1" className="app-card">
+        <a href="/3ntrtcehas#v1" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V1 Participation: Statements (Polis)</h2>
             <p className="app-card-description">Collaborative voting canvas with real-time cursor tracking and Polis statement display.</p>
@@ -103,7 +103,7 @@ export function OldFrontPage({ title = DEFAULT_TITLE }: { title?: string }) {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="?room=3ntrtcehas&admin=true#v1" className="app-card">
+        <a href="/3ntrtcehas?admin=true#v1" className="app-card">
           <div className="app-card-content">
             <h2 className="app-card-title">V1 Admin: Statement Queue</h2>
             <p className="app-card-description">Queue statements for display and monitor submitted votes.</p>

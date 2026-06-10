@@ -16,9 +16,6 @@ function computeThrottleMs(count: number, base: number, scaleStart: number, scal
   return Math.round(base + (max - base) * t * t);
 }
 
-function getRoomFromUrl(): string {
-  return new URLSearchParams(window.location.search).get("room") ?? "default";
-}
 
 /**
  * Minimal canvas app wired to the stripped-down perf party server.
@@ -28,11 +25,10 @@ function getRoomFromUrl(): string {
  * URL: /#perf
  * URL params: ?room=<name>
  */
-export default function PerfCanvasApp() {
+export default function PerfCanvasApp({ room }: { room: string }) {
   const [userId] = useState(() => getPersistentUserId());
   const [presenceCount, setPresenceCount] = useState(0);
   const reactionStateRef = useRef<'positive' | 'negative' | 'neutral' | null>(null);
-  const room = getRoomFromUrl();
 
   const [smoothCursorEnabled, setSmoothCursorEnabled] = useState(false);
   const [stiffness, setStiffness] = useState(SMOOTH_CURSOR_CONFIG.stiffness);

@@ -47,7 +47,7 @@ interface Person {
   colVal: Float32Array;
 }
 
-export default function ValenceViz() {
+export default function ValenceViz({ room: roomProp = 'default' }: { room?: string }) {
   // ── UI State ───────────────────────────────────────────────────────────────
   const [playing, setPlaying] = useState(true);
   const [vizMode, setVizMode] = useState<'light' | 'particle'>('light');
@@ -71,9 +71,7 @@ export default function ValenceViz() {
   const [showDof, setShowDof] = useState(false);
   const [showAttract, setShowAttract] = useState(false);
   const [showRowParticle, setShowRowParticle] = useState(false);
-  const [roomInputVal, setRoomInputVal] = useState(
-    () => new URLSearchParams(window.location.search).get('room') || 'default'
-  );
+  const [roomInputVal, setRoomInputVal] = useState(roomProp);
 
   // ── DOM refs ───────────────────────────────────────────────────────────────
   const canvasRef = useRef<HTMLCanvasElement>(null);

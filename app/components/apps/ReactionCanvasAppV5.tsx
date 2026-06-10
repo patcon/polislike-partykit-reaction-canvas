@@ -45,10 +45,6 @@ const THROTTLE_MS = 150;
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
-function getRoomFromUrl(): string {
-  const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('room') ?? urlParams.get('videoId') ?? '';
-}
 
 function getLabelsParamFromUrl(): string | undefined {
   return new URLSearchParams(window.location.search).get('labels') ?? undefined;
@@ -82,10 +78,11 @@ function MobileOnlyGate() {
 }
 
 interface Props {
+  room: string;
   testConnectionFn?: () => Promise<boolean>;
 }
 
-export default function ReactionCanvasAppV5({ testConnectionFn = testConnection }: Props) {
+export default function ReactionCanvasAppV5({ room: roomProp, testConnectionFn = testConnection }: Props) {
   const [sessionId] = useState(() => getPersistentUserId());
   const [userId] = useState(() => getPersistentUserId());
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
@@ -101,8 +98,8 @@ export default function ReactionCanvasAppV5({ testConnectionFn = testConnection 
   const lastInsertRef = useRef(0);
   const reactionStateRef = useRef<ReactionState>(null);
 
-  const videoId = getRoomFromUrl();
-  const room = videoId || 'default';
+  const room = roomProp || 'default';
+  const videoId = room !== 'default' ? room : '';
 
   const [youtubeHeight, setYoutubeHeight] = useState(
     Math.round(window.innerHeight * YOUTUBE_HEIGHT_FRACTION)
@@ -235,10 +232,15 @@ export default function ReactionCanvasAppV5({ testConnectionFn = testConnection 
             {!debug && <div className="v2-youtube-overlay" />}
           </>
         ) : (
-          <div className="v2-no-video">No video — add <code>?room=&lt;youtube-id&gt;</code> to the URL (<a href={(() => { const p = new URLSearchParams(window.location.search); p.set('room', 'irc6creOFGs'); return `?${p}${window.location.hash}`; })()}>example</a>)</div>
+          <div className="v2-no-video">No video — use <code>/&lt;youtube-id&gt;#v5</code> (<a href="/irc6creOFGs#v5">example</a>)</div>
         )}
       </div>
       <div className="v5-vote-canvas-container">
+        {dbConnected === null && (
+          <div className="v5-db-warning v5-db-warning--connecting">
+            Database is connecting…
+          </div>
+        )}
         {dbConnected === false && (
           <div className="v5-db-warning">
             ⚠ Database unreachable — reactions are not being recorded.{' '}
@@ -248,7 +250,7 @@ export default function ReactionCanvasAppV5({ testConnectionFn = testConnection 
         {labels && <div className="reaction-label reaction-label-positive" style={reactionLabelStyle(anchors.positive)}>{labels.positive}</div>}
         {labels && <div className="reaction-label reaction-label-negative" style={reactionLabelStyle(anchors.negative)}>{labels.negative}</div>}
         {labels && <div className="reaction-label reaction-label-neutral" style={reactionLabelStyle(anchors.neutral)}>{labels.neutral}</div>}
-        <div className={`v3-rec-badge v3-rec-badge--left${isSupabaseConfigured ? '' : ' v3-rec-badge--off'}`}>● REC</div>
+        <div className={`v3-rec-badge v3-rec-badge--left${!isSupabaseConfigured || dbConnected !== true ? ' v3-rec-badge--off' : ''}`}>● REC</div>
         <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
         <ShareQRButton />
         {touchPos && (

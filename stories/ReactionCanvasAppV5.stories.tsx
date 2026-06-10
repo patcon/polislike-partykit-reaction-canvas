@@ -13,17 +13,16 @@ const meta = {
     (Story) => React.createElement('div', { style: { height: '100vh', width: '100vw', overflow: 'hidden' } }, React.createElement(Story)),
   ],
   args: {
+    room: EXAMPLE_VIDEO_ID,
     testConnectionFn: () => Promise.resolve(true),
   },
   beforeEach: () => {
     const url = new URL(window.location.href);
     url.searchParams.set('forceView', 'mobile');
-    url.searchParams.set('room', EXAMPLE_VIDEO_ID);
     window.history.replaceState({}, '', url.toString());
     return () => {
       const reset = new URL(window.location.href);
       reset.searchParams.delete('forceView');
-      reset.searchParams.delete('room');
       window.history.replaceState({}, '', reset.toString());
     };
   },
@@ -35,15 +34,19 @@ type Story = StoryObj<typeof meta>;
 export const Default: Story = {};
 
 export const NoVideo: Story = {
-  beforeEach: () => {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('room');
-    window.history.replaceState({}, '', url.toString());
+  args: { room: 'default' },
+};
+
+export const DatabaseConnecting: Story = {
+  args: {
+    room: EXAMPLE_VIDEO_ID,
+    testConnectionFn: () => new Promise(() => {}),
   },
 };
 
 export const DatabaseUnreachable: Story = {
   args: {
+    room: EXAMPLE_VIDEO_ID,
     testConnectionFn: () => Promise.resolve(false),
   },
 };

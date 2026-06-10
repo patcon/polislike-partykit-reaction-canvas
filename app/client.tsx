@@ -3,6 +3,14 @@ declare const PARTYKIT_EVENT_BUILD: boolean;
 declare const APP_TITLE: string;
 import { createRoot } from "react-dom/client";
 import { useState, useEffect } from "react";
+import {
+  createRouter,
+  createRoute,
+  createRootRoute,
+  RouterProvider,
+  redirect,
+  useParams,
+} from "@tanstack/react-router";
 import SimpleReactionCanvasAppV1 from "./components/apps/SimpleReactionCanvasAppV1";
 import ReactionCanvasAppV2 from "./components/apps/ReactionCanvasAppV2";
 import ReactionCanvasAppV4 from "./components/apps/ReactionCanvasAppV4";
@@ -11,6 +19,7 @@ import ValenceViz from "./components/viz/ValenceViz";
 import PerfCanvasApp from "./components/apps/PerfCanvasApp";
 import { OldFrontPage } from "./components/OldFrontPage";
 import { NewFrontPage } from "./components/NewFrontPage";
+import { getIndexRedirect, getRoomRedirect } from "./utils/routing";
 
 const TITLES: Record<string, (admin: boolean) => string> = {
   '#v1': (admin) => admin ? 'Statement Admin — Polislike' : 'Statement Voting — Polislike',
@@ -33,13 +42,10 @@ function GithubCorner() {
   );
 }
 
-function App() {
+function App({ room }: { room: string }) {
   const [hash, setHash] = useState(window.location.hash);
 
   useEffect(() => {
-    // hashchange: hash-only navigation within the SPA (e.g. #v4 → #old)
-    // popstate: back/forward when history entries differ by more than just hash
-    // pageshow (persisted): bfcache restore — neither of the above fires
     const update = () => setHash(window.location.hash);
     const handlePageShow = (e: PageTransitionEvent) => { if (e.persisted) update(); };
     window.addEventListener('hashchange', update);
@@ -58,17 +64,58 @@ function App() {
   }, [hash]);
 
   let page;
-  if (hash === '#v1') page = <SimpleReactionCanvasAppV1 />;
-  else if (hash === '#v2') page = <ReactionCanvasAppV2 />;
+  if (hash === '#v1') page = <SimpleReactionCanvasAppV1 room={room} />;
+  else if (hash === '#v2') page = <ReactionCanvasAppV2 videoId={room} />;
   else if (hash === '#v3') { window.location.hash = '#v4'; return null; }
-  else if (hash === '#v4') page = <ReactionCanvasAppV4 />;
-  else if (hash === '#v5') page = <ReactionCanvasAppV5 />;
-  else if (hash === '#valence-viz') page = <ValenceViz />;
-  else if (hash === '#perf') page = <PerfCanvasApp />;
+  else if (hash === '#v4') page = <ReactionCanvasAppV4 room={room} />;
+  else if (hash === '#v5') page = <ReactionCanvasAppV5 room={room} />;
+  else if (hash === '#valence-viz') page = <ValenceViz room={room} />;
+  else if (hash === '#perf') page = <PerfCanvasApp room={room} />;
   else if (hash === '#old') page = <OldFrontPage />;
+  else if (room) page = <ReactionCanvasAppV4 room={room} />;
   else page = <NewFrontPage />;
 
   return <>{page}{!PARTYKIT_EVENT_BUILD && <GithubCorner />}</>;
 }
 
-createRoot(document.getElementById("app")!).render(<App />);
+const rootRoute = createRootRoute();
+
+const indexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/',
+  beforeLoad: ({ location }) => {
+    const href = getIndexRedirect(location.searchStr, location.hash);
+    if (href) throw redirect({ href, replace: true });
+  },
+  component: () => <App room="" />,
+});
+
+const roomRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/$room',
+  beforeLoad: ({ location }) => {
+    const href = getRoomRedirect(location.pathname, location.searchStr, location.hash);
+    if (href) throw redirect({ href, replace: true });
+  },
+  component: function RoomPage() {
+    const { room } = useParams({ from: '/$room' });
+    return <App room={room} />;
+  },
+});
+
+const routeTree = rootRoute.addChildren([indexRoute, roomRoute]);
+
+const router = createRouter({
+  routeTree,
+  defaultPreload: false,
+});
+
+declare module '@tanstack/react-router' {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+createRoot(document.getElementById("app")!).render(
+  <RouterProvider router={router} />
+);
