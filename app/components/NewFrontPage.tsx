@@ -124,6 +124,7 @@ export function NewFrontPage() {
   const [experimentType, setExperimentType] = useState<ExperimentType>('youtube');
   const [youtubeUrl, setYoutubeUrl] = useState('');
   const [activePreset, setActivePreset] = useState<number | null>(0);
+  const urlInputRef = useRef<HTMLInputElement>(null);
 
   const effectiveVideoId = activePreset !== null
     ? VIDEO_PRESETS[activePreset].id
@@ -137,6 +138,12 @@ export function NewFrontPage() {
   function handleUrlChange(e: React.ChangeEvent<HTMLInputElement>) {
     setYoutubeUrl(e.target.value);
     setActivePreset(null);
+  }
+
+  function handleCustomPresetClick() {
+    setActivePreset(null);
+    setYoutubeUrl('');
+    urlInputRef.current?.focus();
   }
 
   function handleOpen(emcee: boolean) {
@@ -195,6 +202,7 @@ export function NewFrontPage() {
               <label className="nfp-room-label" htmlFor="nfp-yt-url">YouTube URL</label>
               <input
                 id="nfp-yt-url"
+                ref={urlInputRef}
                 className="nfp-experiment-url-input"
                 type="url"
                 placeholder={activePreset !== null
@@ -217,6 +225,13 @@ export function NewFrontPage() {
                     />
                   </button>
                 ))}
+                <button
+                  className={`nfp-video-preset nfp-video-preset--custom ${activePreset === null ? 'nfp-video-preset--active' : ''}`}
+                  onClick={handleCustomPresetClick}
+                  type="button"
+                >
+                  any other video
+                </button>
               </div>
             </div>
 
