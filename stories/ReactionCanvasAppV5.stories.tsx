@@ -37,6 +37,13 @@ export const NoVideo: Story = {
   args: { room: 'default' },
 };
 
+export const DatabaseConnecting: Story = {
+  args: {
+    room: EXAMPLE_VIDEO_ID,
+    testConnectionFn: () => new Promise(() => {}),
+  },
+};
+
 export const DatabaseUnreachable: Story = {
   args: {
     room: EXAMPLE_VIDEO_ID,
