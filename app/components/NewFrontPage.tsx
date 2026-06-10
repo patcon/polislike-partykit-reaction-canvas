@@ -146,18 +146,6 @@ export function NewFrontPage() {
     urlInputRef.current?.focus();
   }
 
-  function handleOpen(emcee: boolean) {
-    window.location.href = buildV4Url(room, emcee);
-  }
-
-  function handleOpenExperiment() {
-    window.location.href = buildExperimentUrl(experimentType, effectiveVideoId);
-  }
-
-  function handleOpenV5Admin() {
-    window.location.href = '/default?admin=true#v5';
-  }
-
   return (
     <div className="nfp-page">
       <div className="nfp-content">
@@ -183,12 +171,12 @@ export function NewFrontPage() {
 
           <div className="nfp-actions">
             <span className="nfp-open-label">Open:</span>
-            <button className="nfp-btn nfp-btn-primary" onClick={() => handleOpen(false)}>
+            <a className="nfp-btn nfp-btn-primary" href={buildV4Url(room, false)}>
               Participant View
-            </button>
-            <button className="nfp-btn nfp-btn-secondary" onClick={() => handleOpen(true)}>
+            </a>
+            <a className="nfp-btn nfp-btn-secondary" href={buildV4Url(room, true)}>
               Emcee View
-            </button>
+            </a>
           </div>
         </div>
 
@@ -257,13 +245,13 @@ export function NewFrontPage() {
             </div>
 
             <div className="nfp-experiment-footer">
-              <button className="nfp-btn nfp-btn-primary" onClick={handleOpenExperiment}>
+              <a className="nfp-btn nfp-btn-primary" href={buildExperimentUrl(experimentType, effectiveVideoId)}>
                 Open Experiment
-              </button>
+              </a>
               {experimentType === 'youtube' && (
-                <button className="nfp-admin-link" onClick={handleOpenV5Admin}>
+                <a className="nfp-admin-link" href="/default?admin=true#v5">
                   Admin
-                </button>
+                </a>
               )}
             </div>
           </div>

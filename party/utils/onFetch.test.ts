@@ -2,9 +2,11 @@ import { describe, it, expect, vi } from 'vitest';
 import { onFetch } from './onFetch';
 import type * as Party from 'partykit/server';
 
+const NOT_FOUND = new Response('Not found', { status: 404 });
+
 function makeLobby(assetResponse: Response | null) {
   return {
-    assets: { fetch: vi.fn().mockResolvedValue(assetResponse) },
+    assets: { fetch: vi.fn().mockResolvedValue(assetResponse ?? NOT_FOUND) },
   } as unknown as Party.FetchLobby;
 }
 
@@ -49,7 +51,7 @@ describe('onFetch', () => {
       const lobby = {
         assets: {
           fetch: vi.fn()
-            .mockResolvedValueOnce(null)       // no static asset for /test-room
+            .mockResolvedValueOnce(NOT_FOUND)  // no static asset for /test-room
             .mockResolvedValueOnce(indexHtml), // index.html fallback
         },
       } as unknown as Party.FetchLobby;
@@ -64,7 +66,7 @@ describe('onFetch', () => {
       const lobby = {
         assets: {
           fetch: vi.fn()
-            .mockResolvedValueOnce(null)
+            .mockResolvedValueOnce(NOT_FOUND)
             .mockResolvedValueOnce(indexHtml),
         },
       } as unknown as Party.FetchLobby;
