@@ -18,12 +18,15 @@ export default function ScreenLight() {
     query: { userId },
     onMessage(evt) {
       const msg = JSON.parse(evt.data);
-      if (msg.type === 'screenLightState') {
-        setColor(msg.color);
-        setBrightness(msg.brightness);
-      } else if (msg.type === 'lightColor') {
-        setColor(msg.color);
-        setBrightness(msg.brightness);
+      if (msg.type === 'setBatchScreenLight') {
+        if (msg.mode === 'global') {
+          setColor(msg.color);
+          setBrightness(msg.brightness);
+        } else if (msg.mode === 'perParticipant' && msg.colors?.[userId]) {
+          // Each ScreenLight only applies the entry for its own userId; other entries are ignored.
+          setColor(msg.colors[userId].color);
+          setBrightness(msg.colors[userId].brightness);
+        }
       }
     },
   });

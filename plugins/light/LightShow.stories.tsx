@@ -33,7 +33,7 @@ type Story = StoryObj<typeof meta>;
 function DefaultDriver({ room }: { room: string }) {
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
-      emitToRoom(room, { type: 'screenLightState', color: '#ffffff', brightness: 100 });
+      emitToRoom(room, { type: 'setBatchScreenLight', mode: 'global', color: '#ffffff', brightness: 100 });
     });
     return () => cancelAnimationFrame(raf);
   }, [room]);

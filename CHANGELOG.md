@@ -6,6 +6,14 @@ All notable changes to this project will be documented in this file. Releases cu
 
 **Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) — e.g. `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`.
 
+## Week 29 (2026-06-08)
+
+### Added
+- **Light Show programs: Pulse + Forest** — emcee can now run animated light programs from the Light Show panel; Pulse cross-fades between two emcee-chosen colors in a 2-second sine cycle (all phones in sync); Forest drifts each phone independently through a deep-forest palette of greens, yellow-greens, and earthy browns using a per-phone seeded algorithm; programs are driven entirely from the LightShow client (no server-side timers); a second program cannot be started until the first is stopped.
+
+### Changed
+- **Light plugin: unified `setBatchScreenLight` message protocol** — replaces the three-message legacy protocol (`setLightColor` client→server, `lightColor` server→clients, `screenLightState` server→joiner) with a single `{ type: 'setBatchScreenLight', mode: 'global' | 'perParticipant', ... }` shape used in all directions; server state modelled as a discriminated union (`GlobalLight | PerParticipantLight`) with no persistence across room restarts; `ScreenLight` handles both modes from one handler.
+
 ## Week 28 (2026-06-01)
 
 ### Added
