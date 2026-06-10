@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file. Releases cu
 
 **Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) — e.g. `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`.
 
+## Week 29 (2026-06-08)
+
+### Added
+- **Whisper Gallery front page** — new product-style landing page component (`app/components/NewFrontPage.tsx`) with "Whisper Gallery" branding, typewriter room-name suggestions, participant/emcee open buttons, an Experiments section (YouTube Videos → V5, Sync'd YouTube Watch Party → V2) with YouTube URL input and label-preset style selector, and a More Prototypes footer; exposed via Storybook story at `Pages/NewFrontPage` only (does not replace the existing landing page).
+
 ## Week 28 (2026-06-01)
 
 ### Added
