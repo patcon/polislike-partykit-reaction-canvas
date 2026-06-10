@@ -1,16 +1,19 @@
 import { describe, it, expect, vi } from 'vitest';
 import { onFetch } from './onFetch';
+import type * as Party from 'partykit/server';
 
 function makeLobby(assetResponse: Response | null) {
   return {
-    assets: {
-      fetch: vi.fn().mockResolvedValue(assetResponse),
-    },
-  };
+    assets: { fetch: vi.fn().mockResolvedValue(assetResponse) },
+  } as unknown as Party.FetchLobby;
 }
 
 function makeRequest(path: string) {
-  return new Request(`https://example.com${path}`);
+  return new Request(`https://example.com${path}`) as unknown as Party.Request;
+}
+
+async function fetch(path: string, lobby: Party.FetchLobby) {
+  return (await onFetch(makeRequest(path), lobby)) as Response;
 }
 
 describe('onFetch', () => {
@@ -18,27 +21,24 @@ describe('onFetch', () => {
     it('serves an existing .html file directly', async () => {
       const file = new Response('<html>onboarding</html>', { status: 200 });
       const lobby = makeLobby(file);
-      const res = await onFetch(makeRequest('/some-page.html'), lobby as any);
+      const res = await fetch('/some-page.html', lobby);
       expect(res.status).toBe(200);
-      expect(lobby.assets.fetch).toHaveBeenCalledWith('/some-page.html');
+      expect((lobby.assets.fetch as ReturnType<typeof vi.fn>)).toHaveBeenCalledWith('/some-page.html');
     });
 
     it('returns 404 for a missing .html file', async () => {
-      const lobby = makeLobby(null);
-      const res = await onFetch(makeRequest('/missing-page.html'), lobby as any);
+      const res = await fetch('/missing-page.html', makeLobby(null));
       expect(res.status).toBe(404);
     });
 
     it('serves an existing JS asset', async () => {
       const file = new Response('console.log(1)', { status: 200 });
-      const lobby = makeLobby(file);
-      const res = await onFetch(makeRequest('/dist/client.js'), lobby as any);
+      const res = await fetch('/dist/client.js', makeLobby(file));
       expect(res.status).toBe(200);
     });
 
     it('returns 404 for a missing JS asset', async () => {
-      const lobby = makeLobby(null);
-      const res = await onFetch(makeRequest('/dist/missing.js'), lobby as any);
+      const res = await fetch('/dist/missing.js', makeLobby(null));
       expect(res.status).toBe(404);
     });
   });
@@ -49,14 +49,14 @@ describe('onFetch', () => {
       const lobby = {
         assets: {
           fetch: vi.fn()
-            .mockResolvedValueOnce(null)        // no static asset for /test-room
-            .mockResolvedValueOnce(indexHtml),  // index.html fallback
+            .mockResolvedValueOnce(null)       // no static asset for /test-room
+            .mockResolvedValueOnce(indexHtml), // index.html fallback
         },
-      };
-      const res = await onFetch(makeRequest('/test-room'), lobby as any);
+      } as unknown as Party.FetchLobby;
+      const res = await fetch('/test-room', lobby);
       expect(res.status).toBe(200);
-      expect(lobby.assets.fetch).toHaveBeenNthCalledWith(1, '/test-room');
-      expect(lobby.assets.fetch).toHaveBeenNthCalledWith(2, '/index.html');
+      expect((lobby.assets.fetch as ReturnType<typeof vi.fn>)).toHaveBeenNthCalledWith(1, '/test-room');
+      expect((lobby.assets.fetch as ReturnType<typeof vi.fn>)).toHaveBeenNthCalledWith(2, '/index.html');
     });
 
     it('falls back to index.html for the root path', async () => {
@@ -67,10 +67,10 @@ describe('onFetch', () => {
             .mockResolvedValueOnce(null)
             .mockResolvedValueOnce(indexHtml),
         },
-      };
-      const res = await onFetch(makeRequest('/'), lobby as any);
+      } as unknown as Party.FetchLobby;
+      const res = await fetch('/', lobby);
       expect(res.status).toBe(200);
-      expect(lobby.assets.fetch).toHaveBeenNthCalledWith(2, '/index.html');
+      expect((lobby.assets.fetch as ReturnType<typeof vi.fn>)).toHaveBeenNthCalledWith(2, '/index.html');
     });
   });
 });
