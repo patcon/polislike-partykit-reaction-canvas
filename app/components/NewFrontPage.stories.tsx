@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { NewFrontPage } from '../app/components/NewFrontPage';
+import { NewFrontPage } from './NewFrontPage';
 
 const meta = {
   title: 'Pages/NewFrontPage',

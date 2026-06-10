@@ -552,6 +552,40 @@
   gap: 6px;
 }
 
+.nfp-video-presets {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.nfp-video-preset {
+  flex: 1;
+  padding: 0;
+  border: 2px solid #dee2e6;
+  border-radius: 6px;
+  background: none;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s;
+  line-height: 0;
+}
+
+.nfp-video-preset:hover {
+  border-color: #a5b4fc;
+}
+
+.nfp-video-preset--active {
+  border-color: #4f6ef7;
+  box-shadow: 0 0 0 2px rgba(79, 110, 247, 0.2);
+}
+
+.nfp-video-preset img {
+  width: 100%;
+  height: 56px;
+  object-fit: cover;
+  display: block;
+}
+
 .nfp-experiment-url-input {
   font-size: 14px;
   padding: 9px 12px;

@@ -72,13 +72,19 @@ function buildV4Url(room: string, emcee: boolean) {
   return `#v4?room=${encodeURIComponent(r)}${emcee ? '&interface=emcee' : ''}`;
 }
 
-function buildExperimentUrl(type: 'youtube' | 'watch-party', videoInput: string) {
-  const id = extractYouTubeId(videoInput.trim()) || 'default';
+function buildExperimentUrl(type: 'youtube' | 'watch-party', videoId: string) {
+  const id = videoId || 'default';
   if (type === 'youtube') return `#v5?room=${encodeURIComponent(id)}`;
   return `#v2?room=${encodeURIComponent(id)}`;
 }
 
 type ExperimentType = 'youtube' | 'watch-party';
+
+const VIDEO_PRESETS = [
+  { id: 'irc6creOFGs' },
+  { id: 'dQw4w9WgXcQ' },
+  { id: 'jNQXAC9IVRw' },
+];
 
 const EXPERIMENTS: { value: ExperimentType; label: string; desc: string }[] = [
   {
@@ -89,7 +95,7 @@ const EXPERIMENTS: { value: ExperimentType; label: string; desc: string }[] = [
   {
     value: 'watch-party',
     label: "Sync'd YouTube Watch Party",
-    desc: 'Watch together in real time. Reactions appear live as cursors overlaid on the video.',
+    desc: 'Video only plays when everyone is touching the screen.',
   },
 ];
 
@@ -117,13 +123,28 @@ export function NewFrontPage() {
 
   const [experimentType, setExperimentType] = useState<ExperimentType>('youtube');
   const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [activePreset, setActivePreset] = useState<number | null>(0);
+
+  const effectiveVideoId = activePreset !== null
+    ? VIDEO_PRESETS[activePreset].id
+    : extractYouTubeId(youtubeUrl.trim());
+
+  function handlePresetClick(i: number) {
+    setActivePreset(i);
+    setYoutubeUrl('');
+  }
+
+  function handleUrlChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setYoutubeUrl(e.target.value);
+    setActivePreset(null);
+  }
 
   function handleOpen(emcee: boolean) {
     window.location.href = buildV4Url(room, emcee);
   }
 
   function handleOpenExperiment() {
-    window.location.href = buildExperimentUrl(experimentType, youtubeUrl);
+    window.location.href = buildExperimentUrl(experimentType, effectiveVideoId);
   }
 
   function handleOpenV5Admin() {
@@ -176,10 +197,27 @@ export function NewFrontPage() {
                 id="nfp-yt-url"
                 className="nfp-experiment-url-input"
                 type="url"
-                placeholder="https://youtube.com/watch?v=..."
+                placeholder={activePreset !== null
+                  ? `https://youtube.com/watch?v=${VIDEO_PRESETS[activePreset].id}`
+                  : 'https://youtube.com/watch?v=...'}
                 value={youtubeUrl}
-                onChange={e => setYoutubeUrl(e.target.value)}
+                onChange={handleUrlChange}
               />
+              <div className="nfp-video-presets">
+                {VIDEO_PRESETS.map((preset, i) => (
+                  <button
+                    key={preset.id}
+                    className={`nfp-video-preset ${activePreset === i ? 'nfp-video-preset--active' : ''}`}
+                    onClick={() => handlePresetClick(i)}
+                    type="button"
+                  >
+                    <img
+                      src={`https://img.youtube.com/vi/${preset.id}/mqdefault.jpg`}
+                      alt={`Video preset ${i + 1}`}
+                    />
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div className="nfp-experiment-options">
