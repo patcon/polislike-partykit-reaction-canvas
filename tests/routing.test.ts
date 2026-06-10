@@ -103,4 +103,14 @@ describe('getRoomRedirect', () => {
       expect(getRoomRedirect('/test', '?interface=emcee', '')).toBeNull();
     });
   });
+
+  describe('.html paths are never redirected', () => {
+    it('/some-page.html → null', () => {
+      expect(getRoomRedirect('/some-page.html', '', '')).toBeNull();
+    });
+
+    it('/some-page.html#v4 → null (does not strip hash)', () => {
+      expect(getRoomRedirect('/some-page.html', '', 'v4')).toBeNull();
+    });
+  });
 });
