@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { getIndexRedirect, getRoomRedirect } from '../app/utils/routing';
 
+// .html path routing is handled server-side — see party/utils/onFetch.test.ts
+
 describe('getIndexRedirect', () => {
   describe('?room= param present', () => {
     it('?room=test#v4 → /test (strips redundant hash)', () => {
@@ -101,16 +103,6 @@ describe('getRoomRedirect', () => {
 
     it('/test?interface=emcee → null', () => {
       expect(getRoomRedirect('/test', '?interface=emcee', '')).toBeNull();
-    });
-  });
-
-  describe('.html paths are never redirected', () => {
-    it('/some-page.html → null', () => {
-      expect(getRoomRedirect('/some-page.html', '', '')).toBeNull();
-    });
-
-    it('/some-page.html#v4 → null (does not strip hash)', () => {
-      expect(getRoomRedirect('/some-page.html', '', 'v4')).toBeNull();
     });
   });
 });
