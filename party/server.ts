@@ -800,6 +800,4 @@ private pluginStates = new Map<string, unknown>(
   }
 }
 
-export { onFetch } from './utils/onFetch';
-
 Server satisfies Party.Worker;
