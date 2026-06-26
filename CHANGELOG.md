@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 31 (2026-06-22)
 
 ### Added
-- **Side-by-side demo pages** — new desktop-only `/demos/` routes that mount two panel components next to each other in stylized phone frames, sharing one random `demo-<uuid>` room so the halves sync live: `/demos/admin-canvas` (emcee admin + participant reaction canvas) and `/demos/canvas-mood` (reaction canvas + mood-tones readout), plus a `/demos/` index. Panels are embedded directly (not the full V4 shell or iframes) with distinct `userId`s to fake two users; on touch devices a "desktop only" warning is shown instead. Adds an opt-in `autoSize` prop to `Canvas` that sizes to its parent (ResizeObserver) instead of the window, so the canvas renders correctly inside a constrained container.
+- **Side-by-side demo pages** — new `/demos/` routes showing two panels in phone frames sharing one room: `/demos/admin-canvas`, `/demos/canvas-mood`, plus a `/demos/` index. Gated to wide screens (≥ 860px). Adds an opt-in `autoSize` prop to `Canvas` (sizes to parent instead of the window).
 
 ## Week 29 (2026-06-08)
 

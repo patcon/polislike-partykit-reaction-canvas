@@ -1,42 +1,46 @@
-/* Side-by-side demo pages (/demos/*) — phone mockups + layout. Desktop only. */
+/* Side-by-side demo pages (/demos/*) — phone mockups + layout.
+   Chrome matches the NewFrontPage (Whisper Gallery) light theme. */
 
 .demo-page {
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
-  box-sizing: border-box;
-  padding: 1.5rem;
-  background: #15151a;
-  color: #e8e8ec;
-  font-family: system-ui, sans-serif;
+  padding: 0 16px 64px;
+  background: #ffffff;
+  color: #111;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .demo-header {
   display: flex;
   align-items: baseline;
-  gap: 1rem;
+  gap: 12px;
   flex-wrap: wrap;
-  margin-bottom: 1.25rem;
+  padding: 40px 0 28px;
 }
 
 .demo-header h1 {
   margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #111;
 }
 
 .demo-room {
-  font-size: 0.8rem;
-  color: #9a9aa5;
-  background: #232330;
-  padding: 0.15rem 0.5rem;
+  font-size: 12px;
+  color: #6c757d;
+  background: #f1f3f5;
+  padding: 3px 8px;
   border-radius: 6px;
 }
 
 .demo-note {
   margin: 0;
-  color: #9a9aa5;
-  font-size: 0.9rem;
+  color: #6c757d;
+  font-size: 15px;
 }
 
 /* Two-up phone layout */
@@ -45,7 +49,7 @@
   flex: 1;
   align-items: flex-start;
   justify-content: center;
-  gap: 2.5rem;
+  gap: 40px;
   flex-wrap: wrap;
 }
 
@@ -53,7 +57,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.6rem;
+  gap: 10px;
 }
 
 /* Phone bezel */
@@ -67,7 +71,7 @@
   border-radius: 38px;
   box-shadow:
     inset 0 0 0 2px #000,
-    0 18px 50px rgba(0, 0, 0, 0.55);
+    0 18px 50px rgba(0, 0, 0, 0.28);
   overflow: hidden;
 }
 
@@ -96,10 +100,19 @@
   background: #ffffff;
 }
 
+/* AdminPanelNoDB is hardcoded to width:100vw/min-height:100vh for full-screen use;
+   constrain it to the phone screen so its tab bar overflows (and swipe-scrolls)
+   within the frame instead of spilling across the whole viewport. */
+.demo-phone-screen .v3-admin-panel {
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+}
+
 .demo-phone-label {
-  font-size: 0.85rem;
+  font-size: 14px;
   font-weight: 500;
-  color: #c4c4cc;
+  color: #6c757d;
 }
 
 /* Index page */
@@ -109,22 +122,23 @@
   margin: 0;
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  max-width: 480px;
+  gap: 16px;
+  max-width: 600px;
 }
 
 .demo-index .demo-list li {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding: 1rem;
-  background: #1d1d24;
-  border-radius: 10px;
+  gap: 4px;
+  padding: 20px 24px;
+  background: #fff;
+  border: 1.5px solid #e9ecef;
+  border-radius: 14px;
 }
 
 .demo-index .demo-list a {
-  color: #8ab4ff;
-  font-size: 1.05rem;
+  color: #4f6ef7;
+  font-size: 17px;
   font-weight: 600;
   text-decoration: none;
 }
@@ -134,31 +148,34 @@
 }
 
 .demo-list-desc {
-  color: #9a9aa5;
-  font-size: 0.85rem;
+  color: #868e96;
+  font-size: 14px;
 }
 
-/* Mobile warning (shown via JS gate on touch devices) */
+/* Narrow-screen warning (shown when viewport can't fit two phones) */
 .demo-mobile-warning {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 8px;
   min-height: 100vh;
-  padding: 2rem;
+  padding: 32px;
   text-align: center;
-  background: #15151a;
-  color: #e8e8ec;
-  font-family: system-ui, sans-serif;
+  background: #ffffff;
+  color: #111;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
 .demo-mobile-warning h2 {
   margin: 0;
+  font-size: 22px;
+  font-weight: 700;
 }
 
 .demo-mobile-warning p {
   margin: 0;
   max-width: 28rem;
-  color: #9a9aa5;
+  color: #6c757d;
+  font-size: 15px;
 }
