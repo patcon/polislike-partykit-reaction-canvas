@@ -137,42 +137,38 @@ export default function TouchLayer({
     return () => clearInterval(interval);
   }, [isDragging, isMouseOver]);
 
+  // Returns the pointer position in the layer's OWN coordinate space (CSS px before
+  // any CSS `zoom`). getBoundingClientRect() is zoom-scaled but clientWidth/Height
+  // are not, so scaling by their ratio (the zoom factor; 1 when not zoomed) converts
+  // the screen-space pointer into the same space the layer lays out its children and
+  // measures `dimensions` in. This keeps the normalized math and the absolutely-
+  // positioned touch indicator aligned with the pointer at any zoom level.
   const getPixelPosition = (e: React.MouseEvent | React.TouchEvent): { x: number; y: number } | null => {
     const layer = layerRef.current;
     if (!layer) return null;
     const rect = layer.getBoundingClientRect();
-    if ('touches' in e) {
-      const touch = e.touches.length > 0 ? e.touches[0] : e.changedTouches[0] ?? null;
-      if (!touch) return null;
-      return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
-    }
-    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
-  };
-
-  const getCursorPosition = (e: React.MouseEvent | React.TouchEvent): CursorPosition => {
-    const layer = layerRef.current;
-    if (!layer) return { x: 0, y: 0, timestamp: Date.now(), userId };
-
-    const rect = layer.getBoundingClientRect();
     let clientX: number, clientY: number;
-
     if ('touches' in e) {
-      // For touch events, prioritize touches over changedTouches for active touches
-      // Use the first available touch from either touches or changedTouches
       const touch = (e.touches && e.touches.length > 0) ? e.touches[0] :
                    (e.changedTouches && e.changedTouches.length > 0) ? e.changedTouches[0] : null;
-
-      if (!touch) return { x: 0, y: 0, timestamp: Date.now(), userId };
-
+      if (!touch) return null;
       clientX = touch.clientX;
       clientY = touch.clientY;
     } else {
       clientX = e.clientX;
       clientY = e.clientY;
     }
+    const scaleX = rect.width ? layer.clientWidth / rect.width : 1;
+    const scaleY = rect.height ? layer.clientHeight / rect.height : 1;
+    return { x: (clientX - rect.left) * scaleX, y: (clientY - rect.top) * scaleY };
+  };
 
-    const pixelX = clientX - rect.left;
-    const pixelY = clientY - rect.top;
+  const getCursorPosition = (e: React.MouseEvent | React.TouchEvent): CursorPosition => {
+    const pixel = getPixelPosition(e);
+    if (!pixel) return { x: 0, y: 0, timestamp: Date.now(), userId };
+
+    const pixelX = pixel.x;
+    const pixelY = pixel.y;
 
     let normalizedX: number;
     let normalizedY: number;
