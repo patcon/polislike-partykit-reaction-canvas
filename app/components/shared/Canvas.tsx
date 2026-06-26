@@ -30,6 +30,7 @@ interface CanvasProps {
   hideActualCursors?: boolean; // When true, raw cursor dots are not rendered (labels/anchors still sync; use when smooth cursors replace them)
   currentReactionState?: ReactionState; // Current reaction state for background color
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
+  autoSize?: boolean; // When true, size to the parent element (ResizeObserver) instead of the window. Used for embedding in constrained containers (e.g. demo phone frames). Ignores heightOffset.
   onPresenceCount?: (count: number) => void;
   onActiveCursorCountChange?: (count: number) => void;
   onSimulatedCursorCountChange?: (count: number) => void;
@@ -96,7 +97,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, party = "main", debug = false, cursorSmoothingConfig }: CanvasProps) {
+export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, party = "main", debug = false, cursorSmoothingConfig }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const smoothCursorLayerRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
@@ -927,8 +928,21 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
 
   }, [cursors, dimensions, anchors, debug, hideActualCursors, avatarStyle, customAvatars, colorCursorsByVote, defaultCursorColor, ownValenceDisplay, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
 
-  // Handle window resize
+  // Handle resize. In autoSize mode, track the parent element's box (for embedding in
+  // constrained containers like the demo phone frames); otherwise track the window.
   useEffect(() => {
+    if (autoSize) {
+      const parent = svgRef.current?.parentElement;
+      if (!parent) return;
+      const measure = () => {
+        setDimensions({ width: parent.clientWidth, height: parent.clientHeight });
+      };
+      const observer = new ResizeObserver(measure);
+      observer.observe(parent);
+      measure(); // Initial call
+      return () => observer.disconnect();
+    }
+
     const handleResize = () => {
       const offset = heightOffset ?? (window.innerWidth <= 768 ? 120 : 140);
       setDimensions({
@@ -941,7 +955,7 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
     handleResize(); // Initial call
 
     return () => window.removeEventListener('resize', handleResize);
-  }, [heightOffset]);
+  }, [heightOffset, autoSize]);
 
   return (
     <>

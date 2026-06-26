@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file. Releases cu
 
 **Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) — e.g. `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`.
 
+## Week 31 (2026-06-22)
+
+### Added
+- **Side-by-side demo pages** — new desktop-only `/demos/` routes that mount two panel components next to each other in stylized phone frames, sharing one random `demo-<uuid>` room so the halves sync live: `/demos/admin-canvas` (emcee admin + participant reaction canvas) and `/demos/canvas-mood` (reaction canvas + mood-tones readout), plus a `/demos/` index. Panels are embedded directly (not the full V4 shell or iframes) with distinct `userId`s to fake two users; on touch devices a "desktop only" warning is shown instead. Adds an opt-in `autoSize` prop to `Canvas` that sizes to its parent (ResizeObserver) instead of the window, so the canvas renders correctly inside a constrained container.
+
 ## Week 29 (2026-06-08)
 
 ### Added
