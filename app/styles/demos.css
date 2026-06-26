@@ -139,6 +139,14 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  /* The embedded app is sized for a real phone viewport, but here it renders into
+     a ~320px mock screen on a desktop (so the app's own responsive breakpoints
+     never kick in) — everything looks oversized. `zoom` is the one consistent
+     lever: it shrinks the whole rendered subtree (text, cursor dots, indicators)
+     AND keeps geometry APIs consistent, so Canvas autoSize + TouchLayer pointer
+     mapping stay correct (unlike `transform: scale`, which desyncs them). Tune
+     this single value to taste. */
+  zoom: 0.7;
 }
 
 /* Hide scrollbars inside the phone mock (content still scrolls) — desktop
@@ -152,17 +160,16 @@
   display: none;
 }
 
-/* Scale the reaction labels down for the phone screen (the app's responsive
-   shrink is keyed on viewport width, which is the wide desktop here, not the frame). */
+/* Overall size is handled by `zoom` on .demo-phone-content (above); here we only
+   fix label rendering artifacts. The percentage-anchor + translate(-100%)
+   placement lands edges on fractional pixels and the white text-shadow halo over
+   a colored region reads as a smudge — drop the shadow, use an opaque fill, and
+   smooth the text so the boxes render cleanly. */
 .demo-phone-content .reaction-label {
   font-size: 18px;
   padding: 6px 10px;
   border-width: 2px;
   border-radius: 6px;
-  /* The percentage-anchor + translate(-100%) placement lands edges on fractional
-     pixels; the white text-shadow halo over a colored region then reads as an
-     artifact. Drop the shadow, use an opaque fill, and smooth the text so the
-     boxes render cleanly at the small phone size. */
   background: #ffffff;
   text-shadow: none;
   -webkit-font-smoothing: antialiased;
