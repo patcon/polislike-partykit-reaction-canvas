@@ -40,6 +40,7 @@ interface TouchLayerProps {
   onCursorEvent?: (type: 'move' | 'touch' | 'remove', pos: { x: number; y: number }) => void;
   imageUrl?: string; // When set, normalize coordinates relative to displayed image bounds
   disabled?: boolean; // When true, keeps socket alive but ignores all pointer events
+  autoSize?: boolean; // When true, normalize against this layer's own size (ResizeObserver) instead of the window. For embedding in constrained containers (e.g. demo phone frames). Ignores heightOffset.
   party?: string;
   throttleMs?: number; // Min ms between cursor sends (0 = no throttle)
 }
@@ -58,6 +59,7 @@ export default function TouchLayer({
   onCursorEvent,
   imageUrl,
   disabled = false,
+  autoSize = false,
   party = "main",
   throttleMs = CURSOR_THROTTLE_MS,
 }: TouchLayerProps) {
@@ -285,8 +287,22 @@ export default function TouchLayer({
     onReactionStateChange(null);
   };
 
-  // Handle window resize
+  // Handle resize. In autoSize mode, normalize against this layer's own box (for
+  // embedding in constrained containers like the demo phone frames); otherwise
+  // track the window.
   useEffect(() => {
+    if (autoSize) {
+      const layer = layerRef.current;
+      if (!layer) return;
+      const measure = () => {
+        setDimensions({ width: layer.clientWidth, height: layer.clientHeight });
+      };
+      const observer = new ResizeObserver(measure);
+      observer.observe(layer);
+      measure(); // Initial call
+      return () => observer.disconnect();
+    }
+
     const handleResize = () => {
       const offset = heightOffset ?? (window.innerWidth <= 768 ? 120 : 140);
       setDimensions({
@@ -299,7 +315,7 @@ export default function TouchLayer({
     handleResize(); // Initial call
 
     return () => window.removeEventListener('resize', handleResize);
-  }, [heightOffset]);
+  }, [heightOffset, autoSize]);
 
   return (
     <div

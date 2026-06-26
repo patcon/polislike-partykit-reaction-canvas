@@ -148,6 +148,15 @@
   display: none;
 }
 
+/* Scale the reaction labels down for the phone screen (the app's responsive
+   shrink is keyed on viewport width, which is the wide desktop here, not the frame). */
+.demo-phone-content .reaction-label {
+  font-size: 13px;
+  padding: 4px 7px;
+  border-width: 1.5px;
+  border-radius: 5px;
+}
+
 /* AdminPanelNoDB is hardcoded to width:100vw/min-height:100vh for full-screen use;
    constrain it to the content area so its tab bar overflows (and swipe-scrolls)
    within the frame instead of spilling across the whole viewport. */

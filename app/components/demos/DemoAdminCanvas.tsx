@@ -1,9 +1,9 @@
 import { useState } from "react";
-import Canvas from "../shared/Canvas";
 import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import { generateUUID } from "../../utils/userId";
 import DemoLayout from "./DemoLayout";
 import PhoneFrame from "./PhoneFrame";
+import DemoParticipant from "./DemoParticipant";
 
 /**
  * Demo: emcee admin panel (left) + participant reaction canvas (right), sharing one
@@ -25,7 +25,7 @@ export default function DemoAdminCanvas() {
       }
       right={
         <PhoneFrame label="Participant">
-          <Canvas room={room} userId={participantId} autoSize colorCursorsByVote />
+          <DemoParticipant room={room} userId={participantId} />
         </PhoneFrame>
       }
     />
