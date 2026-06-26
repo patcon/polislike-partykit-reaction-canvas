@@ -159,6 +159,13 @@
   padding: 6px 10px;
   border-width: 2px;
   border-radius: 6px;
+  /* The percentage-anchor + translate(-100%) placement lands edges on fractional
+     pixels; the white text-shadow halo over a colored region then reads as an
+     artifact. Drop the shadow, use an opaque fill, and smooth the text so the
+     boxes render cleanly at the small phone size. */
+  background: #ffffff;
+  text-shadow: none;
+  -webkit-font-smoothing: antialiased;
 }
 
 /* AdminPanelNoDB is hardcoded to width:100vw/min-height:100vh for full-screen use;
