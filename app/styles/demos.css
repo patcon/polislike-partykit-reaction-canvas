@@ -35,6 +35,10 @@
   background: #f1f3f5;
   padding: 3px 8px;
   border-radius: 6px;
+  /* Override body's user-select: none so the room id can be selected/copied. */
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
 }
 
 .demo-note {

@@ -14,6 +14,7 @@ const LABELS = REACTION_LABEL_PRESETS.default;
  */
 export default function DemoParticipant({ room, userId }: { room: string; userId: string }) {
   const [background, setBackground] = useState<ReactionRegion>(null);
+  const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
   const reactionStateRef = useRef<ReactionRegion>(null);
 
   return (
@@ -28,6 +29,11 @@ export default function DemoParticipant({ room, userId }: { room: string; userId
         colorCursorsByVote
         currentReactionState={background}
       />
+      {/* Own cursor: Canvas filters your own dot, so (like the real app) show a
+          larger blue self-indicator at your local pointer position. */}
+      {touchPos && (
+        <div className="v2-touch-indicator" style={{ left: touchPos.x, top: touchPos.y }} />
+      )}
       <TouchLayer
         room={room}
         userId={userId}
@@ -37,6 +43,7 @@ export default function DemoParticipant({ room, userId }: { room: string; userId
         onActiveStatementChange={() => {}}
         onReactionStateChange={() => {}}
         onBackgroundColorChange={setBackground}
+        onTouchPosition={setTouchPos}
       />
     </>
   );
