@@ -11,6 +11,9 @@ All notable changes to this project will be documented in this file. Releases cu
 ### Added
 - **Side-by-side demo pages** — new `/demos/` routes showing two panels in phone frames sharing one room: `/demos/admin-canvas`, `/demos/canvas-mood`, plus a `/demos/` index. Gated to wide screens (≥ 860px). Adds an opt-in `autoSize` prop to `Canvas` (sizes to parent instead of the window).
 
+### Changed
+- **Demo participant uses the real app component** — extracted the participant canvas out of `ReactionCanvasAppV4` into a shared `ReactionCanvasParticipant`, now rendered by both the app and the demos. The demo participant gains live-updating labels, label coloring on cursor move, the share-QR button (opening the real room), and spring cursor motion — previously missing from the hand-built demo view.
+
 ## Week 29 (2026-06-08)
 
 ### Added

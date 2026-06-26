@@ -1,10 +1,10 @@
 import { useState } from "react";
 import MoodTonesPanel from "../../../plugins/moodTones/component";
 import { PanelContextProvider } from "../../context/PanelContext";
+import ReactionCanvasParticipant from "../shared/ReactionCanvasParticipant";
 import { generateUUID } from "../../utils/userId";
 import DemoLayout from "./DemoLayout";
 import PhoneFrame from "./PhoneFrame";
-import DemoParticipant from "./DemoParticipant";
 
 /**
  * Demo: participant reaction canvas (left) + mood-tones readout (right), sharing one
@@ -22,7 +22,12 @@ export default function DemoCanvasMood() {
       room={room}
       left={
         <PhoneFrame label="Participant">
-          <DemoParticipant room={room} userId={participantId} />
+          <ReactionCanvasParticipant
+            room={room}
+            userId={participantId}
+            autoSize
+            shareUrl={`${window.location.origin}/${room}`}
+          />
         </PhoneFrame>
       }
       right={

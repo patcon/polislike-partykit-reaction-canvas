@@ -20,16 +20,19 @@ function getShareUrl(userId?: string, selfChain?: string[]): string {
 interface ShareQRButtonProps {
   userId?: string;
   selfChain?: string[];
+  /** When set, used verbatim as the share URL instead of deriving from window.location.
+   *  Used by the demo pages, whose location is /demos/... not the actual room. */
+  shareUrlOverride?: string;
 }
 
-export default function ShareQRButton({ userId, selfChain }: ShareQRButtonProps = {}) {
+export default function ShareQRButton({ userId, selfChain, shareUrlOverride }: ShareQRButtonProps = {}) {
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<'share' | 'scan'>('share');
   const [cameraState, setCameraState] = useState<'idle' | 'active' | 'error'>('idle');
   const [foreignDomain, setForeignDomain] = useState<string | null>(null);
   // Enable audio fallback on desktop (no touch) and Apple devices (no navigator.vibrate API)
   const { trigger: triggerHaptic } = useWebHaptics({ debug: navigator.maxTouchPoints === 0 || !WebHaptics.isSupported });
-  const url = getShareUrl(userId, selfChain);
+  const url = shareUrlOverride ?? getShareUrl(userId, selfChain);
 
   const handleTabChange = (tab: 'share' | 'scan') => {
     setActiveTab(tab);
