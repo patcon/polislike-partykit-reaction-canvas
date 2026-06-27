@@ -89,7 +89,7 @@
   z-index: 10;
 }
 
-/* The screen: sizing container for embedded panels (Canvas autoSize, flex panels). */
+/* The screen: stacks the mock URL bar above the content area. */
 .demo-phone-screen {
   position: relative;
   width: 100%;
@@ -100,10 +100,58 @@
   background: #ffffff;
 }
 
+/* Mock browser URL bar — pushes the panel down a bit for realism. */
+.demo-phone-urlbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* Top padding clears the notch. */
+  padding: 26px 16px 8px;
+  background: #f1f3f5;
+  border-bottom: 1px solid #e0e3e7;
+}
+
+.demo-phone-urlbar-lock {
+  color: #868e96;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.demo-phone-urlbar-text {
+  font-size: 12px;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Content area: sizing container for embedded panels (Canvas autoSize, flex panels). */
+.demo-phone-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide scrollbars inside the phone mock (content still scrolls) — desktop
+   scrollbars look wrong on a phone screen. */
+.demo-phone-screen * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.demo-phone-screen *::-webkit-scrollbar {
+  display: none;
+}
+
 /* AdminPanelNoDB is hardcoded to width:100vw/min-height:100vh for full-screen use;
-   constrain it to the phone screen so its tab bar overflows (and swipe-scrolls)
+   constrain it to the content area so its tab bar overflows (and swipe-scrolls)
    within the frame instead of spilling across the whole viewport. */
-.demo-phone-screen .v3-admin-panel {
+.demo-phone-content .v3-admin-panel {
   width: 100%;
   min-height: 0;
   height: 100%;
