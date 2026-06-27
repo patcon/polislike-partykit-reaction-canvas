@@ -1,8 +1,12 @@
 name: Delete PR Preview
 
+# DISABLED: preview deployments broken (https://github.com/partykit/partykit/issues/985)
+# Replaced by staging-deploy.yml which deploys all PRs to shared staging env.
+# on:
+#   pull_request:
+#     types: [closed]
 on:
-  pull_request:
-    types: [closed]
+  workflow_dispatch:
 
 jobs:
   delete-preview:

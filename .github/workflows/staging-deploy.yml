@@ -1,0 +1,63 @@
+name: Deploy PR to Staging
+
+# Workaround for broken per-PR preview deployments (https://github.com/partykit/partykit/issues/985).
+# Every PR deploys to the shared staging environment. No teardown — staging is always left running.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: staging-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy-staging:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: "pnpm"
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run deploy:staging
+        env:
+          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
+          PARTYKIT_LOGIN: patcon
+      - name: Post staging URL comment
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const fs = require('fs');
+            const { name } = JSON.parse(fs.readFileSync('partykit.json', 'utf8'));
+            const num = context.payload.pull_request.number;
+            const url = `https://staging.${name}.patcon.partykit.dev`;
+            const marker = '<!-- staging-url -->';
+            const body = `${marker}\nStaging deployed (shared env — latest PR wins): ${url}`;
+            const { data: comments } = await github.rest.issues.listComments({
+              issue_number: num,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            const existing = comments.find(c => c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                comment_id: existing.id,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                issue_number: num,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body,
+              });
+            }
