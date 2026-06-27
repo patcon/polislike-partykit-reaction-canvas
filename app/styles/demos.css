@@ -148,6 +148,7 @@
      mapping stay correct (unlike `transform: scale`, which desyncs them). Tune
      this single value to taste. */
   zoom: 0.7;
+  transform: translateZ(0);
 }
 
 /* Hide scrollbars inside the phone mock (content still scrolls) — desktop
