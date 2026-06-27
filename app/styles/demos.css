@@ -58,6 +58,7 @@
 }
 
 .demo-phone-wrap {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -188,6 +189,30 @@
   font-size: 14px;
   font-weight: 500;
   color: #6c757d;
+}
+
+.demo-phone-share-prompt {
+  position: absolute;
+  top: 18px;
+  left: -30px;
+  z-index: 9999;
+  background: #ffe600;
+  color: #111;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.demo-phone-share-prompt-arrow {
+  font-size: 18px;
+  line-height: 1;
 }
 
 /* Index page */

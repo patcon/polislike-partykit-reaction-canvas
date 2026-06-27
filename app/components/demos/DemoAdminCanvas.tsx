@@ -24,7 +24,7 @@ export default function DemoAdminCanvas() {
         </PhoneFrame>
       }
       right={
-        <PhoneFrame label="Participant">
+        <PhoneFrame label="Participant" showSharePrompt>
           <ReactionCanvasParticipant
             room={room}
             userId={participantId}

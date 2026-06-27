@@ -13,6 +13,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Changed
 - **Demo participant uses the real app component** — extracted the participant canvas out of `ReactionCanvasAppV4` into a shared `ReactionCanvasParticipant`, now rendered by both the app and the demos. The demo participant gains live-updating labels, label coloring on cursor move, the share-QR button (opening the real room), and spring cursor motion — previously missing from the hand-built demo view.
+- **Share prompt callout on demo participant phones** — `PhoneFrame` gains a `showSharePrompt` boolean prop that renders a yellow callout badge ("↘ Click to join from your phone") over the phone frame, pointing at the share-QR button. Enabled on the participant phone in `DemoAdminCanvas` and `DemoCanvasMood`.
 
 ## Week 29 (2026-06-08)
 

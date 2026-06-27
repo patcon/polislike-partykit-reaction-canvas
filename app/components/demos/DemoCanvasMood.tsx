@@ -21,7 +21,7 @@ export default function DemoCanvasMood() {
       title="Demo — Reaction Canvas + Mood Tones"
       room={room}
       left={
-        <PhoneFrame label="Participant">
+        <PhoneFrame label="Participant" showSharePrompt>
           <ReactionCanvasParticipant
             room={room}
             userId={participantId}
