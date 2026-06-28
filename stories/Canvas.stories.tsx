@@ -5,8 +5,8 @@ import { RoomSocketProvider } from '../app/contexts/RoomSocketContext';
 import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 
 // Canvas uses RoomSocketContext for its WebSocket connection (mocked in Storybook).
-// Cursor dots come from real-time socket messages so won't appear here.
-// These stories focus on the background colour states driven by the currentReactionState prop.
+// Socket-driven states are exercised via emitToRoom() in play functions, which feeds
+// messages through the same socketMessageBus the real server uses.
 
 const meta = {
   title: 'App/Canvas',
@@ -62,5 +62,88 @@ export const NeutralBackground: Story = {
   args: { ...baseArgs, currentReactionState: 'neutral' },
   play: async () => {
     emitToRoom('storybook', { type: 'ownValenceDisplayChanged', ownValenceDisplay: 'background' });
+  },
+};
+
+// Multiple cursors scattered across the canvas, coloured by reaction region.
+export const CursorBatchColored: Story = {
+  args: { ...baseArgs, colorCursorsByVote: true },
+  play: async () => {
+    emitToRoom('storybook', {
+      type: 'cursorBatch',
+      cursors: [
+        { type: 'move', position: { userId: 'user-a', x: 80, y: 10,  timestamp: Date.now() } },
+        { type: 'move', position: { userId: 'user-b', x: 10, y: 80,  timestamp: Date.now() } },
+        { type: 'move', position: { userId: 'user-c', x: 85, y: 85,  timestamp: Date.now() } },
+        { type: 'move', position: { userId: 'user-d', x: 50, y: 50,  timestamp: Date.now() } },
+        { type: 'move', position: { userId: 'user-e', x: 30, y: 30,  timestamp: Date.now() } },
+      ],
+    });
+  },
+};
+
+// Custom anchor positions — horizontal layout with NEGATIVE on the left,
+// POSITIVE on the right, NEUTRAL at the top centre.
+export const CustomAnchors: Story = {
+  args: { ...baseArgs, debug: true },
+  play: async () => {
+    emitToRoom('storybook', {
+      type: 'roomAnchorsChanged',
+      anchors: {
+        negative: { x: 5,  y: 50 },
+        positive: { x: 95, y: 50 },
+        neutral:  { x: 50, y: 5  },
+      },
+    });
+  },
+};
+
+// Custom reaction labels pushed from the server.
+export const CustomLabels: Story = {
+  args: { ...baseArgs },
+  play: async () => {
+    emitToRoom('storybook', {
+      type: 'roomLabelsChanged',
+      labels: { positive: '👍 Yes', negative: '👎 No', neutral: '🤷 Maybe' },
+    });
+  },
+};
+
+// Soccer activity mode — shows the pitch and hides the reaction regions.
+export const SoccerActivity: Story = {
+  args: { ...baseArgs },
+  play: async () => {
+    emitToRoom('storybook', { type: 'activityChanged', activity: 'soccer' });
+  },
+};
+
+// Image canvas mode — overlays the canvas on a background image;
+// cursors are positioned relative to the displayed image bounds.
+export const ImageCanvas: Story = {
+  args: { ...baseArgs },
+  play: async () => {
+    emitToRoom('storybook', { type: 'activityChanged', activity: 'image-canvas' });
+    emitToRoom('storybook', { type: 'imageUrlChanged', url: 'https://pbs.twimg.com/media/DY_tjS0WsAADhmT.jpg' });
+  },
+};
+
+// Debug overlay — draws region boundary lines and anchor markers.
+export const DebugOverlay: Story = {
+  args: { ...baseArgs, debug: true },
+};
+
+// Cursor coloring disabled — all cursors render in the default colour regardless of region.
+export const CursorBatchUncolored: Story = {
+  args: { ...baseArgs, colorCursorsByVote: false },
+  play: async () => {
+    emitToRoom('storybook', {
+      type: 'cursorBatch',
+      cursors: [
+        { type: 'move', position: { userId: 'user-a', x: 80, y: 10,  timestamp: Date.now() } },
+        { type: 'move', position: { userId: 'user-b', x: 10, y: 80,  timestamp: Date.now() } },
+        { type: 'move', position: { userId: 'user-c', x: 85, y: 85,  timestamp: Date.now() } },
+        { type: 'move', position: { userId: 'user-d', x: 50, y: 50,  timestamp: Date.now() } },
+      ],
+    });
   },
 };
