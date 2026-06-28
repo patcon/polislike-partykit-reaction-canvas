@@ -5,7 +5,6 @@ Hash-based routing, managed in `App` in `client.tsx`:
 | Hash | Component | Notes |
 |------|-----------|-------|
 | *(none)* | `IndexApp` | Landing page with app cards |
-| `#v1` | `SimpleReactionCanvasAppV1` | Statement voting canvas (Polis integration) |
 | `#v2` | `ReactionCanvasAppV2` | YouTube embed + realtime reaction canvas |
 | `#v3` | *(redirect)* | Redirects to `#v4` |
 | `#v4` | `ReactionCanvasAppV4` | Full-page canvas, no video, live recording via JSON download |

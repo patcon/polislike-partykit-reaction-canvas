@@ -23,10 +23,6 @@ describe('getIndexRedirect', () => {
       expect(getIndexRedirect('?room=test', 'v2')).toBe('/test#v2');
     });
 
-    it('?room=test#v1 → /test#v1', () => {
-      expect(getIndexRedirect('?room=test', 'v1')).toBe('/test#v1');
-    });
-
     it('?room=test&interface=emcee#v4 → /test?interface=emcee (strips hash, preserves other params)', () => {
       expect(getIndexRedirect('?room=test&interface=emcee', 'v4')).toBe('/test?interface=emcee');
     });
@@ -43,10 +39,6 @@ describe('getIndexRedirect', () => {
 
     it('#v5 → /default#v5', () => {
       expect(getIndexRedirect('', 'v5')).toBe('/default#v5');
-    });
-
-    it('#v1 → /default#v1', () => {
-      expect(getIndexRedirect('', 'v1')).toBe('/default#v1');
     });
 
     it('#v2 → /default#v2', () => {
