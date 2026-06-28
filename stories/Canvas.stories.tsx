@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import React from 'react';
 import Canvas from '../app/components/shared/Canvas';
 import { RoomSocketProvider } from '../app/contexts/RoomSocketContext';
+import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 
 // Canvas uses RoomSocketContext for its WebSocket connection (mocked in Storybook).
 // Cursor dots come from real-time socket messages so won't appear here.
@@ -43,14 +44,23 @@ export const Default: Story = {
 // Cursor is in the POSITIVE region — green background tint.
 export const PositiveBackground: Story = {
   args: { ...baseArgs, currentReactionState: 'positive' },
+  play: async () => {
+    emitToRoom('storybook', { type: 'ownValenceDisplayChanged', ownValenceDisplay: 'background' });
+  },
 };
 
 // Cursor is in the NEGATIVE region — red background tint.
 export const NegativeBackground: Story = {
   args: { ...baseArgs, currentReactionState: 'negative' },
+  play: async () => {
+    emitToRoom('storybook', { type: 'ownValenceDisplayChanged', ownValenceDisplay: 'background' });
+  },
 };
 
 // Cursor is in the NEUTRAL region — yellow background tint.
 export const NeutralBackground: Story = {
   args: { ...baseArgs, currentReactionState: 'neutral' },
+  play: async () => {
+    emitToRoom('storybook', { type: 'ownValenceDisplayChanged', ownValenceDisplay: 'background' });
+  },
 };
