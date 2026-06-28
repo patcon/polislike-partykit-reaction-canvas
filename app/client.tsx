@@ -11,7 +11,6 @@ import {
   redirect,
   useParams,
 } from "@tanstack/react-router";
-import SimpleReactionCanvasAppV1 from "./components/apps/SimpleReactionCanvasAppV1";
 import ReactionCanvasAppV2 from "./components/apps/ReactionCanvasAppV2";
 import ReactionCanvasAppV4 from "./components/apps/ReactionCanvasAppV4";
 import ReactionCanvasAppV5 from "./components/apps/ReactionCanvasAppV5";
@@ -25,7 +24,6 @@ import DemoAdminCanvas from "./components/demos/DemoAdminCanvas";
 import DemoCanvasMood from "./components/demos/DemoCanvasMood";
 
 const TITLES: Record<string, (admin: boolean) => string> = {
-  '#v1': (admin) => admin ? 'Statement Admin — Polislike' : 'Statement Voting — Polislike',
   '#v2': ()      => 'YouTube Reaction (Sync) — Polislike',
   '#perf': () => 'Perf Test Canvas — Polislike',
   '#v4': (admin) => admin ? 'Live Event Admin — Polislike' : 'Live Reaction Canvas — Polislike',
@@ -67,8 +65,7 @@ function App({ room }: { room: string }) {
   }, [hash]);
 
   let page;
-  if (hash === '#v1') page = <SimpleReactionCanvasAppV1 room={room} />;
-  else if (hash === '#v2') page = <ReactionCanvasAppV2 videoId={room} />;
+  if (hash === '#v2') page = <ReactionCanvasAppV2 videoId={room} />;
   else if (hash === '#v3') { window.location.hash = '#v4'; return null; }
   else if (hash === '#v4') page = <ReactionCanvasAppV4 room={room} />;
   else if (hash === '#v5') page = <ReactionCanvasAppV5 room={room} />;
