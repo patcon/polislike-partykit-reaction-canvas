@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { getIndexRedirect, getRoomRedirect } from '../app/utils/routing';
 
-// .html path routing is handled server-side — see party/utils/onFetch.test.ts
+// .html / SPA path routing is handled by PartyKit's built-in `serve.singlePageApp`
+// config (partykit.json), not by application code, so there is nothing to unit-test there.
+// Server HTTP endpoints (votes, debug-state, Polis proxy) are covered in party/tests/onRequest.test.ts.
 
 describe('getIndexRedirect', () => {
   describe('?room= param present', () => {
