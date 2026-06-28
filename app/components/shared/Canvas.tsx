@@ -1,9 +1,8 @@
 import { useRef, useEffect, useState } from "react";
-import usePartySocket from "partysocket/react";
 import * as d3 from "d3";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
 import { makeImageCoordTransform } from "../../utils/imageCanvasCoords";
-import { getPartySocketConfig } from "../../utils/partyHost";
+import { useRoomSocket, useMessageSubscription } from "../../contexts/RoomSocketContext";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 import type { ActivityMode } from "../../types";
 import type { GreeterConfig } from "../../../plugins/greeter/types";
@@ -23,9 +22,7 @@ interface CursorEvent {
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 interface CanvasProps {
-  room: string;
   userId: string;
-  readOnly?: boolean; // When true, connects as admin (excluded from presence count, no cursor sent)
   colorCursorsByVote?: boolean; // Optional prop to enable reaction-based coloring
   hideActualCursors?: boolean; // When true, raw cursor dots are not rendered (labels/anchors still sync; use when smooth cursors replace them)
   currentReactionState?: ReactionState; // Current reaction state for background color
@@ -65,7 +62,6 @@ interface CanvasProps {
   onConnectedUsers?: (ids: string[]) => void;
   onUserJoined?: (userId: string) => void;
   onUserLeft?: (userId: string) => void;
-  party?: string;
   cursorSmoothingConfig?: CursorSmoothingConfig;
 }
 
@@ -97,7 +93,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ room, userId, readOnly = false, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, party = "main", debug = false, cursorSmoothingConfig }: CanvasProps) {
+export default function Canvas({ userId, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false, cursorSmoothingConfig }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const smoothCursorLayerRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
@@ -316,13 +312,10 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
     smoothCursorStyleRef.current = styleMap;
   }, [cursors, dimensions, anchors, colorCursorsByVote, disableCursorValence, defaultCursorColor, avatarStyle, customAvatars]);
 
-  const socket = usePartySocket({
-    ...getPartySocketConfig(),
-    party,
-    room: room,
-    query: readOnly ? { isAdmin: 'true' } : { userId },
-    onMessage(evt) {
-      try {
+  const { send } = useRoomSocket();
+
+  useMessageSubscription((evt) => {
+    try {
         const data = JSON.parse(evt.data);
 
         if (data.type === 'presenceCount') {
@@ -613,12 +606,11 @@ export default function Canvas({ room, userId, readOnly = false, colorCursorsByV
       } catch (e) {
         console.error('Failed to parse message:', e);
       }
-    },
   });
 
-  // Expose socket.send to parent via onSocketReady
+  // Expose send to parent via onSocketReady
   useEffect(() => {
-    onSocketReady?.((msg) => socket.send(msg));
+    onSocketReady?.(send);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update background color based on current reaction state

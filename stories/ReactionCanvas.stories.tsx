@@ -2,6 +2,7 @@ import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import Canvas from '../app/components/shared/Canvas';
 import TouchLayer from '../app/components/shared/TouchLayer';
+import { RoomSocketProvider } from '../app/contexts/RoomSocketContext';
 import { REACTION_LABEL_PRESETS } from '../app/voteLabels';
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
@@ -48,23 +49,22 @@ function CanvasComposition({ room, userId, labels, onCursorEvent }: CanvasCompos
 
   return (
     <div className="v2-app-container" style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
-      <LabelOverlay labels={effectiveLabels} />
-      <Canvas
-        room={room}
-        userId={userId}
-        currentReactionState={reactionState}
-        heightOffset={0}
-        colorCursorsByVote
-      />
-      <TouchLayer
-        room={room}
-        userId={userId}
-        onActiveStatementChange={() => {}}
-        onReactionStateChange={setReactionState}
-        onBackgroundColorChange={() => {}}
-        heightOffset={0}
-        onCursorEvent={onCursorEvent}
-      />
+      <RoomSocketProvider room={room} userId={userId}>
+        <LabelOverlay labels={effectiveLabels} />
+        <Canvas
+          userId={userId}
+          currentReactionState={reactionState}
+          heightOffset={0}
+          colorCursorsByVote
+        />
+        <TouchLayer
+          userId={userId}
+          onReactionStateChange={setReactionState}
+          onBackgroundColorChange={() => {}}
+          heightOffset={0}
+          onCursorEvent={onCursorEvent}
+        />
+      </RoomSocketProvider>
     </div>
   );
 }

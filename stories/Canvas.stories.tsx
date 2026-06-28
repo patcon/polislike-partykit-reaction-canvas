@@ -1,7 +1,9 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 import Canvas from '../app/components/shared/Canvas';
+import { RoomSocketProvider } from '../app/contexts/RoomSocketContext';
 
-// Note: Canvas uses usePartySocket internally (mocked in Storybook).
+// Canvas uses RoomSocketContext for its WebSocket connection (mocked in Storybook).
 // Cursor dots come from real-time socket messages so won't appear here.
 // These stories focus on the background colour states driven by the currentReactionState prop.
 
@@ -16,13 +18,19 @@ const meta = {
       options: ['positive', 'negative', 'neutral'],
     },
   },
+  decorators: [
+    (Story) => (
+      <RoomSocketProvider room="storybook" userId="story-user">
+        <Story />
+      </RoomSocketProvider>
+    ),
+  ],
 } satisfies Meta<typeof Canvas>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 const baseArgs = {
-  room: 'storybook',
   userId: 'story-user',
   colorCursorsByVote: true,
 };

@@ -1,6 +1,8 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import React from 'react';
 import { fn } from 'storybook/test';
 import TouchLayer from '../app/components/shared/TouchLayer';
+import { RoomSocketProvider } from '../app/contexts/RoomSocketContext';
 
 // TouchLayer is a fully transparent overlay div that captures mouse/touch events
 // and translates cursor position into reaction state (positive/negative/neutral) based on
@@ -21,10 +23,16 @@ const meta = {
   },
   tags: ['autodocs'],
   args: {
-    onActiveStatementChange: fn(),
     onReactionStateChange: fn(),
     onBackgroundColorChange: fn(),
   },
+  decorators: [
+    (Story) => (
+      <RoomSocketProvider room="storybook" userId="story-user">
+        <Story />
+      </RoomSocketProvider>
+    ),
+  ],
 } satisfies Meta<typeof TouchLayer>;
 
 export default meta;
@@ -32,7 +40,6 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {
   args: {
-    room: 'storybook',
     userId: 'story-user',
   },
 };

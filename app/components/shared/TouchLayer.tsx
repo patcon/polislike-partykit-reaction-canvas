@@ -1,8 +1,7 @@
 import { useRef, useEffect, useState } from "react";
-import usePartySocket from "partysocket/react";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
-import { getPartySocketConfig } from "../../utils/partyHost";
 import { CURSOR_THROTTLE_MS } from "../../utils/cursor";
+import { useRoomSocket } from "../../contexts/RoomSocketContext";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 
 interface CursorPosition {
@@ -17,18 +16,9 @@ interface CursorEvent {
   position: CursorPosition;
 }
 
-interface ServerMessage {
-  type: 'connected' | 'activeStatementChanged';
-  connectionId?: string;
-  activeStatementId?: number;
-  statementId?: number;
-}
-
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 interface TouchLayerProps {
-  room: string;
-  onActiveStatementChange: (statementId: number) => void;
   onReactionStateChange: (reactionState: ReactionState) => void;
   userId: string;
   reactionStateRef?: React.MutableRefObject<ReactionState>;
@@ -39,15 +29,12 @@ interface TouchLayerProps {
   anchors?: ReactionAnchors;
   onCursorEvent?: (type: 'move' | 'touch' | 'remove', pos: { x: number; y: number }) => void;
   imageUrl?: string; // When set, normalize coordinates relative to displayed image bounds
-  disabled?: boolean; // When true, keeps socket alive but ignores all pointer events
+  disabled?: boolean; // When true, ignores all pointer events
   autoSize?: boolean; // When true, normalize against this layer's own size (ResizeObserver) instead of the window. For embedding in constrained containers (e.g. demo phone frames). Ignores heightOffset.
-  party?: string;
   throttleMs?: number; // Min ms between cursor sends (0 = no throttle)
 }
 
 export default function TouchLayer({
-  room,
-  onActiveStatementChange,
   onReactionStateChange,
   userId,
   reactionStateRef,
@@ -60,7 +47,6 @@ export default function TouchLayer({
   imageUrl,
   disabled = false,
   autoSize = false,
-  party = "main",
   throttleMs = CURSOR_THROTTLE_MS,
 }: TouchLayerProps) {
   const layerRef = useRef<HTMLDivElement>(null);
@@ -87,26 +73,7 @@ export default function TouchLayer({
   const currentReactionStateRef = useRef<ReactionState>(null);
   const lastPositionRef = useRef<CursorPosition | null>(null);
 
-  const socket = usePartySocket({
-    ...getPartySocketConfig(),
-    party,
-    room: room,
-    query: { userId },
-    onMessage(evt) {
-      try {
-        const data = JSON.parse(evt.data);
-
-        // Handle server messages (connected, activeStatementChanged)
-        if (data.type === 'connected' && data.activeStatementId) {
-          onActiveStatementChange(data.activeStatementId);
-        } else if (data.type === 'activeStatementChanged') {
-          onActiveStatementChange(data.statementId);
-        }
-      } catch (e) {
-        console.error('Failed to parse message:', e);
-      }
-    },
-  });
+  const { send } = useRoomSocket();
 
   const sendCursorEvent = (type: CursorEvent['type'], position: CursorPosition) => {
     if (type !== 'remove' && throttleMsRef.current > 0) {
@@ -115,12 +82,12 @@ export default function TouchLayer({
       lastSentRef.current = now;
     }
     const event: CursorEvent = { type, position };
-    socket.send(JSON.stringify(event));
+    send(JSON.stringify(event));
   };
 
   const sendTimecode = () => {
     if (getTimecode) {
-      socket.send(JSON.stringify({ type: 'setTimecode', timecode: getTimecode() }));
+      send(JSON.stringify({ type: 'setTimecode', timecode: getTimecode() }));
     }
   };
 

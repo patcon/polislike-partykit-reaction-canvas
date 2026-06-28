@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
+import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import AdminPanelWithDB from "../panels/AdminPanelWithDB";
 import ReplayCanvas from "../canvas/ReplayCanvas";
 import { getReactionLabelSet } from "../../voteLabels";
@@ -264,8 +265,8 @@ export default function ReactionCanvasAppV5({ room: roomProp, testConnectionFn =
           currentTimecode={currentTimecode}
           heightOffset={youtubeHeight}
         />
+        <RoomSocketProvider room={room} userId={userId}>
         <Canvas
-          room={room}
           userId={userId}
           colorCursorsByVote={false}
           hideActualCursors={true}
@@ -276,9 +277,7 @@ export default function ReactionCanvasAppV5({ room: roomProp, testConnectionFn =
           debug={debug}
         />
         <TouchLayer
-          room={room}
           userId={userId}
-          onActiveStatementChange={() => {}}
           onReactionStateChange={() => {}}
           reactionStateRef={reactionStateRef}
           onBackgroundColorChange={setCanvasBackgroundReactionState}
@@ -287,6 +286,7 @@ export default function ReactionCanvasAppV5({ room: roomProp, testConnectionFn =
           anchors={anchors}
           onCursorEvent={handleCursorEvent}
         />
+        </RoomSocketProvider>
       </div>
     </div>
   );

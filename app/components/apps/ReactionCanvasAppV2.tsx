@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
+import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { getReactionLabelSet } from "../../voteLabels";
 import type { ReactionLabelSet } from "../../voteLabels";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../../utils/voteRegion";
@@ -207,8 +208,8 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
             style={{ left: touchPos.x, top: touchPos.y }}
           />
         )}
+        <RoomSocketProvider room={room} userId={userId}>
         <Canvas
-          room={room}
           userId={userId}
           colorCursorsByVote={true}
           currentReactionState={canvasBackgroundReactionState}
@@ -227,9 +228,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
         />
         {!isViewer && (
           <TouchLayer
-            room={room}
             userId={userId}
-            onActiveStatementChange={() => {}}
             onReactionStateChange={() => {}}
             reactionStateRef={reactionStateRef}
             onBackgroundColorChange={setCanvasBackgroundReactionState}
@@ -239,6 +238,7 @@ export default function ReactionCanvasAppV2({ videoId: videoIdProp }: { videoId?
             anchors={anchors}
           />
         )}
+        </RoomSocketProvider>
       </div>
     </div>
   );
