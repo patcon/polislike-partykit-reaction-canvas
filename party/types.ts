@@ -15,47 +15,10 @@ export interface CursorEvent {
   position: CursorPosition;
 }
 
-export interface PolisStatement {
-  txt: string;
-  tid: number;
-  created?: string;
-  quote_src_url?: string | null;
-  is_seed?: boolean;
-  is_meta?: boolean;
-  lang?: string;
-  pid?: number;
-  velocity?: number;
-  mod?: number;
-  active?: boolean;
-  agree_count?: number;
-  disagree_count?: number;
-  pass_count?: number;
-  count?: number;
-  conversation_id?: string;
-}
-
-export interface DefaultStatement {
-  txt: string;
-  tid: number;
-  timecode?: number;
-}
-
-export interface Vote {
-  userId: string;
-  statementId: number;
-  vote: number; // +1 for agree, -1 for disagree, 0 for pass
-  timestamp: number;
-}
-
 export interface PersistedState {
   pluginStates?: Record<string, unknown>;
 }
 
-export interface StatementEvent          { type: 'setActiveStatement'; statementId: number }
-export interface QueueStatementEvent     { type: 'queueStatement'; statementId: number }
-export interface ClearQueueEvent         { type: 'clearQueue' }
-export interface UpdateStatementsPoolEvent { type: 'updateStatementsPool'; json?: any[]; conversationId?: string; baseUrl?: string }
-export interface GhostCursorSettingEvent { type: 'setGhostCursors'; enabled: boolean }
 export interface SetTimecodeEvent        { type: 'setTimecode'; timecode: number }
 export interface SetRecordingStateEvent  { type: 'setRecordingState'; recording: boolean }
 export interface SetRoomLabelsEvent      { type: 'setRoomLabels'; labels: { positive: string; negative: string; neutral: string } | null }
@@ -146,8 +109,7 @@ export interface ClearNeighborEdgesEvent    { type: 'clearNeighborEdges' }
 export interface SetLightColorEvent      { type: 'setLightColor'; color: string; brightness: number }
 
 export type ClientEvent =
-  | CursorEvent | StatementEvent | QueueStatementEvent | ClearQueueEvent
-  | UpdateStatementsPoolEvent | GhostCursorSettingEvent | SetTimecodeEvent
+  | CursorEvent | SetTimecodeEvent
   | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent
   | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent
   | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent

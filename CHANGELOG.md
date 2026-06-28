@@ -9,7 +9,7 @@ All notable changes to this project will be documented in this file. Releases cu
 ## Week 32 (2026-06-29)
 
 ### Removed
-- **V1 Polis statement voting app removed** — `SimpleReactionCanvasAppV1`, `DeprecatedAdminPanel`, `DeprecatedStatementPanel`, and their Storybook stories deleted; `PolisStatement` and `QueueItem` types removed from `app/types.ts`; `#v1` hash handler and title entry removed from `client.tsx`.
+- **V1 Polis statement voting app removed** — `SimpleReactionCanvasAppV1`, `DeprecatedAdminPanel`, `DeprecatedStatementPanel`, and their Storybook stories deleted; `PolisStatement` and `QueueItem` types removed from `app/types.ts`; `#v1` hash handler and title entry removed from `client.tsx`. Server-side: removed `queueLogic`, `ghostCursors`, vote HTTP endpoints (`POST/GET/DELETE /vote`), Polis API proxy (`updateStatementsPool`), `GhostCursorManager`, and all V1 types from `party/types.ts`.
 
 ### Changed
 - **PR preview deployments replaced with shared staging env** — per-PR preview, cleanup, and event-preview workflows disabled (broken upstream: partykit/partykit#985); new `staging-deploy.yml` deploys every PR to the shared `staging` preview environment instead. Staging is never torn down.

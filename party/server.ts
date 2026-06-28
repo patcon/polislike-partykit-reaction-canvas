@@ -2,16 +2,13 @@ import type * as Party from "partykit/server";
 import type { ActivityMode } from "../app/types";
 import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } from './lib/reactionRegion';
 import type { ReactionAnchors } from './lib/reactionRegion';
-import { getCurrentActiveStatementId, computeNextDisplayTimestamp, computeClearedQueue } from './lib/queueLogic';
-import type { QueueItem } from './lib/queueLogic';
-import { GhostCursorManager } from './lib/ghostCursors';
 import { SERVER_CURSOR_BATCH_MS } from '../app/utils/cursor';
 import { PLUGIN_MAP } from '../plugins/index';
 import type { PluginContext, PluginConnection } from '../plugins/types';
 import { getSoccerBallState, getSoccerScore } from '../plugins/soccer/server';
 import type {
-  CursorEvent, PolisStatement, Vote, PersistedState, ClientEvent,
-  PlaybackCursorBroadcastEvent, StatementEvent, UpdateStatementsPoolEvent,
+  CursorEvent, PersistedState, ClientEvent,
+  PlaybackCursorBroadcastEvent,
   SetTimecodeEvent, SetRecordingStateEvent, SetRoomLabelsEvent, SetRoomAnchorsEvent,
   SetRoomAvatarStyleEvent, SetActivityEvent, SetNowLabelEvent, SetImageUrlEvent,
   SetUserCapEvent, TriggerActivityEvent, SubmitGithubUsernameEvent, SubmitFeedbackStarsEvent,
@@ -23,10 +20,6 @@ import type {
 } from './types';
 
 export default class Server implements Party.Server {
-  private activeStatementId: number = 1;
-  private allSelectedStatements: QueueItem[] = [];
-  private statementsPool: PolisStatement[] = [];
-  private votes: Vote[] = [];
   private connectionUserMap = new Map<string, string>(); // connectionId -> userId
   private adminConnectionIds = new Set<string>();
   private viewerConnectionIds = new Set<string>();
@@ -59,10 +52,6 @@ private pluginStates = new Map<string, unknown>(
     Object.entries(PLUGIN_MAP)
       .filter(([, p]) => p.server)
       .map(([id, p]) => [id, p.server!.createState()]),
-  );
-  private ghosts = new GhostCursorManager(
-    (msg) => this.room.broadcast(msg),
-    () => this.allSelectedStatements,
   );
 
   constructor(readonly room: Party.Room) {}
@@ -226,15 +215,10 @@ private pluginStates = new Map<string, unknown>(
         .map(([, uid]) => uid)
     )];
 
-    // Send welcome message with current active statement, queue info, and statements pool
+    // Send welcome message with current state
     conn.send(JSON.stringify({
       type: 'connected',
       connectionId: conn.id,
-      activeStatementId: this.activeStatementId,
-      allSelectedStatements: this.allSelectedStatements,
-      statementsPool: this.statementsPool,
-      currentTime: Date.now(),
-      ghostCursorsEnabled: this.ghosts.enabled,
       timecode: this.savedTimecode,
       recordingState: this.recordingState,
       roomLabels: this.roomLabels,
@@ -327,11 +311,6 @@ private pluginStates = new Map<string, unknown>(
         case 'move':
         case 'touch':
         case 'remove': this.handleCursorEvent(event, message, sender); break;
-        case 'setActiveStatement': this.handleSetActiveStatement(event, sender); break;
-        case 'queueStatement': this.queueStatement(event.statementId); break;
-        case 'clearQueue': this.clearQueue(); break;
-        case 'updateStatementsPool': this.handleUpdateStatementsPool(event, sender); break;
-        case 'setGhostCursors': this.ghosts.setEnabled(event.enabled); break;
         case 'setTimecode': this.handleSetTimecode(event); break;
         case 'setRecordingState': this.handleSetRecordingState(event); break;
         case 'setRoomLabels': this.handleSetRoomLabels(event); break;
@@ -396,26 +375,6 @@ private pluginStates = new Map<string, unknown>(
       }
     } else {
       this.room.broadcast(message, [sender.id]);
-    }
-  }
-
-  // --- Statement / queue handlers ---
-
-  private handleSetActiveStatement(event: StatementEvent, sender: Party.Connection): void {
-    console.log(`Statement change from ${sender.id}:`, event.statementId);
-    this.activeStatementId = event.statementId;
-    this.room.broadcast(JSON.stringify({ type: 'activeStatementChanged', statementId: this.activeStatementId }));
-  }
-
-  private handleUpdateStatementsPool(event: UpdateStatementsPoolEvent, sender: Party.Connection): void {
-    if (event.conversationId) {
-      console.log(`Statements pool update from ${sender.id} via Polis conversation:`, event.conversationId);
-      void this.updateStatementsPool(undefined, event.conversationId, event.baseUrl);
-    } else if (event.json) {
-      console.log(`Statements pool update from ${sender.id} via JSON data:`, event.json.length, 'items');
-      void this.updateStatementsPool(event.json);
-    } else {
-      console.log(`Invalid statements pool update from ${sender.id}: no json or conversationId provided`);
     }
   }
 
@@ -598,100 +557,8 @@ private pluginStates = new Map<string, unknown>(
     }
   }
 
-  // --- Core statement/queue methods ---
-
-  private queueStatement(statementId: number) {
-    const now = Date.now();
-    const displayTimestamp = computeNextDisplayTimestamp(this.allSelectedStatements, now);
-    this.allSelectedStatements.push({ statementId, displayTimestamp });
-    this.room.broadcast(JSON.stringify({
-      type: 'queueUpdated',
-      allSelectedStatements: this.allSelectedStatements,
-      currentTime: Date.now(),
-    }));
-  }
-
-  private getCurrentActiveStatementId(): number {
-    return getCurrentActiveStatementId(this.allSelectedStatements, Date.now());
-  }
-
-  private clearQueue() {
-    this.allSelectedStatements = computeClearedQueue(this.allSelectedStatements, Date.now());
-    this.room.broadcast(JSON.stringify({
-      type: 'queueUpdated',
-      allSelectedStatements: this.allSelectedStatements,
-      currentTime: Date.now()
-    }));
-  }
-
-  private async updateStatementsPool(json?: any[], conversationId?: string, baseUrl?: string) {
-    try {
-      let newStatements: PolisStatement[] = [];
-
-      if (conversationId) {
-        const polisBaseUrl = baseUrl || 'https://pol.is';
-        const polisUrl = `${polisBaseUrl}/api/v3/comments?conversation_id=${conversationId}&moderation=true&include_voting_patterns=true`;
-        console.log(`Fetching statements from Polis API for conversation: ${conversationId}`);
-        console.log(`Fetching from: ${polisUrl}`);
-
-        const response = await fetch(polisUrl);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch from Polis API: ${response.status}`);
-        }
-        const data = await response.json();
-
-        // Data is already in PolisStatement format from the API
-        if (Array.isArray(data)) {
-          newStatements = data;
-          console.log(`Loaded ${newStatements.length} statements from Polis API`);
-        } else {
-          throw new Error('Invalid Polis API response - expected array');
-        }
-      } else if (json) {
-        console.log(`Processing JSON data with ${json.length} items`);
-
-        // Convert DefaultStatement format to PolisStatement format
-        if (Array.isArray(json)) {
-          newStatements = json.map((item: any): PolisStatement => ({
-            txt: item.text || item.txt,
-            tid: item.statementId || item.tid,
-            created: item.created || new Date().toISOString(),
-            is_seed: item.is_seed || false,
-            is_meta: item.is_meta || false,
-            lang: item.lang || 'en',
-            pid: item.pid || 0
-          }));
-        } else {
-          throw new Error('Invalid JSON format - expected array');
-        }
-      } else {
-        throw new Error('Either json or conversationId must be provided');
-      }
-
-      // Update the statements pool with new data
-      this.statementsPool = newStatements;
-      console.log(`Statements pool updated with ${newStatements.length} statements`);
-
-      // Broadcast the updated statements pool to all connected clients
-      this.room.broadcast(JSON.stringify({
-        type: 'statementsPoolUpdated',
-        statementsPool: this.statementsPool,
-        currentTime: Date.now()
-      }));
-    } catch (error) {
-      console.error('Error updating statements pool:', error);
-      // Broadcast error to clients
-      this.room.broadcast(JSON.stringify({
-        type: 'statementsPoolError',
-        error: error instanceof Error ? error.message : 'Unknown error',
-        currentTime: Date.now()
-      }));
-    }
-  }
-
   async onRequest(request: Party.Request) {
     const url = new URL(request.url);
-    console.log(`[VOTE] Incoming request: ${request.method} ${url.pathname}`);
 
     // Delegate to plugins first
     const pluginCtx = this.makePluginContext();
@@ -700,64 +567,6 @@ private pluginStates = new Map<string, unknown>(
         const res = await plugin.server.onRequest(request, pluginCtx, this.pluginStates.get(id)!);
         if (res) return res;
       }
-    }
-
-    if (request.method === "POST" && url.pathname.endsWith("/vote")) {
-      console.log(`[VOTE] Processing vote submission...`);
-      try {
-        const voteData = await request.json<Vote>();
-        console.log(`[VOTE] Received vote data:`, JSON.stringify(voteData, null, 2));
-
-        // Validate vote data
-        if (!voteData.userId || typeof voteData.statementId !== 'number' ||
-            typeof voteData.vote !== 'number' || ![-1, 0, 1].includes(voteData.vote)) {
-          console.log(`[VOTE] Invalid vote data - validation failed:`, {
-            hasUserId: !!voteData.userId,
-            statementIdType: typeof voteData.statementId,
-            voteType: typeof voteData.vote,
-            voteValue: voteData.vote,
-            isValidVoteValue: [-1, 0, 1].includes(voteData.vote)
-          });
-          return new Response("Invalid vote data", { status: 400 });
-        }
-
-        // Add timestamp if not provided
-        if (!voteData.timestamp) {
-          voteData.timestamp = Date.now();
-          console.log(`[VOTE] Added timestamp: ${voteData.timestamp}`);
-        }
-
-        // Store the vote
-        this.votes.push(voteData);
-        console.log(`[VOTE] Vote stored successfully. Total votes: ${this.votes.length}`);
-        console.log(`[VOTE] Vote details: User ${voteData.userId} voted ${voteData.vote} (${voteData.vote === 1 ? 'AGREE' : voteData.vote === -1 ? 'DISAGREE' : 'PASS'}) on statement ${voteData.statementId} at ${new Date(voteData.timestamp).toISOString()}`);
-
-        return new Response(JSON.stringify({ success: true, voteCount: this.votes.length }), {
-          headers: { "Content-Type": "application/json" }
-        });
-      } catch (error) {
-        console.error("[VOTE] Error processing vote:", error);
-        console.error("[VOTE] Error stack:", error instanceof Error ? error.stack : 'No stack trace');
-        return new Response("Error processing vote", { status: 500 });
-      }
-    }
-
-    if (request.method === "GET" && url.pathname.endsWith("/votes")) {
-      console.log(`[VOTE] Retrieving votes for admin panel. Total votes: ${this.votes.length}`);
-      // Return all votes for admin panel
-      return new Response(JSON.stringify(this.votes), {
-        headers: { "Content-Type": "application/json" }
-      });
-    }
-
-    if (request.method === "DELETE" && url.pathname.endsWith("/votes")) {
-      console.log(`[VOTE] Clearing all votes. Previous count: ${this.votes.length}`);
-      // Clear all votes
-      this.votes = [];
-      console.log(`[VOTE] All votes cleared successfully`);
-      return new Response(JSON.stringify({ success: true, message: "All votes cleared" }), {
-        headers: { "Content-Type": "application/json" }
-      });
     }
 
     if (request.method === "GET" && url.pathname.endsWith("/github-submissions")) {
