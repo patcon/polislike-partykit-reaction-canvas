@@ -22,18 +22,6 @@ A real-time collaborative voting canvas built on [PartyKit](https://partykit.io)
 
 ## Modes
 
-### V1 — Statement Voting
-
-Participants vote on a queue of [Polis](https://pol.is) statements. A countdown bar shows time remaining on the active statement; votes are submitted automatically on transition. Admin panel manages the statement queue.
-
-| Participation | Statement Admin |
-|:---:|:---:|
-| <img src="docs/images/v1-participation.png" width="220"> | ![V1 admin](docs/images/v1-admin.png) |
-
-**URL:** `/#v1` · `/?admin=true#v1` for admin
-
----
-
 ### V2 — YouTube Multiplayer (Sync)
 
 A YouTube video plays in the top half of the screen; the reaction canvas sits below. Playback is gated — the video only plays when all present participants are actively touching the canvas, creating a synchronised group-watch experience.
