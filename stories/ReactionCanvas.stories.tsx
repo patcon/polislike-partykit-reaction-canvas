@@ -82,21 +82,23 @@ const meta = {
     userId: 'story-user-1',
     labels: REACTION_LABEL_PRESETS['default'],
   },
+  // CanvasComposition uses height:100% which resolves to 0 without a sized parent.
+  decorators: [
+    (Story) => <div style={{ height: '100vh' }}><Story /></div>,
+  ],
 } satisfies Meta<typeof CanvasComposition>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const Interactive: Story = {};
+export const Default: Story = {};
 
 // Custom reaction labels — Canvas fires onRoomLabelsChange to the parent; labels are
 // rendered as HTML overlays in LabelOverlay, not inside the Canvas SVG.
 // Dark background: LabelOverlay renders white text, canvas bg is near-transparent.
-// Explicit height: CanvasComposition uses height:100% which resolves to 0 without a
-// sized parent (same issue affects Interactive — Recorder works because it sets 100vh).
 export const CustomLabels: Story = {
   render: (args) => (
-    <div style={{ height: '100vh', background: '#222' }}>
+    <div style={{ height: '100%', background: '#222' }}>
       <CanvasComposition {...args} />
     </div>
   ),
