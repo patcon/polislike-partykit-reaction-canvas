@@ -1,6 +1,7 @@
 import { useState, useRef } from "react";
 import Canvas from "../shared/Canvas";
 import TouchLayer from "../shared/TouchLayer";
+import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { getPersistentUserId } from "../../utils/userId";
 import { CURSOR_THROTTLE_MS, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 
@@ -51,9 +52,8 @@ export default function PerfCanvasApp({ room }: { room: string }) {
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100dvh", background: "#111", overflow: "hidden" }}>
+      <RoomSocketProvider room={room} userId={userId} party="perf">
       <Canvas
-        party="perf"
-        room={room}
         userId={userId}
         onPresenceCount={setPresenceCount}
         disableBackgroundValence
@@ -61,15 +61,13 @@ export default function PerfCanvasApp({ room }: { room: string }) {
         hideActualCursors={smoothCursorEnabled && !showActualCursor}
       />
       <TouchLayer
-        party="perf"
-        room={room}
         userId={userId}
-        onActiveStatementChange={() => {}}
         onReactionStateChange={() => {}}
         onBackgroundColorChange={() => {}}
         reactionStateRef={reactionStateRef}
         throttleMs={throttleMs}
       />
+      </RoomSocketProvider>
       <div style={{
         position: "absolute", top: 12, left: 0, right: 0,
         textAlign: "center", color: "rgba(255,255,255,0.4)",

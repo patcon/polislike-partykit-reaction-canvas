@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import usePartySocket from "partysocket/react";
 import { getPartySocketConfig } from "../../../utils/partyHost";
+import { RoomSocketProvider } from "../../../contexts/RoomSocketContext";
 import { DEFAULT_ANCHORS } from "../../../utils/voteRegion";
 import type { ReactionAnchors } from "../../../utils/voteRegion";
 import { REACTION_LABEL_PRESETS } from "../../../voteLabels";
@@ -234,14 +235,14 @@ export default function AdminPanelWithDB({ room }: AdminPanelWithDBProps) {
 
       {mainTab === 'peek' && (
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <Canvas
-            room={room}
-            userId="admin-peek"
-            readOnly={true}
-            colorCursorsByVote={true}
-            debug={true}
-            heightOffset={tabBarHeight}
-          />
+          <RoomSocketProvider room={room} userId="admin-peek" readOnly>
+            <Canvas
+              userId="admin-peek"
+              colorCursorsByVote={true}
+              debug={true}
+              heightOffset={tabBarHeight}
+            />
+          </RoomSocketProvider>
         </div>
       )}
 

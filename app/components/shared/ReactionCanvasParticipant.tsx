@@ -2,9 +2,11 @@ import { useState, useRef, type ReactNode } from "react";
 import Canvas from "./Canvas";
 import TouchLayer from "./TouchLayer";
 import ShareQRButton from "./ShareQRButton";
+import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../../utils/voteRegion";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
+import { REACTION_LABEL_PRESETS } from "../../voteLabels";
 import type { ReactionLabelSet } from "../../voteLabels";
 import type { ActivityMode } from "../../types";
 import type { GreeterConfig } from "../../../plugins/greeter/types";
@@ -181,7 +183,7 @@ export default function ReactionCanvasParticipant({
   const effectiveTouchPos = isTouchPosControlled ? touchPos : internalTouchPos;
 
   // Derived
-  const labels = labelsOverride !== undefined ? labelsOverride : serverLabels;
+  const labels = labelsOverride !== undefined ? labelsOverride : (serverLabels ?? REACTION_LABEL_PRESETS.default);
   const anchors = serverAnchors ?? DEFAULT_ANCHORS;
 
   // Dual-callback handlers: update own state AND forward to the parent shell.
@@ -215,7 +217,7 @@ export default function ReactionCanvasParticipant({
   };
 
   return (
-    <>
+    <RoomSocketProvider room={room} userId={userId}>
       {backgroundOverlay}
       {labels && showLabels && (
         <div className="reaction-label reaction-label-positive" style={{ ...reactionLabelStyle(anchors.positive), ...(ownValenceDisplay === 'labels' && effectiveReaction === 'positive' ? { background: 'rgba(0, 255, 0, 0.2)' } : {}) }}>{labels.positive}</div>
@@ -243,7 +245,6 @@ export default function ReactionCanvasParticipant({
         <div className="v2-touch-indicator" style={{ left: effectiveTouchPos.x, top: effectiveTouchPos.y }} />
       )}
       <Canvas
-        room={room}
         userId={userId}
         autoSize={autoSize}
         heightOffset={autoSize ? undefined : heightOffset}
@@ -290,10 +291,8 @@ export default function ReactionCanvasParticipant({
       {canvasOverlay}
       {!hideTouchLayer && (
         <TouchLayer
-          room={room}
           userId={userId}
           autoSize={autoSize}
-          onActiveStatementChange={() => {}}
           onReactionStateChange={() => {}}
           reactionStateRef={reactionStateRef}
           onBackgroundColorChange={handleBackgroundColor}
@@ -304,6 +303,6 @@ export default function ReactionCanvasParticipant({
           disabled={touchDisabled}
         />
       )}
-    </>
+    </RoomSocketProvider>
   );
 }
