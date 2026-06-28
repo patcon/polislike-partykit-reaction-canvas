@@ -1,0 +1,282 @@
+/* Side-by-side demo pages (/demos/*) — phone mockups + layout.
+   Chrome matches the NewFrontPage (Whisper Gallery) light theme. */
+
+.demo-page {
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 0 16px 64px;
+  background: #ffffff;
+  color: #111;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.demo-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 40px 0 28px;
+}
+
+.demo-header h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: #111;
+}
+
+.demo-room {
+  font-size: 12px;
+  color: #6c757d;
+  background: #f1f3f5;
+  padding: 3px 8px;
+  border-radius: 6px;
+  /* Override body's user-select: none so the room id can be selected/copied. */
+  -webkit-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+
+.demo-note {
+  margin: 0;
+  color: #6c757d;
+  font-size: 15px;
+}
+
+/* Two-up phone layout */
+.demo-two-up {
+  display: flex;
+  flex: 1;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 40px;
+  flex-wrap: wrap;
+}
+
+.demo-phone-wrap {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Phone bezel */
+.demo-phone {
+  position: relative;
+  width: 340px;
+  aspect-ratio: 9 / 19.5;
+  max-height: 78vh;
+  background: #0a0a0d;
+  border: 10px solid #1d1d24;
+  border-radius: 38px;
+  box-shadow:
+    inset 0 0 0 2px #000,
+    0 18px 50px rgba(0, 0, 0, 0.28);
+  overflow: hidden;
+}
+
+/* Notch */
+.demo-phone::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 130px;
+  height: 22px;
+  background: #1d1d24;
+  border-radius: 0 0 16px 16px;
+  z-index: 10;
+}
+
+/* The screen: stacks the mock URL bar above the content area. */
+.demo-phone-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+}
+
+/* Mock browser URL bar — pushes the panel down a bit for realism. */
+.demo-phone-urlbar {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  /* Top padding clears the notch. */
+  padding: 26px 16px 8px;
+  background: #f1f3f5;
+  border-bottom: 1px solid #e0e3e7;
+}
+
+.demo-phone-urlbar-lock {
+  color: #868e96;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.demo-phone-urlbar-text {
+  font-size: 12px;
+  color: #6c757d;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Content area: sizing container for embedded panels (Canvas autoSize, flex panels). */
+.demo-phone-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  /* The embedded app is sized for a real phone viewport, but here it renders into
+     a ~320px mock screen on a desktop (so the app's own responsive breakpoints
+     never kick in) — everything looks oversized. `zoom` is the one consistent
+     lever: it shrinks the whole rendered subtree (text, cursor dots, indicators)
+     AND keeps geometry APIs consistent, so Canvas autoSize + TouchLayer pointer
+     mapping stay correct (unlike `transform: scale`, which desyncs them). Tune
+     this single value to taste. */
+  zoom: 0.7;
+  transform: translateZ(0);
+}
+
+/* Hide scrollbars inside the phone mock (content still scrolls) — desktop
+   scrollbars look wrong on a phone screen. */
+.demo-phone-screen * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.demo-phone-screen *::-webkit-scrollbar {
+  display: none;
+}
+
+/* Overall size is handled by `zoom` on .demo-phone-content (above); here we only
+   fix label rendering artifacts. The percentage-anchor + translate(-100%)
+   placement lands edges on fractional pixels and the white text-shadow halo over
+   a colored region reads as a smudge — drop the shadow, use an opaque fill, and
+   smooth the text so the boxes render cleanly. */
+.demo-phone-content .reaction-label {
+  font-size: 18px;
+  padding: 6px 10px;
+  border-width: 2px;
+  border-radius: 6px;
+  background: #ffffff;
+  text-shadow: none;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* AdminPanelNoDB is hardcoded to width:100vw/min-height:100vh for full-screen use;
+   constrain it to the content area so its tab bar overflows (and swipe-scrolls)
+   within the frame instead of spilling across the whole viewport. */
+.demo-phone-content .v3-admin-panel {
+  width: 100%;
+  min-height: 0;
+  height: 100%;
+}
+
+.demo-phone-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #6c757d;
+}
+
+.demo-phone-share-prompt {
+  position: absolute;
+  top: 18px;
+  left: -30px;
+  z-index: 9999;
+  background: #ffe600;
+  color: #111;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 12px;
+  border-radius: 10px;
+  white-space: nowrap;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.demo-phone-share-prompt-arrow {
+  font-size: 18px;
+  line-height: 1;
+}
+
+/* Index page */
+.demo-index .demo-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 600px;
+}
+
+.demo-index .demo-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 20px 24px;
+  background: #fff;
+  border: 1.5px solid #e9ecef;
+  border-radius: 14px;
+}
+
+.demo-index .demo-list a {
+  color: #4f6ef7;
+  font-size: 17px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.demo-index .demo-list a:hover {
+  text-decoration: underline;
+}
+
+.demo-list-desc {
+  color: #868e96;
+  font-size: 14px;
+}
+
+/* Narrow-screen warning (shown when viewport can't fit two phones) */
+.demo-mobile-warning {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 100vh;
+  padding: 32px;
+  text-align: center;
+  background: #ffffff;
+  color: #111;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.demo-mobile-warning h2 {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.demo-mobile-warning p {
+  margin: 0;
+  max-width: 28rem;
+  color: #6c757d;
+  font-size: 15px;
+}

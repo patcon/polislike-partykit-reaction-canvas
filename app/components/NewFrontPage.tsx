@@ -177,6 +177,9 @@ export function NewFrontPage() {
             <a className="nfp-btn nfp-btn-secondary" href={buildV4Url(room, true)}>
               Emcee View
             </a>
+            <a className="nfp-btn nfp-btn-demos" href="/demos">
+              See Combined Demos
+            </a>
           </div>
         </div>
 

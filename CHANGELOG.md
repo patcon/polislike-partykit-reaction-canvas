@@ -6,6 +6,22 @@ All notable changes to this project will be documented in this file. Releases cu
 
 **Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) — e.g. `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`.
 
+## Week 32 (2026-06-29)
+
+### Changed
+- **PR preview deployments replaced with shared staging env** — per-PR preview, cleanup, and event-preview workflows disabled (broken upstream: partykit/partykit#985); new `staging-deploy.yml` deploys every PR to the shared `staging` preview environment instead. Staging is never torn down.
+
+## Week 31 (2026-06-22)
+
+### Added
+- **Side-by-side demo pages** — new `/demos/` routes showing two panels in phone frames sharing one room: `/demos/admin-canvas`, `/demos/canvas-mood`, plus a `/demos/` index. Gated to wide screens (≥ 860px). Adds an opt-in `autoSize` prop to `Canvas` (sizes to parent instead of the window).
+
+### Changed
+- **Demo participant uses the real app component** — extracted the participant canvas out of `ReactionCanvasAppV4` into a shared `ReactionCanvasParticipant`, now rendered by both the app and the demos. The demo participant gains live-updating labels, label coloring on cursor move, the share-QR button (opening the real room), and spring cursor motion — previously missing from the hand-built demo view.
+- **Share prompt callout on demo participant phones** — `PhoneFrame` gains a `showSharePrompt` boolean prop that renders a yellow callout badge ("↘ Click to join from your phone") over the phone frame, pointing at the share-QR button. Enabled on the participant phone in `DemoAdminCanvas` and `DemoCanvasMood`.
+- **Share QR modal contained within demo phone frame** — `transform: translateZ(0)` on `.demo-phone-content` creates a new containing block for `position: fixed` descendants, trapping the share-QR modal inside the phone screen instead of covering the full viewport.
+- **`pnpm dev` / `pnpm dev-https` no longer hang on exit** — switched from `trap`+`&` shell backgrounding to `concurrently --kill-others`, which properly terminates esbuild worker processes on Linux; use `Ctrl+C` to stop (interactive b/c/x keys from the partykit UI are no longer available).
+
 ## Week 29 (2026-06-08)
 
 ### Added

@@ -1,8 +1,12 @@
 name: Deploy Event Preview
 
+# DISABLED: preview deployments broken (https://github.com/partykit/partykit/issues/985)
+# Replaced by staging-deploy.yml which deploys all PRs to shared staging env.
+# on:
+#   issues:
+#     types: [labeled, closed]
 on:
-  issues:
-    types: [labeled, closed]
+  workflow_dispatch:
 
 concurrency:
   group: event-preview-${{ github.event.issue.number }}

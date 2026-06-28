@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from "react";
-import Canvas from "../shared/Canvas";
-import TouchLayer from "../shared/TouchLayer";
+import ReactionCanvasParticipant from "../shared/ReactionCanvasParticipant";
 import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import InterfaceChipBar from "../shared/InterfaceChipBar";
 import type { ActivityMode, SocialConfig, ValenceInputMode } from "../../types";
@@ -20,19 +19,17 @@ import InterfacePushModal from "../modals/InterfacePushModal";
 import HapticPushModal from "../modals/HapticPushModal";
 import { WebHaptics } from "web-haptics";
 import { useWebHaptics } from "web-haptics/react";
-import { DEFAULT_ANCHORS, reactionLabelStyle, valenceToPosition, computeReactionRegion } from "../../utils/voteRegion";
+import { DEFAULT_ANCHORS, valenceToPosition, computeReactionRegion } from "../../utils/voteRegion";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 import { getReactionLabelSet } from "../../voteLabels";
 import type { ReactionLabelSet } from "../../voteLabels";
 import { getPersistentUserId } from "../../utils/userId";
-import ShareQRButton from "../shared/ShareQRButton";
 import QRWithCopy from "../shared/QRWithCopy";
 import { parseInviteChain, appendSelfToChain, chainToEdges, storeChain, getStoredChain } from "../../utils/inviteChain";
 import HapticIndicatorButton from "../shared/HapticIndicatorButton";
 import { useHapticPriming } from "../../hooks/useHapticPriming";
 import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
 import { useWakeLock } from "../../utils/useWakeLock";
-import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 import { PLUGIN_MAP } from "../../../plugins/index";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
@@ -155,27 +152,20 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
   const [inviteEdges, setInviteEdges] = useState<Record<string, string>>({});
   const [canvasBackgroundReactionState, setCanvasBackgroundReactionState] = useState<ReactionState>(null);
   const [presenceCount, setPresenceCount] = useState<number>(0);
-  const [activeCursorCount, setActiveCursorCount] = useState<number>(0);
-  const [simulatedCursorCount, setSimulatedCursorCount] = useState<number>(0);
   const [isViewer, setIsViewer] = useState(false);
   const [userCap, setUserCap] = useState<number | null>(null);
-  const [viewerCount, setViewerCount] = useState(0);
   const socketSendRef = useRef<((msg: string) => void) | null>(null);
   const [touchPos, setTouchPos] = useState<{ x: number; y: number } | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
   const [serverLabels, setServerLabels] = useState<ReactionLabelSet | null>(null);
   const [serverAnchors, setServerAnchors] = useState<ReactionAnchors | null>(null);
   const [serverImageUrl, setServerImageUrl] = useState('');
   const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
   const [serverGreeterConfig, setServerGreeterConfig] = useState<GreeterConfig | null>(null);
-const [nowLabel, setNowLabel] = useState('');
   const [activity, setActivity] = useState<ActivityMode>('canvas');
-  const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
   const [orientationPermission, setOrientationPermission] = useState<'unknown' | 'granted' | 'denied' | 'not-required'>('unknown');
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
   const [debug, setDebug] = useState(() => new URLSearchParams(window.location.search).get('debug') === '1');
-  const reactionStateRef = useRef<ReactionState>(null);
   const [showGithubModal, setShowGithubModal] = useState(false);
   const [showFeedbackStarsModal, setShowFeedbackStarsModal] = useState(false);
   const [pushedInterface, setPushedInterface] = useState<string | null>(null);
@@ -349,7 +339,6 @@ const [nowLabel, setNowLabel] = useState('');
     return <MobileOnlyGate />;
   }
 
-  const anchors = serverAnchors ?? DEFAULT_ANCHORS;
   // URL param overrides server; server overrides default; null = admin explicitly hid labels
   const urlLabelParam = getLabelsParamFromUrl();
   const labels = urlLabelParam ? getReactionLabelSet(urlLabelParam) : serverLabels;
@@ -393,68 +382,69 @@ const [nowLabel, setNowLabel] = useState('');
       {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
       <ImageCanvasConfigProvider value={{ imageUrl: serverImageUrl }}>
       <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && !PANEL_COMPONENTS[activity]) ? undefined : 'none' }}>
-          {(() => { const Bg = PLUGIN_MAP[activity]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
-          {labels && activity === 'canvas' && <div className="reaction-label reaction-label-positive" style={{ ...reactionLabelStyle(anchors.positive), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'positive' ? { background: 'rgba(0, 255, 0, 0.2)' } : {}) }}>{labels.positive}</div>}
-          {labels && activity === 'canvas' && <div className="reaction-label reaction-label-negative" style={{ ...reactionLabelStyle(anchors.negative), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'negative' ? { background: 'rgba(255, 0, 0, 0.2)' } : {}) }}>{labels.negative}</div>}
-          {labels && activity === 'canvas' && <div className="reaction-label reaction-label-neutral" style={{ ...reactionLabelStyle(anchors.neutral), ...(ownValenceDisplay === 'labels' && canvasBackgroundReactionState === 'neutral' ? { background: 'rgba(255, 255, 0, 0.2)' } : {}) }}>{labels.neutral}</div>}
-          {isViewer && (
-            <div className="viewer-mode-banner">
-              This room is full — you are watching in view-only mode.
-              {roomHasSpace && (
-                <button className="viewer-join-btn" onClick={handleJoinRequest}>Join</button>
-              )}
-            </div>
-          )}
-          <div className="v2-presence-counter">
-            <span className="v2-counter-num">{presenceCount}</span>
-            {userCap !== null && <span className="v2-counter-dim">/{userCap}</span>} here · <span className="v2-counter-num">{activeCursorCount - simulatedCursorCount + (touchPos !== null ? 1 : 0)}</span> touching
-            {simulatedCursorCount > 0 && <> · <span className="v2-counter-num">{simulatedCursorCount}</span> simulated</>}
-            {viewerCount > 0 && <> · <span className="v2-counter-num">{viewerCount}</span> watching</>}
-          </div>
-          <div className="debug-hint">{debug ? 'd: debug on' : 'd: debug'}</div>
-          <div className={`v3-rec-badge${isRecording ? '' : ' v3-rec-badge--off'}`}>● REC</div>
-          <ShareQRButton userId={userId} selfChain={selfChain} />
-          <div onPointerDown={hapticOnPointerDown}>
-            <HapticIndicatorButton
-              enabled={hapticEffectivelyEnabled}
-              flashing={hapticFlashing}
-              canVibrate={WebHaptics.isSupported}
-              onToggle={hapticOnToggle}
-              onShowInfo={() => setHapticPending(true)}
-            />
-          </div>
-          {isOrientationMode && (
-            <WakeLockIndicatorButton
-              enabled={wakeLockEnabled}
-              active={wakeLockAcquired}
-              onToggle={() => setWakeLockEnabled(prev => !prev)}
-            />
-          )}
-          {touchPos && (
-            <div
-              className="v2-touch-indicator"
-              style={{ left: touchPos.x, top: touchPos.y }}
-            />
-          )}
-          <Canvas
+          <ReactionCanvasParticipant
             room={room}
             userId={userId}
-            colorCursorsByVote={true}
-            cursorSmoothingConfig={SMOOTH_CURSOR_ENABLED ? { ...SMOOTH_CURSOR_CONFIG, showSmoothCursor: true } : undefined}
-            hideActualCursors={SMOOTH_CURSOR_ENABLED}
+            selfChain={selfChain}
+            debug={debug}
+            heightOffset={chipBarOffset}
+            labelsOverride={labels}
+            showLabels={activity === 'canvas'}
             disableCursorValence={!!PLUGIN_MAP[activity]?.canvasOverlay?.canvasProps?.disableCursorValence}
             disableBackgroundValence={!!PLUGIN_MAP[activity]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
-            onOwnValenceDisplayChange={setOwnValenceDisplay}
-            onValenceInputModeChange={(mode) => {
-              if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
-              setValenceInputMode(mode);
-            }}
             currentReactionState={canvasBackgroundReactionState}
-            heightOffset={chipBarOffset}
-            onPresenceCount={setPresenceCount}
-            onActiveCursorCountChange={setActiveCursorCount}
-            onSimulatedCursorCountChange={setSimulatedCursorCount}
-            onRecordingStateChange={setIsRecording}
+            onBackgroundColorChange={setCanvasBackgroundReactionState}
+            touchPos={touchPos}
+            onTouchPosition={setTouchPos}
+            touchDisabled={valenceInputMode !== 'touch'}
+            hideTouchLayer={isViewer || activity === 'social-sharing' || activity === 'greeter' || activity === 'signature'}
+            touchImageUrl={PLUGIN_MAP[activity]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
+            backgroundOverlay={(() => { const Bg = PLUGIN_MAP[activity]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
+            bannerSlot={isViewer ? (
+              <div className="viewer-mode-banner">
+                This room is full — you are watching in view-only mode.
+                {roomHasSpace && (
+                  <button className="viewer-join-btn" onClick={handleJoinRequest}>Join</button>
+                )}
+              </div>
+            ) : null}
+            topRightSlot={
+              <>
+                <div onPointerDown={hapticOnPointerDown}>
+                  <HapticIndicatorButton
+                    enabled={hapticEffectivelyEnabled}
+                    flashing={hapticFlashing}
+                    canVibrate={WebHaptics.isSupported}
+                    onToggle={hapticOnToggle}
+                    onShowInfo={() => setHapticPending(true)}
+                  />
+                </div>
+                {isOrientationMode && (
+                  <WakeLockIndicatorButton
+                    enabled={wakeLockEnabled}
+                    active={wakeLockAcquired}
+                    onToggle={() => setWakeLockEnabled(prev => !prev)}
+                  />
+                )}
+              </>
+            }
+            canvasOverlay={
+              <>
+                {valenceInputMode !== 'touch' && orientationPermission === 'unknown' && (
+                  <div className="viewer-mode-banner">
+                    Tap to enable device orientation tracking
+                    <button className="viewer-join-btn" onClick={requestOrientationPermission}>Enable</button>
+                  </div>
+                )}
+                {valenceInputMode !== 'touch' && orientationPermission === 'denied' && (
+                  <div className="viewer-mode-banner">
+                    {!window.isSecureContext
+                      ? 'Orientation needs HTTPS — works on the deployed app, not over local network HTTP.'
+                      : 'Orientation permission denied — switch back to Touch mode to react.'}
+                  </div>
+                )}
+              </>
+            }
             onConnected={(initialInviteEdges, currentActivity) => {
               hasConnectedRef.current = true;
               if (currentActivity) setActivity(currentActivity);
@@ -469,9 +459,13 @@ const [nowLabel, setNowLabel] = useState('');
                 socketSendRef.current?.(JSON.stringify({ type: 'registerCustomAvatar', userId, photoUrl: customPhoto }));
               }
             }}
+            onValenceInputModeChange={(mode) => {
+              if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
+              setValenceInputMode(mode);
+            }}
             onRoomLabelsChange={handleRoomLabelsChange}
             onRoomAnchorsChange={setServerAnchors}
-            onViewerCount={setViewerCount}
+            onPresenceCount={setPresenceCount}
             onConnectedAsViewer={(viewer, cap) => { setIsViewer(viewer); setUserCap(cap); }}
             onUserCapChanged={setUserCap}
             onJoinApproved={() => setIsViewer(false)}
@@ -503,49 +497,11 @@ const [nowLabel, setNowLabel] = useState('');
             onActivityChange={handleActivityChange}
             onSocialConfigChange={setServerSocialConfig}
             onGreeterConfigChange={setServerGreeterConfig}
-            onNowLabelChange={setNowLabel}
             onInviteEdges={(edges) => setInviteEdges(prev => ({ ...prev, ...edges }))}
             onConnectedUsers={(ids) => setConnectedUserIds(ids)}
             onUserJoined={(uid) => setConnectedUserIds(prev => prev.includes(uid) ? prev : [...prev, uid])}
             onUserLeft={(uid) => setConnectedUserIds(prev => prev.filter(id => id !== uid))}
-            debug={debug}
           />
-          {nowLabel && (
-            <div
-              className="canvas-now-label"
-              style={{ top: `calc(${anchors.positive.y}% + 60px)` }}
-            >
-              {nowLabel}
-            </div>
-          )}
-          {valenceInputMode !== 'touch' && orientationPermission === 'unknown' && (
-            <div className="viewer-mode-banner">
-              Tap to enable device orientation tracking
-              <button className="viewer-join-btn" onClick={requestOrientationPermission}>Enable</button>
-            </div>
-          )}
-          {valenceInputMode !== 'touch' && orientationPermission === 'denied' && (
-            <div className="viewer-mode-banner">
-              {!window.isSecureContext
-                ? 'Orientation needs HTTPS — works on the deployed app, not over local network HTTP.'
-                : 'Orientation permission denied — switch back to Touch mode to react.'}
-            </div>
-          )}
-          {!isViewer && activity !== 'social-sharing' && activity !== 'greeter' && activity !== 'signature' && (
-            <TouchLayer
-              room={room}
-              userId={userId}
-              onActiveStatementChange={() => {}}
-              onReactionStateChange={() => {}}
-              reactionStateRef={reactionStateRef}
-              onBackgroundColorChange={setCanvasBackgroundReactionState}
-              onTouchPosition={setTouchPos}
-              heightOffset={chipBarOffset}
-              anchors={anchors}
-              imageUrl={PLUGIN_MAP[activity]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
-              disabled={valenceInputMode !== 'touch'}
-            />
-          )}
         </div>
       </ImageCanvasConfigProvider>
       {showGithubModal && (

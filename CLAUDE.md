@@ -22,7 +22,8 @@ If the user says "push" or "commit" right after one was already done, treat it a
 ## Dev commands
 
 ```bash
-pnpm run dev          # PartyKit dev server (frontend + server) on port 1999
+pnpm run dev          # ⚠️ BROKEN — use dev-https instead (see below)
+pnpm run dev-https    # PartyKit dev server with HTTPS on port 1999
 pnpm run storybook    # Storybook on localhost:6006
 pnpm run deploy       # Deploy to PartyKit — see rules below
 pnpm run deploy:staging  # Deploy to staging preview environment
@@ -30,7 +31,9 @@ pnpm run cachebust    # Production build with cache-busting
 pnpm vitest           # Run all tests: Storybook stories (headless Chromium) + unit tests in tests/
 ```
 
-`pnpm run dev` runs both the frontend and `party/server.ts` locally on port 1999. The app is accessible at `localhost:1999` or any local network IP on port 1999 (e.g. `10.x.x.x:1999`). The WebSocket host is detected by port — if you're on port 1999, sockets connect to the local server; otherwise they connect to the deployed server.
+**`pnpm run dev` is currently broken for LAN access** — a partykit upstream bug ([partykit/partykit#764](https://github.com/partykit/partykit/pull/764)) uses `Sec-Fetch-Mode: navigate` for SPA routing detection, which browsers only send over HTTPS. Plain HTTP LAN addresses (e.g. `192.168.x.x:1999`) get a 404 instead of the app shell. Use `pnpm run dev-https` until this is resolved upstream.
+
+`pnpm run dev-https` runs both the frontend and `party/server.ts` locally on port 1999 over HTTPS. The app is accessible at `localhost:1999` or any local network IP on port 1999 (e.g. `10.x.x.x:1999`). The WebSocket host is detected by port — if you're on port 1999, sockets connect to the local server; otherwise they connect to the deployed server.
 
 ### UUID generation
 

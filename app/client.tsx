@@ -20,6 +20,9 @@ import PerfCanvasApp from "./components/apps/PerfCanvasApp";
 import { OldFrontPage } from "./components/OldFrontPage";
 import { NewFrontPage } from "./components/NewFrontPage";
 import { getIndexRedirect, getRoomRedirect } from "./utils/routing";
+import DemosIndex from "./components/demos/DemosIndex";
+import DemoAdminCanvas from "./components/demos/DemoAdminCanvas";
+import DemoCanvasMood from "./components/demos/DemoCanvasMood";
 
 const TITLES: Record<string, (admin: boolean) => string> = {
   '#v1': (admin) => admin ? 'Statement Admin — Polislike' : 'Statement Voting — Polislike',
@@ -103,7 +106,34 @@ const roomRoute = createRoute({
   },
 });
 
-const routeTree = rootRoute.addChildren([indexRoute, roomRoute]);
+const demosIndexRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/demos',
+  beforeLoad: () => { document.title = 'Demos — Polislike'; },
+  component: () => <DemosIndex />,
+});
+
+const demoAdminCanvasRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/demos/admin-canvas',
+  beforeLoad: () => { document.title = 'Demo: Admin + Reaction Canvas — Polislike'; },
+  component: () => <DemoAdminCanvas />,
+});
+
+const demoCanvasMoodRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/demos/canvas-mood',
+  beforeLoad: () => { document.title = 'Demo: Reaction Canvas + Mood Tones — Polislike'; },
+  component: () => <DemoCanvasMood />,
+});
+
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  demosIndexRoute,
+  demoAdminCanvasRoute,
+  demoCanvasMoodRoute,
+  roomRoute,
+]);
 
 const router = createRouter({
   routeTree,
