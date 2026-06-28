@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { usePanelContext } from "../../app/context/PanelContext";
-import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
+import { useMessageSubscription, useRoomSocket } from '../../app/contexts/RoomSocketContext';
 
 // Adapted from https://patcon.github.io/thx-deep-note/thx-2021-js1024.html (Joe Maffei, JS1024 2021)
 // Partial levels from a cello sample (divided by 1000 when used)
@@ -17,6 +17,7 @@ interface Voice { osc: OscillatorNode; initFreq: number; finalFreq: number }
 
 export default function ArrivalCanvasPanel() {
   const { room } = usePanelContext();
+  const { send } = useRoomSocket();
   const [presenceCount, setPresenceCount] = useState(0);
   const [capacity, setCapacity] = useState(50);
   const [fadingOut, setFadingOut] = useState(false);
@@ -77,6 +78,12 @@ export default function ArrivalCanvasPanel() {
       ctx.close();
     };
   }, []);
+
+  // Request current presence count on mount — the shared socket may have connected
+  // before this panel mounted, so the initial presenceCount from onConnect was missed.
+  useEffect(() => {
+    send(JSON.stringify({ type: 'getPresenceCount' }));
+  }, [send]);
 
   // Update audio whenever fill ratio changes
   useEffect(() => {
