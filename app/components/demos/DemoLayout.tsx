@@ -37,7 +37,7 @@ export default function DemoLayout({ title, room, left, right }: DemoLayoutProps
         <h2>Screen too narrow</h2>
         <p>
           These side-by-side demos need a wider screen (at least {MIN_DEMO_WIDTH}px).
-          Open this page on a desktop browser, or widen the window.
+          Open this page on a desktop browser, widen the window, or switch to desktop mode in your browser.
         </p>
       </div>
     );

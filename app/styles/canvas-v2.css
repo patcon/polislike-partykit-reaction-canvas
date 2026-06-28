@@ -515,6 +515,18 @@
   background: #f0f3ff;
 }
 
+.nfp-btn-demos {
+  background: #28a745;
+  color: #fff;
+  border-color: #28a745;
+}
+
+.nfp-btn-demos:hover {
+  background: #218838;
+  border-color: #218838;
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.35);
+}
+
 .nfp-section {
   border: 1.5px solid #e9ecef;
   border-radius: 14px;
