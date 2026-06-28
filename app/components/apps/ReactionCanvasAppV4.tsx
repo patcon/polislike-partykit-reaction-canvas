@@ -21,7 +21,7 @@ import { WebHaptics } from "web-haptics";
 import { useWebHaptics } from "web-haptics/react";
 import { DEFAULT_ANCHORS, valenceToPosition, computeReactionRegion } from "../../utils/voteRegion";
 import type { ReactionAnchors } from "../../utils/voteRegion";
-import { getReactionLabelSet } from "../../voteLabels";
+import { getReactionLabelSet, REACTION_LABEL_PRESETS } from "../../voteLabels";
 import type { ReactionLabelSet } from "../../voteLabels";
 import { getPersistentUserId } from "../../utils/userId";
 import QRWithCopy from "../shared/QRWithCopy";
@@ -341,7 +341,7 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
 
   // URL param overrides server; server overrides default; null = admin explicitly hid labels
   const urlLabelParam = getLabelsParamFromUrl();
-  const labels = urlLabelParam ? getReactionLabelSet(urlLabelParam) : serverLabels;
+  const labels = urlLabelParam ? getReactionLabelSet(urlLabelParam) : (serverLabels ?? REACTION_LABEL_PRESETS.default);
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;

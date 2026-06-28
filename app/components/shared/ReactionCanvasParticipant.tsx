@@ -6,6 +6,7 @@ import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../../utils/voteRegion";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
+import { REACTION_LABEL_PRESETS } from "../../voteLabels";
 import type { ReactionLabelSet } from "../../voteLabels";
 import type { ActivityMode } from "../../types";
 import type { GreeterConfig } from "../../../plugins/greeter/types";
@@ -182,7 +183,7 @@ export default function ReactionCanvasParticipant({
   const effectiveTouchPos = isTouchPosControlled ? touchPos : internalTouchPos;
 
   // Derived
-  const labels = labelsOverride !== undefined ? labelsOverride : serverLabels;
+  const labels = labelsOverride !== undefined ? labelsOverride : (serverLabels ?? REACTION_LABEL_PRESETS.default);
   const anchors = serverAnchors ?? DEFAULT_ANCHORS;
 
   // Dual-callback handlers: update own state AND forward to the parent shell.
