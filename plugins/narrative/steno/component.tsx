@@ -1,6 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import usePartySocket from "partysocket/react";
-import { getPartySocketConfig } from "../../../app/utils/partyHost";
+import { useRoomSocket, useMessageSubscription } from "../../../app/contexts/RoomSocketContext";
 import { MdKeyboard, MdStopCircle } from "react-icons/md";
 import WakeLockIndicatorButton from "../../../app/components/shared/WakeLockIndicatorButton";
 import { extractPlainText } from "../../../app/utils/vttUtils";
@@ -30,20 +29,17 @@ export default function StenoPanel() {
   const sessionFinalRef = useRef('');
   const segmentTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const socket = usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { userId },
-    onMessage(evt) {
-      const data = JSON.parse(evt.data);
-      if (data.type === 'stenoTextChanged') { setStenoVtt(data.text); return; }
-      if (data.type === 'stenoLockAcquired') { setLockHolder(data.userId); return; }
-      if (data.type === 'stenoLockReleased') {
-        setLockHolder(null);
-        if (data.userId === userId) stopRecording();
-        return;
-      }
-    },
+  const { send } = useRoomSocket();
+
+  useMessageSubscription((evt) => {
+    const data = JSON.parse(evt.data);
+    if (data.type === 'stenoTextChanged') { setStenoVtt(data.text); return; }
+    if (data.type === 'stenoLockAcquired') { setLockHolder(data.userId); return; }
+    if (data.type === 'stenoLockReleased') {
+      setLockHolder(null);
+      if (data.userId === userId) stopRecording();
+      return;
+    }
   });
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -56,17 +52,17 @@ export default function StenoPanel() {
       segmentTimerRef.current = null;
     }
     try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-    socket.send(JSON.stringify({ type: 'stenoStopRecording', userId }));
-  }, [socket, userId]);
+    send(JSON.stringify({ type: 'stenoStopRecording', userId }));
+  }, [send, userId]);
 
   const startRecording = useCallback(() => {
-    socket.send(JSON.stringify({ type: 'stenoStartRecording', userId }));
+    send(JSON.stringify({ type: 'stenoStartRecording', userId }));
     sessionFinalRef.current = '';
     segmentStartRef.current = null;
     setIsRecording(true);
     isRecordingRef.current = true;
     try { recognitionRef.current?.start(); } catch { /* ignore if already started */ }
-  }, [socket, userId]);
+  }, [send, userId]);
 
   const MAX_SEGMENT_MS = 5_000;
 
@@ -121,7 +117,7 @@ export default function StenoPanel() {
 
       sessionFinalRef.current = transcript;
       const cue = `${startTime} --> ${endTime}\n${transcript}`;
-      socket.send(JSON.stringify({ type: 'stenoAppendText', userId, text: cue }));
+      send(JSON.stringify({ type: 'stenoAppendText', userId, text: cue }));
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -177,7 +173,7 @@ export default function StenoPanel() {
               text = 'WEBVTT\n' + (after >= 0 ? text.slice(after + 1) : '');
             }
             setStenoVtt(text);
-            socket.send(JSON.stringify({ type: 'stenoSetText', userId, text }));
+            send(JSON.stringify({ type: 'stenoSetText', userId, text }));
           }}
         />
         {interimText && <div className="steno-interim">{interimText}</div>}

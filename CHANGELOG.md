@@ -19,6 +19,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Changed
 - **Typecheck and tests gate PR staging deploys** — `staging-deploy.yml` now runs a `check` job (typecheck + Storybook/vitest tests) before deploying to staging; deploy is blocked if checks fail.
+- **All panel plugins migrated to shared `RoomSocketContext`** — 13 components (`VoiceCallPanel`, `LightShow`, `ScreenLight`, `MapMaker`, `MapViewer`, `Steno`, `StoryTracer`, `NeighborPanel`, `SignatureCanvas`, `HelloWorld`, `MoodTones`, `ArrivalCanvas`, plus `ReactionCanvasParticipant`) now consume the shared participant socket from `RoomSocketProvider` lifted to `ReactionCanvasAppV4`, eliminating per-panel socket connections and their reconnect latency on activity switch. `MoodTones` and `ArrivalCanvas` previously connected as admin unnecessarily; both now use the participant socket. Storybook `preview` gains a global `RoomSocketProvider` decorator so plugin stories render without individual wrappers.
 - **PR preview deployments replaced with shared staging env** — per-PR preview, cleanup, and event-preview workflows disabled (broken upstream: partykit/partykit#985); new `staging-deploy.yml` deploys every PR to the shared `staging` preview environment instead. Staging is never torn down.
 
 ## Week 31 (2026-06-22)

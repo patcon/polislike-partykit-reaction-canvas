@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import usePartySocket from 'partysocket/react';
 import * as d3 from 'd3';
 import { usePanelContext } from '../../app/context/PanelContext';
-import { getPartySocketConfig } from '../../app/utils/partyHost';
 import { expandCursorEvents } from '../../app/utils/cursor';
-import { generateUUID } from '../../app/utils/userId';
+import { useRoomSocket, useMessageSubscription } from '../../app/contexts/RoomSocketContext';
 import { computeReactionRegion, DEFAULT_ANCHORS } from '../../app/utils/voteRegion';
 import type { ReactionAnchors } from '../../app/utils/voteRegion';
 import { VOTE_COLORS, USER_STATUS_COLORS, EDGE_COLOR, EDGE_FLASH_COLOR, EDGE_FLASH_MS } from '../../app/constants/userStatus';
@@ -25,8 +23,8 @@ const ERROR_MESSAGES: Record<EdgeError, string> = {
 };
 
 export default function NeighborPanel({ initialView = 'entry' as View }: { initialView?: View }) {
-  const { room, userId } = usePanelContext();
-  const socketUserId = useRef(userId ?? generateUUID());
+  const { userId } = usePanelContext();
+  const { send } = useRoomSocket();
 
   const [view, setView] = useState<View>(initialView);
   const [digits, setDigits] = useState('');
@@ -159,12 +157,8 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     sim.alpha(0.3).restart();
   }, []);
 
-  const socket = usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { userId: socketUserId.current },
-    onMessage(evt) {
-      const msg = JSON.parse(evt.data);
+  useMessageSubscription((evt) => {
+    const msg = JSON.parse(evt.data);
       if (msg.type === 'neighborCode') {
         setMyCode(msg.code);
       } else if (msg.type === 'connected') {
@@ -199,7 +193,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
           nodesRef.current = [...nodesRef.current, { id: uid, x: width / 2, y: height / 2 }];
           addNodeLive(uid);
         }
-        socket.send(JSON.stringify({ type: 'requestNeighborEdges' }));
+        send(JSON.stringify({ type: 'requestNeighborEdges' }));
       } else if (msg.type === 'userLeft') {
         const uid: string = msg.userId;
         liveCursorsRef.current.delete(uid);
@@ -280,7 +274,6 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         clearStatusTimer();
         statusTimerRef.current = setTimeout(() => setStatus('idle'), 3000);
       }
-    },
   });
 
   function clearStatusTimer() {
@@ -289,7 +282,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
 
   function submitCode(code: string) {
     if (code.length !== 4) return;
-    socket.send(JSON.stringify({ type: 'neighborEdge', from: socketUserId.current, toCode: code }));
+    send(JSON.stringify({ type: 'neighborEdge', from: userId, toCode: code }));
     setDigits('');
     clearStatusTimer();
     setStatus('success');
@@ -312,7 +305,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   }
 
   function openGraph() {
-    socket.send(JSON.stringify({ type: 'requestNeighborEdges' }));
+    send(JSON.stringify({ type: 'requestNeighborEdges' }));
     setView('graph');
   }
 
@@ -430,7 +423,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
               show offline
             </label>
             <button
-              onClick={() => socket.send(JSON.stringify({ type: 'clearNeighborEdges' }))}
+              onClick={() => send(JSON.stringify({ type: 'clearNeighborEdges' }))}
               style={{ background: 'none', border: '1px solid #888', borderRadius: 4, cursor: 'pointer', color: '#ccc', fontSize: 12, padding: '2px 8px' }}
             >
               Clear all connections

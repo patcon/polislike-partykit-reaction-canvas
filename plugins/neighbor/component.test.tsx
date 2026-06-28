@@ -30,11 +30,14 @@ function triggerMessage(data: object) {
 
 import NeighborPanel from './component';
 import { PanelContextProvider } from '../../app/context/PanelContext';
+import { RoomSocketProvider } from '../../app/contexts/RoomSocketContext';
 
 function renderPanel(props: { initialView?: 'entry' | 'graph' } = {}) {
   return render(
     <PanelContextProvider value={{ room: 'test-room', userId: 'test-user', inviteEdges: {} }}>
-      <NeighborPanel {...props} />
+      <RoomSocketProvider room="test-room" userId="test-user">
+        <NeighborPanel {...props} />
+      </RoomSocketProvider>
     </PanelContextProvider>
   );
 }

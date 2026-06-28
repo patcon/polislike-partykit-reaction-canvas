@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import usePartySocket from 'partysocket/react';
 import { usePanelContext } from "../../app/context/PanelContext";
-import { getPartySocketConfig } from '../../app/utils/partyHost';
 import { expandCursorEvents } from '../../app/utils/cursor';
-import { generateUUID } from '../../app/utils/userId';
+import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
 import { computeCursorValence, computeReactionRegion } from '../../app/utils/voteRegion';
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -196,7 +194,6 @@ export default function MoodTonesPanel() {
   const [currentChord, setCurrentChord]   = useState<number[]>([]);
   const [litNote, setLitNote]             = useState<number|null>(null);
   const [bars, setBars]                   = useState<BarState[]>(RESET_BARS);
-  const [wsStatus, setWsStatus]           = useState<'disconnected'|'connecting'|'connected'>('disconnected');
   const [audienceCount, setAudienceCount] = useState(0);
   const [displayInfo, setDisplayInfo]     = useState(() => {
     const p = interpolateWaypoints(PRESETS[0], 0.5);
@@ -217,7 +214,6 @@ export default function MoodTonesPanel() {
   const currentChordRef = useRef<number[]>([]);
 
   // WS refs
-  const socketUserId    = useRef(generateUUID());
   const cursorsRef      = useRef<Map<string,{x:number;y:number;region:string}>>(new Map());
   const cursorRegionsRef= useRef<Map<string,string>>(new Map());
   const audienceSyncRef = useRef(true);
@@ -271,38 +267,30 @@ export default function MoodTonesPanel() {
   }, [audienceSync, valenceMode, applyAudienceMood]);
 
   // ── WebSocket ──────────────────────────────────────────────────
-  usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { isAdmin: 'true', userId: socketUserId.current },
-    onOpen:  () => setWsStatus('connected'),
-    onClose: () => setWsStatus('disconnected'),
-    onError: () => setWsStatus('disconnected'),
-    onMessage(evt) {
-      let data: { type: string; count?: number; position?: { userId: string; x: number; y: number } };
-      try { data = JSON.parse(evt.data as string); } catch { return; }
-      if (data.type === 'presenceCount') {
-        setAudienceCount(data.count ?? 0);
-      } else {
-        for (const e of expandCursorEvents(data)) {
-          if (e.type === 'move' || e.type === 'touch') {
-            const { userId, x, y } = e.position;
-            const region = computeReactionRegion(x, y) ?? 'neutral';
-            const prevRegion = cursorRegionsRef.current.get(userId);
-            cursorsRef.current.set(userId, { x, y, region });
-            if (valenceModeRef.current === 'continuous' || region !== prevRegion) {
-              cursorRegionsRef.current.set(userId, region);
-              applyAudienceMood();
-            }
-          } else if (e.type === 'remove') {
-            const { userId } = e.position;
-            cursorsRef.current.delete(userId);
-            cursorRegionsRef.current.delete(userId);
+  useMessageSubscription((evt) => {
+    let data: { type: string; count?: number; position?: { userId: string; x: number; y: number } };
+    try { data = JSON.parse(evt.data as string); } catch { return; }
+    if (data.type === 'presenceCount') {
+      setAudienceCount(data.count ?? 0);
+    } else {
+      for (const e of expandCursorEvents(data)) {
+        if (e.type === 'move' || e.type === 'touch') {
+          const { userId, x, y } = e.position;
+          const region = computeReactionRegion(x, y) ?? 'neutral';
+          const prevRegion = cursorRegionsRef.current.get(userId);
+          cursorsRef.current.set(userId, { x, y, region });
+          if (valenceModeRef.current === 'continuous' || region !== prevRegion) {
+            cursorRegionsRef.current.set(userId, region);
             applyAudienceMood();
           }
+        } else if (e.type === 'remove') {
+          const { userId } = e.position;
+          cursorsRef.current.delete(userId);
+          cursorRegionsRef.current.delete(userId);
+          applyAudienceMood();
         }
       }
-    },
+    }
   });
 
   // ── Audio helpers ──────────────────────────────────────────────
@@ -560,7 +548,6 @@ export default function MoodTonesPanel() {
       fontSize: '0.85rem', fontWeight: 500, cursor: 'pointer',
     }),
     explain: { background: '#141420', border: '1px solid #1e1e32', borderRadius: 10, padding: '0.75rem 1rem', fontSize: '0.78rem', color: '#6060a0', lineHeight: 1.65, minHeight: 40, marginTop: '0.75rem' },
-    wsStatus: { fontSize: '0.68rem', color: wsStatus === 'connected' ? '#40a060' : wsStatus === 'connecting' ? '#6060a0' : '#606080', marginBottom: '0.75rem' },
   };
 
   const wp0 = activePreset.waypoints[0];
@@ -687,12 +674,6 @@ export default function MoodTonesPanel() {
           )}
         </div>
 
-        {/* WS status + explain */}
-        {wsStatus !== 'connected' && (
-          <div style={s.wsStatus}>
-            {wsStatus === 'connecting' ? 'connecting…' : 'not connected'}
-          </div>
-        )}
         <div style={s.explain}>{displayInfo.explain}</div>
       </div>
     </div>

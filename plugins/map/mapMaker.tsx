@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import usePartySocket from 'partysocket/react';
+import { useRoomSocket } from '../../app/contexts/RoomSocketContext';
 import {
   imputeColumnMeans,
   defaultParamsFor,
@@ -12,7 +12,6 @@ import {
   KNN_PARAM_DEFS,
 } from 'reddwarf-ts';
 import type { KnnBackend, ReducerAlgorithm } from 'reddwarf-ts';
-import { getPartySocketConfig } from '../../app/utils/partyHost';
 import { idbGet } from '../../app/utils/idbStorage';
 import type { MomentSnapshot } from '../../app/components/panels/AdminPanelNoDB/types';
 import type { MapProjection } from '../../app/types';
@@ -84,12 +83,7 @@ export default function MapMakerPanel() {
     localStorage.setItem(SETTINGS_KEY, JSON.stringify({ algorithm, params, advancedParams, knnBackend, knnParamsByBackend }));
   }, [algorithm, params, advancedParams, knnBackend, knnParamsByBackend]);
 
-  const socket = usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { userId },
-    onMessage() {},
-  });
+  const { send } = useRoomSocket();
 
   useEffect(() => {
     return () => { workerRef.current?.terminate(); };
@@ -121,7 +115,7 @@ export default function MapMakerPanel() {
           algorithm,
           computedAt: new Date().toISOString(),
         };
-        socket.send(JSON.stringify({ type: 'mapProjectionSet', userId, projection }));
+        send(JSON.stringify({ type: 'mapProjectionSet', userId, projection }));
         setProgress(1);
         setStatus('done');
         worker.terminate();
@@ -147,12 +141,12 @@ export default function MapMakerPanel() {
       knnBackend: hasKnn ? knnBackend : undefined,
       knnParams: hasKnn ? knnParamsByBackend[knnBackend] : undefined,
     });
-  }, [status, matrix, participantIds, algorithm, params, advancedParams, knnBackend, knnParamsByBackend, socket, userId]);
+  }, [status, matrix, participantIds, algorithm, params, advancedParams, knnBackend, knnParamsByBackend, send, userId]);
 
   const handleClear = () => {
     workerRef.current?.terminate();
     workerRef.current = null;
-    socket.send(JSON.stringify({ type: 'mapProjectionClear', userId }));
+    send(JSON.stringify({ type: 'mapProjectionClear', userId }));
     setStatus('idle');
     setProgress(null);
   };

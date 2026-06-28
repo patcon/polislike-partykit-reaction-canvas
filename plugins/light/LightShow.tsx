@@ -1,7 +1,5 @@
-import { useState, useRef } from 'react';
-import usePartySocket from 'partysocket/react';
-import { usePanelContext } from '../../app/context/PanelContext';
-import { getPartySocketConfig } from '../../app/utils/partyHost';
+import { useState } from 'react';
+import { useRoomSocket, useMessageSubscription } from '../../app/contexts/RoomSocketContext';
 
 const PRESETS = [
   { label: 'Red',     color: '#ff0000' },
@@ -16,28 +14,21 @@ const PRESETS = [
 ];
 
 export default function LightShow() {
-  const { room, userId } = usePanelContext();
   const [color, setColor] = useState('#ffffff');
   const [brightness, setBrightness] = useState(100);
-  const socketRef = useRef<ReturnType<typeof usePartySocket> | null>(null);
+  const { send } = useRoomSocket();
 
   const sendLight = (nextColor: string, nextBrightness: number) => {
-    socketRef.current?.send(JSON.stringify({ type: 'setLightColor', color: nextColor, brightness: nextBrightness }));
+    send(JSON.stringify({ type: 'setLightColor', color: nextColor, brightness: nextBrightness }));
   };
 
-  const socket = usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { userId },
-    onMessage(evt) {
-      const msg = JSON.parse(evt.data);
-      if (msg.type === 'screenLightState') {
-        setColor(msg.color);
-        setBrightness(msg.brightness);
-      }
-    },
+  useMessageSubscription((evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === 'screenLightState') {
+      setColor(msg.color);
+      setBrightness(msg.brightness);
+    }
   });
-  socketRef.current = socket;
 
   const handleColor = (next: string) => {
     setColor(next);

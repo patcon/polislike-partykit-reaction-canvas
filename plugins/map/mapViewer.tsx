@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import usePartySocket from 'partysocket/react';
+import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
 import * as d3 from 'd3';
-import { getPartySocketConfig } from '../../app/utils/partyHost';
 import { expandCursorEvents } from '../../app/utils/cursor';
 import { usePanelContext } from '../../app/context/PanelContext';
 import { useMapViewerConfig } from './useMapViewerConfig';
@@ -267,53 +266,48 @@ export default function MapViewerPanel() {
     return undefined;
   })();
 
-  usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { userId },
-    onMessage(evt) {
-      const data = JSON.parse(evt.data);
-      if (data.type === 'connected') {
-        if (data.mapProjection) pushProjection(data.mapProjection);
-        if (data.connectedUserIds) setConnectedUserIds(data.connectedUserIds);
-        if (data.roomAnchors) setAnchors(data.roomAnchors);
-        return;
-      }
-      if (data.type === 'mapProjectionChanged') {
-        if (data.projection) pushProjection(data.projection);
-        return;
-      }
-      if (data.type === 'roomAnchorsChanged') {
-        setAnchors(data.anchors ?? null);
-        return;
-      }
-      if (data.type === 'userJoined') {
-        setConnectedUserIds(prev => prev.includes(data.userId) ? prev : [...prev, data.userId]);
-        return;
-      }
-      if (data.type === 'userLeft') {
-        setConnectedUserIds(prev => prev.filter(id => id !== data.userId));
-        setLiveCursors(prev => { const next = new Map(prev); next.delete(data.userId); return next; });
-        return;
-      }
-      for (const e of expandCursorEvents(data)) {
-        if (e.type === 'move' || e.type === 'touch') {
-          const { userId: uid, x, y } = e.position;
-          setLiveCursors(prev => new Map(prev).set(uid, { x, y }));
-          const existing = cursorTimers.current.get(uid);
-          if (existing) clearTimeout(existing);
-          cursorTimers.current.set(uid, setTimeout(() => {
-            setLiveCursors(prev => { const next = new Map(prev); next.delete(uid); return next; });
-            cursorTimers.current.delete(uid);
-          }, 3000));
-        } else if (e.type === 'remove') {
-          const { userId: uid } = e.position;
+  useMessageSubscription((evt) => {
+    const data = JSON.parse(evt.data);
+    if (data.type === 'connected') {
+      if (data.mapProjection) pushProjection(data.mapProjection);
+      if (data.connectedUserIds) setConnectedUserIds(data.connectedUserIds);
+      if (data.roomAnchors) setAnchors(data.roomAnchors);
+      return;
+    }
+    if (data.type === 'mapProjectionChanged') {
+      if (data.projection) pushProjection(data.projection);
+      return;
+    }
+    if (data.type === 'roomAnchorsChanged') {
+      setAnchors(data.anchors ?? null);
+      return;
+    }
+    if (data.type === 'userJoined') {
+      setConnectedUserIds(prev => prev.includes(data.userId) ? prev : [...prev, data.userId]);
+      return;
+    }
+    if (data.type === 'userLeft') {
+      setConnectedUserIds(prev => prev.filter(id => id !== data.userId));
+      setLiveCursors(prev => { const next = new Map(prev); next.delete(data.userId); return next; });
+      return;
+    }
+    for (const e of expandCursorEvents(data)) {
+      if (e.type === 'move' || e.type === 'touch') {
+        const { userId: uid, x, y } = e.position;
+        setLiveCursors(prev => new Map(prev).set(uid, { x, y }));
+        const existing = cursorTimers.current.get(uid);
+        if (existing) clearTimeout(existing);
+        cursorTimers.current.set(uid, setTimeout(() => {
           setLiveCursors(prev => { const next = new Map(prev); next.delete(uid); return next; });
-          const t = cursorTimers.current.get(uid);
-          if (t) { clearTimeout(t); cursorTimers.current.delete(uid); }
-        }
+          cursorTimers.current.delete(uid);
+        }, 3000));
+      } else if (e.type === 'remove') {
+        const { userId: uid } = e.position;
+        setLiveCursors(prev => { const next = new Map(prev); next.delete(uid); return next; });
+        const t = cursorTimers.current.get(uid);
+        if (t) { clearTimeout(t); cursorTimers.current.delete(uid); }
       }
-    },
+    }
   });
 
   if (!mapProjection) {
