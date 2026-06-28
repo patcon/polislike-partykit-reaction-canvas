@@ -4,6 +4,9 @@ import Canvas from '../app/components/shared/Canvas';
 import TouchLayer from '../app/components/shared/TouchLayer';
 import { RoomSocketProvider } from '../app/contexts/RoomSocketContext';
 import { REACTION_LABEL_PRESETS } from '../app/voteLabels';
+import { emitToRoom } from '../.storybook/mocks/partysocket-react';
+import { ImageCanvasConfigProvider } from '../plugins/imageCanvas/context';
+import ImageCanvasBackground from '../plugins/imageCanvas/background';
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 type CursorEventType = 'move' | 'touch' | 'remove';
@@ -85,6 +88,49 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const Interactive: Story = {};
+
+// Custom reaction labels — Canvas fires onRoomLabelsChange to the parent; labels are
+// rendered as HTML overlays in LabelOverlay, not inside the Canvas SVG.
+// Dark background: LabelOverlay renders white text, canvas bg is near-transparent.
+// Explicit height: CanvasComposition uses height:100% which resolves to 0 without a
+// sized parent (same issue affects Interactive — Recorder works because it sets 100vh).
+export const CustomLabels: Story = {
+  render: (args) => (
+    <div style={{ height: '100vh', background: '#222' }}>
+      <CanvasComposition {...args} />
+    </div>
+  ),
+  args: {
+    labels: { positive: '👍 Yes', negative: '👎 No', neutral: '🤷 Maybe' },
+  },
+};
+
+// Image canvas mode — background image rendered by ImageCanvasBackground (plugin component
+// outside Canvas); Canvas uses the URL only for cursor coordinate transforms.
+export const ImageCanvas: Story = {
+  render: () => {
+    const [imageUrl, setImageUrl] = useState('');
+    return (
+      <div style={{ position: 'relative', height: '100vh' }}>
+        <ImageCanvasConfigProvider value={{ imageUrl }}>
+          <RoomSocketProvider room="storybook-canvas" userId="story-user-1">
+            <ImageCanvasBackground />
+            <Canvas
+              userId="story-user-1"
+              heightOffset={0}
+              colorCursorsByVote
+              onRoomImageUrlChange={setImageUrl}
+            />
+          </RoomSocketProvider>
+        </ImageCanvasConfigProvider>
+      </div>
+    );
+  },
+  play: async () => {
+    emitToRoom('storybook-canvas', { type: 'activityChanged', activity: 'image-canvas' });
+    emitToRoom('storybook-canvas', { type: 'imageUrlChanged', url: 'https://pbs.twimg.com/media/DY_tjS0WsAADhmT.jpg' });
+  },
+};
 
 const btnStyle: React.CSSProperties = {
   padding: '3px 10px',

@@ -98,32 +98,15 @@ export const CustomAnchors: Story = {
   },
 };
 
-// Custom reaction labels pushed from the server.
-export const CustomLabels: Story = {
-  args: { ...baseArgs },
-  play: async () => {
-    emitToRoom('storybook', {
-      type: 'roomLabelsChanged',
-      labels: { positive: '👍 Yes', negative: '👎 No', neutral: '🤷 Maybe' },
-    });
-  },
-};
+// Custom labels and image-canvas mode live in ReactionCanvas.stories.tsx — Canvas alone
+// does not render labels (fired via onRoomLabelsChange callback to parent) or the background
+// image (rendered by the ImageCanvasBackground plugin component outside Canvas).
 
 // Soccer activity mode — shows the pitch and hides the reaction regions.
 export const SoccerActivity: Story = {
   args: { ...baseArgs },
   play: async () => {
     emitToRoom('storybook', { type: 'activityChanged', activity: 'soccer' });
-  },
-};
-
-// Image canvas mode — overlays the canvas on a background image;
-// cursors are positioned relative to the displayed image bounds.
-export const ImageCanvas: Story = {
-  args: { ...baseArgs },
-  play: async () => {
-    emitToRoom('storybook', { type: 'activityChanged', activity: 'image-canvas' });
-    emitToRoom('storybook', { type: 'imageUrlChanged', url: 'https://pbs.twimg.com/media/DY_tjS0WsAADhmT.jpg' });
   },
 };
 
