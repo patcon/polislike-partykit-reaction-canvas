@@ -162,7 +162,7 @@ const btnStyle = (active: boolean, disabled?: boolean): React.CSSProperties => (
 
 export default function MapViewerPanel() {
   const { room, userId } = usePanelContext();
-  const { config } = useMapViewerConfig();
+  const { config, setConfig } = useMapViewerConfig();
   const [projState, setProjState] = useState<ProjState>(loadProjState);
   const [moments, setMoments] = useState<MomentSnapshot[]>([]);
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
@@ -268,6 +268,10 @@ export default function MapViewerPanel() {
 
   useMessageSubscription((evt) => {
     const data = JSON.parse(evt.data);
+    if (data.type === 'mapViewerConfigChanged') {
+      setConfig(data.config ?? null);
+      return;
+    }
     if (data.type === 'connected') {
       if (data.mapProjection) pushProjection(data.mapProjection);
       if (data.connectedUserIds) setConnectedUserIds(data.connectedUserIds);

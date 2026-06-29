@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { usePanelContext } from '../../app/context/PanelContext';
+import { useRoomSocket } from '../../app/contexts/RoomSocketContext';
 import { useMapViewerConfig } from './useMapViewerConfig';
 import { idbGet } from "../../app/utils/idbStorage";
 import type { MapViewerConfig } from "../../app/types";
@@ -8,6 +9,7 @@ import { VOTE_COLORS, USER_STATUS_COLORS, USER_STATUS_LABELS, MISSING_COLOR } fr
 
 export default function MapViewerConfigModal({ onClose }: { onClose: () => void }) {
   const { room } = usePanelContext();
+  const { send } = useRoomSocket();
   const { config, setConfig } = useMapViewerConfig();
 
   const [colorMode, setColorMode] = useState<'none' | 'moment' | 'now'>(config?.colorMode ?? 'none');
@@ -23,6 +25,7 @@ export default function MapViewerConfigModal({ onClose }: { onClose: () => void 
   const handleSave = () => {
     const next: MapViewerConfig = { colorMode, momentId: colorMode === 'moment' ? momentId : null };
     setConfig(next);
+    send(JSON.stringify({ type: 'mapViewerConfigSet', config: next }));
     onClose();
   };
 
