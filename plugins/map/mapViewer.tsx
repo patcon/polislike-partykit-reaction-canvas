@@ -222,7 +222,7 @@ export default function MapViewerPanel() {
     idbGet<MomentSnapshot[]>(`v4-moments-${room}`).then(stored => {
       if (stored) setMoments(stored);
     });
-  }, [room]);
+  }, [room, config?.momentId]);
 
   useEffect(() => {
     localStorage.setItem(PROJ_HISTORY_KEY, JSON.stringify(projState));
