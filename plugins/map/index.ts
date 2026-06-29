@@ -9,8 +9,8 @@ const mapMakerPlugin: PanelPlugin = {
   label: 'Map Maker',
   shortLabel: 'Map',
   description: 'Compute UMAP/PaCMAP/LocalMAP projection from captured moments',
-  patchable: false,
-  activityMode: false,
+  patchable: true,
+  activityMode: true,
   component: MapMakerPanel,
   server: mapServer,
 };

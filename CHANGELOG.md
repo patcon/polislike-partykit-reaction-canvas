@@ -16,6 +16,8 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Fixed
 - **Reaction labels default to Agree/Disagree/Pass before server responds** — `ReactionCanvasParticipant` and `ReactionCanvasAppV4` now fall back to `REACTION_LABEL_PRESETS.default` when `serverLabels` is null, so labels are visible immediately on slow connections instead of appearing blank until the `connected` message arrives. Mirrors the existing `serverAnchors ?? DEFAULT_ANCHORS` pattern.
+- **ArrivalCanvas shows correct presence count immediately on mount** — after migrating to the shared `RoomSocketContext`, the panel missed the server's `presenceCount` message sent at socket-connect time (before the panel mounted). Now sends `getPresenceCount` on mount; server responds directly with the current count. New `getPresenceCount` case added to `party/server.ts`.
+- **Map Maker panel is offerable and selectable again** — `patchable` and `activityMode` were incorrectly set to `false` in the plugin registry since the map plugin migration, hiding it from the Offer Interface modal and disabling the Solo radio button.
 
 ### Changed
 - **Typecheck and tests gate PR staging deploys** — `staging-deploy.yml` now runs a `check` job (typecheck + Storybook/vitest tests) before deploying to staging; deploy is blocked if checks fail.
