@@ -5,11 +5,12 @@ import LightShow from './LightShow';
 
 const screenLightPlugin: PanelPlugin<LightState> = {
   id: 'screen-light',
+  type: 'panel',
   label: 'Screen Light',
   shortLabel: 'Light',
   description: 'Full-screen colored light controlled remotely',
-  patchable: false,
-  activityMode: true,
+  canStandalone: false,
+  canScreenMount: true,
   requiresHttps: true,
   component: ScreenLight,
   server: lightServer,
@@ -17,11 +18,12 @@ const screenLightPlugin: PanelPlugin<LightState> = {
 
 const lightShowPlugin: PanelPlugin = {
   id: 'light-show',
+  type: 'panel',
   label: 'Light Show',
   shortLabel: 'LShow',
   description: 'Control the screen-light color on all connected phones',
-  patchable: true,
-  activityMode: false,
+  canStandalone: true,
+  canScreenMount: false,
   component: LightShow,
 };
 

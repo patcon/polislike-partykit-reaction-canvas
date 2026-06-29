@@ -5,11 +5,12 @@ import NeighborPanel from './component';
 
 export const neighborPlugin: PanelPlugin<NeighborState> = {
   id: 'neighbor',
+  type: 'panel',
   label: 'Neighbor Network',
   shortLabel: 'Neighbor',
   description: 'Social graph of nearby audience members',
-  patchable: true,
-  activityMode: true,
+  canStandalone: true,
+  canScreenMount: true,
   component: NeighborPanel,
   server: NeighborServerPlugin,
 };

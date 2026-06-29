@@ -4,10 +4,11 @@ import ImageCanvasConfigModal from './configModal';
 
 const imageCanvasPlugin: PanelPlugin = {
   id: 'image-canvas',
+  type: 'panel',
   label: 'Image Canvas',
   description: 'React over a shared background image',
-  patchable: false,
-  activityMode: true,
+  canStandalone: false,
+  canScreenMount: true,
   canvasOverlay: {
     background: ImageCanvasBackground,
     canvasProps: { disableCursorValence: true, disableBackgroundValence: true },

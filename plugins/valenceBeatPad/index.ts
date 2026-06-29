@@ -3,11 +3,12 @@ import ValenceBeatPadComponent from './component';
 
 const valenceBeatPadPlugin: PanelPlugin = {
   id: 'valence-beat-pad',
+  type: 'panel',
   label: 'Valence Beat Pad',
   shortLabel: 'Beat Pad',
   description: 'Interactive musical pad driven by audience valence',
-  patchable: true,
-  activityMode: true,
+  canStandalone: true,
+  canScreenMount: true,
   component: ValenceBeatPadComponent,
 };
 

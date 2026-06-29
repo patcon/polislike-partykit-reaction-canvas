@@ -1,6 +1,6 @@
 import type { ReactionLabelSet } from "../../../voteLabels";
 import type { PushTarget } from "./types";
-import { PATCHABLE_PANELS } from "../../../panelRegistry";
+import { STANDALONE_PANELS } from "../../../panelRegistry";
 
 interface OfferInterfaceModalProps {
   pushTarget: PushTarget;
@@ -52,7 +52,7 @@ export default function OfferInterfaceModal({
           autoFocus
           style={{ background: '#333', border: '1px solid #555', color: '#eee', borderRadius: 6, padding: '8px 10px', fontSize: 13 }}
         >
-          {PATCHABLE_PANELS.map(p => (
+          {STANDALONE_PANELS.map(p => (
             <option key={p.id} value={p.id}>{p.label}</option>
           ))}
         </select>

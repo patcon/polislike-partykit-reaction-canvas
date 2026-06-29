@@ -3,10 +3,11 @@ import MoodTonesComponent from './component';
 
 const moodTonesPlugin: PanelPlugin = {
   id: 'mood-tones',
+  type: 'panel',
   label: 'Mood Tones',
   description: 'Generative audio keyed to audience reactions',
-  patchable: true,
-  activityMode: true,
+  canStandalone: true,
+  canScreenMount: true,
   component: MoodTonesComponent,
 };
 

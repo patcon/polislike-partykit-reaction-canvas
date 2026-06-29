@@ -6,10 +6,11 @@ import type { HelloWorldPluginState } from './types';
 
 const helloWorldPlugin: PanelPlugin<HelloWorldPluginState> = {
   id: 'helloWorld',
+  type: 'panel',
   label: 'Hello World',
   description: 'A minimal example panel — editable greeting message',
-  patchable: true,
-  activityMode: true,
+  canStandalone: true,
+  canScreenMount: true,
   component: HelloWorldPanel,
   configModal: HelloWorldConfigModal,
   server: HelloWorldServerPlugin,

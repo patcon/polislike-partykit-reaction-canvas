@@ -4,10 +4,11 @@ import SoccerConfigModal from './component';
 
 const soccerPlugin: PanelPlugin = {
   id: 'soccer',
+  type: 'panel',
   label: 'Soccer',
   description: 'Top-down physics ball — kick with your cursor',
-  patchable: false,
-  activityMode: true,
+  canStandalone: false,
+  canScreenMount: true,
   configModal: SoccerConfigModal,
   server: SoccerServerPlugin,
 };

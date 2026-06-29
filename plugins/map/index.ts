@@ -6,22 +6,24 @@ import MapViewerConfigModal from './MapViewerConfigModal';
 
 const mapMakerPlugin: PanelPlugin = {
   id: 'map-maker',
+  type: 'panel',
   label: 'Map Maker',
   shortLabel: 'Map Maker',
   description: 'Compute UMAP/PaCMAP/LocalMAP projection from captured moments',
-  patchable: true,
-  activityMode: true,
+  canStandalone: true,
+  canScreenMount: true,
   component: MapMakerPanel,
   server: mapServer,
 };
 
 const mapViewerPlugin: PanelPlugin = {
   id: 'map-viewer',
+  type: 'panel',
   label: 'Map Viewer',
   shortLabel: 'Map Viewer',
   description: 'View the computed participant map',
-  patchable: true,
-  activityMode: true,
+  canStandalone: true,
+  canScreenMount: true,
   component: MapViewerPanel,
   configModal: MapViewerConfigModal,
 };
