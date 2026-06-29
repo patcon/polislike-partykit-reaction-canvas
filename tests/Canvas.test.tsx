@@ -49,13 +49,6 @@ describe('Canvas socket behaviour', () => {
     expect(onPresenceCount).toHaveBeenCalledWith(42)
   })
 
-  it('calls onActivityChange when activityChanged message is received', () => {
-    const onActivityChange = vi.fn()
-    renderWithProvider(<Canvas userId="user1" onActivityChange={onActivityChange} />)
-    act(() => emitMessage({ type: 'activityChanged', activity: 'soccer' }))
-    expect(onActivityChange).toHaveBeenCalledWith('soccer')
-  })
-
   it('calls onConnected with inviteEdges and currentActivity from connected message', () => {
     const onConnected = vi.fn()
     renderWithProvider(<Canvas userId="user1" onConnected={onConnected} />)

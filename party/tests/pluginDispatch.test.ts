@@ -31,8 +31,9 @@ const { spyServer, spyPlugin } = vi.hoisted(() => {
     id: 'spy',
     label: 'Spy',
     description: '',
-    patchable: false,
-    activityMode: false,
+    type: 'panel' as const,
+    canStandalone: false,
+    canScreenMount: false,
     server: spyServer,
   } satisfies PanelPlugin;
 

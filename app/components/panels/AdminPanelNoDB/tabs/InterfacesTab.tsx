@@ -2,14 +2,13 @@ import { useState } from "react";
 import { IoMdSettings } from "react-icons/io";
 import { FaCheckCircle, FaCircle } from "react-icons/fa";
 import QRWithCopy from '../../../shared/QRWithCopy';
-import type { ActivityMode } from "../../../../types";
 import { appendSelfToChain } from "../../../../utils/inviteChain";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../../../panelRegistry";
 import { PLUGIN_MAP } from "../../../../../plugins/index";
 
 interface InterfacesTabProps {
-  activity: ActivityMode;
-  sendActivity: (act: ActivityMode) => void;
+  activity: string;
+  sendActivity: (act: string) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
   setActiveConfigPlugin: (id: string) => void;
   onClearRoleAssignments: () => void;
@@ -85,7 +84,7 @@ export default function InterfacesTab({
                 <td style={{ textAlign: 'center', padding: '10px 8px' }}>
                   {canScreenMount ? (
                     <button
-                      onClick={() => sendActivity(id as ActivityMode)}
+                      onClick={() => sendActivity(id as string)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 0, color: isActive ? '#eee' : '#555' }}
                       aria-label={`Switch to ${label}`}
                       aria-pressed={isActive}

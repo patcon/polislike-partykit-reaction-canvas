@@ -7,7 +7,6 @@ import type { ReactionAnchors } from "../../utils/voteRegion";
 import { SMOOTH_CURSOR_ENABLED, SMOOTH_CURSOR_CONFIG } from "../../utils/cursor";
 import { REACTION_LABEL_PRESETS } from "../../voteLabels";
 import type { ReactionLabelSet } from "../../voteLabels";
-import type { ActivityMode } from "../../types";
 import type { GreeterConfig } from "../../../plugins/greeter/types";
 
 type ReactionState = 'positive' | 'negative' | 'neutral' | null;
@@ -57,8 +56,7 @@ export interface ReactionCanvasParticipantProps {
 
   // server-state FORWARD callbacks (all optional)
   onSocketReady?: (send: (msg: string) => void) => void;
-  onConnected?: (initialInviteEdges?: Record<string, string>, currentActivity?: ActivityMode) => void;
-  onActivityChange?: (activity: ActivityMode) => void;
+  onConnected?: (initialInviteEdges?: Record<string, string>, currentActivity?: string) => void;
   onRoomLabelsChange?: (labels: ReactionLabelSet | null) => void;
   onRoomAnchorsChange?: (anchors: ReactionAnchors | null) => void;
   onRoomImageUrlChange?: (url: string) => void;
@@ -132,7 +130,6 @@ export default function ReactionCanvasParticipant({
   backgroundOverlay,
   onSocketReady,
   onConnected,
-  onActivityChange,
   onRoomLabelsChange,
   onRoomAnchorsChange,
   onRoomImageUrlChange,
@@ -273,7 +270,6 @@ export default function ReactionCanvasParticipant({
         onHapticPushed={onHapticPushed}
         onPushedInterfacesCleared={onPushedInterfacesCleared}
         onRoomImageUrlChange={onRoomImageUrlChange}
-        onActivityChange={onActivityChange}
         onSocialConfigChange={onSocialConfigChange}
         onGreeterConfigChange={onGreeterConfigChange}
         onNowLabelChange={handleNowLabel}

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { ActivityMode, ValenceInputMode } from "../../../../types";
+import type { ValenceInputMode } from "../../../../types";
 import type PartySocket from "partysocket";
 
 export function useRoomConfig(socket: PartySocket) {
@@ -8,7 +8,7 @@ export function useRoomConfig(socket: PartySocket) {
   const [defaultCursorColor, setDefaultCursorColor] = useState<string>('#d4d4d4');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
-  const [activity, setActivity]               = useState<ActivityMode>('canvas');
+  const [activity, setActivity]               = useState<string>('canvas');
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false);
   const [showNowLabelOnCanvas, setShowNowLabelOnCanvas] = useState(() =>
     localStorage.getItem('v4-showNowLabelOnCanvas') === 'true'
@@ -41,7 +41,7 @@ export function useRoomConfig(socket: PartySocket) {
     socket.send(JSON.stringify({ type: 'setValenceInputMode', mode }));
   };
 
-  const sendActivity = (act: ActivityMode) => {
+  const sendActivity = (act: string) => {
     setActivity(act);
     socket.send(JSON.stringify({ type: 'setActivity', activity: act }));
   };
@@ -58,7 +58,7 @@ export function useRoomConfig(socket: PartySocket) {
     if ('defaultCursorColor' in data && data.defaultCursorColor) setDefaultCursorColor(data.defaultCursorColor as string);
     if ('ownValenceDisplay' in data && data.ownValenceDisplay) setOwnValenceDisplay(data.ownValenceDisplay as 'background' | 'labels' | 'none');
     if ('valenceInputMode' in data && data.valenceInputMode) setValenceInputMode(data.valenceInputMode as ValenceInputMode);
-    if ('currentActivity' in data) setActivity((data.currentActivity as ActivityMode) ?? 'canvas');
+    if ('currentActivity' in data) setActivity((data.currentActivity as string) ?? 'canvas');
     if (data.userCap !== undefined) {
       setUserCap(data.userCap as number | null);
       setCapInput(data.userCap !== null ? String(data.userCap) : '');
@@ -73,7 +73,7 @@ export function useRoomConfig(socket: PartySocket) {
     } else if (data.type === 'roomAvatarStyleChanged') {
       setAvatarStyle((data.avatarStyle as string | null) ?? null);
     } else if (data.type === 'activityChanged') {
-      setActivity((data.activity as ActivityMode) ?? 'canvas');
+      setActivity((data.activity as string) ?? 'canvas');
     } else if (data.type === 'userCapChanged') {
       setUserCap(data.cap as number | null);
       setCapInput(data.cap !== null ? String(data.cap) : '');

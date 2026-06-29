@@ -4,7 +4,6 @@ import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
 import { makeImageCoordTransform } from "../../utils/imageCanvasCoords";
 import { useRoomSocket, useMessageSubscription } from "../../contexts/RoomSocketContext";
 import type { ReactionAnchors } from "../../utils/voteRegion";
-import type { ActivityMode } from "../../types";
 import type { GreeterConfig } from "../../../plugins/greeter/types";
 
 interface CursorPosition {
@@ -49,10 +48,9 @@ interface CanvasProps {
   onPushedInterfacesCleared?: () => void;
   onHapticPushed?: () => void;
   onRoomImageUrlChange?: (url: string) => void;
-  onActivityChange?: (activity: ActivityMode) => void;
   onSocialConfigChange?: (config: { default: string; twitter: string; bluesky: string; mastodon: string; instagram: string } | null) => void;
   onGreeterConfigChange?: (config: GreeterConfig | null) => void;
-  onConnected?: (initialInviteEdges?: Record<string, string>, currentActivity?: ActivityMode) => void;
+  onConnected?: (initialInviteEdges?: Record<string, string>, currentActivity?: string) => void;
   onNowLabelChange?: (label: string) => void;
   onInviteEdges?: (edges: Record<string, string>) => void;
   onOwnValenceDisplayChange?: (mode: 'background' | 'labels' | 'none') => void;
@@ -93,7 +91,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function Canvas({ userId, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onActivityChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false, cursorSmoothingConfig }: CanvasProps) {
+export default function Canvas({ userId, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false, cursorSmoothingConfig }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const smoothCursorLayerRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
@@ -103,7 +101,7 @@ export default function Canvas({ userId, colorCursorsByVote: colorCursorsByVoteP
   const [colorCursorsByVote, setColorCursorsByVote] = useState(colorCursorsByVoteProp);
   const [defaultCursorColor, setDefaultCursorColor] = useState('#d4d4d4');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
-  const [activity, setActivity] = useState<ActivityMode>('canvas');
+  const [activity, setActivity] = useState<string>('canvas');
   const [imageUrl, setImageUrl] = useState('');
   const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [ballPos, setBallPos] = useState<{ x: number; y: number } | null>(null);
@@ -467,7 +465,6 @@ export default function Canvas({ userId, colorCursorsByVote: colorCursorsByVoteP
         if (data.type === 'activityChanged') {
           const act = data.activity ?? 'canvas';
           setActivity(act);
-          onActivityChange?.(act);
           if (data.ball) setBallPos({ x: data.ball.x, y: data.ball.y });
           if (data.score) setSoccerScore(data.score);
           if (data.activity !== 'soccer') setBallPos(null);

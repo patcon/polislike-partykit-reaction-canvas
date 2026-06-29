@@ -2,11 +2,11 @@ import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import ReactionCanvasParticipant from "../shared/ReactionCanvasParticipant";
 import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import InterfaceChipBar from "../shared/InterfaceChipBar";
-import type { ActivityMode, SocialConfig, ValenceInputMode } from "../../types";
+import type { SocialConfig, ValenceInputMode } from "../../types";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
 import type { PanelDefinition } from "../../panelRegistry";
 import { PanelContextProvider } from "../../context/PanelContext";
-import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
+import { RoomSocketProvider, useMessageSubscription } from "../../contexts/RoomSocketContext";
 import { GreeterConfigProvider } from "../../../plugins/greeter/useGreeterConfig";
 import type { GreeterConfig } from "../../../plugins/greeter/types";
 // TODO: plugins should declare their own providers so the app can wrap them
@@ -123,6 +123,15 @@ function MobileOnlyGate() {
 }
 
 export default function ReactionCanvasAppV4({ room }: { room: string }) {
+  const [userId] = useState(() => getPersistentUserId());
+  return (
+    <RoomSocketProvider room={room} userId={userId}>
+      <ReactionCanvasAppV4Inner room={room} userId={userId} />
+    </RoomSocketProvider>
+  );
+}
+
+function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: string }) {
   const [unlockedInterfaces, setUnlockedInterfaces] = useState(() => getUnlockedInterfaces());
   const [activeInterface, setActiveInterface] = useState(() => {
     const unlocked = getUnlockedInterfaces();
@@ -133,7 +142,6 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
     if (saved && unlocked.includes(saved)) return saved;
     return unlocked.includes('emcee') ? 'emcee' : 'canvas';
   });
-  const [userId] = useState(() => getPersistentUserId());
   const [selfChain] = useState<string[]>(() => {
     const urlChain = parseInviteChain(window.location.search);
     const storedChain = getStoredChain(room);
@@ -162,7 +170,7 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
   const [serverImageUrl, setServerImageUrl] = useState('');
   const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
   const [serverGreeterConfig, setServerGreeterConfig] = useState<GreeterConfig | null>(null);
-  const [activity, setActivity] = useState<ActivityMode>('canvas');
+  const [screenPanels, setScreenPanels] = useState<Record<string, string>>({ canvas: 'canvas' });
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
   const [orientationPermission, setOrientationPermission] = useState<'unknown' | 'granted' | 'denied' | 'not-required'>('unknown');
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
@@ -183,6 +191,7 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
 
   // Derived early so useCallback deps below can reference it (must still be before any early return)
   const isEmcee = unlockedInterfaces.includes('emcee');
+  const canvasActivity = screenPanels['canvas'] ?? 'canvas';
   const isOrientationMode = valenceInputMode !== 'touch';
 
   const triggerBuzzForUpdate = useCallback(() => {
@@ -201,10 +210,18 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
     setServerLabels(labels);
   }, [isEmcee, triggerBuzzForUpdate]);
 
-  const handleActivityChange = useCallback((act: ActivityMode) => {
-    if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
-    setActivity(act);
-  }, [isEmcee, triggerBuzzForUpdate]);
+  useMessageSubscription((evt: MessageEvent) => {
+    try {
+      const data = JSON.parse(evt.data);
+      if (data.type === 'activityChanged') {
+        if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
+        setScreenPanels(prev => ({ ...prev, canvas: data.activity ?? 'canvas' }));
+      }
+      if (data.type === 'connected' && 'currentActivity' in data) {
+        setScreenPanels(prev => ({ ...prev, canvas: data.currentActivity ?? 'canvas' }));
+      }
+    } catch { /* ignore */ }
+  });
 
   const handleRoomImageUrlChange = useCallback((url: string) => {
     if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
@@ -354,7 +371,6 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
   }));
 
   return (
-    <RoomSocketProvider room={room} userId={userId}>
     <div className="v2-app-container">
       {showChipBar && (
         <InterfaceChipBar
@@ -372,18 +388,16 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
         {(() => {
           const panelId = activeInterface !== 'canvas' && activeInterface !== 'emcee'
             ? activeInterface
-            : activeInterface === 'canvas' ? activity : null;
+            : activeInterface === 'canvas' ? canvasActivity : null;
           const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
-          // When a panel activity is active, show it as a flex sibling; the canvas
-          // container stays mounted below to keep the WebSocket alive.
           return ActivePanel ? <ActivePanel /> : null;
         })()}
         </GreeterConfigProvider>
         </SocialMediaConfigProvider>
       </PanelContextProvider>
-      {/* Canvas is always mounted to keep the WebSocket alive for all interfaces */}
+      {activeInterface === 'canvas' && !PANEL_COMPONENTS[canvasActivity] && (
       <ImageCanvasConfigProvider value={{ imageUrl: serverImageUrl }}>
-      <div className="v2-vote-canvas-container" style={{ flex: 1, display: (activeInterface === 'canvas' && !PANEL_COMPONENTS[activity]) ? undefined : 'none' }}>
+      <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
           <ReactionCanvasParticipant
             room={room}
             userId={userId}
@@ -391,17 +405,17 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
             debug={debug}
             heightOffset={chipBarOffset}
             labelsOverride={labels}
-            showLabels={activity === 'canvas'}
-            disableCursorValence={!!PLUGIN_MAP[activity]?.canvasOverlay?.canvasProps?.disableCursorValence}
-            disableBackgroundValence={!!PLUGIN_MAP[activity]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
+            showLabels={canvasActivity === 'canvas'}
+            disableCursorValence={!!PLUGIN_MAP[canvasActivity]?.canvasOverlay?.canvasProps?.disableCursorValence}
+            disableBackgroundValence={!!PLUGIN_MAP[canvasActivity]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
             currentReactionState={canvasBackgroundReactionState}
             onBackgroundColorChange={setCanvasBackgroundReactionState}
             touchPos={touchPos}
             onTouchPosition={setTouchPos}
             touchDisabled={valenceInputMode !== 'touch'}
-            hideTouchLayer={isViewer || activity === 'social-sharing' || activity === 'greeter' || activity === 'signature'}
-            touchImageUrl={PLUGIN_MAP[activity]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
-            backgroundOverlay={(() => { const Bg = PLUGIN_MAP[activity]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
+            hideTouchLayer={isViewer || canvasActivity === 'social-sharing' || canvasActivity === 'greeter' || canvasActivity === 'signature'}
+            touchImageUrl={PLUGIN_MAP[canvasActivity]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
+            backgroundOverlay={(() => { const Bg = PLUGIN_MAP[canvasActivity]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
             bannerSlot={isViewer ? (
               <div className="viewer-mode-banner">
                 This room is full — you are watching in view-only mode.
@@ -447,9 +461,8 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
                 )}
               </>
             }
-            onConnected={(initialInviteEdges, currentActivity) => {
+            onConnected={(initialInviteEdges) => {
               hasConnectedRef.current = true;
-              if (currentActivity) setActivity(currentActivity);
               if (initialInviteEdges) setInviteEdges(initialInviteEdges);
               const myChain = appendSelfToChain(selfChain, userId);
               const edges = chainToEdges(myChain);
@@ -496,7 +509,6 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
               });
             }}
             onRoomImageUrlChange={handleRoomImageUrlChange}
-            onActivityChange={handleActivityChange}
             onSocialConfigChange={setServerSocialConfig}
             onGreeterConfigChange={setServerGreeterConfig}
             onInviteEdges={(edges) => setInviteEdges(prev => ({ ...prev, ...edges }))}
@@ -506,6 +518,7 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
           />
         </div>
       </ImageCanvasConfigProvider>
+      )}
       {showGithubModal && (
         <GithubUsernameModal
           onSubmit={(username, displayName, avatarUrl) => {
@@ -563,6 +576,5 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
         />
       )}
     </div>
-    </RoomSocketProvider>
   );
 }

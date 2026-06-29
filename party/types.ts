@@ -1,4 +1,3 @@
-import type { ActivityMode } from "../app/types";
 import type { ReactionAnchors } from './lib/reactionRegion';
 
 export type { ReactionAnchors };
@@ -24,7 +23,7 @@ export interface SetRecordingStateEvent  { type: 'setRecordingState'; recording:
 export interface SetRoomLabelsEvent      { type: 'setRoomLabels'; labels: { positive: string; negative: string; neutral: string } | null }
 export interface SetRoomAnchorsEvent     { type: 'setRoomAnchors'; anchors: ReactionAnchors | null }
 export interface SetRoomAvatarStyleEvent { type: 'setRoomAvatarStyle'; avatarStyle: string | null }
-export interface SetActivityEvent        { type: 'setActivity'; activity: ActivityMode }
+export interface SetActivityEvent        { type: 'setActivity'; activity: string }
 export interface SetImageUrlEvent        { type: 'setImageUrl'; url: string }
 export interface ResetSoccerScoreEvent   { type: 'resetSoccerScore' }
 export interface SetUserCapEvent         { type: 'setUserCap'; cap: number | null }

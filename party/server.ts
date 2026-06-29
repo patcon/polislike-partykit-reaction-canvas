@@ -1,5 +1,4 @@
 import type * as Party from "partykit/server";
-import type { ActivityMode } from "../app/types";
 import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } from './lib/reactionRegion';
 import type { ReactionAnchors } from './lib/reactionRegion';
 import { SERVER_CURSOR_BATCH_MS } from '../app/utils/cursor';
@@ -29,7 +28,7 @@ export default class Server implements Party.Server {
   private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
   private roomAnchors: ReactionAnchors | null = null;
   private roomAvatarStyle: string | null = null;
-  private currentActivity: ActivityMode = 'canvas';
+  private currentActivity: string = 'canvas';
   private roomImageUrl: string = '';
   private nowLabel: string = '';
   private msgCount = 0;
