@@ -53,6 +53,11 @@ export const NeighborServerPlugin: ServerPlugin<NeighborState> = {
       return true;
     }
 
+    if (type === 'getNeighborCode') {
+      conn.send(JSON.stringify({ type: 'neighborCode', code: state.codes.get(conn.userId) }));
+      return true;
+    }
+
     if (type === 'requestNeighborEdges') {
       const edges = [...state.edges].map(e => { const [userA, userB] = e.split('|'); return { userA, userB }; });
       const allCodes = Object.fromEntries(state.codes);

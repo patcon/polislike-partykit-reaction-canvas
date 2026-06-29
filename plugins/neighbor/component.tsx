@@ -157,6 +157,10 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     sim.alpha(0.3).restart();
   }, []);
 
+  useEffect(() => {
+    send(JSON.stringify({ type: 'getNeighborCode' }));
+  }, [send]);
+
   useMessageSubscription((evt) => {
     const msg = JSON.parse(evt.data);
       if (msg.type === 'neighborCode') {
