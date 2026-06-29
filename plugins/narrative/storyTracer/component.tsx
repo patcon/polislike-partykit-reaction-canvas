@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import usePartySocket from 'partysocket/react';
+import { useRoomSocket, useMessageSubscription } from '../../../app/contexts/RoomSocketContext';
 import { getPartySocketConfig } from '../../../app/utils/partyHost';
 import { useEmbeddingWorker, EMBEDDING_MODELS, REDUCERS, REDUCER_PARAM_DEFS, defaultReducerParams, type EmbeddingModelId, type ReducerAlgorithmId, type ReducerParams } from './useEmbeddingWorker';
 import { parseVttCues, computeChunks, getTimestampForWordIndex } from './storyTracerUtils';
@@ -50,20 +50,17 @@ export default function StoryTracerPanel() {
   // Ref so startReplay's setInterval closure always reads the latest interval without needing to re-create
   const frameIntervalMsRef = useRef(100);
 
-  const socket = usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { userId },
-    onMessage(evt) {
-      const data = JSON.parse(evt.data);
-      if (data.type === 'stenoTextChanged') { setStenoVtt(data.text); return; }
-      if (data.type === 'storyTracerPointsChanged') {
-        setStoredMeta(data.meta ?? null);
-        setStoredPoints(data.points ?? null);
-        setIsSaving(false);
-        return;
-      }
-    },
+  const { send } = useRoomSocket();
+
+  useMessageSubscription((evt) => {
+    const data = JSON.parse(evt.data);
+    if (data.type === 'stenoTextChanged') { setStenoVtt(data.text); return; }
+    if (data.type === 'storyTracerPointsChanged') {
+      setStoredMeta(data.meta ?? null);
+      setStoredPoints(data.points ?? null);
+      setIsSaving(false);
+      return;
+    }
   });
 
   // Accumulate reducer preview frames into replayFramesRef for post-run replay
@@ -169,10 +166,10 @@ export default function StoryTracerPanel() {
     replayFramesRef.current = [];
     setReplayFrames([]);
     setReplayIdx(0);
-    socket.send(JSON.stringify({ type: 'storyTracerClearPoints', userId }));
+    send(JSON.stringify({ type: 'storyTracerClearPoints', userId }));
     resetPhase();
     setIsRerunMode(false);
-  }, [socket, userId, resetPhase, stopReplay]);
+  }, [send, userId, resetPhase, stopReplay]);
 
   const handleCancel = useCallback(() => {
     cancelEmbedding();

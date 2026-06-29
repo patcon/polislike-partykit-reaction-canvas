@@ -1,7 +1,15 @@
 import type { Preview } from '@storybook/react-vite'
 import '../app/styles.css'
+import { RoomSocketProvider } from '../app/contexts/RoomSocketContext';
 
 const preview: Preview = {
+  decorators: [
+    (Story) => (
+      <RoomSocketProvider room="storybook" userId="story-user">
+        <Story />
+      </RoomSocketProvider>
+    ),
+  ],
   parameters: {
     controls: {
       matchers: {

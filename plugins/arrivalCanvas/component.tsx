@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import usePartySocket from 'partysocket/react';
 import { usePanelContext } from "../../app/context/PanelContext";
-import { getPartySocketConfig } from '../../app/utils/partyHost';
-import { generateUUID } from '../../app/utils/userId';
+import { useMessageSubscription, useRoomSocket } from '../../app/contexts/RoomSocketContext';
 
 // Adapted from https://patcon.github.io/thx-deep-note/thx-2021-js1024.html (Joe Maffei, JS1024 2021)
 // Partial levels from a cello sample (divided by 1000 when used)
@@ -19,6 +17,7 @@ interface Voice { osc: OscillatorNode; initFreq: number; finalFreq: number }
 
 export default function ArrivalCanvasPanel() {
   const { room } = usePanelContext();
+  const { send } = useRoomSocket();
   const [presenceCount, setPresenceCount] = useState(0);
   const [capacity, setCapacity] = useState(50);
   const [fadingOut, setFadingOut] = useState(false);
@@ -26,7 +25,6 @@ export default function ArrivalCanvasPanel() {
   const audioCtxRef   = useRef<AudioContext | null>(null);
   const masterGainRef = useRef<GainNode | null>(null);
   const voicesRef     = useRef<Voice[]>([]);
-  const socketUserId  = useRef(generateUUID());
   const fadingOutRef  = useRef(false);
 
   // Build oscillators once on mount
@@ -81,6 +79,12 @@ export default function ArrivalCanvasPanel() {
     };
   }, []);
 
+  // Request current presence count on mount — the shared socket may have connected
+  // before this panel mounted, so the initial presenceCount from onConnect was missed.
+  useEffect(() => {
+    send(JSON.stringify({ type: 'getPresenceCount' }));
+  }, [send]);
+
   // Update audio whenever fill ratio changes
   useEffect(() => {
     const ctx = audioCtxRef.current;
@@ -98,19 +102,14 @@ export default function ArrivalCanvasPanel() {
     master.gain.setTargetAtTime(fill * 0.75, ctx.currentTime, 0.5);
   }, [presenceCount, capacity]);
 
-  usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { isAdmin: 'true', userId: socketUserId.current },
-    onMessage(evt) {
-      let data: { type: string; count?: number; capacity?: number };
-      try { data = JSON.parse(evt.data as string); } catch { return; }
-      if (data.type === 'presenceCount' && data.count !== undefined) {
-        setPresenceCount(data.count);
-      } else if (data.type === 'arrivalCapacityChanged' && data.capacity !== undefined) {
-        setCapacity(data.capacity);
-      }
-    },
+  useMessageSubscription((evt) => {
+    let data: { type: string; count?: number; capacity?: number };
+    try { data = JSON.parse(evt.data as string); } catch { return; }
+    if (data.type === 'presenceCount' && data.count !== undefined) {
+      setPresenceCount(data.count);
+    } else if (data.type === 'arrivalCapacityChanged' && data.capacity !== undefined) {
+      setCapacity(data.capacity);
+    }
   });
 
   // Trigger fade-out once capacity is reached

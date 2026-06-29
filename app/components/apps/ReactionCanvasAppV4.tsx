@@ -6,6 +6,7 @@ import type { ActivityMode, SocialConfig, ValenceInputMode } from "../../types";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
 import type { PanelDefinition } from "../../panelRegistry";
 import { PanelContextProvider } from "../../context/PanelContext";
+import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { GreeterConfigProvider } from "../../../plugins/greeter/useGreeterConfig";
 import type { GreeterConfig } from "../../../plugins/greeter/types";
 // TODO: plugins should declare their own providers so the app can wrap them
@@ -353,6 +354,7 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
   }));
 
   return (
+    <RoomSocketProvider room={room} userId={userId}>
     <div className="v2-app-container">
       {showChipBar && (
         <InterfaceChipBar
@@ -561,5 +563,6 @@ export default function ReactionCanvasAppV4({ room }: { room: string }) {
         />
       )}
     </div>
+    </RoomSocketProvider>
   );
 }

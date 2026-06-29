@@ -1,43 +1,39 @@
 import { useState, useCallback } from 'react';
-import usePartySocket from 'partysocket/react';
 import { usePanelContext } from '../../app/context/PanelContext';
-import { getPartySocketConfig } from '../../app/utils/partyHost';
+import { useRoomSocket, useMessageSubscription } from '../../app/contexts/RoomSocketContext';
 import SignatureLayer from './SignatureLayer';
 import SignatureCanvas from './SignatureCanvas';
 
 type Stroke = { strokeId: string; points: Array<{ x: number; y: number }> };
 
 export default function SignatureCanvasPanel() {
-  const { room, userId } = usePanelContext();
+  const { userId } = usePanelContext();
+  const { send } = useRoomSocket();
   const [isPresenter, setIsPresenter] = useState(false);
   const [strokes, setStrokes] = useState<Record<string, Stroke[]>>({});
 
-  const socket = usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    onMessage(e: MessageEvent) {
-      const data = JSON.parse(e.data);
-      if (data.type === 'strokeSegment') {
-        const { userId: uid, strokeId, points, isFinal } = data as {
-          userId: string; strokeId: string;
-          points: Array<{ x: number; y: number }>; isFinal: boolean;
-        };
-        setStrokes(prev => {
-          const user = [...(prev[uid] ?? [])];
-          const idx = user.findIndex(s => s.strokeId === strokeId);
-          if (idx === -1) return { ...prev, [uid]: [...user, { strokeId, points }] };
-          const updated = [...user];
-          updated[idx] = { strokeId, points: isFinal ? updated[idx].points : [...updated[idx].points, ...points] };
-          return { ...prev, [uid]: updated };
-        });
-      }
-      if (data.type === 'signatureCleared') {
-        setStrokes(prev => { const n = { ...prev }; delete n[data.userId]; return n; });
-      }
-    },
+  useMessageSubscription((e) => {
+    const data = JSON.parse(e.data);
+    if (data.type === 'strokeSegment') {
+      const { userId: uid, strokeId, points, isFinal } = data as {
+        userId: string; strokeId: string;
+        points: Array<{ x: number; y: number }>; isFinal: boolean;
+      };
+      setStrokes(prev => {
+        const user = [...(prev[uid] ?? [])];
+        const idx = user.findIndex(s => s.strokeId === strokeId);
+        if (idx === -1) return { ...prev, [uid]: [...user, { strokeId, points }] };
+        const updated = [...user];
+        updated[idx] = { strokeId, points: isFinal ? updated[idx].points : [...updated[idx].points, ...points] };
+        return { ...prev, [uid]: updated };
+      });
+    }
+    if (data.type === 'signatureCleared') {
+      setStrokes(prev => { const n = { ...prev }; delete n[data.userId]; return n; });
+    }
   });
 
-  const sendMessage = useCallback((msg: string) => socket.send(msg), [socket]);
+  const sendMessage = useCallback((msg: string) => send(msg), [send]);
 
   return (
     <div style={{ position: 'relative', flex: 1, minHeight: 0 }}>

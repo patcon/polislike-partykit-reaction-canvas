@@ -1,21 +1,14 @@
 import { useState } from 'react';
-import usePartySocket from 'partysocket/react';
-import { getPartySocketConfig } from '../../app/utils/partyHost';
-import { usePanelContext } from '../../app/context/PanelContext';
+import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
 
 export default function HelloWorldPanel() {
-  const { room } = usePanelContext();
   const [message, setMessage] = useState('Hello, world!');
 
-  usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    onMessage(evt) {
-      try {
-        const data = JSON.parse(evt.data);
-        if (data.type === 'helloWorldState') setMessage(data.message);
-      } catch {}
-    },
+  useMessageSubscription((evt) => {
+    try {
+      const data = JSON.parse(evt.data);
+      if (data.type === 'helloWorldState') setMessage(data.message);
+    } catch {}
   });
 
   return (

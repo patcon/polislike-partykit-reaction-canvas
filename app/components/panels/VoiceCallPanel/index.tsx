@@ -84,10 +84,9 @@
  * before the user joins the call queue, giving them a chance to connect headphones.
  */
 import { useEffect, useMemo, useRef, useState } from 'react';
-import usePartySocket from 'partysocket/react';
+import { useRoomSocket, useMessageSubscription } from '../../../contexts/RoomSocketContext';
 import { FaPhone, FaPhoneSlash, FaMicrophone, FaMicrophoneSlash } from 'react-icons/fa';
 import { MdScreenLockPortrait } from 'react-icons/md';
-import { getPartySocketConfig } from '../../../utils/partyHost';
 import { useWebRTCCall } from './useWebRTCCall';
 import { useWakeLock } from '../../../utils/useWakeLock';
 import { usePanelContext } from '../../../context/PanelContext';
@@ -188,18 +187,14 @@ export default function VoiceCallPanel() {
   const sendRef = useRef<(msg: object) => void>(() => {});
   const dispatchRef = useRef<(data: Record<string, unknown>) => Promise<void>>(async () => {});
 
-  const socket = usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { userId },
-    onMessage(evt) {
-      try {
-        void dispatchRef.current(JSON.parse(evt.data) as Record<string, unknown>);
-      } catch {}
-    },
-  });
+  const { send } = useRoomSocket();
+  sendRef.current = (msg) => send(JSON.stringify(msg));
 
-  sendRef.current = (msg) => socket.send(JSON.stringify(msg));
+  useMessageSubscription((evt) => {
+    try {
+      void dispatchRef.current(JSON.parse(evt.data) as Record<string, unknown>);
+    } catch {}
+  });
 
   const wrtc = useWebRTCCall(sendRef, localStream);
   dispatchRef.current = wrtc.handleServerMessage;

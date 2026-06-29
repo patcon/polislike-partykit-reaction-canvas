@@ -1,31 +1,20 @@
 import { useState } from 'react';
-import usePartySocket from 'partysocket/react';
-import { usePanelContext } from '../../app/context/PanelContext';
-import { getPartySocketConfig } from '../../app/utils/partyHost';
 import { useWakeLock } from '../../app/utils/useWakeLock';
 import WakeLockIndicatorButton from '../../app/components/shared/WakeLockIndicatorButton';
+import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
 
 export default function ScreenLight() {
-  const { room, userId } = usePanelContext();
   const [color, setColor] = useState('#000000');
   const [brightness, setBrightness] = useState(100);
   const [wakeLockEnabled, setWakeLockEnabled] = useState(true);
   const { acquired: wakeLockAcquired } = useWakeLock(wakeLockEnabled);
 
-  usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { userId },
-    onMessage(evt) {
-      const msg = JSON.parse(evt.data);
-      if (msg.type === 'screenLightState') {
-        setColor(msg.color);
-        setBrightness(msg.brightness);
-      } else if (msg.type === 'lightColor') {
-        setColor(msg.color);
-        setBrightness(msg.brightness);
-      }
-    },
+  useMessageSubscription((evt) => {
+    const msg = JSON.parse(evt.data);
+    if (msg.type === 'screenLightState' || msg.type === 'lightColor') {
+      setColor(msg.color);
+      setBrightness(msg.brightness);
+    }
   });
 
   const overlayOpacity = 1 - brightness / 100;

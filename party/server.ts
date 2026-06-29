@@ -334,6 +334,7 @@ private pluginStates = new Map<string, unknown>(
         case 'setColorCursorsByVote': this.handleSetColorCursorsByVote(event, sender); break;
         case 'registerCustomAvatar': this.handleRegisterCustomAvatar(event); break;
         case 'recordInvitations': this.handleRecordInvitations(event); break;
+        case 'getPresenceCount': this.handleGetPresenceCount(sender); break;
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
@@ -441,6 +442,12 @@ private pluginStates = new Map<string, unknown>(
     if (!this.adminConnectionIds.has(sender.id)) return;
     this.userCap = event.cap;
     this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
+  }
+
+  private handleGetPresenceCount(sender: Party.Connection): void {
+    const count = this.participantCount();
+    const vCount = this.viewerCount();
+    sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
   }
 
   private handleRequestJoin(sender: Party.Connection): void {
