@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import Canvas from '../app/components/shared/Canvas';
+import CursorField from '../app/components/shared/CursorField';
 import TouchLayer from '../app/components/shared/TouchLayer';
 import { RoomSocketProvider } from '../app/contexts/RoomSocketContext';
 import { REACTION_LABEL_PRESETS } from '../app/voteLabels';
@@ -54,7 +54,7 @@ function CanvasComposition({ room, userId, labels, onCursorEvent }: CanvasCompos
     <div className="v2-app-container" style={{ position: 'relative', height: '100%', overflow: 'hidden' }}>
       <RoomSocketProvider room={room} userId={userId}>
         <LabelOverlay labels={effectiveLabels} />
-        <Canvas
+        <CursorField
           userId={userId}
           currentReactionState={reactionState}
           heightOffset={0}
@@ -117,7 +117,7 @@ export const ImageCanvas: Story = {
         <ImageCanvasConfigProvider value={{ imageUrl }}>
           <RoomSocketProvider room="storybook-canvas" userId="story-user-1">
             <ImageCanvasBackground />
-            <Canvas
+            <CursorField
               userId="story-user-1"
               heightOffset={0}
               colorCursorsByVote

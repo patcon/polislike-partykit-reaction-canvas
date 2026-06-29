@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import Canvas from "../shared/Canvas";
+import Canvas from "../shared/CursorField";
 import TouchLayer from "../shared/TouchLayer";
 import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { getPersistentUserId } from "../../utils/userId";

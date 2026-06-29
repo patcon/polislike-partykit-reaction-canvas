@@ -6,7 +6,7 @@ import { DEFAULT_ANCHORS } from "../../../utils/voteRegion";
 import type { ReactionAnchors } from "../../../utils/voteRegion";
 import { REACTION_LABEL_PRESETS } from "../../../voteLabels";
 import type { ReactionLabelSet } from "../../../voteLabels";
-import Canvas from "../../shared/Canvas";
+import Canvas from "../../shared/CursorField";
 import { countEvents, clearEvents } from "../../../lib/supabase";
 
 // Rooms whose recordings are protected from deletion via the admin UI.

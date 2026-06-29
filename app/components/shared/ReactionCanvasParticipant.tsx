@@ -1,5 +1,5 @@
 import { useState, useRef, type ReactNode } from "react";
-import Canvas from "./Canvas";
+import Canvas from "./CursorField";
 import TouchLayer from "./TouchLayer";
 import ShareQRButton from "./ShareQRButton";
 import { DEFAULT_ANCHORS, reactionLabelStyle } from "../../utils/voteRegion";
