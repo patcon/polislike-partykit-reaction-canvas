@@ -11,7 +11,7 @@ const sampleProjection: MapProjection = {
 
 describe('mapServer', () => {
   it('createState defaults projection to null', () => {
-    expect(mapServer.createState()).toEqual({ projection: null });
+    expect(mapServer.createState()).toEqual({ projection: null, viewerConfig: null });
   });
 
   it('onConnect sends current projection to the new connection', () => {
@@ -71,7 +71,7 @@ describe('mapServer', () => {
   it('getPersistedState returns the projection', () => {
     const state = mapServer.createState();
     state.projection = sampleProjection;
-    expect(mapServer.getPersistedState!(state)).toEqual({ projection: sampleProjection });
+    expect(mapServer.getPersistedState!(state)).toEqual({ projection: sampleProjection, viewerConfig: null });
   });
 
   it('applyPersistedState restores saved projection', () => {

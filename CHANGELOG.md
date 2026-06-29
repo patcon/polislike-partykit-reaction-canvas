@@ -21,6 +21,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Neighbor panel shows emcee code immediately on chip flip** — the panel missed the server's `neighborCode` message (sent at socket-connect time) when flipping to the chip after page load. Now sends `getNeighborCode` on mount; server responds with the current code. New `getNeighborCode` case added to the neighbor server plugin.
 - **Map Viewer colors update immediately when moment is changed in config modal** — the panel loaded moments from IndexedDB only once on mount; if a moment was snapped after the panel mounted, the config modal could see and select it but the panel's stale `moments` state would silently fall back to the first moment. Now reloads moments whenever `config.momentId` changes.
 - **Map Viewer color config syncs across devices** — `colorMode` and `momentId` were stored only in localStorage; other devices never received them. Config is now broadcast via the server (`mapViewerConfigSet`/`mapViewerConfigChanged`) so all clients update immediately, and late-joining clients receive the current config on connect.
+- **Map server tests updated for `viewerConfig`** — `createState` and `getPersistedState` assertions now include the `viewerConfig` field added in the last release cycle.
 
 ### Changed
 - **Typecheck and tests gate PR staging deploys** — `staging-deploy.yml` now runs a `check` job (typecheck + Storybook/vitest tests) before deploying to staging; deploy is blocked if checks fail.
