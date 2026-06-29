@@ -6,10 +6,11 @@ import GreeterConfigModal from './configModal';
 
 const greeterPlugin: PanelPlugin<GreeterPluginState> = {
   id: 'greeter',
+  type: 'panel',
   label: 'Greeter',
   description: 'Guild event attendee welcome list',
-  patchable: true,
-  activityMode: true,
+  canStandalone: true,
+  canScreenMount: true,
   component: GreeterComponent,
   configModal: GreeterConfigModal,
   server: GreeterServerPlugin,

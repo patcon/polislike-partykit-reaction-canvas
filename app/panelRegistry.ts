@@ -5,22 +5,23 @@ export const SOLO_SCREEN_LABEL = 'Canvas';
 
 export interface PanelMeta {
   id: string;
+  type: 'screen' | 'panel';
   label: string;
   shortLabel?: string;
   description: string;
-  patchable: boolean;
-  activityMode: boolean;
+  canStandalone: boolean;
+  canScreenMount: boolean;
   /** True if the panel requires a secure context (HTTPS/localhost). Shown as a warning in the Interfaces tab on HTTP. */
   requiresHttps?: boolean;
 }
 
 export const PANEL_REGISTRY: PanelMeta[] = [
-  { id: 'emcee',        label: 'Emcee',           description: 'Event host controls and tools',                         patchable: true,  activityMode: false },
-  { id: 'canvas',       label: 'Reaction Canvas', description: 'Standard reaction canvas',                              patchable: false, activityMode: true  },
+  { id: 'emcee',        type: 'panel',  label: 'Emcee',           description: 'Event host controls and tools',  canStandalone: true,  canScreenMount: false },
+  { id: 'canvas',       type: 'screen', label: 'Reaction Canvas', description: 'Standard reaction canvas',       canStandalone: false, canScreenMount: true  },
   ...PLUGINS,
 ];
 
-export const PATCHABLE_PANELS = PANEL_REGISTRY.filter(p => p.patchable);
+export const STANDALONE_PANELS = PANEL_REGISTRY.filter(p => p.canStandalone);
 
 /**
  * A fully registered panel: metadata + a prop-free component.

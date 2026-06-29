@@ -6,11 +6,12 @@ import ArrivalCanvasConfigModal from './configModal';
 
 const arrivalCanvasPlugin: PanelPlugin<ArrivalCanvasPluginState> = {
   id: 'arrival-canvas',
+  type: 'panel',
   label: 'Arrival Canvas',
   shortLabel: 'Arrival',
   description: 'Room-fill visualizer with THX-style audio convergence',
-  patchable: true,
-  activityMode: true,
+  canStandalone: true,
+  canScreenMount: true,
   component: ArrivalCanvasComponent,
   configModal: ArrivalCanvasConfigModal,
   server: ArrivalCanvasServerPlugin,

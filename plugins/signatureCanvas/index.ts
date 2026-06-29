@@ -4,10 +4,11 @@ import SignatureCanvasPanel from './component';
 
 const signatureCanvasPlugin: PanelPlugin = {
   id: 'signature',
+  type: 'panel',
   label: 'Signature Canvas',
   description: 'Collect participant signatures live',
-  patchable: false,
-  activityMode: true,
+  canStandalone: false,
+  canScreenMount: true,
   component: SignatureCanvasPanel,
   server: signatureServer,
 };

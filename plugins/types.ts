@@ -83,11 +83,12 @@ export interface CanvasOverlay {
  */
 export interface PanelPlugin<S = unknown> {
   id: string;
+  type: 'panel';
   label: string;
   shortLabel?: string;
   description: string;
-  patchable: boolean;
-  activityMode: boolean;
+  canStandalone: boolean;
+  canScreenMount: boolean;
   /** Panel-mode: React component rendered in the chip bar / activity overlay. */
   component?: React.ComponentType;
   /** Canvas-mode: configures the always-mounted canvas container instead of replacing it. */

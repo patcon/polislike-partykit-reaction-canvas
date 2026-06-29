@@ -63,7 +63,7 @@ export default function InterfacesTab({
           </tr>
         </thead>
         <tbody>
-          {PANEL_REGISTRY.map(({ id, label, description, patchable, activityMode, requiresHttps }) => {
+          {PANEL_REGISTRY.map(({ id, label, description, canStandalone, canScreenMount, requiresHttps }) => {
             const isActive = activity === id;
             return (
               <tr key={id} style={{ borderTop: '1px solid #2a2a2a' }}>
@@ -83,7 +83,7 @@ export default function InterfacesTab({
                 </td>
                 {/* Solo */}
                 <td style={{ textAlign: 'center', padding: '10px 8px' }}>
-                  {activityMode ? (
+                  {canScreenMount ? (
                     <button
                       onClick={() => sendActivity(id as ActivityMode)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 0, color: isActive ? '#eee' : '#555' }}
@@ -100,7 +100,7 @@ export default function InterfacesTab({
                 <td style={{ textAlign: 'center', padding: '10px 8px', color: '#3a3a3a' }}>—</td>
                 {/* Patch */}
                 <td style={{ textAlign: 'center', padding: '10px 0 10px 8px' }}>
-                  {patchable ? (
+                  {canStandalone ? (
                     <button
                       onClick={() => setPatchInterface(id)}
                       style={{ background: 'none', border: 'none', color: '#888', cursor: 'pointer', padding: 4, lineHeight: 0 }}
@@ -128,7 +128,7 @@ export default function InterfacesTab({
         <button className="v3-admin-btn v3-admin-btn--destructive" onClick={onClearRoleAssignments}>Clear all role assignments</button>
       </div>
 
-      {/* Patch dialog — share URL for patchable interfaces */}
+      {/* Patch dialog — share URL for standalone interfaces */}
       {patchInterface && (
         <div className="share-qr-modal" onClick={() => setPatchInterface(null)}>
           <div className="share-qr-modal-card" onClick={e => e.stopPropagation()}>

@@ -3,10 +3,11 @@ import TreevitesComponent from './component';
 
 const treevitesPlugin: PanelPlugin = {
   id: 'treevites',
+  type: 'panel',
   label: 'Leaderboard',
   description: 'Invite stats — who invited whom',
-  patchable: true,
-  activityMode: true,
+  canStandalone: true,
+  canScreenMount: true,
   component: TreevitesComponent,
 };
 

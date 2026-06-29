@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { PANEL_REGISTRY, PATCHABLE_PANELS, SOLO_SCREEN_LABEL } from '../app/panelRegistry';
+import { PANEL_REGISTRY, STANDALONE_PANELS, SOLO_SCREEN_LABEL } from '../app/panelRegistry';
 
 describe('PANEL_REGISTRY', () => {
   it('every entry has all required fields with the correct types', () => {
@@ -9,8 +9,9 @@ describe('PANEL_REGISTRY', () => {
       expect(typeof panel.label).toBe('string');
       expect(panel.label.length).toBeGreaterThan(0);
       expect(typeof panel.description).toBe('string');
-      expect(typeof panel.patchable).toBe('boolean');
-      expect(typeof panel.activityMode).toBe('boolean');
+      expect(panel.type === 'screen' || panel.type === 'panel').toBe(true);
+      expect(typeof panel.canStandalone).toBe('boolean');
+      expect(typeof panel.canScreenMount).toBe('boolean');
     }
   });
 
@@ -27,17 +28,17 @@ describe('PANEL_REGISTRY', () => {
   });
 });
 
-describe('PATCHABLE_PANELS', () => {
+describe('STANDALONE_PANELS', () => {
   it('is a strict subset of PANEL_REGISTRY', () => {
     const registryIds = new Set(PANEL_REGISTRY.map(p => p.id));
-    for (const panel of PATCHABLE_PANELS) {
+    for (const panel of STANDALONE_PANELS) {
       expect(registryIds.has(panel.id)).toBe(true);
     }
   });
 
-  it('contains exactly the entries where patchable is true', () => {
-    const expected = PANEL_REGISTRY.filter(p => p.patchable).map(p => p.id).sort();
-    const actual = PATCHABLE_PANELS.map(p => p.id).sort();
+  it('contains exactly the entries where canStandalone is true', () => {
+    const expected = PANEL_REGISTRY.filter(p => p.canStandalone).map(p => p.id).sort();
+    const actual = STANDALONE_PANELS.map(p => p.id).sort();
     expect(actual).toEqual(expected);
   });
 });
