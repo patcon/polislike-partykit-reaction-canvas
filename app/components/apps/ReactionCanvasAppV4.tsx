@@ -196,7 +196,6 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
   const isEmcee = unlockedInterfaces.includes('emcee');
   const personalScreenPanel = screenPanels['personal'] ?? 'canvas';
   const commonsScreenPanel  = screenPanels['commons']  ?? 'canvas';
-  const activeScreenPanel = activeInterface === 'commons' ? commonsScreenPanel : personalScreenPanel;
   const isOrientationMode = valenceInputMode !== 'touch';
 
   const triggerBuzzForUpdate = useCallback(() => {
@@ -436,27 +435,29 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
         </GreeterConfigProvider>
         </SocialMediaConfigProvider>
       </PanelContextProvider>
-      {(activeInterface === 'personal' || activeInterface === 'commons') && !PANEL_COMPONENTS[activeScreenPanel] && (
-      <ImageCanvasConfigProvider value={imageCanvasConfigValue}>
-      <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-          <ReactionCanvasParticipant
-            room={room}
-            userId={userId}
-            selfChain={selfChain}
-            debug={debug}
-            heightOffset={chipBarOffset}
-            labelsOverride={labels}
-            showLabels={activeScreenPanel === 'canvas'}
-            disableCursorValence={!!PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.canvasProps?.disableCursorValence}
-            disableBackgroundValence={!!PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
-            currentReactionState={canvasBackgroundReactionState}
-            onBackgroundColorChange={setCanvasBackgroundReactionState}
-            touchPos={touchPos}
-            onTouchPosition={setTouchPos}
-            touchDisabled={valenceInputMode !== 'touch'}
-            hideTouchLayer={isViewer || activeScreenPanel === 'social-sharing' || activeScreenPanel === 'greeter' || activeScreenPanel === 'signature'}
-            touchImageUrl={PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
-            backgroundOverlay={(() => { const Bg = PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
+      {(activeInterface === 'personal' || activeInterface === 'commons') && (() => {
+        const activeScreenPanel = activeInterface === 'commons' ? commonsScreenPanel : personalScreenPanel;
+        return !PANEL_COMPONENTS[activeScreenPanel] ? (
+        <ImageCanvasConfigProvider value={imageCanvasConfigValue}>
+        <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
+            <ReactionCanvasParticipant
+              room={room}
+              userId={userId}
+              selfChain={selfChain}
+              debug={debug}
+              heightOffset={chipBarOffset}
+              labelsOverride={labels}
+              showLabels={activeScreenPanel === 'canvas'}
+              disableCursorValence={!!PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.canvasProps?.disableCursorValence}
+              disableBackgroundValence={!!PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
+              currentReactionState={canvasBackgroundReactionState}
+              onBackgroundColorChange={setCanvasBackgroundReactionState}
+              touchPos={touchPos}
+              onTouchPosition={setTouchPos}
+              touchDisabled={valenceInputMode !== 'touch'}
+              hideTouchLayer={isViewer || activeScreenPanel === 'social-sharing' || activeScreenPanel === 'greeter' || activeScreenPanel === 'signature'}
+              touchImageUrl={PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
+              backgroundOverlay={(() => { const Bg = PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
             bannerSlot={isViewer ? (
               <div className="viewer-mode-banner">
                 This room is full — you are watching in view-only mode.
@@ -537,10 +538,11 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
             onConnectedUsers={(ids) => setConnectedUserIds(ids)}
             onUserJoined={(uid) => setConnectedUserIds(prev => prev.includes(uid) ? prev : [...prev, uid])}
             onUserLeft={(uid) => setConnectedUserIds(prev => prev.filter(id => id !== uid))}
-          />
-        </div>
-      </ImageCanvasConfigProvider>
-      )}
+            />
+          </div>
+        </ImageCanvasConfigProvider>
+        ) : null;
+      })()}
       {showGithubModal && (
         <GithubUsernameModal
           onSubmit={(username, displayName, avatarUrl) => {
