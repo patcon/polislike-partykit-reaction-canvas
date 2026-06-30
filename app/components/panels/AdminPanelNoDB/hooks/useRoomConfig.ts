@@ -8,7 +8,7 @@ export function useRoomConfig(socket: PartySocket) {
   const [defaultCursorColor, setDefaultCursorColor] = useState<string>('#d4d4d4');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
-  const [screenPanels, setScreenPanels]              = useState<Record<string, string>>({ personal: 'canvas' });
+  const [screenPanels, setScreenPanels]              = useState<Record<string, string>>({ personal: 'canvas', commons: 'canvas' });
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false);
   const [showNowLabelOnCanvas, setShowNowLabelOnCanvas] = useState(() =>
     localStorage.getItem('v4-showNowLabelOnCanvas') === 'true'
@@ -59,7 +59,7 @@ export function useRoomConfig(socket: PartySocket) {
     if ('ownValenceDisplay' in data && data.ownValenceDisplay) setOwnValenceDisplay(data.ownValenceDisplay as 'background' | 'labels' | 'none');
     if ('valenceInputMode' in data && data.valenceInputMode) setValenceInputMode(data.valenceInputMode as ValenceInputMode);
     if ('currentScreenPanels' in data && data.currentScreenPanels && typeof data.currentScreenPanels === 'object') {
-      setScreenPanels(data.currentScreenPanels as Record<string, string>);
+      setScreenPanels(prev => ({ ...prev, ...(data.currentScreenPanels as Record<string, string>) }));
     } else if ('currentScreenPanel' in data) {
       setScreenPanels(prev => ({ ...prev, personal: (data.currentScreenPanel as string) ?? 'canvas' }));
     }

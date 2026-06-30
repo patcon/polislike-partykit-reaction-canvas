@@ -112,8 +112,8 @@ export default function InterfacesTab({
         </thead>
         <tbody>
           {PANEL_REGISTRY.map(({ id, label, description, canStandalone, canScreenMount, requiresHttps }) => {
-            const isPersonalActive = screenPanels['personal'] === id;
-            const isCommonsActive = screenPanels['commons'] === id;
+            const isPersonalActive = (screenPanels['personal'] ?? 'canvas') === id;
+            const isCommonsActive = (screenPanels['commons'] ?? 'canvas') === id;
             const hasConfig = id === 'canvas' || !!PLUGIN_MAP[id]?.configModal;
             return (
               <tr key={id} style={{ borderTop: '1px solid #2a2a2a' }}>
