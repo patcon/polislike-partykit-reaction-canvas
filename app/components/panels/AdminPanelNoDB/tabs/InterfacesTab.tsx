@@ -70,7 +70,7 @@ export default function InterfacesTab({
                 <td style={{ padding: '10px 8px 10px 0' }}>
                   <span style={{ fontWeight: isActive ? 600 : 400, color: isActive ? '#eee' : '#bbb' }}>{label}</span>
                   <span style={{ color: '#666', marginLeft: 8 }}>{description}</span>
-                  {id === 'canvas' && (
+                  {id === 'personal' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setCanvasSettingsOpen(true); }}><IoMdSettings /></button>
                   )}
                   {requiresHttps && !window.isSecureContext && (

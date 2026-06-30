@@ -84,7 +84,7 @@ const PUSHED_INTERFACES_KEY = 'v4-pushed-interfaces';
 
 function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
-  const interfaces = ['canvas'];
+  const interfaces = ['personal'];
   // Only emcee is URL-privileged; all other standalone interfaces unlock via ?addInterface= (localStorage-backed)
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
   try {
@@ -140,7 +140,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
     if (fromUrl && unlocked.includes(fromUrl)) return fromUrl;
     const saved = localStorage.getItem('v4-active-interface');
     if (saved && unlocked.includes(saved)) return saved;
-    return unlocked.includes('emcee') ? 'emcee' : 'canvas';
+    return unlocked.includes('emcee') ? 'emcee' : 'personal';
   });
   const [selfChain] = useState<string[]>(() => {
     const urlChain = parseInviteChain(window.location.search);
@@ -170,7 +170,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
   const [serverImageUrl, setServerImageUrl] = useState('');
   const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
   const [serverGreeterConfig, setServerGreeterConfig] = useState<GreeterConfig | null>(null);
-  const [screenPanels, setScreenPanels] = useState<Record<string, string>>({ canvas: 'canvas' });
+  const [screenPanels, setScreenPanels] = useState<Record<string, string>>({ personal: 'canvas' });
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
   const [orientationPermission, setOrientationPermission] = useState<'unknown' | 'granted' | 'denied' | 'not-required'>('unknown');
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
@@ -191,7 +191,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
 
   // Derived early so useCallback deps below can reference it (must still be before any early return)
   const isEmcee = unlockedInterfaces.includes('emcee');
-  const canvasActivity = screenPanels['canvas'] ?? 'canvas';
+  const canvasActivity = screenPanels['personal'] ?? 'canvas';
   const isOrientationMode = valenceInputMode !== 'touch';
 
   const triggerBuzzForUpdate = useCallback(() => {
@@ -215,10 +215,10 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
       const data = JSON.parse(evt.data);
       if (data.type === 'activityChanged') {
         if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
-        setScreenPanels(prev => ({ ...prev, canvas: data.activity ?? 'canvas' }));
+        setScreenPanels(prev => ({ ...prev, personal: data.activity ?? 'canvas' }));
       }
       if (data.type === 'connected' && 'currentActivity' in data) {
-        setScreenPanels(prev => ({ ...prev, canvas: data.currentActivity ?? 'canvas' }));
+        setScreenPanels(prev => ({ ...prev, personal: data.currentActivity ?? 'canvas' }));
       }
     } catch { /* ignore */ }
   });
@@ -363,7 +363,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS = Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.id === 'canvas' ? SOLO_SCREEN_LABEL : (p.shortLabel ?? p.label)]));
+  const KNOWN_CHIPS = Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.id === 'personal' ? SOLO_SCREEN_LABEL : (p.shortLabel ?? p.label)]));
   const panelContextValue = useMemo(() => ({ room, userId, inviteEdges }), [room, userId, inviteEdges]);
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
@@ -386,16 +386,16 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
           <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} />
         )}
         {(() => {
-          const panelId = activeInterface !== 'canvas' && activeInterface !== 'emcee'
+          const panelId = activeInterface !== 'personal' && activeInterface !== 'emcee'
             ? activeInterface
-            : activeInterface === 'canvas' ? canvasActivity : null;
+            : activeInterface === 'personal' ? canvasActivity : null;
           const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
           return ActivePanel ? <ActivePanel /> : null;
         })()}
         </GreeterConfigProvider>
         </SocialMediaConfigProvider>
       </PanelContextProvider>
-      {activeInterface === 'canvas' && !PANEL_COMPONENTS[canvasActivity] && (
+      {activeInterface === 'personal' && !PANEL_COMPONENTS[canvasActivity] && (
       <ImageCanvasConfigProvider value={{ imageUrl: serverImageUrl }}>
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
           <ReactionCanvasParticipant
@@ -505,7 +505,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
               setUnlockedInterfaces(getUnlockedInterfaces());
               setActiveInterface(prev => {
                 const urlBased = getUnlockedInterfaces();
-                return urlBased.includes(prev) ? prev : (urlBased.includes('emcee') ? 'emcee' : 'canvas');
+                return urlBased.includes(prev) ? prev : (urlBased.includes('emcee') ? 'emcee' : 'personal');
               });
             }}
             onRoomImageUrlChange={handleRoomImageUrlChange}
