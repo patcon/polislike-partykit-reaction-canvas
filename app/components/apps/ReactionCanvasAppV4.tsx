@@ -443,6 +443,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
             <ReactionCanvasParticipant
               room={room}
               userId={userId}
+              screenName={activeInterface}
               selfChain={selfChain}
               debug={debug}
               heightOffset={chipBarOffset}

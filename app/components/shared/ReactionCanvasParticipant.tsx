@@ -15,6 +15,9 @@ export interface ReactionCanvasParticipantProps {
   room: string;
   userId: string;
 
+  // which screen this canvas represents; gates screenPanelChanged broadcasts. default 'personal'
+  screenName?: string;
+
   // sizing / embedding
   autoSize?: boolean;          // forwarded to Canvas + TouchLayer; ignores heightOffset
   heightOffset?: number;
@@ -101,6 +104,7 @@ export interface ReactionCanvasParticipantProps {
 export default function ReactionCanvasParticipant({
   room,
   userId,
+  screenName = 'personal',
   autoSize = false,
   heightOffset,
   labelsOverride,
@@ -237,6 +241,7 @@ export default function ReactionCanvasParticipant({
       )}
       <Canvas
         userId={userId}
+        screenName={screenName}
         autoSize={autoSize}
         heightOffset={autoSize ? undefined : heightOffset}
         colorCursorsByVote={colorCursorsByVote}
