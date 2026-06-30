@@ -2,7 +2,7 @@ import "./styles.css";
 declare const PARTYKIT_EVENT_BUILD: boolean;
 declare const APP_TITLE: string;
 import { createRoot } from "react-dom/client";
-import { useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import {
   createRouter,
   createRoute,
@@ -11,17 +11,18 @@ import {
   redirect,
   useParams,
 } from "@tanstack/react-router";
-import ReactionCanvasAppV2 from "./components/apps/ReactionCanvasAppV2";
 import ReactionCanvasAppV4 from "./components/apps/ReactionCanvasAppV4";
-import ReactionCanvasAppV5 from "./components/apps/ReactionCanvasAppV5";
-import ValenceViz from "./components/viz/ValenceViz";
-import PerfCanvasApp from "./components/apps/PerfCanvasApp";
-import { OldFrontPage } from "./components/OldFrontPage";
-import { NewFrontPage } from "./components/NewFrontPage";
 import { getIndexRedirect, getRoomRedirect } from "./utils/routing";
-import DemosIndex from "./components/demos/DemosIndex";
-import DemoAdminCanvas from "./components/demos/DemoAdminCanvas";
-import DemoCanvasMood from "./components/demos/DemoCanvasMood";
+
+const ReactionCanvasAppV2 = lazy(() => import("./components/apps/ReactionCanvasAppV2"));
+const ReactionCanvasAppV5 = lazy(() => import("./components/apps/ReactionCanvasAppV5"));
+const ValenceViz = lazy(() => import("./components/viz/ValenceViz"));
+const PerfCanvasApp = lazy(() => import("./components/apps/PerfCanvasApp"));
+const OldFrontPage = lazy(() => import("./components/OldFrontPage").then(m => ({ default: m.OldFrontPage })));
+const NewFrontPage = lazy(() => import("./components/NewFrontPage").then(m => ({ default: m.NewFrontPage })));
+const DemosIndex = lazy(() => import("./components/demos/DemosIndex"));
+const DemoAdminCanvas = lazy(() => import("./components/demos/DemoAdminCanvas"));
+const DemoCanvasMood = lazy(() => import("./components/demos/DemoCanvasMood"));
 
 const TITLES: Record<string, (admin: boolean) => string> = {
   '#v2': ()      => 'YouTube Reaction (Sync) — Polislike',
@@ -75,7 +76,7 @@ function App({ room }: { room: string }) {
   else if (room) page = <ReactionCanvasAppV4 room={room} />;
   else page = <NewFrontPage />;
 
-  return <>{page}{!PARTYKIT_EVENT_BUILD && <GithubCorner />}</>;
+  return <Suspense fallback={null}>{page}{!PARTYKIT_EVENT_BUILD && <GithubCorner />}</Suspense>;
 }
 
 const rootRoute = createRootRoute();
@@ -107,21 +108,21 @@ const demosIndexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/demos',
   beforeLoad: () => { document.title = 'Demos — Polislike'; },
-  component: () => <DemosIndex />,
+  component: () => <Suspense fallback={null}><DemosIndex /></Suspense>,
 });
 
 const demoAdminCanvasRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/demos/admin-canvas',
   beforeLoad: () => { document.title = 'Demo: Admin + Reaction Canvas — Polislike'; },
-  component: () => <DemoAdminCanvas />,
+  component: () => <Suspense fallback={null}><DemoAdminCanvas /></Suspense>,
 });
 
 const demoCanvasMoodRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/demos/canvas-mood',
   beforeLoad: () => { document.title = 'Demo: Reaction Canvas + Mood Tones — Polislike'; },
-  component: () => <DemoCanvasMood />,
+  component: () => <Suspense fallback={null}><DemoCanvasMood /></Suspense>,
 });
 
 const routeTree = rootRoute.addChildren([

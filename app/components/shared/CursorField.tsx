@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState } from "react";
-import * as d3 from "d3";
+import { select } from "d3";
+import type { Selection } from "d3";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
 import { makeImageCoordTransform } from "../../utils/imageCanvasCoords";
 import { useRoomSocket, useMessageSubscription } from "../../contexts/RoomSocketContext";
@@ -134,7 +135,7 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
   useEffect(() => {
     if (!cursorSmoothingConfig) {
       // Clear overlay when disabled
-      if (smoothCursorLayerRef.current) d3.select(smoothCursorLayerRef.current).selectAll('*').remove();
+      if (smoothCursorLayerRef.current) select(smoothCursorLayerRef.current).selectAll('*').remove();
       return;
     }
     let rafId: number;
@@ -168,7 +169,7 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
       }
 
       // D3 data join for enter/exit
-      const layerSel = d3.select(layer);
+      const layerSel = select(layer);
 
       // Ensure defs element exists for clip paths
       let defs = layerSel.select<SVGDefsElement>('defs');
@@ -196,14 +197,14 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
         .each(function(d) {
           const style = smoothCursorStyleRef.current.get(d.id);
           if (!style) return;
-          const g = d3.select(this);
+          const g = select(this);
           const clipId = `sc-clip-${d.id.replace(/\W/g, '_')}`;
 
           // Clip path only needed for custom photos; DiceBear uses ?radius=50 instead
           if (style.needsClip) {
             let clipPath = defs.select<SVGClipPathElement>(`#${clipId}`);
             if (clipPath.empty()) {
-              clipPath = defs.append('clipPath').attr('id', clipId) as d3.Selection<SVGClipPathElement, unknown, null, undefined>;
+              clipPath = defs.append('clipPath').attr('id', clipId) as Selection<SVGClipPathElement, unknown, null, undefined>;
               clipPath.append('circle');
             }
             clipPath.select('circle').attr('r', style.radius).attr('cx', 0).attr('cy', 0);
@@ -616,7 +617,7 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
 
   // Update background color based on current reaction state
   const updateBackgroundColor = (reactionState: ReactionState) => {
-    const svg = d3.select(svgRef.current);
+    const svg = select(svgRef.current);
     const backgroundRect = svg.select('rect');
 
     let backgroundColor = 'rgba(255, 255, 255, 0.1)';
@@ -639,7 +640,7 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
 
   // Render with D3 SVG
   useEffect(() => {
-    const svg = d3.select(svgRef.current);
+    const svg = select(svgRef.current);
     if (!svg.node()) return;
 
     // Clear previous content
