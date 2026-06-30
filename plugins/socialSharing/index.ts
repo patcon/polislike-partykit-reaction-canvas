@@ -6,7 +6,6 @@ import SocialSharingConfigModal from './configModal';
 
 const socialSharingPlugin: PanelPlugin<SocialSharingPluginState> = {
   id: 'social-sharing',
-  type: 'panel',
   label: 'Social Sharing',
   description: 'Bluesky · Twitter / X · Mastodon',
   canStandalone: true,

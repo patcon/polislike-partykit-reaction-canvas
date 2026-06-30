@@ -5,7 +5,6 @@ import { storyTracerServer } from './server';
 
 export const storyTracerPlugin: PanelPlugin<StoryTracerState> = {
   id: 'story-tracer',
-  type: 'panel',
   label: 'Story Tracer',
   description: 'Semantic 3D narrative path from VTT transcript',
   canStandalone: true,

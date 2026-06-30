@@ -5,7 +5,6 @@ import LightShow from './LightShow';
 
 const screenLightPlugin: PanelPlugin<LightState> = {
   id: 'screen-light',
-  type: 'panel',
   label: 'Screen Light',
   shortLabel: 'Light',
   description: 'Full-screen colored light controlled remotely',
@@ -18,7 +17,6 @@ const screenLightPlugin: PanelPlugin<LightState> = {
 
 const lightShowPlugin: PanelPlugin = {
   id: 'light-show',
-  type: 'panel',
   label: 'Light Show',
   shortLabel: 'LShow',
   description: 'Control the screen-light color on all connected phones',

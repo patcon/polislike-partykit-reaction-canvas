@@ -5,7 +5,6 @@ export const SOLO_SCREEN_LABEL = 'Canvas';
 
 export interface PanelMeta {
   id: string;
-  type: 'screen' | 'panel';
   label: string;
   shortLabel?: string;
   description: string;
@@ -16,8 +15,8 @@ export interface PanelMeta {
 }
 
 export const PANEL_REGISTRY: PanelMeta[] = [
-  { id: 'emcee',        type: 'panel',  label: 'Emcee',           description: 'Event host controls and tools',  canStandalone: true,  canScreenMount: false },
-  { id: 'canvas',       type: 'screen', label: 'Reaction Canvas', description: 'Standard reaction canvas',       canStandalone: false, canScreenMount: true  },
+  { id: 'emcee',  label: 'Emcee',           description: 'Event host controls and tools',  canStandalone: true,  canScreenMount: false },
+  { id: 'canvas', label: 'Reaction Canvas', description: 'Standard reaction canvas',       canStandalone: false, canScreenMount: true  },
   ...PLUGINS,
 ];
 

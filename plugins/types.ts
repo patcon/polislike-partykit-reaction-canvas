@@ -83,7 +83,6 @@ export interface CanvasOverlay {
  */
 export interface PanelPlugin<S = unknown> {
   id: string;
-  type: 'panel';
   label: string;
   shortLabel?: string;
   description: string;

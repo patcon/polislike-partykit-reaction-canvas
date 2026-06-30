@@ -4,7 +4,6 @@ import ImageCanvasConfigModal from './configModal';
 
 const imageCanvasPlugin: PanelPlugin = {
   id: 'image-canvas',
-  type: 'panel',
   label: 'Image Canvas',
   description: 'React over a shared background image',
   canStandalone: false,
