@@ -84,6 +84,7 @@ export default function InterfacesTab({
           <tr>
             <th style={{ ...thStyle, width: 48, padding: '0 8px 8px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <span>{SOLO_SCREEN_LABEL}</span>
                 <button
                   style={{ background: 'none', border: 'none', color: '#777', cursor: 'pointer', padding: 2, lineHeight: 0 }}
                   title="Share Personal Screen URL"
@@ -92,11 +93,11 @@ export default function InterfacesTab({
                 >
                   {SHARE_ICON}
                 </button>
-                <span>{SOLO_SCREEN_LABEL}</span>
               </div>
             </th>
             <th style={{ ...thStyle, width: 56, padding: '0 8px 8px' }}>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                <span>Commons</span>
                 <button
                   style={{ background: 'none', border: 'none', color: '#777', cursor: 'pointer', padding: 2, lineHeight: 0 }}
                   title="Share Commons Screen URL"
@@ -105,7 +106,6 @@ export default function InterfacesTab({
                 >
                   {SHARE_ICON}
                 </button>
-                <span>Commons</span>
               </div>
             </th>
           </tr>
