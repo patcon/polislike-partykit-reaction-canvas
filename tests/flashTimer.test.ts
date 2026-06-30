@@ -3,6 +3,7 @@ import {
   FLASH_TIMER_DEFAULT_SEC,
   normalizeFlashDuration,
   buildFlashTimerStart,
+  buildFlashTimerStarted,
 } from '../app/utils/flashTimer';
 
 describe('normalizeFlashDuration', () => {
@@ -39,5 +40,15 @@ describe('buildFlashTimerStart', () => {
 
   it('trims the label', () => {
     expect(buildFlashTimerStart(5, '  hi  ', 0).label).toBe('hi');
+  });
+});
+
+describe('buildFlashTimerStarted', () => {
+  it('echoes endTimestamp and label into a flashTimerStarted broadcast', () => {
+    expect(buildFlashTimerStarted(1_005_000, 'Round 1')).toEqual({
+      type: 'flashTimerStarted',
+      endTimestamp: 1_005_000,
+      label: 'Round 1',
+    });
   });
 });

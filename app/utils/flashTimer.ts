@@ -27,3 +27,14 @@ export function buildFlashTimerStart(durationSec: number, label: string, now: nu
     label: label.trim(),
   };
 }
+
+export interface FlashTimerStartedMessage {
+  type: 'flashTimerStarted';
+  endTimestamp: number;
+  label: string;
+}
+
+/** Build the server→all broadcast that drives the countdown overlay on every canvas. */
+export function buildFlashTimerStarted(endTimestamp: number, label: string): FlashTimerStartedMessage {
+  return { type: 'flashTimerStarted', endTimestamp, label };
+}
