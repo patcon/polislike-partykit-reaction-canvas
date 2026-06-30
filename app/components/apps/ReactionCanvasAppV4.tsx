@@ -191,7 +191,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
 
   // Derived early so useCallback deps below can reference it (must still be before any early return)
   const isEmcee = unlockedInterfaces.includes('emcee');
-  const canvasActivity = screenPanels['personal'] ?? 'canvas';
+  const personalScreenPanel = screenPanels['personal'] ?? 'canvas';
   const isOrientationMode = valenceInputMode !== 'touch';
 
   const triggerBuzzForUpdate = useCallback(() => {
@@ -213,12 +213,12 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
   useMessageSubscription((evt: MessageEvent) => {
     try {
       const data = JSON.parse(evt.data);
-      if (data.type === 'activityChanged') {
+      if (data.type === 'screenPanelChanged') {
         if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
-        setScreenPanels(prev => ({ ...prev, personal: data.activity ?? 'canvas' }));
+        setScreenPanels(prev => ({ ...prev, personal: data.screenPanel ?? 'canvas' }));
       }
-      if (data.type === 'connected' && 'currentActivity' in data) {
-        setScreenPanels(prev => ({ ...prev, personal: data.currentActivity ?? 'canvas' }));
+      if (data.type === 'connected' && 'currentScreenPanel' in data) {
+        setScreenPanels(prev => ({ ...prev, personal: data.currentScreenPanel ?? 'canvas' }));
       }
     } catch { /* ignore */ }
   });
@@ -388,14 +388,14 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
         {(() => {
           const panelId = activeInterface !== 'personal' && activeInterface !== 'emcee'
             ? activeInterface
-            : activeInterface === 'personal' ? canvasActivity : null;
+            : activeInterface === 'personal' ? personalScreenPanel : null;
           const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
           return ActivePanel ? <ActivePanel /> : null;
         })()}
         </GreeterConfigProvider>
         </SocialMediaConfigProvider>
       </PanelContextProvider>
-      {activeInterface === 'personal' && !PANEL_COMPONENTS[canvasActivity] && (
+      {activeInterface === 'personal' && !PANEL_COMPONENTS[personalScreenPanel] && (
       <ImageCanvasConfigProvider value={{ imageUrl: serverImageUrl }}>
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
           <ReactionCanvasParticipant
@@ -405,17 +405,17 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
             debug={debug}
             heightOffset={chipBarOffset}
             labelsOverride={labels}
-            showLabels={canvasActivity === 'canvas'}
-            disableCursorValence={!!PLUGIN_MAP[canvasActivity]?.canvasOverlay?.canvasProps?.disableCursorValence}
-            disableBackgroundValence={!!PLUGIN_MAP[canvasActivity]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
+            showLabels={personalScreenPanel === 'canvas'}
+            disableCursorValence={!!PLUGIN_MAP[personalScreenPanel]?.canvasOverlay?.canvasProps?.disableCursorValence}
+            disableBackgroundValence={!!PLUGIN_MAP[personalScreenPanel]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
             currentReactionState={canvasBackgroundReactionState}
             onBackgroundColorChange={setCanvasBackgroundReactionState}
             touchPos={touchPos}
             onTouchPosition={setTouchPos}
             touchDisabled={valenceInputMode !== 'touch'}
-            hideTouchLayer={isViewer || canvasActivity === 'social-sharing' || canvasActivity === 'greeter' || canvasActivity === 'signature'}
-            touchImageUrl={PLUGIN_MAP[canvasActivity]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
-            backgroundOverlay={(() => { const Bg = PLUGIN_MAP[canvasActivity]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
+            hideTouchLayer={isViewer || personalScreenPanel === 'social-sharing' || personalScreenPanel === 'greeter' || personalScreenPanel === 'signature'}
+            touchImageUrl={PLUGIN_MAP[personalScreenPanel]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
+            backgroundOverlay={(() => { const Bg = PLUGIN_MAP[personalScreenPanel]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
             bannerSlot={isViewer ? (
               <div className="viewer-mode-banner">
                 This room is full — you are watching in view-only mode.

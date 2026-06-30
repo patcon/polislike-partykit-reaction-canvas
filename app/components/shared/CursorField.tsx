@@ -101,7 +101,7 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
   const [colorCursorsByVote, setColorCursorsByVote] = useState(colorCursorsByVoteProp);
   const [defaultCursorColor, setDefaultCursorColor] = useState('#d4d4d4');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
-  const [activity, setActivity] = useState<string>('canvas');
+  const [screenPanel, setScreenPanel] = useState<string>('canvas');
   const [imageUrl, setImageUrl] = useState('');
   const [imageNaturalSize, setImageNaturalSize] = useState<{ w: number; h: number } | null>(null);
   const [ballPos, setBallPos] = useState<{ x: number; y: number } | null>(null);
@@ -258,9 +258,9 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
   });
   useEffect(() => { dimensionsRef.current = dimensions; }, [dimensions]);
   useEffect(() => {
-    const size = (activity === 'image-canvas' && imageUrl) ? imageNaturalSize : null;
+    const size = (screenPanel === 'image-canvas' && imageUrl) ? imageNaturalSize : null;
     toScreenCoordsRef.current = makeImageCoordTransform(dimensions, size);
-  }, [activity, imageUrl, imageNaturalSize, dimensions]);
+  }, [screenPanel, imageUrl, imageNaturalSize, dimensions]);
 
   // Precompute per-cursor style (color + radius) so the RAF tick can read it without closure staleness.
   useEffect(() => {
@@ -348,9 +348,9 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
           if ('valenceInputMode' in data && data.valenceInputMode) {
             onValenceInputModeChange?.(data.valenceInputMode as 'touch' | 'orientation-horizontal' | 'orientation-vertical');
           }
-          if ('currentActivity' in data) {
-            const act = data.currentActivity ?? 'canvas';
-            setActivity(act);
+          if ('currentScreenPanel' in data) {
+            const act = data.currentScreenPanel ?? 'canvas';
+            setScreenPanel(act);
           }
           if ('roomImageUrl' in data) {
             const url = data.roomImageUrl ?? '';
@@ -368,7 +368,7 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
           if ('connectedUserIds' in data) onConnectedUsers?.(data.connectedUserIds ?? []);
           onConnectedAsViewer?.(data.isViewer ?? false, data.userCap ?? null);
           onViewerCount?.(data.viewerCount ?? 0);
-          onConnected?.(data.inviteEdges ?? undefined, 'currentActivity' in data ? (data.currentActivity ?? 'canvas') : undefined);
+          onConnected?.(data.inviteEdges ?? undefined, 'currentScreenPanel' in data ? (data.currentScreenPanel ?? 'canvas') : undefined);
           return;
         }
 
@@ -462,12 +462,12 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
           return;
         }
 
-        if (data.type === 'activityChanged') {
-          const act = data.activity ?? 'canvas';
-          setActivity(act);
+        if (data.type === 'screenPanelChanged') {
+          const act = data.screenPanel ?? 'canvas';
+          setScreenPanel(act);
           if (data.ball) setBallPos({ x: data.ball.x, y: data.ball.y });
           if (data.score) setSoccerScore(data.score);
-          if (data.activity !== 'soccer') setBallPos(null);
+          if (data.screenPanel !== 'soccer') setBallPos(null);
           return;
         }
 
@@ -696,7 +696,7 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
     }
 
     // ===== SOCCER FIELD RENDERING =====
-    if (activity === 'soccer') {
+    if (screenPanel === 'soccer') {
       const W = dimensions.width;
       const H = dimensions.height;
       const goalTopPx = (33 / 100) * H;
@@ -768,7 +768,7 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
     if (hideActualCursors) return;
 
     // When an image is active, map image-relative 0-100 coords to screen pixels
-    const imgSize = (activity === 'image-canvas' && imageUrl) ? imageNaturalSize : null;
+    const imgSize = (screenPanel === 'image-canvas' && imageUrl) ? imageNaturalSize : null;
     const toScreenCoords = makeImageCoordTransform(dimensions, imgSize);
     const toScreenX = (n: number) => toScreenCoords(n, 0).x;
     const toScreenY = (n: number) => toScreenCoords(0, n).y;
@@ -915,7 +915,7 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
         .text((d: any) => d.cursorUserId.substring(0, 6));
     }
 
-  }, [cursors, dimensions, anchors, debug, hideActualCursors, avatarStyle, customAvatars, colorCursorsByVote, defaultCursorColor, ownValenceDisplay, activity, ballPos, soccerScore, imageUrl, imageNaturalSize]);
+  }, [cursors, dimensions, anchors, debug, hideActualCursors, avatarStyle, customAvatars, colorCursorsByVote, defaultCursorColor, ownValenceDisplay, screenPanel, ballPos, soccerScore, imageUrl, imageNaturalSize]);
 
   // Handle resize. In autoSize mode, track the parent element's box (for embedding in
   // constrained containers like the demo phone frames); otherwise track the window.

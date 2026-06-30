@@ -9,7 +9,7 @@ import type {
   CursorEvent, PersistedState, ClientEvent,
   PlaybackCursorBroadcastEvent,
   SetTimecodeEvent, SetRecordingStateEvent, SetRoomLabelsEvent, SetRoomAnchorsEvent,
-  SetRoomAvatarStyleEvent, SetActivityEvent, SetNowLabelEvent, SetImageUrlEvent,
+  SetRoomAvatarStyleEvent, SetScreenPanelEvent, SetNowLabelEvent, SetImageUrlEvent,
   SetUserCapEvent, TriggerActivityEvent, SubmitGithubUsernameEvent, SubmitFeedbackStarsEvent,
   SetSocialConfigEvent, SetGreeterConfigEvent, PushInterfaceEvent, AcceptInterfaceEvent,
   PushHapticEvent, RegisterCustomAvatarEvent, SetColorCursorsByVoteEvent,
@@ -28,7 +28,7 @@ export default class Server implements Party.Server {
   private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
   private roomAnchors: ReactionAnchors | null = null;
   private roomAvatarStyle: string | null = null;
-  private currentActivity: string = 'canvas';
+  private currentScreenPanel: string = 'canvas';
   private roomImageUrl: string = '';
   private nowLabel: string = '';
   private msgCount = 0;
@@ -223,10 +223,10 @@ private pluginStates = new Map<string, unknown>(
       roomLabels: this.roomLabels,
       roomAnchors: this.roomAnchors,
       roomAvatarStyle: this.roomAvatarStyle,
-      currentActivity: this.currentActivity,
+      currentScreenPanel: this.currentScreenPanel,
       roomImageUrl: this.roomImageUrl,
       nowLabel: this.nowLabel,
-      ballState: this.currentActivity === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
+      ballState: this.currentScreenPanel === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
       soccerScore: getSoccerScore(this.pluginStates.get('soccer')),
       isViewer,
       userCap: this.userCap,
@@ -243,7 +243,7 @@ private pluginStates = new Map<string, unknown>(
     const pluginCtx = this.makePluginContext();
     const pluginConn = this.makePluginConn(conn);
     for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
-      if (plugin.server) plugin.server.onConnect(pluginConn, pluginCtx, this.pluginStates.get(id), this.currentActivity);
+      if (plugin.server) plugin.server.onConnect(pluginConn, pluginCtx, this.pluginStates.get(id), this.currentScreenPanel);
     }
   }
 
@@ -302,7 +302,7 @@ private pluginStates = new Map<string, unknown>(
       const pluginCtx = this.makePluginContext();
       const pluginConn = this.makePluginConn(sender);
       for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
-        if (plugin.server?.onMessage(event.type, event, pluginConn, pluginCtx, this.pluginStates.get(id), this.currentActivity)) return;
+        if (plugin.server?.onMessage(event.type, event, pluginConn, pluginCtx, this.pluginStates.get(id), this.currentScreenPanel)) return;
       }
 
       switch (event.type) {
@@ -315,7 +315,7 @@ private pluginStates = new Map<string, unknown>(
         case 'setRoomLabels': this.handleSetRoomLabels(event); break;
         case 'setRoomAnchors': this.handleSetRoomAnchors(event); break;
         case 'setRoomAvatarStyle': this.handleSetRoomAvatarStyle(event); break;
-        case 'setActivity': this.handleSetActivity(event); break;
+        case 'setScreenPanel': this.handleSetScreenPanel(event); break;
         case 'setNowLabel': this.handleSetNowLabel(event); break;
         case 'setImageUrl': this.handleSetImageUrl(event); break;
         case 'setUserCap': this.handleSetUserCap(event, sender); break;
@@ -415,22 +415,22 @@ private pluginStates = new Map<string, unknown>(
     this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
   }
 
-  private handleSetActivity(event: SetActivityEvent): void {
-    const prevActivity = this.currentActivity;
-    this.currentActivity = event.activity;
+  private handleSetScreenPanel(event: SetScreenPanelEvent): void {
+    const prevActivity = this.currentScreenPanel;
+    this.currentScreenPanel = event.screenPanel;
     const ctx = this.makePluginContext();
 
     const prevPlugin = PLUGIN_MAP[prevActivity];
     if (prevPlugin?.server) prevPlugin.server.onDeactivate(ctx, this.pluginStates.get(prevActivity));
 
-    const nextPlugin = PLUGIN_MAP[this.currentActivity];
-    if (nextPlugin?.server) nextPlugin.server.onActivate(ctx, this.pluginStates.get(this.currentActivity));
+    const nextPlugin = PLUGIN_MAP[this.currentScreenPanel];
+    if (nextPlugin?.server) nextPlugin.server.onActivate(ctx, this.pluginStates.get(this.currentScreenPanel));
 
     const soccerState = this.pluginStates.get('soccer');
     this.room.broadcast(JSON.stringify({
-      type: 'activityChanged',
-      activity: this.currentActivity,
-      ball: this.currentActivity === 'soccer' ? getSoccerBallState(soccerState) : null,
+      type: 'screenPanelChanged',
+      screenPanel: this.currentScreenPanel,
+      ball: this.currentScreenPanel === 'soccer' ? getSoccerBallState(soccerState) : null,
       score: getSoccerScore(soccerState),
     }));
   }

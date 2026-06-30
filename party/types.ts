@@ -23,7 +23,7 @@ export interface SetRecordingStateEvent  { type: 'setRecordingState'; recording:
 export interface SetRoomLabelsEvent      { type: 'setRoomLabels'; labels: { positive: string; negative: string; neutral: string } | null }
 export interface SetRoomAnchorsEvent     { type: 'setRoomAnchors'; anchors: ReactionAnchors | null }
 export interface SetRoomAvatarStyleEvent { type: 'setRoomAvatarStyle'; avatarStyle: string | null }
-export interface SetActivityEvent        { type: 'setActivity'; activity: string }
+export interface SetScreenPanelEvent     { type: 'setScreenPanel'; screenPanel: string }
 export interface SetImageUrlEvent        { type: 'setImageUrl'; url: string }
 export interface ResetSoccerScoreEvent   { type: 'resetSoccerScore' }
 export interface SetUserCapEvent         { type: 'setUserCap'; cap: number | null }
@@ -111,7 +111,7 @@ export interface SetLightColorEvent      { type: 'setLightColor'; color: string;
 export type ClientEvent =
   | CursorEvent | SetTimecodeEvent
   | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent
-  | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent
+  | SetRoomAvatarStyleEvent | SetScreenPanelEvent | SetImageUrlEvent
   | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent
   | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent
   | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent

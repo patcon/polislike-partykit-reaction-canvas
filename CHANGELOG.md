@@ -31,6 +31,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **PR preview deployments replaced with shared staging env** — per-PR preview, cleanup, and event-preview workflows disabled (broken upstream: partykit/partykit#985); new `staging-deploy.yml` deploys every PR to the shared `staging` preview environment instead. Staging is never torn down.
 - **Panel registry: `type`, `canStandalone`, `canScreenMount` replace old flags** — `PanelMeta` and `PanelPlugin` gain an explicit `type: 'screen' | 'panel'` field; the `canvas` entry is now `type: 'screen'`. `patchable` renamed to `canStandalone` (whether a panel can exist as its own standalone chip) and `activityMode` renamed to `canScreenMount` (whether a panel can be loaded into a screen slot). `PATCHABLE_PANELS` export renamed to `STANDALONE_PANELS`. All 16 plugin definitions updated.
 - **Screen machine name `canvas` renamed to `personal`** — the screen entry in `PANEL_REGISTRY` and all screen ID comparisons in V4 updated; the display label "Canvas" is unchanged. Panel IDs (including the `'canvas'` default panel value in `screenPanels`) are unaffected.
+- **Wire protocol renamed: `setActivity`→`setScreenPanel`, `activityChanged`→`screenPanelChanged`, `currentActivity`→`currentScreenPanel`** — client-to-server and server-to-client message types updated throughout `party/server.ts`, `party/types.ts`, `CursorField.tsx`, and `useRoomConfig.ts` to match the `screenPanel` vocabulary. `SetActivityEvent` renamed to `SetScreenPanelEvent`.
 
 ## Week 31 (2026-06-22)
 
