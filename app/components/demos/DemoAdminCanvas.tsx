@@ -1,6 +1,7 @@
 import { useState } from "react";
 import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import ReactionCanvasParticipant from "../shared/ReactionCanvasParticipant";
+import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { generateUUID } from "../../utils/userId";
 import DemoLayout from "./DemoLayout";
 import PhoneFrame from "./PhoneFrame";
@@ -25,12 +26,14 @@ export default function DemoAdminCanvas() {
       }
       right={
         <PhoneFrame label="Participant" showSharePrompt>
-          <ReactionCanvasParticipant
-            room={room}
-            userId={participantId}
-            autoSize
-            shareUrl={`${window.location.origin}/${room}`}
-          />
+          <RoomSocketProvider room={room} userId={participantId}>
+            <ReactionCanvasParticipant
+              room={room}
+              userId={participantId}
+              autoSize
+              shareUrl={`${window.location.origin}/${room}`}
+            />
+          </RoomSocketProvider>
         </PhoneFrame>
       }
     />

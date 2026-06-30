@@ -22,6 +22,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Map Viewer colors update immediately when moment is changed in config modal** — the panel loaded moments from IndexedDB only once on mount; if a moment was snapped after the panel mounted, the config modal could see and select it but the panel's stale `moments` state would silently fall back to the first moment. Now reloads moments whenever `config.momentId` changes.
 - **Map Viewer color config syncs across devices** — `colorMode` and `momentId` were stored only in localStorage; other devices never received them. Config is now broadcast via the server (`mapViewerConfigSet`/`mapViewerConfigChanged`) so all clients update immediately, and late-joining clients receive the current config on connect.
 - **Map server tests updated for `viewerConfig`** — `createState` and `getPersistedState` assertions now include the `viewerConfig` field added in the last release cycle.
+- **Demo pages broken by missing `RoomSocketProvider`** — `DemoAdminCanvas` and `DemoCanvasMood` now explicitly wrap `ReactionCanvasParticipant` in `RoomSocketProvider`, restoring the `/demos/*` pages after `CursorField` and `TouchLayer` were migrated to consume the shared socket context.
 - **Playwright upgraded to 1.61.1 to restore Storybook browser tests on Ubuntu 26.04** — 1.59.1 didn't ship a Chromium headless-shell build for this distro, so all browser-mode stories were silently skipped; 80 Storybook tests now run again (364 total vs 284).
 
 ### Changed
