@@ -78,9 +78,7 @@ export interface ReactionCanvasParticipantProps {
   onUserCapChanged?: (cap: number | null) => void;
   onJoinApproved?: () => void;
   onActivityTriggered?: (activityName: string) => void;
-  onInterfacePushed?: (interfaceName: string) => void;
-  onHapticPushed?: () => void;
-  onPushedInterfacesCleared?: () => void;
+
   onBackgroundColorChange?: (reactionState: ReactionState) => void;
   onTouchPosition?: (pos: { x: number; y: number } | null) => void;
 }
@@ -151,9 +149,6 @@ export default function ReactionCanvasParticipant({
   onUserCapChanged,
   onJoinApproved,
   onActivityTriggered,
-  onInterfacePushed,
-  onHapticPushed,
-  onPushedInterfacesCleared,
   onBackgroundColorChange,
   onTouchPosition,
 }: ReactionCanvasParticipantProps) {
@@ -266,9 +261,6 @@ export default function ReactionCanvasParticipant({
         onJoinApproved={onJoinApproved}
         onSocketReady={onSocketReady}
         onActivityTriggered={onActivityTriggered}
-        onInterfacePushed={onInterfacePushed}
-        onHapticPushed={onHapticPushed}
-        onPushedInterfacesCleared={onPushedInterfacesCleared}
         onRoomImageUrlChange={onRoomImageUrlChange}
         onSocialConfigChange={onSocialConfigChange}
         onGreeterConfigChange={onGreeterConfigChange}

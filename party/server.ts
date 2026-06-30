@@ -120,7 +120,6 @@ private pluginStates = new Map<string, unknown>(
   private getTargetConnections(targetUserId?: string, targetRegion?: 'positive' | 'negative' | 'neutral' | null, targetUserIds?: string[]): Party.Connection[] {
     const anchors = this.roomAnchors ?? REACTION_DEFAULT_ANCHORS;
     return [...this.room.getConnections()].filter(conn => {
-      if (this.adminConnectionIds.has(conn.id)) return false;
       const userId = this.connectionUserMap.get(conn.id);
       if (!userId) return false;
       if (targetUserId !== undefined) return userId === targetUserId;
