@@ -215,30 +215,7 @@ private pluginStates = new Map<string, unknown>(
     )];
 
     // Send welcome message with current state
-    conn.send(JSON.stringify({
-      type: 'connected',
-      connectionId: conn.id,
-      timecode: this.savedTimecode,
-      recordingState: this.recordingState,
-      roomLabels: this.roomLabels,
-      roomAnchors: this.roomAnchors,
-      roomAvatarStyle: this.roomAvatarStyle,
-      currentScreenPanel: this.currentScreenPanel,
-      roomImageUrl: this.roomImageUrl,
-      nowLabel: this.nowLabel,
-      ballState: this.currentScreenPanel === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
-      soccerScore: getSoccerScore(this.pluginStates.get('soccer')),
-      isViewer,
-      userCap: this.userCap,
-      viewerCount: vCount,
-      connectedUserIds,
-      inviteEdges: Object.fromEntries(this.inviteEdges),
-      customAvatars: Object.fromEntries(this.customAvatars),
-      colorCursorsByVote: this.colorCursorsByVote,
-      defaultCursorColor: this.defaultCursorColor,
-      ownValenceDisplay: this.ownValenceDisplay,
-      valenceInputMode: this.valenceInputMode,
-    }));
+    this.sendCurrentState(conn, isViewer, vCount, connectedUserIds);
 
     const pluginCtx = this.makePluginContext();
     const pluginConn = this.makePluginConn(conn);
@@ -334,6 +311,7 @@ private pluginStates = new Map<string, unknown>(
         case 'registerCustomAvatar': this.handleRegisterCustomAvatar(event); break;
         case 'recordInvitations': this.handleRecordInvitations(event); break;
         case 'getPresenceCount': this.handleGetPresenceCount(sender); break;
+        case 'getState': this.handleGetState(sender); break;
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
@@ -441,6 +419,46 @@ private pluginStates = new Map<string, unknown>(
     if (!this.adminConnectionIds.has(sender.id)) return;
     this.userCap = event.cap;
     this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
+  }
+
+  private sendCurrentState(conn: Party.Connection, isViewer: boolean, vCount: number, connectedUserIds: string[]): void {
+    conn.send(JSON.stringify({
+      type: 'connected',
+      connectionId: conn.id,
+      timecode: this.savedTimecode,
+      recordingState: this.recordingState,
+      roomLabels: this.roomLabels,
+      roomAnchors: this.roomAnchors,
+      roomAvatarStyle: this.roomAvatarStyle,
+      currentScreenPanel: this.currentScreenPanel,
+      roomImageUrl: this.roomImageUrl,
+      nowLabel: this.nowLabel,
+      ballState: this.currentScreenPanel === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
+      soccerScore: getSoccerScore(this.pluginStates.get('soccer')),
+      isViewer,
+      userCap: this.userCap,
+      viewerCount: vCount,
+      connectedUserIds,
+      inviteEdges: Object.fromEntries(this.inviteEdges),
+      customAvatars: Object.fromEntries(this.customAvatars),
+      colorCursorsByVote: this.colorCursorsByVote,
+      defaultCursorColor: this.defaultCursorColor,
+      ownValenceDisplay: this.ownValenceDisplay,
+      valenceInputMode: this.valenceInputMode,
+    }));
+  }
+
+  private handleGetState(sender: Party.Connection): void {
+    const isViewer = this.viewerConnectionIds.has(sender.id);
+    const vCount = this.viewerCount();
+    const connectedUserIds = [...new Set(
+      [...this.connectionUserMap.entries()]
+        .filter(([cid]) => cid !== sender.id && !this.adminConnectionIds.has(cid))
+        .map(([, uid]) => uid)
+    )];
+    this.sendCurrentState(sender, isViewer, vCount, connectedUserIds);
+    const count = this.participantCount();
+    sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
   }
 
   private handleGetPresenceCount(sender: Party.Connection): void {

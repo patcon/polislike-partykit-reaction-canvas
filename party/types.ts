@@ -32,6 +32,7 @@ export interface SetSocialConfigEvent    { type: 'setSocialConfig'; config: { de
 export interface SetGreeterConfigEvent   { type: 'setGreeterConfig'; config: { eventUrl: string } | null }
 export interface RequestJoinEvent        { type: 'requestJoin' }
 export interface ResetSoccerScore        { type: 'resetSoccerScore' }
+export interface GetStateEvent           { type: 'getState' }
 
 export interface TriggerActivityEvent {
   type: 'triggerActivity';
@@ -120,6 +121,6 @@ export type ClientEvent =
   | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent
   | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent
   | ClearSignatureEvent
-  | SetArrivalCapacityEvent | GetPresenceCountEvent
+  | SetArrivalCapacityEvent | GetPresenceCountEvent | GetStateEvent
   | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent
   | SetLightColorEvent;

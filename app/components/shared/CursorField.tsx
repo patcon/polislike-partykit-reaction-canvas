@@ -312,6 +312,10 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
 
   const { send } = useRoomSocket();
 
+  // On mount (and remount after unmount), request a fresh state snapshot from the server.
+  // The socket is shared and stays alive, so the server won't re-send `connected` automatically.
+  useEffect(() => { send(JSON.stringify({ type: 'getState' })); }, []);
+
   useMessageSubscription((evt) => {
     try {
         const data = JSON.parse(evt.data);
