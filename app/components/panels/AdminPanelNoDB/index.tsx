@@ -304,7 +304,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
         )}
         {activeTab === 'interfaces' && (
           <InterfacesTab
-            screenPanel={roomConfig.screenPanel}
+            screenPanels={roomConfig.screenPanels}
             sendScreenPanel={roomConfig.sendScreenPanel}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             setActiveConfigPlugin={setActiveConfigPluginId}
