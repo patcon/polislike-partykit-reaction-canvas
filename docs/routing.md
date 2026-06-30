@@ -36,7 +36,8 @@ URL params are read by each sub-app independently. `?room=` is the canonical way
 | `room` | string | PartyKit room name; defaults to `"default"` |
 | `labels` | preset key or base64 custom | Selects a reaction label preset; falls back to localStorage / `default` if omitted |
 | `forceView` | `mobile` | Bypasses the mobile-only QR gate; shows the canvas on desktop |
-| `interface` | `emcee` | Unlocks the emcee interface chip; shows chip bar and defaults to emcee panel |
+| `interface` | `emcee` \| `commons` | Unlocks the named interface/screen chip (URL-privileged, parallel to `addInterface`); shows chip bar. `emcee` defaults to the emcee panel; `commons` unlocks the shared Commons screen |
+| `hideChipBar` | `true` | Hides the chip bar for single-screen fullscreen displays (e.g. a wall-mounted Commons screen) |
 | `admin` | `true` | **Deprecated** alias for `?interface=emcee`; still works for backward compatibility |
 
 ## V5 URL params

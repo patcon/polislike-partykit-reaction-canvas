@@ -23,6 +23,7 @@ type ReactionState = 'positive' | 'negative' | 'neutral' | null;
 
 interface CanvasProps {
   userId: string;
+  screenName?: string; // which screen this canvas represents; ignores screenPanelChanged for other screens. default 'personal'
   colorCursorsByVote?: boolean; // Optional prop to enable reaction-based coloring
   hideActualCursors?: boolean; // When true, raw cursor dots are not rendered (labels/anchors still sync; use when smooth cursors replace them)
   currentReactionState?: ReactionState; // Current reaction state for background color
@@ -90,7 +91,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function CursorField({ userId, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onRoomImageUrlChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false, cursorSmoothingConfig }: CanvasProps) {
+export default function CursorField({ userId, screenName = 'personal', colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onRoomImageUrlChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false, cursorSmoothingConfig }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const smoothCursorLayerRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
@@ -351,9 +352,15 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
           if ('valenceInputMode' in data && data.valenceInputMode) {
             onValenceInputModeChange?.(data.valenceInputMode as 'touch' | 'orientation-horizontal' | 'orientation-vertical');
           }
-          if ('currentScreenPanel' in data) {
-            const act = data.currentScreenPanel ?? 'canvas';
-            setScreenPanel(act);
+          {
+            const panels = (data.currentScreenPanels && typeof data.currentScreenPanels === 'object')
+              ? data.currentScreenPanels as Record<string, string>
+              : null;
+            if (panels && screenName in panels) {
+              setScreenPanel(panels[screenName] ?? 'canvas');
+            } else if (screenName === 'personal' && 'currentScreenPanel' in data) {
+              setScreenPanel(data.currentScreenPanel ?? 'canvas');
+            }
           }
           if ('roomImageUrl' in data) {
             const url = data.roomImageUrl ?? '';
@@ -466,6 +473,8 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
         }
 
         if (data.type === 'screenPanelChanged') {
+          // Ignore changes to other screens — this canvas only reflects its own.
+          if ((data.screenName ?? 'personal') !== screenName) return;
           const act = data.screenPanel ?? 'canvas';
           setScreenPanel(act);
           if (data.ball) setBallPos({ x: data.ball.x, y: data.ball.y });
@@ -601,6 +610,9 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
 
   // Update background color based on current reaction state
   const updateBackgroundColor = (reactionState: ReactionState) => {
+    // The soccer pitch owns the background rect — don't let valence repaint it
+    // (otherwise it flashes green↔white on every cursor-driven reaction change).
+    if (screenPanel === 'soccer') return;
     const svg = select(svgRef.current);
     const backgroundRect = svg.select('rect');
 
@@ -620,7 +632,7 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
   useEffect(() => {
     const suppressed = disableBackgroundValence || ownValenceDisplay !== 'background';
     updateBackgroundColor(suppressed ? null : (currentReactionState || null));
-  }, [currentReactionState, disableBackgroundValence, ownValenceDisplay]);
+  }, [currentReactionState, disableBackgroundValence, ownValenceDisplay, screenPanel]);
 
   // Render with D3 SVG
   useEffect(() => {

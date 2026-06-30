@@ -3,8 +3,9 @@ import { IoMdSettings } from "react-icons/io";
 import { FaCheckCircle, FaCircle } from "react-icons/fa";
 import QRWithCopy from '../../../shared/QRWithCopy';
 import { appendSelfToChain } from "../../../../utils/inviteChain";
-import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../../../panelRegistry";
+import { PANEL_REGISTRY } from "../../../../panelRegistry";
 import { PLUGIN_MAP } from "../../../../../plugins/index";
+import { SCREENS } from "../../../../screens";
 
 interface InterfacesTabProps {
   screenPanels: Record<string, string>;
@@ -30,28 +31,24 @@ const SHARE_ICON = (
   </svg>
 );
 
-function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[]): string {
+function buildInterfaceUrl(deletes: string[], sets: Record<string, string>): string {
   const p = new URLSearchParams(window.location.search);
-  p.delete('forceView');
-  p.delete('admin');
-  p.delete('interface');
-  p.set('addInterface', interfaceName);
-  if (userId && selfChain !== undefined) {
-    p.set('inviteChain', appendSelfToChain(selfChain, userId).join(','));
-  }
+  for (const k of deletes) p.delete(k);
+  for (const [k, v] of Object.entries(sets)) p.set(k, v);
   const qs = p.toString();
   return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
 }
 
+function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[]): string {
+  const sets: Record<string, string> = { addInterface: interfaceName };
+  if (userId && selfChain !== undefined) {
+    sets.inviteChain = appendSelfToChain(selfChain, userId).join(',');
+  }
+  return buildInterfaceUrl(['forceView', 'admin', 'interface'], sets);
+}
+
 function getScreenUrl(interfaceName: string, extraParams?: Record<string, string>): string {
-  const p = new URLSearchParams(window.location.search);
-  p.delete('forceView');
-  p.delete('admin');
-  p.delete('addInterface');
-  p.set('interface', interfaceName);
-  if (extraParams) for (const [k, v] of Object.entries(extraParams)) p.set(k, v);
-  const qs = p.toString();
-  return `${window.location.origin}${window.location.pathname}${qs ? `?${qs}` : ''}${window.location.hash}`;
+  return buildInterfaceUrl(['forceView', 'admin', 'addInterface'], { interface: interfaceName, ...extraParams });
 }
 
 
@@ -63,8 +60,9 @@ export default function InterfacesTab({
   onClearRoleAssignments, userId, selfChain,
 }: InterfacesTabProps) {
   const [patchInterface, setPatchInterface] = useState<string | null>(null);
-  const [screenShareTarget, setScreenShareTarget] = useState<'personal' | 'commons' | null>(null);
+  const [screenShareTarget, setScreenShareTarget] = useState<string | null>(null);
   const patchUrl = patchInterface ? getPatchUrl(patchInterface, userId, selfChain) : '';
+  const shareScreen = screenShareTarget ? SCREENS.find(s => s.name === screenShareTarget) ?? null : null;
 
   const thStyle = { color: '#666', fontWeight: 500, padding: '0 8px 8px', fontSize: 11, textTransform: 'uppercase' as const, letterSpacing: '0.06em', textAlign: 'center' as const };
 
@@ -76,77 +74,60 @@ export default function InterfacesTab({
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
         <thead>
           <tr>
-            <th colSpan={2} style={{ ...thStyle, padding: '0 8px 4px', color: '#555', letterSpacing: '0.08em' }}>Screens</th>
+            <th colSpan={SCREENS.length} style={{ ...thStyle, padding: '0 8px 4px', color: '#555', letterSpacing: '0.08em' }}>Screens</th>
             <th style={{ textAlign: 'left', color: '#666', fontWeight: 500, padding: '0 8px 8px 0', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em' }} rowSpan={2}>Interface</th>
             <th style={{ ...thStyle, width: 36, padding: '0 4px 8px' }} rowSpan={2}></th>
             <th style={{ ...thStyle, width: 56, padding: '0 0 8px 8px' }} rowSpan={2}>Panel Share</th>
           </tr>
           <tr>
-            <th style={{ ...thStyle, width: 48, padding: '0 8px 8px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <span>{SOLO_SCREEN_LABEL}</span>
-                <button
-                  style={{ background: 'none', border: 'none', color: '#777', cursor: 'pointer', padding: 2, lineHeight: 0 }}
-                  title="Share Personal Screen URL"
-                  aria-label="Share Personal Screen URL"
-                  onClick={() => setScreenShareTarget('personal')}
-                >
-                  {SHARE_ICON}
-                </button>
-              </div>
-            </th>
-            <th style={{ ...thStyle, width: 56, padding: '0 8px 8px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
-                <span>Commons</span>
-                <button
-                  style={{ background: 'none', border: 'none', color: '#777', cursor: 'pointer', padding: 2, lineHeight: 0 }}
-                  title="Share Commons Screen URL"
-                  aria-label="Share Commons Screen URL"
-                  onClick={() => setScreenShareTarget('commons')}
-                >
-                  {SHARE_ICON}
-                </button>
-              </div>
-            </th>
+            {SCREENS.map(screen => (
+              <th key={screen.name} style={{ ...thStyle, width: 56, padding: '0 8px 8px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  <span>{screen.label}</span>
+                  <button
+                    style={{ background: 'none', border: 'none', color: '#777', cursor: 'pointer', padding: 2, lineHeight: 0 }}
+                    title={`Share ${screen.label} Screen URL`}
+                    aria-label={`Share ${screen.label} Screen URL`}
+                    onClick={() => setScreenShareTarget(screen.name)}
+                  >
+                    {SHARE_ICON}
+                  </button>
+                </div>
+              </th>
+            ))}
           </tr>
         </thead>
         <tbody>
-          {PANEL_REGISTRY.map(({ id, label, description, canStandalone, canScreenMount, requiresHttps }) => {
+          {PANEL_REGISTRY.map(({ id, label, description, canStandalone, canScreenMount, needsLifecycle, requiresHttps }) => {
             const isPersonalActive = (screenPanels['personal'] ?? 'canvas') === id;
-            const isCommonsActive = (screenPanels['commons'] ?? 'canvas') === id;
             const hasConfig = id === 'canvas' || !!PLUGIN_MAP[id]?.configModal;
             return (
               <tr key={id} style={{ borderTop: '1px solid #2a2a2a' }}>
-                {/* Personal */}
-                <td style={{ textAlign: 'center', padding: '10px 8px' }}>
-                  {canScreenMount ? (
-                    <button
-                      onClick={() => sendScreenPanel('personal', id as string)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 0, color: isPersonalActive ? '#eee' : '#555' }}
-                      aria-label={`Switch personal screen to ${label}`}
-                      aria-pressed={isPersonalActive}
-                    >
-                      {isPersonalActive ? <FaCheckCircle size={14} /> : <FaCircle size={14} />}
-                    </button>
-                  ) : (
-                    <span style={{ color: '#3a3a3a', fontSize: 11 }}>—</span>
-                  )}
-                </td>
-                {/* Commons */}
-                <td style={{ textAlign: 'center', padding: '10px 8px' }}>
-                  {canScreenMount ? (
-                    <button
-                      onClick={() => sendScreenPanel('commons', id as string)}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 0, color: isCommonsActive ? '#eee' : '#555' }}
-                      aria-label={`Switch commons screen to ${label}`}
-                      aria-pressed={isCommonsActive}
-                    >
-                      {isCommonsActive ? <FaCheckCircle size={14} /> : <FaCircle size={14} />}
-                    </button>
-                  ) : (
-                    <span style={{ color: '#3a3a3a', fontSize: 11 }}>—</span>
-                  )}
-                </td>
+                {SCREENS.map(screen => {
+                  const isActive = (screenPanels[screen.name] ?? 'canvas') === id;
+                  // A panel needing server lifecycle activation can only mount on a lifecycle screen.
+                  const blocked = !!needsLifecycle && !screen.lifecycle;
+                  const mountable = canScreenMount && !blocked;
+                  return (
+                    <td key={screen.name} style={{ textAlign: 'center', padding: '10px 8px' }}>
+                      {mountable ? (
+                        <button
+                          onClick={() => sendScreenPanel(screen.name, id as string)}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 0, color: isActive ? '#eee' : '#555' }}
+                          aria-label={`Switch ${screen.label} screen to ${label}`}
+                          aria-pressed={isActive}
+                        >
+                          {isActive ? <FaCheckCircle size={14} /> : <FaCircle size={14} />}
+                        </button>
+                      ) : (
+                        <span
+                          style={{ color: '#3a3a3a', fontSize: 11 }}
+                          title={blocked ? `${label} needs an interactive screen` : undefined}
+                        >—</span>
+                      )}
+                    </td>
+                  );
+                })}
                 {/* Description */}
                 <td style={{ padding: '10px 8px 10px 0' }}>
                   <span style={{ fontWeight: isPersonalActive ? 600 : 400, color: isPersonalActive ? '#eee' : '#bbb' }}>{label}</span>
@@ -214,16 +195,13 @@ export default function InterfacesTab({
       )}
 
       {/* Screen share dialog — direct URL to a named screen */}
-      {screenShareTarget && (
+      {shareScreen && (
         <div className="share-qr-modal" onClick={() => setScreenShareTarget(null)}>
           <div className="share-qr-modal-card" onClick={e => e.stopPropagation()}>
             <p className="share-qr-modal-title">
-              {screenShareTarget === 'personal' ? 'Personal Screen' : 'Commons Screen'} — share link
+              {shareScreen.label} Screen — share link
             </p>
-            <QRWithCopy url={screenShareTarget === 'personal'
-              ? getScreenUrl('personal')
-              : getScreenUrl('commons', { hideChipBar: 'true' })}
-            />
+            <QRWithCopy url={getScreenUrl(shareScreen.name, shareScreen.shareParams)} />
             <button className="share-qr-modal-close" onClick={() => setScreenShareTarget(null)}>Close</button>
           </div>
         </div>
