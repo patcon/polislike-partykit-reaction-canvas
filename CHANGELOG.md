@@ -14,6 +14,9 @@ All notable changes to this project will be documented in this file. Releases cu
 ### Added
 - **`RoomSocketContext` extracts shared WebSocket connection** — `Canvas` and `TouchLayer` now consume a single shared `usePartySocket` connection from `RoomSocketProvider` instead of each opening their own, reducing connections per participant from two to one and eliminating reconnect latency on activity switch. Dead code removed: `TouchLayer`'s `onActiveStatementChange` prop, `ServerMessage` type, and its `onMessage` handler (the server never sent `activeStatementId` or `activeStatementChanged`). New vitest component tests cover socket plumbing for both components.
 
+### Changed
+- **Plugin context providers in V4 memoize their values** — `SocialMediaConfigProvider`, `GreeterConfigProvider`, and `ImageCanvasConfigProvider` now receive stable `useMemo`-wrapped value objects instead of inline object literals, preventing spurious re-renders of all context consumers on every parent render. `onConnectedAsViewer` callback also converted from an inline arrow to a `useCallback`.
+
 ### Fixed
 - **Reaction labels default to Agree/Disagree/Pass before server responds** — `ReactionCanvasParticipant` and `ReactionCanvasAppV4` now fall back to `REACTION_LABEL_PRESETS.default` when `serverLabels` is null, so labels are visible immediately on slow connections instead of appearing blank until the `connected` message arrives. Mirrors the existing `serverAnchors ?? DEFAULT_ANCHORS` pattern.
 - **ArrivalCanvas shows correct presence count immediately on mount** — after migrating to the shared `RoomSocketContext`, the panel missed the server's `presenceCount` message sent at socket-connect time (before the panel mounted). Now sends `getPresenceCount` on mount; server responds directly with the current count. New `getPresenceCount` case added to `party/server.ts`.
