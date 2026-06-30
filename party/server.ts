@@ -3,6 +3,7 @@ import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } fr
 import type { ReactionAnchors } from './lib/reactionRegion';
 import { SERVER_CURSOR_BATCH_MS } from '../app/utils/cursor';
 import { PLUGIN_MAP } from '../plugins/index';
+import { SCREEN_NAMES, LIFECYCLE_SCREEN } from '../app/screens';
 import type { PluginContext, PluginConnection } from '../plugins/types';
 import { getSoccerBallState, getSoccerScore } from '../plugins/soccer/server';
 import type {
@@ -28,7 +29,7 @@ export default class Server implements Party.Server {
   private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
   private roomAnchors: ReactionAnchors | null = null;
   private roomAvatarStyle: string | null = null;
-  private screenPanelsByName: Record<string, string> = { personal: 'canvas' };
+  private screenPanelsByName: Record<string, string> = Object.fromEntries(SCREEN_NAMES.map(n => [n, 'canvas']));
   private roomImageUrl: string = '';
   private nowLabel: string = '';
   private msgCount = 0;
@@ -219,7 +220,7 @@ private pluginStates = new Map<string, unknown>(
     const pluginCtx = this.makePluginContext();
     const pluginConn = this.makePluginConn(conn);
     for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
-      if (plugin.server) plugin.server.onConnect(pluginConn, pluginCtx, this.pluginStates.get(id), this.screenPanelsByName['personal'] ?? 'canvas');
+      if (plugin.server) plugin.server.onConnect(pluginConn, pluginCtx, this.pluginStates.get(id), this.screenPanelsByName[LIFECYCLE_SCREEN] ?? 'canvas');
     }
   }
 
@@ -278,7 +279,7 @@ private pluginStates = new Map<string, unknown>(
       const pluginCtx = this.makePluginContext();
       const pluginConn = this.makePluginConn(sender);
       for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
-        if (plugin.server?.onMessage(event.type, event, pluginConn, pluginCtx, this.pluginStates.get(id), this.screenPanelsByName['personal'] ?? 'canvas')) return;
+        if (plugin.server?.onMessage(event.type, event, pluginConn, pluginCtx, this.pluginStates.get(id), this.screenPanelsByName[LIFECYCLE_SCREEN] ?? 'canvas')) return;
       }
 
       switch (event.type) {
@@ -397,9 +398,10 @@ private pluginStates = new Map<string, unknown>(
     this.screenPanelsByName[screenName] = event.screenPanel;
     const ctx = this.makePluginContext();
 
-    // Plugin lifecycle hooks only fire for the personal screen — commons and any
-    // future screens share panels freely without server-side plugin activation.
-    if (screenName === 'personal') {
+    // Plugin lifecycle hooks fire only for the lifecycle screen. Panels that need
+    // activation (needsLifecycle) are barred from other screens client-side, so
+    // those screens share lifecycle-free panels without server-side activation.
+    if (screenName === LIFECYCLE_SCREEN) {
       const prevPlugin = PLUGIN_MAP[prevPanel];
       if (prevPlugin?.server) prevPlugin.server.onDeactivate(ctx, this.pluginStates.get(prevPanel));
 
@@ -408,12 +410,12 @@ private pluginStates = new Map<string, unknown>(
     }
 
     const soccerState = this.pluginStates.get('soccer');
-    const personalPanel = this.screenPanelsByName['personal'] ?? 'canvas';
+    const lifecyclePanel = this.screenPanelsByName[LIFECYCLE_SCREEN] ?? 'canvas';
     this.room.broadcast(JSON.stringify({
       type: 'screenPanelChanged',
       screenName,
       screenPanel: event.screenPanel,
-      ball: personalPanel === 'soccer' ? getSoccerBallState(soccerState) : null,
+      ball: lifecyclePanel === 'soccer' ? getSoccerBallState(soccerState) : null,
       score: getSoccerScore(soccerState),
     }));
   }
@@ -435,11 +437,11 @@ private pluginStates = new Map<string, unknown>(
       roomLabels: this.roomLabels,
       roomAnchors: this.roomAnchors,
       roomAvatarStyle: this.roomAvatarStyle,
-      currentScreenPanel: this.screenPanelsByName['personal'] ?? 'canvas',
+      currentScreenPanel: this.screenPanelsByName[LIFECYCLE_SCREEN] ?? 'canvas',
       currentScreenPanels: this.screenPanelsByName,
       roomImageUrl: this.roomImageUrl,
       nowLabel: this.nowLabel,
-      ballState: (this.screenPanelsByName['personal'] ?? 'canvas') === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
+      ballState: (this.screenPanelsByName[LIFECYCLE_SCREEN] ?? 'canvas') === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
       soccerScore: getSoccerScore(this.pluginStates.get('soccer')),
       isViewer,
       userCap: this.userCap,

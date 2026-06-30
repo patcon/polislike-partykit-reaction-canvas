@@ -5,6 +5,7 @@ import InterfaceChipBar from "../shared/InterfaceChipBar";
 import type { SocialConfig, ValenceInputMode } from "../../types";
 import { PANEL_REGISTRY } from "../../panelRegistry";
 import type { PanelDefinition } from "../../panelRegistry";
+import { SCREENS, isScreen } from "../../screens";
 import { PanelContextProvider } from "../../context/PanelContext";
 import { RoomSocketProvider, useMessageSubscription } from "../../contexts/RoomSocketContext";
 import { GreeterConfigProvider } from "../../../plugins/greeter/useGreeterConfig";
@@ -87,9 +88,11 @@ const HIDE_CHIP_BAR = new URLSearchParams(window.location.search).get('hideChipB
 function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
   const interfaces = ['personal'];
-  // emcee and commons are URL-privileged; all other standalone interfaces unlock via ?addInterface= (localStorage-backed)
+  // emcee and url-privileged screens unlock via ?interface=; all other standalone interfaces unlock via ?addInterface= (localStorage-backed)
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
-  if (p.get('interface') === 'commons') interfaces.push('commons');
+  for (const s of SCREENS) {
+    if (s.urlPrivileged && p.get('interface') === s.name && !interfaces.includes(s.name)) interfaces.push(s.name);
+  }
   try {
     const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
     if (Array.isArray(stored)) {
@@ -194,8 +197,6 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
 
   // Derived early so useCallback deps below can reference it (must still be before any early return)
   const isEmcee = unlockedInterfaces.includes('emcee');
-  const personalScreenPanel = screenPanels['personal'] ?? 'canvas';
-  const commonsScreenPanel  = screenPanels['commons']  ?? 'canvas';
   const isOrientationMode = valenceInputMode !== 'touch';
 
   const triggerBuzzForUpdate = useCallback(() => {
@@ -402,7 +403,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
 
   const showChipBar = !HIDE_CHIP_BAR && unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { personal: 'Push Screen', commons: 'Commons Screen', ...Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.shortLabel ?? p.label])) };
+  const KNOWN_CHIPS: Record<string, string> = { ...Object.fromEntries(SCREENS.map(s => [s.name, s.chipLabel])), ...Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.shortLabel ?? p.label])) };
   const panelContextValue = useMemo(() => ({ room, userId, inviteEdges }), [room, userId, inviteEdges]);
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
@@ -425,9 +426,8 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
           <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} />
         )}
         {(() => {
-          const panelId = ['personal', 'emcee', 'commons'].includes(activeInterface)
-            ? (activeInterface === 'personal' ? personalScreenPanel
-               : activeInterface === 'commons' ? commonsScreenPanel : null)
+          const panelId = isScreen(activeInterface) ? (screenPanels[activeInterface] ?? 'canvas')
+            : activeInterface === 'emcee' ? null
             : activeInterface;
           const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
           return ActivePanel ? <ActivePanel /> : null;
@@ -435,8 +435,8 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
         </GreeterConfigProvider>
         </SocialMediaConfigProvider>
       </PanelContextProvider>
-      {(activeInterface === 'personal' || activeInterface === 'commons') && (() => {
-        const activeScreenPanel = activeInterface === 'commons' ? commonsScreenPanel : personalScreenPanel;
+      {isScreen(activeInterface) && (() => {
+        const activeScreenPanel = screenPanels[activeInterface] ?? 'canvas';
         return !PANEL_COMPONENTS[activeScreenPanel] ? (
         <ImageCanvasConfigProvider value={imageCanvasConfigValue}>
         <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
