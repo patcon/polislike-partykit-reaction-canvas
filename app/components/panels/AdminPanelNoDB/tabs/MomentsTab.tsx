@@ -3,6 +3,7 @@ import { computeReactionRegion } from "../../../../utils/voteRegion";
 import type { ReactionAnchors, ReactionRegion } from "../../../../utils/voteRegion";
 import type { ReactionLabelSet } from "../../../../voteLabels";
 import { FLASH_TIMER_DEFAULT_SEC } from "../../../../utils/flashTimer";
+import { useLocalStorageState } from "../../../../hooks/useLocalStorageState";
 import type { MomentSnapshot } from "../types";
 
 interface MomentsTabProps {
@@ -36,8 +37,8 @@ function MomentsTabInner({
   editingMomentLabel, setEditingMomentLabel,
   snapMoment, startFlashTimer, importPolisCSV, activeLabels, activeAnchors, room,
 }: MomentsTabProps) {
-  const [flashEnabled, setFlashEnabled] = useState(false);
-  const [flashDuration, setFlashDuration] = useState(FLASH_TIMER_DEFAULT_SEC);
+  const [flashEnabled, setFlashEnabled] = useLocalStorageState('v4-flash-enabled', false);
+  const [flashDuration, setFlashDuration] = useLocalStorageState('v4-flash-duration', FLASH_TIMER_DEFAULT_SEC);
   const [commentsFile, setCommentsFile] = useState<File | null>(null);
   const [votesFile, setVotesFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
