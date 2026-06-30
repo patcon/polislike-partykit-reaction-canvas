@@ -166,8 +166,8 @@ export default function InterfacesTab({
                       <IoMdSettings />
                     </button>
                   ) : (
-                    <span style={{ color: '#444', lineHeight: 0, display: 'inline-flex', padding: 4 }} aria-hidden="true">
-                      <IoMdSettings size={14} />
+                    <span style={{ color: '#333', lineHeight: 0, display: 'inline-flex', padding: 4 }} aria-hidden="true">
+                      <IoMdSettings />
                     </span>
                   )}
                 </td>
