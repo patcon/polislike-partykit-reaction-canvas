@@ -310,7 +310,6 @@ private pluginStates = new Map<string, unknown>(
         case 'setColorCursorsByVote': this.handleSetColorCursorsByVote(event, sender); break;
         case 'registerCustomAvatar': this.handleRegisterCustomAvatar(event); break;
         case 'recordInvitations': this.handleRecordInvitations(event); break;
-        case 'getPresenceCount': this.handleGetPresenceCount(sender); break;
         case 'getState': this.handleGetState(sender); break;
       }
     } catch (e) {
@@ -458,12 +457,6 @@ private pluginStates = new Map<string, unknown>(
     )];
     this.sendCurrentState(sender, isViewer, vCount, connectedUserIds);
     const count = this.participantCount();
-    sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
-  }
-
-  private handleGetPresenceCount(sender: Party.Connection): void {
-    const count = this.participantCount();
-    const vCount = this.viewerCount();
     sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
   }
 

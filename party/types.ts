@@ -101,7 +101,6 @@ export interface ClearSignatureEvent     { type: 'clearSignature'; userId: strin
 
 
 export interface SetArrivalCapacityEvent { type: 'setArrivalCapacity'; capacity: number }
-export interface GetPresenceCountEvent   { type: 'getPresenceCount' }
 
 export interface NeighborEdgeEvent          { type: 'neighborEdge';       from: string; toCode: string }
 export interface RequestNeighborEdgesEvent  { type: 'requestNeighborEdges' }
@@ -121,6 +120,6 @@ export type ClientEvent =
   | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent
   | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent
   | ClearSignatureEvent
-  | SetArrivalCapacityEvent | GetPresenceCountEvent | GetStateEvent
+  | SetArrivalCapacityEvent | GetStateEvent
   | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent
   | SetLightColorEvent;
