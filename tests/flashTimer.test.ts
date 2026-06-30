@@ -4,6 +4,7 @@ import {
   normalizeFlashDuration,
   buildFlashTimerStart,
   buildFlashTimerStarted,
+  flashSecondsRemaining,
 } from '../app/utils/flashTimer';
 
 describe('normalizeFlashDuration', () => {
@@ -50,5 +51,17 @@ describe('buildFlashTimerStarted', () => {
       endTimestamp: 1_005_000,
       label: 'Round 1',
     });
+  });
+});
+
+describe('flashSecondsRemaining', () => {
+  it('rounds up partial seconds so the displayed count covers the full remaining time', () => {
+    expect(flashSecondsRemaining(1_004_200, 1_000_000)).toBe(5); // 4.2s left → show 5
+    expect(flashSecondsRemaining(1_005_000, 1_000_000)).toBe(5); // exactly 5s left
+  });
+
+  it('clamps to zero once the deadline has passed', () => {
+    expect(flashSecondsRemaining(1_000_000, 1_000_000)).toBe(0);
+    expect(flashSecondsRemaining(1_000_000, 1_009_000)).toBe(0);
   });
 });

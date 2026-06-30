@@ -38,3 +38,8 @@ export interface FlashTimerStartedMessage {
 export function buildFlashTimerStarted(endTimestamp: number, label: string): FlashTimerStartedMessage {
   return { type: 'flashTimerStarted', endTimestamp, label };
 }
+
+/** Whole seconds left until `endTimestamp`, rounded up and clamped at 0. Each client ticks this from its own clock. */
+export function flashSecondsRemaining(endTimestamp: number, now: number): number {
+  return Math.max(0, Math.ceil((endTimestamp - now) / 1000));
+}

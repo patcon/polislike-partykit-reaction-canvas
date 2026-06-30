@@ -768,3 +768,23 @@
   }
 }
 
+
+/* Flash-timer countdown — large centered overlay shown on every canvas while a snap is scheduled. */
+.flash-countdown-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.flash-countdown-number {
+  font-size: clamp(64px, 22vw, 220px);
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+  font-variant-numeric: tabular-nums;
+}
