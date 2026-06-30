@@ -8,7 +8,7 @@ export function useRoomConfig(socket: PartySocket) {
   const [defaultCursorColor, setDefaultCursorColor] = useState<string>('#d4d4d4');
   const [ownValenceDisplay, setOwnValenceDisplay] = useState<'background' | 'labels' | 'none'>('labels');
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
-  const [screenPanel, setScreenPanel]               = useState<string>('canvas');
+  const [screenPanels, setScreenPanels]              = useState<Record<string, string>>({ personal: 'canvas', commons: 'canvas' });
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false);
   const [showNowLabelOnCanvas, setShowNowLabelOnCanvas] = useState(() =>
     localStorage.getItem('v4-showNowLabelOnCanvas') === 'true'
@@ -41,9 +41,9 @@ export function useRoomConfig(socket: PartySocket) {
     socket.send(JSON.stringify({ type: 'setValenceInputMode', mode }));
   };
 
-  const sendScreenPanel = (act: string) => {
-    setScreenPanel(act);
-    socket.send(JSON.stringify({ type: 'setScreenPanel', screenPanel: act }));
+  const sendScreenPanel = (screenName: string, act: string) => {
+    setScreenPanels(prev => ({ ...prev, [screenName]: act }));
+    socket.send(JSON.stringify({ type: 'setScreenPanel', screenName, screenPanel: act }));
   };
 
   const sendUserCap = (inputValue: string) => {
@@ -58,7 +58,11 @@ export function useRoomConfig(socket: PartySocket) {
     if ('defaultCursorColor' in data && data.defaultCursorColor) setDefaultCursorColor(data.defaultCursorColor as string);
     if ('ownValenceDisplay' in data && data.ownValenceDisplay) setOwnValenceDisplay(data.ownValenceDisplay as 'background' | 'labels' | 'none');
     if ('valenceInputMode' in data && data.valenceInputMode) setValenceInputMode(data.valenceInputMode as ValenceInputMode);
-    if ('currentScreenPanel' in data) setScreenPanel((data.currentScreenPanel as string) ?? 'canvas');
+    if ('currentScreenPanels' in data && data.currentScreenPanels && typeof data.currentScreenPanels === 'object') {
+      setScreenPanels(prev => ({ ...prev, ...(data.currentScreenPanels as Record<string, string>) }));
+    } else if ('currentScreenPanel' in data) {
+      setScreenPanels(prev => ({ ...prev, personal: (data.currentScreenPanel as string) ?? 'canvas' }));
+    }
     if (data.userCap !== undefined) {
       setUserCap(data.userCap as number | null);
       setCapInput(data.userCap !== null ? String(data.userCap) : '');
@@ -73,7 +77,8 @@ export function useRoomConfig(socket: PartySocket) {
     } else if (data.type === 'roomAvatarStyleChanged') {
       setAvatarStyle((data.avatarStyle as string | null) ?? null);
     } else if (data.type === 'screenPanelChanged') {
-      setScreenPanel((data.screenPanel as string) ?? 'canvas');
+      const screenName = (data.screenName as string) ?? 'personal';
+      setScreenPanels(prev => ({ ...prev, [screenName]: (data.screenPanel as string) ?? 'canvas' }));
     } else if (data.type === 'userCapChanged') {
       setUserCap(data.cap as number | null);
       setCapInput(data.cap !== null ? String(data.cap) : '');
@@ -90,7 +95,7 @@ export function useRoomConfig(socket: PartySocket) {
     sendColorCursorsByVote,
     defaultCursorColor, setDefaultCursorColor,
     sendDefaultCursorColor,
-    screenPanel, setScreenPanel,
+    screenPanels, setScreenPanels,
     userCap, setUserCap,
     capInput, setCapInput,
     sendAvatarStyle,

@@ -82,11 +82,14 @@ const PUSHED_INTERFACES_KEY = 'v4-pushed-interfaces';
   history.replaceState(null, '', `?${p}${window.location.hash}`);
 })();
 
+const HIDE_CHIP_BAR = new URLSearchParams(window.location.search).get('hideChipBar') === 'true';
+
 function getUnlockedInterfaces(): string[] {
   const p = new URLSearchParams(window.location.search);
   const interfaces = ['personal'];
-  // Only emcee is URL-privileged; all other standalone interfaces unlock via ?addInterface= (localStorage-backed)
+  // emcee and commons are URL-privileged; all other standalone interfaces unlock via ?addInterface= (localStorage-backed)
   if (p.get('interface') === 'emcee') interfaces.push('emcee');
+  if (p.get('interface') === 'commons') interfaces.push('commons');
   try {
     const stored = JSON.parse(localStorage.getItem(PUSHED_INTERFACES_KEY) ?? '[]');
     if (Array.isArray(stored)) {
@@ -170,7 +173,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
   const [serverImageUrl, setServerImageUrl] = useState('');
   const [serverSocialConfig, setServerSocialConfig] = useState<SocialConfig | null>(null);
   const [serverGreeterConfig, setServerGreeterConfig] = useState<GreeterConfig | null>(null);
-  const [screenPanels, setScreenPanels] = useState<Record<string, string>>({ personal: 'canvas' });
+  const [screenPanels, setScreenPanels] = useState<Record<string, string>>({ personal: 'canvas', commons: 'canvas' });
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
   const [orientationPermission, setOrientationPermission] = useState<'unknown' | 'granted' | 'denied' | 'not-required'>('unknown');
   const [connectedUserIds, setConnectedUserIds] = useState<string[]>([]);
@@ -192,6 +195,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
   // Derived early so useCallback deps below can reference it (must still be before any early return)
   const isEmcee = unlockedInterfaces.includes('emcee');
   const personalScreenPanel = screenPanels['personal'] ?? 'canvas';
+  const commonsScreenPanel  = screenPanels['commons']  ?? 'canvas';
   const isOrientationMode = valenceInputMode !== 'touch';
 
   const triggerBuzzForUpdate = useCallback(() => {
@@ -223,11 +227,16 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
     try {
       const data = JSON.parse(evt.data);
       if (data.type === 'screenPanelChanged') {
-        if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
-        setScreenPanels(prev => ({ ...prev, personal: data.screenPanel ?? 'canvas' }));
+        const screenName = (data.screenName as string) ?? 'personal';
+        if (hasConnectedRef.current && !isEmcee && unlockedInterfaces.includes(screenName)) triggerBuzzForUpdate();
+        setScreenPanels(prev => ({ ...prev, [screenName]: (data.screenPanel as string) ?? 'canvas' }));
       }
-      if (data.type === 'connected' && 'currentScreenPanel' in data) {
-        setScreenPanels(prev => ({ ...prev, personal: data.currentScreenPanel ?? 'canvas' }));
+      if (data.type === 'connected') {
+        if ('currentScreenPanels' in data && data.currentScreenPanels && typeof data.currentScreenPanels === 'object') {
+          setScreenPanels(prev => ({ ...prev, ...(data.currentScreenPanels as Record<string, string>) }));
+        } else if ('currentScreenPanel' in data) {
+          setScreenPanels(prev => ({ ...prev, personal: (data.currentScreenPanel as string) ?? 'canvas' }));
+        }
       }
       if (data.type === 'interfacePushed') {
         setPushedInterface(data.interfaceName);
@@ -391,9 +400,9 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
   const urlLabelParam = getLabelsParamFromUrl();
   const labels = urlLabelParam ? getReactionLabelSet(urlLabelParam) : (serverLabels ?? REACTION_LABEL_PRESETS.default);
 
-  const showChipBar = unlockedInterfaces.length >= 2;
+  const showChipBar = !HIDE_CHIP_BAR && unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS: Record<string, string> = { personal: 'Push Screen', ...Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.shortLabel ?? p.label])) };
+  const KNOWN_CHIPS: Record<string, string> = { personal: 'Push Screen', commons: 'Commons Screen', ...Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.shortLabel ?? p.label])) };
   const panelContextValue = useMemo(() => ({ room, userId, inviteEdges }), [room, userId, inviteEdges]);
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
@@ -416,36 +425,39 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
           <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} />
         )}
         {(() => {
-          const panelId = activeInterface !== 'personal' && activeInterface !== 'emcee'
-            ? activeInterface
-            : activeInterface === 'personal' ? personalScreenPanel : null;
+          const panelId = ['personal', 'emcee', 'commons'].includes(activeInterface)
+            ? (activeInterface === 'personal' ? personalScreenPanel
+               : activeInterface === 'commons' ? commonsScreenPanel : null)
+            : activeInterface;
           const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
           return ActivePanel ? <ActivePanel /> : null;
         })()}
         </GreeterConfigProvider>
         </SocialMediaConfigProvider>
       </PanelContextProvider>
-      {activeInterface === 'personal' && !PANEL_COMPONENTS[personalScreenPanel] && (
-      <ImageCanvasConfigProvider value={imageCanvasConfigValue}>
-      <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
-          <ReactionCanvasParticipant
-            room={room}
-            userId={userId}
-            selfChain={selfChain}
-            debug={debug}
-            heightOffset={chipBarOffset}
-            labelsOverride={labels}
-            showLabels={personalScreenPanel === 'canvas'}
-            disableCursorValence={!!PLUGIN_MAP[personalScreenPanel]?.canvasOverlay?.canvasProps?.disableCursorValence}
-            disableBackgroundValence={!!PLUGIN_MAP[personalScreenPanel]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
-            currentReactionState={canvasBackgroundReactionState}
-            onBackgroundColorChange={setCanvasBackgroundReactionState}
-            touchPos={touchPos}
-            onTouchPosition={setTouchPos}
-            touchDisabled={valenceInputMode !== 'touch'}
-            hideTouchLayer={isViewer || personalScreenPanel === 'social-sharing' || personalScreenPanel === 'greeter' || personalScreenPanel === 'signature'}
-            touchImageUrl={PLUGIN_MAP[personalScreenPanel]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
-            backgroundOverlay={(() => { const Bg = PLUGIN_MAP[personalScreenPanel]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
+      {(activeInterface === 'personal' || activeInterface === 'commons') && (() => {
+        const activeScreenPanel = activeInterface === 'commons' ? commonsScreenPanel : personalScreenPanel;
+        return !PANEL_COMPONENTS[activeScreenPanel] ? (
+        <ImageCanvasConfigProvider value={imageCanvasConfigValue}>
+        <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
+            <ReactionCanvasParticipant
+              room={room}
+              userId={userId}
+              selfChain={selfChain}
+              debug={debug}
+              heightOffset={chipBarOffset}
+              labelsOverride={labels}
+              showLabels={activeScreenPanel === 'canvas'}
+              disableCursorValence={!!PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.canvasProps?.disableCursorValence}
+              disableBackgroundValence={!!PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.canvasProps?.disableBackgroundValence}
+              currentReactionState={canvasBackgroundReactionState}
+              onBackgroundColorChange={setCanvasBackgroundReactionState}
+              touchPos={touchPos}
+              onTouchPosition={setTouchPos}
+              touchDisabled={valenceInputMode !== 'touch'}
+              hideTouchLayer={isViewer || activeScreenPanel === 'social-sharing' || activeScreenPanel === 'greeter' || activeScreenPanel === 'signature'}
+              touchImageUrl={PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.background ? (serverImageUrl || undefined) : undefined}
+              backgroundOverlay={(() => { const Bg = PLUGIN_MAP[activeScreenPanel]?.canvasOverlay?.background; return Bg ? <Bg /> : null; })()}
             bannerSlot={isViewer ? (
               <div className="viewer-mode-banner">
                 This room is full — you are watching in view-only mode.
@@ -526,10 +538,11 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
             onConnectedUsers={(ids) => setConnectedUserIds(ids)}
             onUserJoined={(uid) => setConnectedUserIds(prev => prev.includes(uid) ? prev : [...prev, uid])}
             onUserLeft={(uid) => setConnectedUserIds(prev => prev.filter(id => id !== uid))}
-          />
-        </div>
-      </ImageCanvasConfigProvider>
-      )}
+            />
+          </div>
+        </ImageCanvasConfigProvider>
+        ) : null;
+      })()}
       {showGithubModal && (
         <GithubUsernameModal
           onSubmit={(username, displayName, avatarUrl) => {
