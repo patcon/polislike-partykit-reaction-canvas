@@ -49,13 +49,13 @@ describe('CursorField socket behaviour', () => {
     expect(onPresenceCount).toHaveBeenCalledWith(42)
   })
 
-  it('calls onConnected with inviteEdges and currentActivity from connected message', () => {
+  it('calls onConnected with inviteEdges and currentScreenPanel from connected message', () => {
     const onConnected = vi.fn()
     renderWithProvider(<CursorField userId="user1" onConnected={onConnected} />)
     act(() => emitMessage({
       type: 'connected',
       inviteEdges: { user2: 'user1' },
-      currentActivity: 'canvas',
+      currentScreenPanel: 'canvas',
     }))
     expect(onConnected).toHaveBeenCalledWith({ user2: 'user1' }, 'canvas')
   })

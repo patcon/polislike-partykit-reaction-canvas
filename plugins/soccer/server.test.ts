@@ -26,7 +26,7 @@ describe('SoccerServerPlugin', () => {
     expect(handled).toBe(false);
   });
 
-  it('onConnect sends ballState when currentActivity is soccer', () => {
+  it('onConnect sends ballState when currentScreenPanel is soccer', () => {
     const state = SoccerServerPlugin.createState();
     const ctx = makeCtx();
     const conn = makeConn();
@@ -36,7 +36,7 @@ describe('SoccerServerPlugin', () => {
     expect(msg.type).toBe('ballState');
   });
 
-  it('onConnect sends nothing when currentActivity is not soccer', () => {
+  it('onConnect sends nothing when currentScreenPanel is not soccer', () => {
     const state = SoccerServerPlugin.createState();
     const ctx = makeCtx();
     const conn = makeConn();

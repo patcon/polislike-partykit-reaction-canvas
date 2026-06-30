@@ -56,7 +56,7 @@ export interface ReactionCanvasParticipantProps {
 
   // server-state FORWARD callbacks (all optional)
   onSocketReady?: (send: (msg: string) => void) => void;
-  onConnected?: (initialInviteEdges?: Record<string, string>, currentActivity?: string) => void;
+  onConnected?: (initialInviteEdges?: Record<string, string>, currentScreenPanel?: string) => void;
   onRoomLabelsChange?: (labels: ReactionLabelSet | null) => void;
   onRoomAnchorsChange?: (anchors: ReactionAnchors | null) => void;
   onRoomImageUrlChange?: (url: string) => void;

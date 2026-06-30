@@ -27,7 +27,7 @@ export interface ServerPlugin<S> {
   /** Return initial server-side state for this plugin. Called once on room start. */
   createState(): S;
   /** Called when a client connects. Use conn.send() to push current state to the new client. */
-  onConnect(conn: PluginConnection, ctx: PluginContext, state: S, currentActivity: string): void;
+  onConnect(conn: PluginConnection, ctx: PluginContext, state: S, currentScreenPanel: string): void;
   /**
    * Called before the main server switch for every incoming message.
    * Return true if handled (stops further processing), false to fall through.
@@ -38,7 +38,7 @@ export interface ServerPlugin<S> {
     conn: PluginConnection,
     ctx: PluginContext,
     state: S,
-    currentActivity: string,
+    currentScreenPanel: string,
   ): boolean;
   /** Called when this plugin's activity ID becomes the active activity. */
   onActivate(ctx: PluginContext, state: S): void;

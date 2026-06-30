@@ -129,7 +129,7 @@ export const ImageCanvas: Story = {
     );
   },
   play: async () => {
-    emitToRoom('storybook-canvas', { type: 'activityChanged', activity: 'image-canvas' });
+    emitToRoom('storybook-canvas', { type: 'screenPanelChanged', screenPanel: 'image-canvas' });
     emitToRoom('storybook-canvas', { type: 'imageUrlChanged', url: 'https://pbs.twimg.com/media/DY_tjS0WsAADhmT.jpg' });
   },
 };

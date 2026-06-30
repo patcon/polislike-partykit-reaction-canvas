@@ -106,7 +106,7 @@ export const CustomAnchors: Story = {
 export const SoccerActivity: Story = {
   args: { ...baseArgs },
   play: async () => {
-    emitToRoom('storybook', { type: 'activityChanged', activity: 'soccer' });
+    emitToRoom('storybook', { type: 'screenPanelChanged', screenPanel: 'soccer' });
   },
 };
 
