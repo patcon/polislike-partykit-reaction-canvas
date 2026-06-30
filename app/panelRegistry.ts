@@ -1,7 +1,7 @@
 import type React from 'react';
 import { PLUGINS } from '../plugins/index';
 
-export const SOLO_SCREEN_LABEL = 'Canvas';
+export const SOLO_SCREEN_LABEL = 'Personal';
 
 export interface PanelMeta {
   id: string;

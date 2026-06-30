@@ -3,7 +3,7 @@ import ReactionCanvasParticipant from "../shared/ReactionCanvasParticipant";
 import AdminPanelNoDB from "../panels/AdminPanelNoDB";
 import InterfaceChipBar from "../shared/InterfaceChipBar";
 import type { SocialConfig, ValenceInputMode } from "../../types";
-import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../panelRegistry";
+import { PANEL_REGISTRY } from "../../panelRegistry";
 import type { PanelDefinition } from "../../panelRegistry";
 import { PanelContextProvider } from "../../context/PanelContext";
 import { RoomSocketProvider, useMessageSubscription } from "../../contexts/RoomSocketContext";
@@ -393,7 +393,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
 
   const showChipBar = unlockedInterfaces.length >= 2;
   const chipBarOffset = showChipBar ? CHIP_BAR_HEIGHT : 0;
-  const KNOWN_CHIPS = Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.id === 'personal' ? SOLO_SCREEN_LABEL : (p.shortLabel ?? p.label)]));
+  const KNOWN_CHIPS: Record<string, string> = { personal: 'Push Screen', ...Object.fromEntries(PANEL_REGISTRY.map(p => [p.id, p.shortLabel ?? p.label])) };
   const panelContextValue = useMemo(() => ({ room, userId, inviteEdges }), [room, userId, inviteEdges]);
   const INTERFACE_CHIPS = unlockedInterfaces.map(key => ({
     key,
