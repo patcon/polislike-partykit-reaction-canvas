@@ -227,8 +227,8 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
     try {
       const data = JSON.parse(evt.data);
       if (data.type === 'screenPanelChanged') {
-        if (hasConnectedRef.current && !isEmcee) triggerBuzzForUpdate();
         const screenName = (data.screenName as string) ?? 'personal';
+        if (hasConnectedRef.current && !isEmcee && unlockedInterfaces.includes(screenName)) triggerBuzzForUpdate();
         setScreenPanels(prev => ({ ...prev, [screenName]: (data.screenPanel as string) ?? 'canvas' }));
       }
       if (data.type === 'connected') {
