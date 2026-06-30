@@ -8,6 +8,7 @@ const soccerPlugin: PanelPlugin = {
   description: 'Top-down physics ball — kick with your cursor',
   canStandalone: false,
   canScreenMount: true,
+  needsLifecycle: true,
   configModal: SoccerConfigModal,
   server: SoccerServerPlugin,
 };

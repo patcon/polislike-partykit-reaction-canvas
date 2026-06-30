@@ -88,6 +88,8 @@ export interface PanelPlugin<S = unknown> {
   description: string;
   canStandalone: boolean;
   canScreenMount: boolean;
+  /** Requires server lifecycle activation (onActivate). Can only mount on a lifecycle screen. */
+  needsLifecycle?: boolean;
   /** Panel-mode: React component rendered in the chip bar / activity overlay. */
   component?: React.ComponentType;
   /** Canvas-mode: configures the always-mounted canvas container instead of replacing it. */

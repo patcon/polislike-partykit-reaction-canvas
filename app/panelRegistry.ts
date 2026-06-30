@@ -10,6 +10,8 @@ export interface PanelMeta {
   description: string;
   canStandalone: boolean;
   canScreenMount: boolean;
+  /** Requires server lifecycle activation (onActivate). Can only mount on a lifecycle screen. */
+  needsLifecycle?: boolean;
   /** True if the panel requires a secure context (HTTPS/localhost). Shown as a warning in the Interfaces tab on HTTP. */
   requiresHttps?: boolean;
 }
