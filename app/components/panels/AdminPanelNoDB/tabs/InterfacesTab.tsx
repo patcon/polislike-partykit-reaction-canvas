@@ -160,14 +160,15 @@ export default function InterfacesTab({
                   {hasConfig ? (
                     <button
                       className="image-canvas-config-link"
+                      style={{ marginLeft: 0, padding: 4 }}
                       onClick={e => { e.preventDefault(); id === 'canvas' ? setCanvasSettingsOpen(true) : setActiveConfigPlugin(id); }}
                       aria-label={`Configure ${label}`}
                     >
-                      <IoMdSettings />
+                      <IoMdSettings size={15} />
                     </button>
                   ) : (
                     <span style={{ color: '#333', lineHeight: 0, display: 'inline-flex', padding: 4 }} aria-hidden="true">
-                      <IoMdSettings />
+                      <IoMdSettings size={15} />
                     </span>
                   )}
                 </td>
