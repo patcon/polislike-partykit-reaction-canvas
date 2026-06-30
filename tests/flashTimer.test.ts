@@ -1,0 +1,43 @@
+import { describe, it, expect } from 'vitest';
+import {
+  FLASH_TIMER_DEFAULT_SEC,
+  normalizeFlashDuration,
+  buildFlashTimerStart,
+} from '../app/utils/flashTimer';
+
+describe('normalizeFlashDuration', () => {
+  it('passes through a valid positive duration', () => {
+    expect(normalizeFlashDuration(8)).toBe(8);
+  });
+
+  it('floors fractional seconds to whole seconds', () => {
+    expect(normalizeFlashDuration(5.9)).toBe(5);
+  });
+
+  it('falls back to the default for non-positive or non-numeric input', () => {
+    expect(normalizeFlashDuration(0)).toBe(FLASH_TIMER_DEFAULT_SEC);
+    expect(normalizeFlashDuration(-3)).toBe(FLASH_TIMER_DEFAULT_SEC);
+    expect(normalizeFlashDuration(NaN)).toBe(FLASH_TIMER_DEFAULT_SEC);
+    expect(normalizeFlashDuration(undefined as unknown as number)).toBe(FLASH_TIMER_DEFAULT_SEC);
+  });
+});
+
+describe('buildFlashTimerStart', () => {
+  it('builds a startFlashTimer message with an absolute endTimestamp', () => {
+    const msg = buildFlashTimerStart(5, 'Round 1', 1_000_000);
+    expect(msg).toEqual({
+      type: 'startFlashTimer',
+      endTimestamp: 1_005_000,
+      label: 'Round 1',
+    });
+  });
+
+  it('normalizes the duration before computing endTimestamp', () => {
+    const msg = buildFlashTimerStart(0, '', 1_000_000);
+    expect(msg.endTimestamp).toBe(1_000_000 + FLASH_TIMER_DEFAULT_SEC * 1000);
+  });
+
+  it('trims the label', () => {
+    expect(buildFlashTimerStart(5, '  hi  ', 0).label).toBe('hi');
+  });
+});

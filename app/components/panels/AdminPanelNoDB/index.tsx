@@ -366,6 +366,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
             editingMomentLabel={participants.editingMomentLabel}
             setEditingMomentLabel={participants.setEditingMomentLabel}
             snapMoment={participants.snapMoment}
+            startFlashTimer={participants.startFlashTimer}
             importPolisCSV={participants.importPolisCSV}
             activeLabels={labels.activeLabels}
             activeAnchors={anchors.activeAnchors}

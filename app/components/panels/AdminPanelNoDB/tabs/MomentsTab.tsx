@@ -2,6 +2,7 @@ import { memo, useState } from "react";
 import { computeReactionRegion } from "../../../../utils/voteRegion";
 import type { ReactionAnchors, ReactionRegion } from "../../../../utils/voteRegion";
 import type { ReactionLabelSet } from "../../../../voteLabels";
+import { FLASH_TIMER_DEFAULT_SEC } from "../../../../utils/flashTimer";
 import type { MomentSnapshot } from "../types";
 
 interface MomentsTabProps {
@@ -19,6 +20,7 @@ interface MomentsTabProps {
   editingMomentLabel: string;
   setEditingMomentLabel: (v: string) => void;
   snapMoment: () => void;
+  startFlashTimer: (durationSec: number) => void;
   importPolisCSV: (commentsFile: File, votesFile: File) => Promise<void>;
   activeLabels: ReactionLabelSet;
   activeAnchors: ReactionAnchors;
@@ -32,8 +34,10 @@ function MomentsTabInner({
   expandedMoments, setExpandedMoments,
   editingMomentId, setEditingMomentId,
   editingMomentLabel, setEditingMomentLabel,
-  snapMoment, importPolisCSV, activeLabels, activeAnchors, room,
+  snapMoment, startFlashTimer, importPolisCSV, activeLabels, activeAnchors, room,
 }: MomentsTabProps) {
+  const [flashEnabled, setFlashEnabled] = useState(false);
+  const [flashDuration, setFlashDuration] = useState(FLASH_TIMER_DEFAULT_SEC);
   const [commentsFile, setCommentsFile] = useState<File | null>(null);
   const [votesFile, setVotesFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
@@ -138,11 +142,24 @@ function MomentsTabInner({
             })}
           </div>
         )}
+        <label style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 12px', fontSize: 12, color: '#9c9' }}>
+          <input type="checkbox" checked={flashEnabled} onChange={e => setFlashEnabled(e.target.checked)} />
+          Flash timer
+          <input
+            type="number"
+            min={1}
+            value={flashDuration}
+            disabled={!flashEnabled}
+            onChange={e => setFlashDuration(Number(e.target.value))}
+            style={{ width: 48, background: '#1e3828', color: '#eee', border: '1px solid #2a6040', padding: '2px 4px', borderRadius: 3, opacity: flashEnabled ? 1 : 0.5 }}
+          />
+          sec
+        </label>
         <button
-          onClick={snapMoment}
+          onClick={() => flashEnabled ? startFlashTimer(flashDuration) : snapMoment()}
           style={{ display: 'block', width: '100%', padding: '12px', background: '#1a7a3c', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
         >
-          Snap Moment
+          {flashEnabled ? `Snap in ${flashDuration}s` : 'Snap Moment'}
         </button>
       </div>
 
