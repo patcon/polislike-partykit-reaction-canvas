@@ -2,14 +2,13 @@ import { useState } from "react";
 import { IoMdSettings } from "react-icons/io";
 import { FaCheckCircle, FaCircle } from "react-icons/fa";
 import QRWithCopy from '../../../shared/QRWithCopy';
-import type { ActivityMode } from "../../../../types";
 import { appendSelfToChain } from "../../../../utils/inviteChain";
 import { PANEL_REGISTRY, SOLO_SCREEN_LABEL } from "../../../../panelRegistry";
 import { PLUGIN_MAP } from "../../../../../plugins/index";
 
 interface InterfacesTabProps {
-  activity: ActivityMode;
-  sendActivity: (act: ActivityMode) => void;
+  screenPanel: string;
+  sendScreenPanel: (act: string) => void;
   setCanvasSettingsOpen: (v: boolean) => void;
   setActiveConfigPlugin: (id: string) => void;
   onClearRoleAssignments: () => void;
@@ -39,8 +38,8 @@ function getPatchUrl(interfaceName: string, userId?: string, selfChain?: string[
 
 
 export default function InterfacesTab({
-  activity,
-  sendActivity,
+  screenPanel,
+  sendScreenPanel,
   setCanvasSettingsOpen,
   setActiveConfigPlugin,
   onClearRoleAssignments, userId, selfChain,
@@ -64,14 +63,14 @@ export default function InterfacesTab({
         </thead>
         <tbody>
           {PANEL_REGISTRY.map(({ id, label, description, canStandalone, canScreenMount, requiresHttps }) => {
-            const isActive = activity === id;
+            const isActive = screenPanel === id;
             return (
               <tr key={id} style={{ borderTop: '1px solid #2a2a2a' }}>
                 {/* Description */}
                 <td style={{ padding: '10px 8px 10px 0' }}>
                   <span style={{ fontWeight: isActive ? 600 : 400, color: isActive ? '#eee' : '#bbb' }}>{label}</span>
                   <span style={{ color: '#666', marginLeft: 8 }}>{description}</span>
-                  {id === 'canvas' && (
+                  {id === 'personal' && (
                     <button className="image-canvas-config-link" onClick={e => { e.preventDefault(); setCanvasSettingsOpen(true); }}><IoMdSettings /></button>
                   )}
                   {requiresHttps && !window.isSecureContext && (
@@ -85,7 +84,7 @@ export default function InterfacesTab({
                 <td style={{ textAlign: 'center', padding: '10px 8px' }}>
                   {canScreenMount ? (
                     <button
-                      onClick={() => sendActivity(id as ActivityMode)}
+                      onClick={() => sendScreenPanel(id as string)}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 0, color: isActive ? '#eee' : '#555' }}
                       aria-label={`Switch to ${label}`}
                       aria-pressed={isActive}

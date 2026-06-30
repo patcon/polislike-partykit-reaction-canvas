@@ -17,7 +17,7 @@ export interface PanelMeta {
 
 export const PANEL_REGISTRY: PanelMeta[] = [
   { id: 'emcee',        type: 'panel',  label: 'Emcee',           description: 'Event host controls and tools',  canStandalone: true,  canScreenMount: false },
-  { id: 'canvas',       type: 'screen', label: 'Reaction Canvas', description: 'Standard reaction canvas',       canStandalone: false, canScreenMount: true  },
+  { id: 'personal',     type: 'screen', label: 'Reaction Canvas', description: 'Standard reaction canvas',       canStandalone: false, canScreenMount: true  },
   ...PLUGINS,
 ];
 

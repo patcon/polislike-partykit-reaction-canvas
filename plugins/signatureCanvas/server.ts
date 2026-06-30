@@ -6,7 +6,7 @@ export const signatureServer: ServerPlugin<Record<string, never>> = {
   onActivate(_ctx: PluginContext, _state: Record<string, never>) {},
   onDeactivate(_ctx: PluginContext, _state: Record<string, never>) {},
 
-  onMessage(type: string, payload: unknown, _conn: PluginConnection, ctx: PluginContext, _state: Record<string, never>, _currentActivity: string): boolean {
+  onMessage(type: string, payload: unknown, _conn: PluginConnection, ctx: PluginContext, _state: Record<string, never>, _currentScreenPanel: string): boolean {
     if (type === 'strokeSegment') {
       ctx.broadcast(JSON.stringify({ type: 'strokeSegment', ...(payload as object) }));
       return true;

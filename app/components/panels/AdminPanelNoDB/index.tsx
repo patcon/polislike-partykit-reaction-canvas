@@ -304,8 +304,8 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
         )}
         {activeTab === 'interfaces' && (
           <InterfacesTab
-            activity={roomConfig.activity}
-            sendActivity={roomConfig.sendActivity}
+            screenPanel={roomConfig.screenPanel}
+            sendScreenPanel={roomConfig.sendScreenPanel}
             setCanvasSettingsOpen={roomConfig.setCanvasSettingsOpen}
             setActiveConfigPlugin={setActiveConfigPluginId}
             onClearRoleAssignments={() => socket.send(JSON.stringify({ type: 'clearPushedInterfaces' }))}

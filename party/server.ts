@@ -1,5 +1,4 @@
 import type * as Party from "partykit/server";
-import type { ActivityMode } from "../app/types";
 import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } from './lib/reactionRegion';
 import type { ReactionAnchors } from './lib/reactionRegion';
 import { SERVER_CURSOR_BATCH_MS } from '../app/utils/cursor';
@@ -10,7 +9,7 @@ import type {
   CursorEvent, PersistedState, ClientEvent,
   PlaybackCursorBroadcastEvent,
   SetTimecodeEvent, SetRecordingStateEvent, SetRoomLabelsEvent, SetRoomAnchorsEvent,
-  SetRoomAvatarStyleEvent, SetActivityEvent, SetNowLabelEvent, SetImageUrlEvent,
+  SetRoomAvatarStyleEvent, SetScreenPanelEvent, SetNowLabelEvent, SetImageUrlEvent,
   SetUserCapEvent, TriggerActivityEvent, SubmitGithubUsernameEvent, SubmitFeedbackStarsEvent,
   SetSocialConfigEvent, SetGreeterConfigEvent, PushInterfaceEvent, AcceptInterfaceEvent,
   PushHapticEvent, RegisterCustomAvatarEvent, SetColorCursorsByVoteEvent,
@@ -29,7 +28,7 @@ export default class Server implements Party.Server {
   private roomLabels: { positive: string; negative: string; neutral: string } | null = { positive: 'Agree', negative: 'Disagree', neutral: 'Pass' };
   private roomAnchors: ReactionAnchors | null = null;
   private roomAvatarStyle: string | null = null;
-  private currentActivity: ActivityMode = 'canvas';
+  private currentScreenPanel: string = 'canvas';
   private roomImageUrl: string = '';
   private nowLabel: string = '';
   private msgCount = 0;
@@ -216,35 +215,12 @@ private pluginStates = new Map<string, unknown>(
     )];
 
     // Send welcome message with current state
-    conn.send(JSON.stringify({
-      type: 'connected',
-      connectionId: conn.id,
-      timecode: this.savedTimecode,
-      recordingState: this.recordingState,
-      roomLabels: this.roomLabels,
-      roomAnchors: this.roomAnchors,
-      roomAvatarStyle: this.roomAvatarStyle,
-      currentActivity: this.currentActivity,
-      roomImageUrl: this.roomImageUrl,
-      nowLabel: this.nowLabel,
-      ballState: this.currentActivity === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
-      soccerScore: getSoccerScore(this.pluginStates.get('soccer')),
-      isViewer,
-      userCap: this.userCap,
-      viewerCount: vCount,
-      connectedUserIds,
-      inviteEdges: Object.fromEntries(this.inviteEdges),
-      customAvatars: Object.fromEntries(this.customAvatars),
-      colorCursorsByVote: this.colorCursorsByVote,
-      defaultCursorColor: this.defaultCursorColor,
-      ownValenceDisplay: this.ownValenceDisplay,
-      valenceInputMode: this.valenceInputMode,
-    }));
+    this.sendCurrentState(conn, isViewer, vCount, connectedUserIds);
 
     const pluginCtx = this.makePluginContext();
     const pluginConn = this.makePluginConn(conn);
     for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
-      if (plugin.server) plugin.server.onConnect(pluginConn, pluginCtx, this.pluginStates.get(id), this.currentActivity);
+      if (plugin.server) plugin.server.onConnect(pluginConn, pluginCtx, this.pluginStates.get(id), this.currentScreenPanel);
     }
   }
 
@@ -303,7 +279,7 @@ private pluginStates = new Map<string, unknown>(
       const pluginCtx = this.makePluginContext();
       const pluginConn = this.makePluginConn(sender);
       for (const [id, plugin] of Object.entries(PLUGIN_MAP)) {
-        if (plugin.server?.onMessage(event.type, event, pluginConn, pluginCtx, this.pluginStates.get(id), this.currentActivity)) return;
+        if (plugin.server?.onMessage(event.type, event, pluginConn, pluginCtx, this.pluginStates.get(id), this.currentScreenPanel)) return;
       }
 
       switch (event.type) {
@@ -316,7 +292,7 @@ private pluginStates = new Map<string, unknown>(
         case 'setRoomLabels': this.handleSetRoomLabels(event); break;
         case 'setRoomAnchors': this.handleSetRoomAnchors(event); break;
         case 'setRoomAvatarStyle': this.handleSetRoomAvatarStyle(event); break;
-        case 'setActivity': this.handleSetActivity(event); break;
+        case 'setScreenPanel': this.handleSetScreenPanel(event); break;
         case 'setNowLabel': this.handleSetNowLabel(event); break;
         case 'setImageUrl': this.handleSetImageUrl(event); break;
         case 'setUserCap': this.handleSetUserCap(event, sender); break;
@@ -334,7 +310,7 @@ private pluginStates = new Map<string, unknown>(
         case 'setColorCursorsByVote': this.handleSetColorCursorsByVote(event, sender); break;
         case 'registerCustomAvatar': this.handleRegisterCustomAvatar(event); break;
         case 'recordInvitations': this.handleRecordInvitations(event); break;
-        case 'getPresenceCount': this.handleGetPresenceCount(sender); break;
+        case 'getState': this.handleGetState(sender); break;
       }
     } catch (e) {
       console.error('Failed to parse event:', e);
@@ -416,22 +392,22 @@ private pluginStates = new Map<string, unknown>(
     this.room.broadcast(JSON.stringify({ type: 'imageUrlChanged', url: this.roomImageUrl }));
   }
 
-  private handleSetActivity(event: SetActivityEvent): void {
-    const prevActivity = this.currentActivity;
-    this.currentActivity = event.activity;
+  private handleSetScreenPanel(event: SetScreenPanelEvent): void {
+    const prevActivity = this.currentScreenPanel;
+    this.currentScreenPanel = event.screenPanel;
     const ctx = this.makePluginContext();
 
     const prevPlugin = PLUGIN_MAP[prevActivity];
     if (prevPlugin?.server) prevPlugin.server.onDeactivate(ctx, this.pluginStates.get(prevActivity));
 
-    const nextPlugin = PLUGIN_MAP[this.currentActivity];
-    if (nextPlugin?.server) nextPlugin.server.onActivate(ctx, this.pluginStates.get(this.currentActivity));
+    const nextPlugin = PLUGIN_MAP[this.currentScreenPanel];
+    if (nextPlugin?.server) nextPlugin.server.onActivate(ctx, this.pluginStates.get(this.currentScreenPanel));
 
     const soccerState = this.pluginStates.get('soccer');
     this.room.broadcast(JSON.stringify({
-      type: 'activityChanged',
-      activity: this.currentActivity,
-      ball: this.currentActivity === 'soccer' ? getSoccerBallState(soccerState) : null,
+      type: 'screenPanelChanged',
+      screenPanel: this.currentScreenPanel,
+      ball: this.currentScreenPanel === 'soccer' ? getSoccerBallState(soccerState) : null,
       score: getSoccerScore(soccerState),
     }));
   }
@@ -444,9 +420,43 @@ private pluginStates = new Map<string, unknown>(
     this.room.broadcast(JSON.stringify({ type: 'userCapChanged', cap: this.userCap }));
   }
 
-  private handleGetPresenceCount(sender: Party.Connection): void {
-    const count = this.participantCount();
+  private sendCurrentState(conn: Party.Connection, isViewer: boolean, vCount: number, connectedUserIds: string[]): void {
+    conn.send(JSON.stringify({
+      type: 'connected',
+      connectionId: conn.id,
+      timecode: this.savedTimecode,
+      recordingState: this.recordingState,
+      roomLabels: this.roomLabels,
+      roomAnchors: this.roomAnchors,
+      roomAvatarStyle: this.roomAvatarStyle,
+      currentScreenPanel: this.currentScreenPanel,
+      roomImageUrl: this.roomImageUrl,
+      nowLabel: this.nowLabel,
+      ballState: this.currentScreenPanel === 'soccer' ? getSoccerBallState(this.pluginStates.get('soccer')) : null,
+      soccerScore: getSoccerScore(this.pluginStates.get('soccer')),
+      isViewer,
+      userCap: this.userCap,
+      viewerCount: vCount,
+      connectedUserIds,
+      inviteEdges: Object.fromEntries(this.inviteEdges),
+      customAvatars: Object.fromEntries(this.customAvatars),
+      colorCursorsByVote: this.colorCursorsByVote,
+      defaultCursorColor: this.defaultCursorColor,
+      ownValenceDisplay: this.ownValenceDisplay,
+      valenceInputMode: this.valenceInputMode,
+    }));
+  }
+
+  private handleGetState(sender: Party.Connection): void {
+    const isViewer = this.viewerConnectionIds.has(sender.id);
     const vCount = this.viewerCount();
+    const connectedUserIds = [...new Set(
+      [...this.connectionUserMap.entries()]
+        .filter(([cid]) => cid !== sender.id && !this.adminConnectionIds.has(cid))
+        .map(([, uid]) => uid)
+    )];
+    this.sendCurrentState(sender, isViewer, vCount, connectedUserIds);
+    const count = this.participantCount();
     sender.send(JSON.stringify({ type: 'presenceCount', count, viewerCount: vCount }));
   }
 

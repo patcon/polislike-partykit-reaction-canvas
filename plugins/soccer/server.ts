@@ -19,8 +19,8 @@ export const SoccerServerPlugin: ServerPlugin<SoccerState> = {
     return { engine, ctx };
   },
 
-  onConnect(conn: PluginConnection, _ctx: PluginContext, state: SoccerState, currentActivity: string): void {
-    if (currentActivity === 'soccer') {
+  onConnect(conn: PluginConnection, _ctx: PluginContext, state: SoccerState, currentScreenPanel: string): void {
+    if (currentScreenPanel === 'soccer') {
       conn.send(JSON.stringify({ type: 'ballState', ...state.engine.ballState }));
     }
   },
@@ -44,7 +44,7 @@ export const SoccerServerPlugin: ServerPlugin<SoccerState> = {
   },
 };
 
-/** Typed accessors for the server to read soccer state into activityChanged broadcasts. */
+/** Typed accessors for the server to read soccer state into screenPanelChanged broadcasts. */
 export function getSoccerBallState(state: unknown): BallState {
   return (state as SoccerState).engine.ballState;
 }

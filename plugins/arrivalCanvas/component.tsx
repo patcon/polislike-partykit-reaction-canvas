@@ -79,10 +79,9 @@ export default function ArrivalCanvasPanel() {
     };
   }, []);
 
-  // Request current presence count on mount — the shared socket may have connected
-  // before this panel mounted, so the initial presenceCount from onConnect was missed.
+  // Request full room state on mount — covers presenceCount and arrivalCapacity.
   useEffect(() => {
-    send(JSON.stringify({ type: 'getPresenceCount' }));
+    send(JSON.stringify({ type: 'getState' }));
   }, [send]);
 
   // Update audio whenever fill ratio changes

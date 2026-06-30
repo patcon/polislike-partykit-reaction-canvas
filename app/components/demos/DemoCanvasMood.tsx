@@ -2,6 +2,7 @@ import { useState } from "react";
 import MoodTonesPanel from "../../../plugins/moodTones/component";
 import { PanelContextProvider } from "../../context/PanelContext";
 import ReactionCanvasParticipant from "../shared/ReactionCanvasParticipant";
+import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { generateUUID } from "../../utils/userId";
 import DemoLayout from "./DemoLayout";
 import PhoneFrame from "./PhoneFrame";
@@ -22,12 +23,14 @@ export default function DemoCanvasMood() {
       room={room}
       left={
         <PhoneFrame label="Participant" showSharePrompt>
-          <ReactionCanvasParticipant
-            room={room}
-            userId={participantId}
-            autoSize
-            shareUrl={`${window.location.origin}/${room}`}
-          />
+          <RoomSocketProvider room={room} userId={participantId}>
+            <ReactionCanvasParticipant
+              room={room}
+              userId={participantId}
+              autoSize
+              shareUrl={`${window.location.origin}/${room}`}
+            />
+          </RoomSocketProvider>
         </PhoneFrame>
       }
       right={

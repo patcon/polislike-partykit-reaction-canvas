@@ -1,4 +1,3 @@
-import type { ActivityMode } from "../app/types";
 import type { ReactionAnchors } from './lib/reactionRegion';
 
 export type { ReactionAnchors };
@@ -24,7 +23,7 @@ export interface SetRecordingStateEvent  { type: 'setRecordingState'; recording:
 export interface SetRoomLabelsEvent      { type: 'setRoomLabels'; labels: { positive: string; negative: string; neutral: string } | null }
 export interface SetRoomAnchorsEvent     { type: 'setRoomAnchors'; anchors: ReactionAnchors | null }
 export interface SetRoomAvatarStyleEvent { type: 'setRoomAvatarStyle'; avatarStyle: string | null }
-export interface SetActivityEvent        { type: 'setActivity'; activity: ActivityMode }
+export interface SetScreenPanelEvent     { type: 'setScreenPanel'; screenPanel: string }
 export interface SetImageUrlEvent        { type: 'setImageUrl'; url: string }
 export interface ResetSoccerScoreEvent   { type: 'resetSoccerScore' }
 export interface SetUserCapEvent         { type: 'setUserCap'; cap: number | null }
@@ -33,6 +32,7 @@ export interface SetSocialConfigEvent    { type: 'setSocialConfig'; config: { de
 export interface SetGreeterConfigEvent   { type: 'setGreeterConfig'; config: { eventUrl: string } | null }
 export interface RequestJoinEvent        { type: 'requestJoin' }
 export interface ResetSoccerScore        { type: 'resetSoccerScore' }
+export interface GetStateEvent           { type: 'getState' }
 
 export interface TriggerActivityEvent {
   type: 'triggerActivity';
@@ -101,7 +101,6 @@ export interface ClearSignatureEvent     { type: 'clearSignature'; userId: strin
 
 
 export interface SetArrivalCapacityEvent { type: 'setArrivalCapacity'; capacity: number }
-export interface GetPresenceCountEvent   { type: 'getPresenceCount' }
 
 export interface NeighborEdgeEvent          { type: 'neighborEdge';       from: string; toCode: string }
 export interface RequestNeighborEdgesEvent  { type: 'requestNeighborEdges' }
@@ -112,7 +111,7 @@ export interface SetLightColorEvent      { type: 'setLightColor'; color: string;
 export type ClientEvent =
   | CursorEvent | SetTimecodeEvent
   | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent
-  | SetRoomAvatarStyleEvent | SetActivityEvent | SetImageUrlEvent
+  | SetRoomAvatarStyleEvent | SetScreenPanelEvent | SetImageUrlEvent
   | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent
   | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent
   | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent
@@ -121,6 +120,6 @@ export type ClientEvent =
   | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent
   | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent
   | ClearSignatureEvent
-  | SetArrivalCapacityEvent | GetPresenceCountEvent
+  | SetArrivalCapacityEvent | GetStateEvent
   | NeighborEdgeEvent | RequestNeighborEdgesEvent | ClearNeighborEdgesEvent
   | SetLightColorEvent;

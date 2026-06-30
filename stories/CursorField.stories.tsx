@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import React from 'react';
-import Canvas from '../app/components/shared/Canvas';
+import CursorField from '../app/components/shared/CursorField';
 import { RoomSocketProvider } from '../app/contexts/RoomSocketContext';
 import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 
@@ -9,8 +9,8 @@ import { emitToRoom } from '../.storybook/mocks/partysocket-react';
 // messages through the same socketMessageBus the real server uses.
 
 const meta = {
-  title: 'App/Canvas',
-  component: Canvas,
+  title: 'App/CursorField',
+  component: CursorField,
   parameters: { layout: 'fullscreen' },
   tags: ['autodocs'],
   argTypes: {
@@ -26,7 +26,7 @@ const meta = {
       </RoomSocketProvider>
     ),
   ],
-} satisfies Meta<typeof Canvas>;
+} satisfies Meta<typeof CursorField>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -106,7 +106,7 @@ export const CustomAnchors: Story = {
 export const SoccerActivity: Story = {
   args: { ...baseArgs },
   play: async () => {
-    emitToRoom('storybook', { type: 'activityChanged', activity: 'soccer' });
+    emitToRoom('storybook', { type: 'screenPanelChanged', screenPanel: 'soccer' });
   },
 };
 

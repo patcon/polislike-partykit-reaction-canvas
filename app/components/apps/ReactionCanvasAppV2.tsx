@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { QRCodeCanvas } from "qrcode.react";
-import Canvas from "../shared/Canvas";
+import Canvas from "../shared/CursorField";
 import TouchLayer from "../shared/TouchLayer";
 import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { getReactionLabelSet } from "../../voteLabels";
