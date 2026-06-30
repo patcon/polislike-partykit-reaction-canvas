@@ -5,7 +5,6 @@ import { stenoServer } from './server';
 
 export const stenoPlugin: PanelPlugin<StenoState> = {
   id: 'steno',
-  type: 'panel',
   label: 'Steno',
   description: 'Live shared speech-to-text transcript',
   canStandalone: true,

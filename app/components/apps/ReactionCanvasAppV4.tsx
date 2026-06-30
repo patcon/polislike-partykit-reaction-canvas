@@ -210,6 +210,15 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
     setServerLabels(labels);
   }, [isEmcee, triggerBuzzForUpdate]);
 
+  const handleConnectedAsViewer = useCallback((viewer: boolean, cap: number | null) => {
+    setIsViewer(viewer);
+    setUserCap(cap);
+  }, []);
+
+  const socialMediaConfigValue = useMemo(() => ({ socialMediaConfig: serverSocialConfig }), [serverSocialConfig]);
+  const greeterConfigValue = useMemo(() => ({ greeterConfig: serverGreeterConfig }), [serverGreeterConfig]);
+  const imageCanvasConfigValue = useMemo(() => ({ imageUrl: serverImageUrl }), [serverImageUrl]);
+
   useMessageSubscription((evt: MessageEvent) => {
     try {
       const data = JSON.parse(evt.data);
@@ -380,8 +389,8 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
         />
       )}
       <PanelContextProvider value={panelContextValue}>
-        <SocialMediaConfigProvider value={{ socialMediaConfig: serverSocialConfig }}>
-        <GreeterConfigProvider value={{ greeterConfig: serverGreeterConfig }}>
+        <SocialMediaConfigProvider value={socialMediaConfigValue}>
+        <GreeterConfigProvider value={greeterConfigValue}>
         {activeInterface === 'emcee' && (
           <AdminPanelNoDB room={room} userId={userId} selfChain={selfChain} />
         )}
@@ -396,7 +405,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
         </SocialMediaConfigProvider>
       </PanelContextProvider>
       {activeInterface === 'personal' && !PANEL_COMPONENTS[personalScreenPanel] && (
-      <ImageCanvasConfigProvider value={{ imageUrl: serverImageUrl }}>
+      <ImageCanvasConfigProvider value={imageCanvasConfigValue}>
       <div className="v2-vote-canvas-container" style={{ flex: 1 }}>
           <ReactionCanvasParticipant
             room={room}
@@ -481,7 +490,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
             onRoomLabelsChange={handleRoomLabelsChange}
             onRoomAnchorsChange={setServerAnchors}
             onPresenceCount={setPresenceCount}
-            onConnectedAsViewer={(viewer, cap) => { setIsViewer(viewer); setUserCap(cap); }}
+            onConnectedAsViewer={handleConnectedAsViewer}
             onUserCapChanged={setUserCap}
             onJoinApproved={() => setIsViewer(false)}
             onSocketReady={(send) => { socketSendRef.current = send; }}

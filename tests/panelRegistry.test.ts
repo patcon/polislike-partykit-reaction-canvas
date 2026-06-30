@@ -9,7 +9,7 @@ describe('PANEL_REGISTRY', () => {
       expect(typeof panel.label).toBe('string');
       expect(panel.label.length).toBeGreaterThan(0);
       expect(typeof panel.description).toBe('string');
-      expect(panel.type === 'screen' || panel.type === 'panel').toBe(true);
+
       expect(typeof panel.canStandalone).toBe('boolean');
       expect(typeof panel.canScreenMount).toBe('boolean');
     }

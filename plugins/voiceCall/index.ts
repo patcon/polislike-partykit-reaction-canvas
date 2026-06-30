@@ -6,7 +6,6 @@ import type { VoiceCallPluginState } from './types';
 
 const voiceCallPlugin: PanelPlugin<VoiceCallPluginState> = {
   id: 'voice-call',
-  type: 'panel',
   label: 'Voice Calls',
   description: 'Peer-to-peer voice calls via WebRTC',
   canStandalone: true,

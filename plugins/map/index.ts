@@ -6,7 +6,6 @@ import MapViewerConfigModal from './MapViewerConfigModal';
 
 const mapMakerPlugin: PanelPlugin = {
   id: 'map-maker',
-  type: 'panel',
   label: 'Map Maker',
   shortLabel: 'Map Maker',
   description: 'Compute UMAP/PaCMAP/LocalMAP projection from captured moments',
@@ -18,7 +17,6 @@ const mapMakerPlugin: PanelPlugin = {
 
 const mapViewerPlugin: PanelPlugin = {
   id: 'map-viewer',
-  type: 'panel',
   label: 'Map Viewer',
   shortLabel: 'Map Viewer',
   description: 'View the computed participant map',
