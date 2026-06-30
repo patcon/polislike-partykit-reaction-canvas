@@ -50,7 +50,7 @@ interface CanvasProps {
   onRoomImageUrlChange?: (url: string) => void;
   onSocialConfigChange?: (config: { default: string; twitter: string; bluesky: string; mastodon: string; instagram: string } | null) => void;
   onGreeterConfigChange?: (config: GreeterConfig | null) => void;
-  onConnected?: (initialInviteEdges?: Record<string, string>, currentActivity?: string) => void;
+  onConnected?: (initialInviteEdges?: Record<string, string>, currentScreenPanel?: string) => void;
   onNowLabelChange?: (label: string) => void;
   onInviteEdges?: (edges: Record<string, string>) => void;
   onOwnValenceDisplayChange?: (mode: 'background' | 'labels' | 'none') => void;

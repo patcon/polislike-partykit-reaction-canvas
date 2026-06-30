@@ -62,7 +62,7 @@
     "esbuild": "^0.28.0",
     "jsdom": "^29.1.1",
     "partykit": "^0.0.110",
-    "playwright": "^1.57.0",
+    "playwright": "^1.61.1",
     "storybook": "^10.1.0",
     "typescript": "^5.5.4",
     "vitest": "^4.0.14"
