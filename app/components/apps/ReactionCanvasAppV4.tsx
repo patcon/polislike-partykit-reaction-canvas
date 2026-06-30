@@ -30,6 +30,7 @@ import QRWithCopy from "../shared/QRWithCopy";
 import { parseInviteChain, appendSelfToChain, chainToEdges, storeChain, getStoredChain } from "../../utils/inviteChain";
 import HapticIndicatorButton from "../shared/HapticIndicatorButton";
 import { useHapticPriming } from "../../hooks/useHapticPriming";
+import { useLocalStorageState } from "../../hooks/useLocalStorageState";
 import WakeLockIndicatorButton from "../shared/WakeLockIndicatorButton";
 import { useWakeLock } from "../../utils/useWakeLock";
 import { PLUGIN_MAP } from "../../../plugins/index";
@@ -185,9 +186,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
   const [showFeedbackStarsModal, setShowFeedbackStarsModal] = useState(false);
   const [pushedInterface, setPushedInterface] = useState<string | null>(null);
   const [hapticPending, setHapticPending] = useState(false);
-  const [suppressHapticModal, setSuppressHapticModal] = useState(
-    () => localStorage.getItem('v4-suppress-haptic-modal') !== 'false'
-  );
+  const [suppressHapticModal, setSuppressHapticModal] = useLocalStorageState('v4-suppress-haptic-modal', true);
   const { hapticEnabled, effectivelyEnabled: hapticEffectivelyEnabled, onPointerDown: hapticOnPointerDown, onToggle: hapticOnToggle } = useHapticPriming();
   const [hapticFlashing, setHapticFlashing] = useState(false);
   const hapticFlashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -597,7 +596,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
         <HapticPushModal
           onDismiss={() => setHapticPending(false)}
           suppressed={suppressHapticModal}
-          onSuppressChange={v => { setSuppressHapticModal(v); localStorage.setItem('v4-suppress-haptic-modal', String(v)); }}
+          onSuppressChange={setSuppressHapticModal}
         />
       )}
     </div>

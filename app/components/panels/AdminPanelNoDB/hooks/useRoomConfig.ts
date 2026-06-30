@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocalStorageState } from "../../../../hooks/useLocalStorageState";
 import type { ValenceInputMode } from "../../../../types";
 import type PartySocket from "partysocket";
 
@@ -10,9 +11,7 @@ export function useRoomConfig(socket: PartySocket) {
   const [valenceInputMode, setValenceInputMode] = useState<ValenceInputMode>('touch');
   const [screenPanels, setScreenPanels]              = useState<Record<string, string>>({ personal: 'canvas', commons: 'canvas' });
   const [canvasSettingsOpen, setCanvasSettingsOpen] = useState(false);
-  const [showNowLabelOnCanvas, setShowNowLabelOnCanvas] = useState(() =>
-    localStorage.getItem('v4-showNowLabelOnCanvas') === 'true'
-  );
+  const [showNowLabelOnCanvas, setShowNowLabelOnCanvas] = useLocalStorageState('v4-showNowLabelOnCanvas', false);
   const [userCap, setUserCap]                 = useState<number | null>(null);
   const [capInput, setCapInput]               = useState<string>('');
 

@@ -455,10 +455,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
       {roomConfig.canvasSettingsOpen && (
         <PanelSettingsModalReactionCanvas
           showNowLabel={roomConfig.showNowLabelOnCanvas}
-          onChangeShowNowLabel={(v) => {
-            roomConfig.setShowNowLabelOnCanvas(v);
-            localStorage.setItem('v4-showNowLabelOnCanvas', String(v));
-          }}
+          onChangeShowNowLabel={roomConfig.setShowNowLabelOnCanvas}
           ownValenceDisplay={roomConfig.ownValenceDisplay}
           onChangeOwnValenceDisplay={roomConfig.sendOwnValenceDisplay}
           valenceInputMode={roomConfig.valenceInputMode}
