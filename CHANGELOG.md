@@ -23,6 +23,7 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Map Viewer color config syncs across devices** — `colorMode` and `momentId` were stored only in localStorage; other devices never received them. Config is now broadcast via the server (`mapViewerConfigSet`/`mapViewerConfigChanged`) so all clients update immediately, and late-joining clients receive the current config on connect.
 - **Map server tests updated for `viewerConfig`** — `createState` and `getPersistedState` assertions now include the `viewerConfig` field added in the last release cycle.
 - **Demo pages broken by missing `RoomSocketProvider`** — `DemoAdminCanvas` and `DemoCanvasMood` now explicitly wrap `ReactionCanvasParticipant` in `RoomSocketProvider`, restoring the `/demos/*` pages after `CursorField` and `TouchLayer` were migrated to consume the shared socket context.
+- **workerd upgraded to 1.20250718.0 via miniflare override** — workerd `1.20240718.0` (shipped by partykit 0.0.110) crashes on Ubuntu 26.04; overriding `miniflare` to `3.20250718.3` in `pnpm-workspace.yaml` pulls in a compatible build.
 - **Playwright upgraded to 1.61.1 to restore Storybook browser tests on Ubuntu 26.04** — 1.59.1 didn't ship a Chromium headless-shell build for this distro, so all browser-mode stories were silently skipped; 80 Storybook tests now run again (364 total vs 284).
 
 ### Changed

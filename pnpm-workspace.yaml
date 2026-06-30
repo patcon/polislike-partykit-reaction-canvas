@@ -5,3 +5,5 @@ allowBuilds:
   sharp: true
   workerd: true
 blockExoticSubdeps: false
+overrides:
+  miniflare: "3.20250718.3"
