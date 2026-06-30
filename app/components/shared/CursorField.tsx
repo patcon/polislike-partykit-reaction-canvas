@@ -610,6 +610,9 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
 
   // Update background color based on current reaction state
   const updateBackgroundColor = (reactionState: ReactionState) => {
+    // The soccer pitch owns the background rect — don't let valence repaint it
+    // (otherwise it flashes green↔white on every cursor-driven reaction change).
+    if (screenPanel === 'soccer') return;
     const svg = select(svgRef.current);
     const backgroundRect = svg.select('rect');
 
@@ -629,7 +632,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
   useEffect(() => {
     const suppressed = disableBackgroundValence || ownValenceDisplay !== 'background';
     updateBackgroundColor(suppressed ? null : (currentReactionState || null));
-  }, [currentReactionState, disableBackgroundValence, ownValenceDisplay]);
+  }, [currentReactionState, disableBackgroundValence, ownValenceDisplay, screenPanel]);
 
   // Render with D3 SVG
   useEffect(() => {
