@@ -21,7 +21,7 @@ const lightShowPlugin: PanelPlugin = {
   shortLabel: 'LShow',
   description: 'Control the screen-light color on all connected phones',
   canStandalone: true,
-  canScreenMount: false,
+  canScreenMount: true,
   component: LightShow,
 };
 
