@@ -229,6 +229,27 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
       if (data.type === 'connected' && 'currentScreenPanel' in data) {
         setScreenPanels(prev => ({ ...prev, personal: data.currentScreenPanel ?? 'canvas' }));
       }
+      if (data.type === 'interfacePushed') {
+        setPushedInterface(data.interfaceName);
+      }
+      if (data.type === 'pushedInterfacesCleared') {
+        localStorage.removeItem(PUSHED_INTERFACES_KEY);
+        setUnlockedInterfaces(getUnlockedInterfaces());
+        setActiveInterface(prev => {
+          const urlBased = getUnlockedInterfaces();
+          return urlBased.includes(prev) ? prev : (urlBased.includes('emcee') ? 'emcee' : 'personal');
+        });
+      }
+      if (data.type === 'hapticPushed') {
+        if (hapticFlashTimeoutRef.current) clearTimeout(hapticFlashTimeoutRef.current);
+        setHapticFlashing(true);
+        hapticFlashTimeoutRef.current = setTimeout(() => setHapticFlashing(false), 500);
+        if (hapticEnabled && WebHaptics.isSupported) {
+          triggerHaptic('nudge');
+        } else if (!WebHaptics.isSupported && !suppressHapticModal) {
+          setHapticPending(true);
+        }
+      }
     } catch { /* ignore */ }
   });
 
@@ -497,25 +518,6 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
             onActivityTriggered={(activityName) => {
               if (activityName === 'githubUsername') setShowGithubModal(true);
               if (activityName === 'feedbackStars') setShowFeedbackStarsModal(true);
-            }}
-            onInterfacePushed={(name) => setPushedInterface(name)}
-            onHapticPushed={() => {
-              if (hapticFlashTimeoutRef.current) clearTimeout(hapticFlashTimeoutRef.current);
-              setHapticFlashing(true);
-              hapticFlashTimeoutRef.current = setTimeout(() => setHapticFlashing(false), 500);
-              if (hapticEnabled && WebHaptics.isSupported) {
-                triggerHaptic('nudge');
-              } else if (!WebHaptics.isSupported && !suppressHapticModal) {
-                setHapticPending(true);
-              }
-            }}
-            onPushedInterfacesCleared={() => {
-              localStorage.removeItem(PUSHED_INTERFACES_KEY);
-              setUnlockedInterfaces(getUnlockedInterfaces());
-              setActiveInterface(prev => {
-                const urlBased = getUnlockedInterfaces();
-                return urlBased.includes(prev) ? prev : (urlBased.includes('emcee') ? 'emcee' : 'personal');
-              });
             }}
             onRoomImageUrlChange={handleRoomImageUrlChange}
             onSocialConfigChange={setServerSocialConfig}

@@ -3,11 +3,11 @@ import Server from './server';
 import type * as Party from 'partykit/server';
 
 function makeConn(id: string): Party.Connection {
-  return { id, send: vi.fn(), close: vi.fn(), socket: null as never, url: '' };
+  return { id, send: vi.fn(), close: vi.fn(), socket: null as never, url: '' } as unknown as Party.Connection;
 }
 
 function makeCtx(url: string): Party.ConnectionContext {
-  return { request: { url } as Request };
+  return { request: { url } as unknown as Request } as unknown as Party.ConnectionContext;
 }
 
 function makeRoom(connections: Party.Connection[]): Party.Room {

@@ -45,9 +45,7 @@ interface CanvasProps {
   disableBackgroundValence?: boolean;
   onRoomAvatarStyleChange?: (style: string | null) => void;
   onActivityTriggered?: (activityName: string) => void;
-  onInterfacePushed?: (interfaceName: string) => void;
-  onPushedInterfacesCleared?: () => void;
-  onHapticPushed?: () => void;
+
   onRoomImageUrlChange?: (url: string) => void;
   onSocialConfigChange?: (config: { default: string; twitter: string; bluesky: string; mastodon: string; instagram: string } | null) => void;
   onGreeterConfigChange?: (config: GreeterConfig | null) => void;
@@ -92,7 +90,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function CursorField({ userId, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onInterfacePushed, onPushedInterfacesCleared, onHapticPushed, onRoomImageUrlChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false, cursorSmoothingConfig }: CanvasProps) {
+export default function CursorField({ userId, colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onRoomImageUrlChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false, cursorSmoothingConfig }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const smoothCursorLayerRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
@@ -491,20 +489,6 @@ export default function CursorField({ userId, colorCursorsByVote: colorCursorsBy
           return;
         }
 
-        if (data.type === 'interfacePushed') {
-          onInterfacePushed?.(data.interfaceName);
-          return;
-        }
-
-        if (data.type === 'pushedInterfacesCleared') {
-          onPushedInterfacesCleared?.();
-          return;
-        }
-
-        if (data.type === 'hapticPushed') {
-          onHapticPushed?.();
-          return;
-        }
 
         if (data.type === 'ballUpdate') {
           setBallPos({ x: data.x, y: data.y });
