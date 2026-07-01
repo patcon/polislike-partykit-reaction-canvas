@@ -3,6 +3,7 @@ import { generateUUID } from "../../../../utils/userId";
 import { computeReactionRegion } from "../../../../utils/voteRegion";
 import { parsePolisComments, parsePolisVotes, assemblePolisImport } from "../../../../utils/polisImport";
 import { idbGet, idbSet } from "../../../../utils/idbStorage";
+import { buildFlashTimerStart } from "../../../../utils/flashTimer";
 import type { ReactionAnchors } from "../../../../utils/voteRegion";
 import type { MomentSnapshot, PushTarget } from "../types";
 import type PartySocket from "partysocket";
@@ -41,6 +42,11 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
   const staleTimersRef    = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const activeAnchorsRef  = useRef<ReactionAnchors>(activeAnchors);
   activeAnchorsRef.current = activeAnchors;
+  // Mirrors of state so a delayed (flash-timer) snap reads values as of T=0, not schedule time.
+  const seenUsersRef        = useRef(seenUsers);        seenUsersRef.current = seenUsers;
+  const liveCursorsRef      = useRef(liveCursors);      liveCursorsRef.current = liveCursors;
+  const momentsRef          = useRef(moments);          momentsRef.current = moments;
+  const momentLabelInputRef = useRef(momentLabelInput); momentLabelInputRef.current = momentLabelInput;
 
   useEffect(() => {
     momentsLoadedRef.current = false;
@@ -90,23 +96,31 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     });
   };
 
+  // Captures each participant's region right now. Reads refs so it stays correct when
+  // invoked from a delayed flash-timer (snapshot at T=0, not when the timer was scheduled).
   const snapMoment = () => {
     const regions: Record<string, 'positive' | 'negative' | 'neutral' | null> = {};
-    for (const userId of seenUsers) {
-      const cursor = liveCursors.get(userId);
+    for (const userId of seenUsersRef.current) {
+      const cursor = liveCursorsRef.current.get(userId);
       regions[userId] = cursor ? computeReactionRegion(cursor.x, cursor.y, activeAnchorsRef.current) : null;
     }
     const newMoment: MomentSnapshot = {
       id: generateUUID(),
-      label: momentLabelInput.trim() || `Moment ${moments.length + 1}`,
+      label: momentLabelInputRef.current.trim() || `Moment ${momentsRef.current.length + 1}`,
       timestamp: Date.now(),
       regions,
     };
-    const updated = [newMoment, ...moments];
-    setMoments(updated);
+    setMoments(prev => [newMoment, ...prev]);
     setMomentLabelInput('');
     localStorage.removeItem(`v4-moment-label-${room}`);
     setEditingMomentId(null);
+  };
+
+  // Flash timer: broadcast a countdown to all canvases, then snap at zero (fire-and-forget).
+  const startFlashTimer = (durationSec: number) => {
+    const msg = buildFlashTimerStart(durationSec, momentLabelInputRef.current, Date.now());
+    socket.send(JSON.stringify(msg));
+    setTimeout(snapMoment, msg.endTimestamp - Date.now());
   };
 
   const applyConnected = (data: Record<string, unknown>) => {
@@ -194,6 +208,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
     openMenuGroupKey, setOpenMenuGroupKey,
     feedbackStars, setFeedbackStars,
     snapMoment,
+    startFlashTimer,
     importPolisCSV,
     applyConnected,
     handleSocketEvent,

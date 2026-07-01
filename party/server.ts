@@ -2,6 +2,7 @@ import type * as Party from "partykit/server";
 import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } from './lib/reactionRegion';
 import type { ReactionAnchors } from './lib/reactionRegion';
 import { SERVER_CURSOR_BATCH_MS } from '../app/utils/cursor';
+import { buildFlashTimerStarted } from '../app/utils/flashTimer';
 import { PLUGIN_MAP } from '../plugins/index';
 import { SCREEN_NAMES, LIFECYCLE_SCREEN } from '../app/screens';
 import type { PluginContext, PluginConnection } from '../plugins/types';
@@ -10,7 +11,7 @@ import type {
   CursorEvent, PersistedState, ClientEvent,
   PlaybackCursorBroadcastEvent,
   SetTimecodeEvent, SetRecordingStateEvent, SetRoomLabelsEvent, SetRoomAnchorsEvent,
-  SetRoomAvatarStyleEvent, SetScreenPanelEvent, SetNowLabelEvent, SetImageUrlEvent,
+  SetRoomAvatarStyleEvent, SetScreenPanelEvent, SetNowLabelEvent, StartFlashTimerEvent, SetImageUrlEvent,
   SetUserCapEvent, TriggerActivityEvent, SubmitGithubUsernameEvent, SubmitFeedbackStarsEvent,
   SetSocialConfigEvent, SetGreeterConfigEvent, PushInterfaceEvent, AcceptInterfaceEvent,
   PushHapticEvent, RegisterCustomAvatarEvent, SetColorCursorsByVoteEvent,
@@ -294,6 +295,7 @@ private pluginStates = new Map<string, unknown>(
         case 'setRoomAvatarStyle': this.handleSetRoomAvatarStyle(event); break;
         case 'setScreenPanel': this.handleSetScreenPanel(event); break;
         case 'setNowLabel': this.handleSetNowLabel(event); break;
+        case 'startFlashTimer': this.handleStartFlashTimer(event); break;
         case 'setImageUrl': this.handleSetImageUrl(event); break;
         case 'setUserCap': this.handleSetUserCap(event, sender); break;
         case 'triggerActivity': this.handleTriggerActivity(event); break;
@@ -385,6 +387,12 @@ private pluginStates = new Map<string, unknown>(
   private handleSetNowLabel(event: SetNowLabelEvent): void {
     this.nowLabel = event.label;
     this.room.broadcast(JSON.stringify({ type: 'nowLabelChanged', label: this.nowLabel }));
+  }
+
+  // Relay the flash-timer countdown to every canvas. The emcee owns the snapshot
+  // (fired client-side at zero); the server only rebroadcasts the visual countdown.
+  private handleStartFlashTimer(event: StartFlashTimerEvent): void {
+    this.room.broadcast(JSON.stringify(buildFlashTimerStarted(event.endTimestamp, event.label)));
   }
 
   private handleSetImageUrl(event: SetImageUrlEvent): void {

@@ -28,6 +28,7 @@ export interface SetImageUrlEvent        { type: 'setImageUrl'; url: string }
 export interface ResetSoccerScoreEvent   { type: 'resetSoccerScore' }
 export interface SetUserCapEvent         { type: 'setUserCap'; cap: number | null }
 export interface SetNowLabelEvent        { type: 'setNowLabel'; label: string }
+export interface StartFlashTimerEvent    { type: 'startFlashTimer'; endTimestamp: number; label: string }
 export interface SetSocialConfigEvent    { type: 'setSocialConfig'; config: { default: string; twitter: string; bluesky: string; mastodon: string } | null }
 export interface SetGreeterConfigEvent   { type: 'setGreeterConfig'; config: { eventUrl: string } | null }
 export interface RequestJoinEvent        { type: 'requestJoin' }
@@ -116,7 +117,7 @@ export type ClientEvent =
   | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent
   | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent
   | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent
-  | PushHapticEvent | SetNowLabelEvent | RecordInvitationsEvent
+  | PushHapticEvent | SetNowLabelEvent | StartFlashTimerEvent | RecordInvitationsEvent
   | RegisterCustomAvatarEvent | SetColorCursorsByVoteEvent | SetDefaultCursorColorEvent
   | SetOwnValenceDisplayEvent | SetValenceInputModeEvent | StrokeSegmentEvent
   | ClearSignatureEvent

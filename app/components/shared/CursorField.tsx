@@ -3,6 +3,7 @@ import { select } from "d3";
 import type { Selection } from "d3";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
 import { makeImageCoordTransform } from "../../utils/imageCanvasCoords";
+import { flashSecondsRemaining } from "../../utils/flashTimer";
 import { useRoomSocket, useMessageSubscription } from "../../contexts/RoomSocketContext";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 import type { GreeterConfig } from "../../../plugins/greeter/types";
@@ -107,6 +108,8 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
   const [ballPos, setBallPos] = useState<{ x: number; y: number } | null>(null);
   const [soccerScore, setSoccerScore] = useState({ left: 0, right: 0 });
   const [nowLabel, setNowLabel] = useState('');
+  const [flashEnd, setFlashEnd] = useState<number | null>(null);
+  const [, setFlashTick] = useState(0); // forces a re-render each tick; remaining is read from Date.now()
 
   useEffect(() => {
     onActiveCursorCountChange?.(cursors.size);
@@ -462,6 +465,11 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
           const url = data.url ?? '';
           setImageUrl(url);
           onRoomImageUrlChange?.(url);
+          return;
+        }
+
+        if (data.type === 'flashTimerStarted') {
+          setFlashEnd(data.endTimestamp as number);
           return;
         }
 
@@ -947,6 +955,16 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
     return () => window.removeEventListener('resize', handleResize);
   }, [heightOffset, autoSize]);
 
+  // Drive the flash-timer countdown: re-render every 200ms, clear once the deadline passes.
+  useEffect(() => {
+    if (flashEnd == null) return;
+    const id = setInterval(() => {
+      if (Date.now() >= flashEnd) setFlashEnd(null);
+      else setFlashTick(t => t + 1);
+    }, 200);
+    return () => clearInterval(id);
+  }, [flashEnd]);
+
   return (
     <>
       <svg
@@ -975,6 +993,11 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
           visibility: 'hidden',
         }}
       />
+      {flashEnd != null && (
+        <div className="flash-countdown-overlay">
+          <div className="flash-countdown-number">{flashSecondsRemaining(flashEnd, Date.now())}</div>
+        </div>
+      )}
     </>
   );
 }

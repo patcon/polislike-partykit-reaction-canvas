@@ -64,4 +64,11 @@ describe('CursorField socket behaviour', () => {
     renderWithProvider(<CursorField userId="user1" />, { readOnly: true })
     expect(capturedConfig.current.query).toEqual({ isAdmin: 'true' })
   })
+
+  it('shows the flash-timer countdown overlay when flashTimerStarted is received', () => {
+    const { container } = renderWithProvider(<CursorField userId="user1" />)
+    expect(container.querySelector('.flash-countdown-overlay')).toBeNull()
+    act(() => emitMessage({ type: 'flashTimerStarted', endTimestamp: Date.now() + 5000, label: 'Round 1' }))
+    expect(container.querySelector('.flash-countdown-overlay')).not.toBeNull()
+  })
 })
