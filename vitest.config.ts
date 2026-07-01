@@ -12,7 +12,7 @@ const dirname =
 
 // More info at: https://storybook.js.org/docs/next/writing-tests/integrations/vitest-addon
 export default defineConfig({
-  esbuild: { jsx: 'automatic', jsxImportSource: 'react' },
+  oxc: { jsx: { runtime: 'automatic', importSource: 'react' } },
   test: {
     projects: [
       {
