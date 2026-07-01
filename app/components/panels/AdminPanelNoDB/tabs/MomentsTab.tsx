@@ -1,8 +1,8 @@
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { computeReactionRegion } from "../../../../utils/voteRegion";
 import type { ReactionAnchors, ReactionRegion } from "../../../../utils/voteRegion";
 import type { ReactionLabelSet } from "../../../../voteLabels";
-import { FLASH_TIMER_DEFAULT_SEC } from "../../../../utils/flashTimer";
+import { FLASH_TIMER_DEFAULT_SEC, normalizeFlashDuration, flashSecondsRemaining } from "../../../../utils/flashTimer";
 import { useLocalStorageState } from "../../../../hooks/useLocalStorageState";
 import type { MomentSnapshot } from "../types";
 
@@ -43,6 +43,30 @@ function MomentsTabInner({
   const [votesFile, setVotesFile] = useState<File | null>(null);
   const [importing, setImporting] = useState(false);
   const [multiFileMode, setMultiFileMode] = useState(true);
+  // While a flash timer is counting down, disable the snap button and show the countdown.
+  const [flashEndTs, setFlashEndTs] = useState<number | null>(null);
+  const [, setFlashTick] = useState(0); // forces a re-render each tick; remaining is read from Date.now()
+
+  useEffect(() => {
+    if (flashEndTs == null) return;
+    const id = setInterval(() => {
+      if (Date.now() >= flashEndTs) setFlashEndTs(null);
+      else setFlashTick(t => t + 1);
+    }, 200);
+    return () => clearInterval(id);
+  }, [flashEndTs]);
+
+  const handleSnapClick = () => {
+    if (flashEndTs != null) return;
+    if (flashEnabled) {
+      setFlashEndTs(Date.now() + normalizeFlashDuration(flashDuration) * 1000);
+      startFlashTimer(flashDuration);
+    } else {
+      snapMoment();
+    }
+  };
+
+  const flashCounting = flashEndTs != null;
 
   const handleImport = async () => {
     if (!commentsFile || !votesFile || importing) return;
@@ -157,10 +181,15 @@ function MomentsTabInner({
           sec
         </label>
         <button
-          onClick={() => flashEnabled ? startFlashTimer(flashDuration) : snapMoment()}
-          style={{ display: 'block', width: '100%', padding: '12px', background: '#1a7a3c', color: '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}
+          onClick={handleSnapClick}
+          disabled={flashCounting}
+          style={{ display: 'block', width: '100%', padding: '12px', background: flashCounting ? '#0f4a24' : '#1a7a3c', color: flashCounting ? '#9c9' : '#fff', border: 'none', fontSize: 14, fontWeight: 700, cursor: flashCounting ? 'default' : 'pointer' }}
         >
-          {flashEnabled ? `Snap in ${flashDuration}s` : 'Snap Moment'}
+          {flashCounting
+            ? `Snapping in ${flashSecondsRemaining(flashEndTs!, Date.now())}s`
+            : flashEnabled
+              ? `Snap in ${flashDuration}s`
+              : 'Snap Moment'}
         </button>
       </div>
 
