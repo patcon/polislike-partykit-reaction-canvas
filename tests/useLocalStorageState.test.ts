@@ -29,4 +29,34 @@ describe('useLocalStorageState', () => {
     const { result } = renderHook(() => useLocalStorageState('k', 'def'));
     expect(result.current[0]).toBe('def');
   });
+
+  it('scopes the storage key by room when provided', () => {
+    const { result } = renderHook(() => useLocalStorageState('k', 0, { room: 'r1' }));
+    act(() => result.current[1](7));
+    expect(JSON.parse(localStorage.getItem('k-r1')!)).toBe(7);
+    expect(localStorage.getItem('k')).toBeNull();
+  });
+
+  it('re-hydrates from the new key when the room changes', () => {
+    localStorage.setItem('k-r1', JSON.stringify('a'));
+    localStorage.setItem('k-r2', JSON.stringify('b'));
+    const { result, rerender } = renderHook(
+      ({ room }) => useLocalStorageState('k', 'def', { room }),
+      { initialProps: { room: 'r1' } },
+    );
+    expect(result.current[0]).toBe('a');
+    rerender({ room: 'r2' });
+    expect(result.current[0]).toBe('b');
+  });
+
+  it('resets to initial when switching to a room with nothing stored', () => {
+    localStorage.setItem('k-r1', JSON.stringify('a'));
+    const { result, rerender } = renderHook(
+      ({ room }) => useLocalStorageState('k', 'def', { room }),
+      { initialProps: { room: 'r1' } },
+    );
+    expect(result.current[0]).toBe('a');
+    rerender({ room: 'empty' });
+    expect(result.current[0]).toBe('def');
+  });
 });

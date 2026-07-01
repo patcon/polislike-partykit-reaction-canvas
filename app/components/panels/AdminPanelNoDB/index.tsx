@@ -7,6 +7,7 @@ import { useRoomConfig } from "./hooks/useRoomConfig";
 import { useRecording } from "./hooks/useRecording";
 import { usePlayback } from "./hooks/usePlayback";
 import { useParticipants } from "./hooks/useParticipants";
+import { useLocalStorageState } from "../../../hooks/useLocalStorageState";
 import OfferInterfaceModal from "./OfferInterfaceModal";
 import HapticConfirmModal from "./HapticConfirmModal";
 import SendPopupModal from "./SendPopupModal";
@@ -34,12 +35,7 @@ interface AdminPanelNoDBProps {
 }
 
 export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNoDBProps) {
-  const tabStorageKey = `v4-admin-tab-${room}`;
-  const [activeTab, setActiveTab] = useState<AdminTab>(() => {
-    const saved = localStorage.getItem(tabStorageKey);
-    return (ALL_TABS as string[]).includes(saved ?? '') ? (saved as AdminTab) : 'record';
-  });
-  const switchTab = (tab: AdminTab) => { setActiveTab(tab); localStorage.setItem(tabStorageKey, tab); };
+  const [activeTab, setActiveTab] = useLocalStorageState<AdminTab>('v4-admin-tab', 'record', { room });
   const [presenceCount, setPresenceCount]     = useState<number>(0);
   const [githubSubmissions, setGithubSubmissions] = useState<GithubSubmission[]>([]);
   const [pendingHapticTarget, setPendingHapticTarget] = useState<PushTarget | null>(null);
@@ -210,7 +206,7 @@ export default function AdminPanelNoDB({ room, userId, selfChain }: AdminPanelNo
           {ALL_TABS.map(tab => (
             <button
               key={tab}
-              onClick={() => switchTab(tab)}
+              onClick={() => setActiveTab(tab)}
               style={{
                 padding: '8px 16px',
                 background: activeTab === tab ? '#333' : 'transparent',
