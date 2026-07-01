@@ -36,7 +36,9 @@ export default function DemoCanvasMood() {
       right={
         <PhoneFrame label="Mood tones">
           <PanelContextProvider value={{ room, userId: observerId, inviteEdges: {} }}>
-            <MoodTonesPanel />
+            <RoomSocketProvider room={room} userId={observerId} readOnly>
+              <MoodTonesPanel />
+            </RoomSocketProvider>
           </PanelContextProvider>
         </PhoneFrame>
       }
