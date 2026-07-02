@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { usePanelContext } from "../../app/context/PanelContext";
 import { useCoordStream } from '../../app/hooks/useCoordStream';
 import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
-import { computeCursorValence } from '../../app/utils/voteRegion';
+import { computeCursorValence, valenceToPercent } from '../../app/utils/voteRegion';
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -119,6 +119,9 @@ function formatPeriod(ms: number): string {
 
 function clamp(v: number, lo: number, hi: number): number { return Math.max(lo, Math.min(hi, v)); }
 
+// Valence lives in −1..1; the music mappings below want a 0..1 param `t`.
+function valenceToT(valence: number): number { return (valence + 1) / 2; }
+
 function findChordsForAnchor(idx: number, t: number): ChordResult[] {
   const sc = getScale(t);
   const semis = SCALES[sc];
@@ -148,7 +151,7 @@ const KEY_TO_IDX = Object.fromEntries(KEY_MAP.map((k, i) => [k, i]));
 export default function ValenceBeatPadPanel() {
   const { userId } = usePanelContext();
 
-  const [valence, setValence]           = useState(100);
+  const [valence, setValence]           = useState(1); // −1..1
   const [audienceSync, setAudienceSync] = useState(true);
   const [oscActive, setOscActive]       = useState(false);
   const [oscSpeed, setOscSpeed]         = useState(50);
@@ -166,7 +169,7 @@ export default function ValenceBeatPadPanel() {
   const sustainedRef = useRef<Map<number, SustainedNote>>(new Map());
 
   // Refs for stale-closure avoidance
-  const valenceRef        = useRef(100);
+  const valenceRef        = useRef(1); // −1..1
   const audienceSyncRef   = useRef(true);
   const oscActiveRef      = useRef(false);
   const oscPhaseRef       = useRef(Math.PI / 2);
@@ -219,7 +222,7 @@ export default function ValenceBeatPadPanel() {
     const ctx = audioCtxRef.current!;
     if (ctx.state === 'suspended') void ctx.resume();
     if (sustainedRef.current.has(idx)) return;
-    const t = getPlayValence() / 100;
+    const t = valenceToT(getPlayValence());
     const sc = getScale(t);
     const freq = 261.63 * Math.pow(2, SCALES[sc][idx] / 12);
     const neg = 1 - t;
@@ -278,7 +281,7 @@ export default function ValenceBeatPadPanel() {
     const dt = ts - oscLastTsRef.current; oscLastTsRef.current = ts;
     const period = getPeriodMs(oscSpeedRef.current);
     oscPhaseRef.current = (oscPhaseRef.current + dt / period * 2 * Math.PI) % (2 * Math.PI);
-    const newVal = Math.round((Math.sin(oscPhaseRef.current) + 1) / 2 * 100);
+    const newVal = Math.sin(oscPhaseRef.current); // −1..1
     valenceRef.current = newVal;
     setValence(newVal);
     oscRafRef.current = requestAnimationFrame(oscTick);
@@ -289,8 +292,7 @@ export default function ValenceBeatPadPanel() {
     oscActiveRef.current = next;
     setOscActive(next);
     if (next) {
-      const t = valenceRef.current / 100;
-      oscPhaseRef.current = Math.asin(Math.max(-1, Math.min(1, t * 2 - 1)));
+      oscPhaseRef.current = Math.asin(Math.max(-1, Math.min(1, valenceRef.current)));
       oscLastTsRef.current = null;
       oscRafRef.current = requestAnimationFrame(oscTick);
     } else {
@@ -303,10 +305,10 @@ export default function ValenceBeatPadPanel() {
   const applyAudienceMood = useCallback(() => {
     if (!audienceSyncRef.current) return;
     const cursors = positionsRef.current;
-    if (cursors.size === 0) { valenceRef.current = 50; setValence(50); return; }
+    if (cursors.size === 0) { valenceRef.current = 0; setValence(0); return; }
     let sum = 0;
     for (const [, c] of cursors) sum += computeCursorValence(c.x, c.y);
-    const val = Math.round(clamp(sum / cursors.size, 0, 100));
+    const val = clamp(sum / cursors.size, -1, 1);
     valenceRef.current = val;
     setValence(val);
   }, []);
@@ -365,7 +367,7 @@ export default function ValenceBeatPadPanel() {
     if (heldOrderRef.current.length === 1) {
       lockedValenceRef.current = valenceRef.current;
       anchorIdxRef.current = idx;
-      const chords = findChordsForAnchor(idx, lockedValenceRef.current / 100);
+      const chords = findChordsForAnchor(idx, valenceToT(lockedValenceRef.current));
       frozenChordsRef.current = chords;
       activeChordPadsRef.current.forEach(pi => { if (!heldOrderRef.current.includes(pi)) stopNote(pi); });
       activeChordPadsRef.current = new Set();
@@ -400,7 +402,7 @@ export default function ValenceBeatPadPanel() {
     } else if (idx === anchorIdxRef.current) {
       const newAnchor = heldOrderRef.current[0];
       anchorIdxRef.current = newAnchor;
-      const chords = findChordsForAnchor(newAnchor, getPlayValence() / 100);
+      const chords = findChordsForAnchor(newAnchor, valenceToT(getPlayValence()));
       frozenChordsRef.current = chords;
       activeChordPadsRef.current.forEach(pi => { if (!heldOrderRef.current.includes(pi)) stopNote(pi); });
       activeChordPadsRef.current = new Set();
@@ -442,7 +444,7 @@ export default function ValenceBeatPadPanel() {
     if (heldOrderRef.current.length < 2) return;
     if (frozenChordsRef.current.length >= 6) return;
     const padIdxs = [...heldOrderRef.current];
-    const newChord: ChordResult = { name: padIdxs.map(i => NAMES[getScale(getPlayValence() / 100)][i]).join('+'), type: 'maj', chordPcs: [], padIdxs };
+    const newChord: ChordResult = { name: padIdxs.map(i => NAMES[getScale(valenceToT(getPlayValence()))][i]).join('+'), type: 'maj', chordPcs: [], padIdxs };
     const updated = [...frozenChordsRef.current, newChord];
     frozenChordsRef.current = updated;
     setFrozenChords(updated);
@@ -484,8 +486,8 @@ export default function ValenceBeatPadPanel() {
 
   // ── Derived display ───────────────────────────────────────────────
 
-  const t = valence / 100;
-  const padT = (lockedValenceRef.current ?? valence) / 100;
+  const t = valenceToT(valence);
+  const padT = valenceToT(lockedValenceRef.current ?? valence);
   const sc = getScale(padT);
   const padBg = getPadBg(padT);
   const padTx = getPadText(padT);
@@ -595,12 +597,12 @@ export default function ValenceBeatPadPanel() {
           <span style={s.lbl}>Neg</span>
           <div style={{ position: 'relative', flex: 1, display: 'flex', alignItems: 'center' }}>
             <input
-              type="range" min={0} max={100} value={valence} step={1}
+              type="range" min={-1} max={1} value={valence} step={0.01}
               disabled={audienceSync || oscActive}
               style={{ ...s.slider, flex: 1, opacity: (audienceSync || oscActive) ? 0.5 : 1, cursor: (audienceSync || oscActive) ? 'not-allowed' : 'pointer' }}
               onChange={e => {
                 if (audienceSync || oscActive) return;
-                const v = parseInt(e.target.value);
+                const v = parseFloat(e.target.value);
                 valenceRef.current = v;
                 setValence(v);
               }}
@@ -608,7 +610,7 @@ export default function ValenceBeatPadPanel() {
             {anchorIdx !== null && lockedValenceRef.current !== null && (
               <div style={{
                 position: 'absolute',
-                left: `${lockedValenceRef.current}%`,
+                left: `${valenceToPercent(lockedValenceRef.current)}%`,
                 transform: 'translateX(-50%)',
                 width: 3, height: 14,
                 background: 'rgba(255,255,255,0.5)',
