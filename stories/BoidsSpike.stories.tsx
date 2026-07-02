@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
+import { useRawCoordStream } from '../app/hooks/useCoordStream';
+import { getPersistentUserId } from '../app/utils/userId';
 
 /**
  * BOIDS SPIKE — prototype-first validation of the useCoordStream() contract.
@@ -336,5 +338,70 @@ export const Aloof: Story = {
     humanCount: 8, boidCount: 200, mode: 'dynamic', showHumans: true,
     humanAttraction: 0.03, personalSpace: 22, separation: 0.08,
     alignment: 0.08, cohesion: 0.012, maxSpeed: 1.6,
+  },
+};
+
+// ---------------------------------------------------------------------------
+// Live room story — connects to a real PartyKit room via useRawCoordStream.
+// Uses PartySocket from 'partysocket' (not 'partysocket/react') so Storybook's
+// mock alias doesn't intercept the connection.
+// ---------------------------------------------------------------------------
+
+function BoidLiveRoom({
+  roomUrl,
+  boidCount,
+  mode,
+  showHumans,
+  humanAttraction,
+  personalSpace,
+  separation,
+  alignment,
+  cohesion,
+  maxSpeed,
+}: { roomUrl: string } & { boidCount: number; mode: PairingMode; showHumans: boolean } & BoidTuning) {
+  // Stable userId so we're excluded from our own position stream.
+  const userId = useRef(getPersistentUserId()).current;
+  const stream = useRawCoordStream(roomUrl || null, userId);
+  return (
+    <BoidsCanvas
+      stream={stream}
+      boidCount={boidCount}
+      mode={mode}
+      showHumans={showHumans}
+      tuning={{ humanAttraction, personalSpace, separation, alignment, cohesion, maxSpeed }}
+    />
+  );
+}
+
+const liveMeta = {
+  title: 'Spikes/BoidsSpike/LiveRoom',
+  component: BoidLiveRoom,
+  parameters: { layout: 'padded' },
+  argTypes: {
+    roomUrl: { control: 'text' },
+    mode: { control: 'radio', options: ['dynamic', 'strict'] },
+    boidCount: { control: { type: 'range', min: 0, max: 400, step: 10 } },
+    humanAttraction: { control: { type: 'range', min: 0, max: 0.4, step: 0.01 } },
+    personalSpace: { control: { type: 'range', min: 0, max: 40, step: 1 } },
+    separation: { control: { type: 'range', min: 0, max: 0.2, step: 0.01 } },
+    alignment: { control: { type: 'range', min: 0, max: 0.2, step: 0.01 } },
+    cohesion: { control: { type: 'range', min: 0, max: 0.05, step: 0.002 } },
+    maxSpeed: { control: { type: 'range', min: 0.2, max: 4, step: 0.1 } },
+  },
+} satisfies Meta<typeof BoidLiveRoom>;
+
+export const LiveRoom = {
+  ...liveMeta,
+  args: {
+    roomUrl: 'http://whispering-gallery.patcon.partykit.dev/default',
+    boidCount: 200,
+    mode: 'dynamic' as PairingMode,
+    showHumans: true,
+    humanAttraction: 0.03,
+    personalSpace: 22,
+    separation: 0.08,
+    alignment: 0.08,
+    cohesion: 0.012,
+    maxSpeed: 1.6,
   },
 };
