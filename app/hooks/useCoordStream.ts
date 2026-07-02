@@ -61,7 +61,8 @@ export function useCoordStream(ownUserId: string): CoordStreamResult {
  * RoomSocketProvider (e.g. Storybook live-room stories, perf harnesses).
  * Accepts a PartyKit room URL (http or https) like:
  *   https://whispering-gallery.patcon.partykit.dev/default
- * Protocol is always upgraded to wss — PartyKit only accepts secure sockets.
+ *   http://localhost:1999/default
+ * Maps http→ws and https→wss — TLS is a server concern, not a WebSocket one.
  */
 export function useRawCoordStream(
   roomUrl: string | null,
@@ -74,14 +75,16 @@ export function useRawCoordStream(
   useEffect(() => {
     if (!roomUrl) return;
 
-    // Parse http(s)://host/room → wss://host/parties/main/room
-    // Protocol of the INPUT url doesn't matter — PartyKit always uses wss.
+    // Parse http(s)://host/room → ws(s)://host/parties/main/room
+    // Mirror the input protocol: http→ws, https→wss. Whether to use TLS is a
+    // server concern (does it run on HTTPS?), not a WebSocket constraint.
     let parsed: URL;
     try { parsed = new URL(roomUrl); } catch { return; }
+    const wsProtocol = parsed.protocol === 'https:' ? 'wss:' : 'ws:';
     const host = parsed.host;
     const room = parsed.pathname.replace(/^\//, '') || 'default';
     const params = new URLSearchParams({ userId: ownUserId });
-    const wsUrl = `wss://${host}/parties/main/${room}?${params}`;
+    const wsUrl = `${wsProtocol}//${host}/parties/main/${room}?${params}`;
 
     // Use native WebSocket directly: explicit URL, no heuristics, synchronous
     // construction so the cleanup closure reliably captures it.
