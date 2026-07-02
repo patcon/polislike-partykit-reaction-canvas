@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { usePanelContext } from "../../app/context/PanelContext";
-import { expandCursorEvents } from '../../app/utils/cursor';
 import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
+import { useCoordStream } from '../../app/hooks/useCoordStream';
 import { computeCursorValence, computeReactionRegion } from '../../app/utils/voteRegion';
 
 // ── Types ─────────────────────────────────────────────────────────
@@ -184,7 +184,7 @@ interface BarState { height: number; color: [number,number,number]; active: bool
 const RESET_BARS: BarState[] = [0,1,2,3].map(() => ({ height: 3, color: [42,42,64], active: false }));
 
 export default function MoodTonesPanel() {
-  const { room } = usePanelContext();
+  const { room, userId } = usePanelContext();
   const [activePreset, setActivePreset]   = useState<Preset>(PRESETS[0]);
   const [playing, setPlaying]             = useState(false);
   const [mood, setMood]                   = useState(50);
@@ -214,8 +214,7 @@ export default function MoodTonesPanel() {
   const currentChordRef = useRef<number[]>([]);
 
   // WS refs
-  const cursorsRef      = useRef<Map<string,{x:number;y:number;region:string}>>(new Map());
-  const cursorRegionsRef= useRef<Map<string,string>>(new Map());
+  const { positionsRef } = useCoordStream(userId);
   const audienceSyncRef = useRef(true);
   const valenceModeRef  = useRef<'continuous'|'unit'>('continuous');
 
@@ -241,7 +240,7 @@ export default function MoodTonesPanel() {
 
   const applyAudienceMood = useCallback(() => {
     if (!audienceSyncRef.current) return;
-    const cursors = cursorsRef.current;
+    const cursors = positionsRef.current;
     if (cursors.size === 0) {
       setMoodWithDisplay(50);
       return;
@@ -254,13 +253,14 @@ export default function MoodTonesPanel() {
     } else {
       let sum = 0;
       for (const [, c] of cursors) {
-        if (c.region === 'positive') sum += 1;
-        else if (c.region === 'negative') sum += -1;
+        const region = computeReactionRegion(c.x, c.y);
+        if (region === 'positive') sum += 1;
+        else if (region === 'negative') sum += -1;
       }
       val = (sum / cursors.size + 1) / 2 * 100;
     }
     setMoodWithDisplay(Math.round(clamp(val, 0, 100)));
-  }, [setMoodWithDisplay]);
+  }, [positionsRef, setMoodWithDisplay]);
 
   useEffect(() => {
     if (audienceSync) applyAudienceMood();
@@ -268,30 +268,17 @@ export default function MoodTonesPanel() {
 
   // ── WebSocket ──────────────────────────────────────────────────
   useMessageSubscription((evt) => {
-    let data: { type: string; count?: number; position?: { userId: string; x: number; y: number } };
+    let data: { type: string; count?: number };
     try { data = JSON.parse(evt.data as string); } catch { return; }
-    if (data.type === 'presenceCount') {
-      setAudienceCount(data.count ?? 0);
-    } else {
-      for (const e of expandCursorEvents(data)) {
-        if (e.type === 'move' || e.type === 'touch') {
-          const { userId, x, y } = e.position;
-          const region = computeReactionRegion(x, y) ?? 'neutral';
-          const prevRegion = cursorRegionsRef.current.get(userId);
-          cursorsRef.current.set(userId, { x, y, region });
-          if (valenceModeRef.current === 'continuous' || region !== prevRegion) {
-            cursorRegionsRef.current.set(userId, region);
-            applyAudienceMood();
-          }
-        } else if (e.type === 'remove') {
-          const { userId } = e.position;
-          cursorsRef.current.delete(userId);
-          cursorRegionsRef.current.delete(userId);
-          applyAudienceMood();
-        }
-      }
-    }
+    if (data.type === 'presenceCount') setAudienceCount(data.count ?? 0);
   });
+
+  // Poll positionsRef at 100ms — imperceptible for crowd-average audio mood.
+  useEffect(() => {
+    if (!audienceSync) return;
+    const id = setInterval(applyAudienceMood, 100);
+    return () => clearInterval(id);
+  }, [audienceSync, applyAudienceMood]);
 
   // ── Audio helpers ──────────────────────────────────────────────
   function makeSawFilter(freq: number, vel: number): BiquadFilterNode {

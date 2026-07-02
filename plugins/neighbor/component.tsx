@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as d3 from 'd3';
 import { usePanelContext } from '../../app/context/PanelContext';
-import { expandCursorEvents } from '../../app/utils/cursor';
+import { useCoordStream } from '../../app/hooks/useCoordStream';
 import { useRoomSocket, useMessageSubscription } from '../../app/contexts/RoomSocketContext';
 import { computeReactionRegion, DEFAULT_ANCHORS } from '../../app/utils/voteRegion';
 import type { ReactionAnchors } from '../../app/utils/voteRegion';
@@ -25,6 +25,9 @@ const ERROR_MESSAGES: Record<EdgeError, string> = {
 export default function NeighborPanel({ initialView = 'entry' as View }: { initialView?: View }) {
   const { userId } = usePanelContext();
   const { send } = useRoomSocket();
+  // Live cursor positions keyed by userId. includeSelf so our own node is
+  // colored by region too (neighbor renders every participant, self included).
+  const { positionsRef } = useCoordStream(userId, { includeSelf: true });
 
   const [view, setView] = useState<View>(initialView);
   const [digits, setDigits] = useState('');
@@ -48,7 +51,6 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   const paddingRef = useRef(20);
   const sizeRef = useRef({ width: 320, height: 280 });
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const liveCursorsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const anchorsRef = useRef<ReactionAnchors>(DEFAULT_ANCHORS);
 
   // D3 mutates link source/target from string IDs to node objects; normalize back and drop any links
@@ -65,7 +67,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
 
   function getNodeColor(node: D3Node): string {
     if (node.offline) return USER_STATUS_COLORS.offline;
-    const pos = liveCursorsRef.current.get(node.id);
+    const pos = positionsRef.current.get(node.id);
     if (!pos) return USER_STATUS_COLORS.idle;
     const region = computeReactionRegion(pos.x, pos.y, anchorsRef.current);
     return region ? VOTE_COLORS[region] : USER_STATUS_COLORS.idle;
@@ -171,17 +173,9 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         anchorsRef.current = msg.anchors ?? DEFAULT_ANCHORS;
         updateNodeColors();
       } else if (msg.type === 'move' || msg.type === 'touch' || msg.type === 'remove' || msg.type === 'cursorBatch') {
-        let changed = false;
-        for (const e of expandCursorEvents(msg)) {
-          if (e.type === 'move' || e.type === 'touch') {
-            liveCursorsRef.current.set(e.position.userId, { x: e.position.x, y: e.position.y });
-            changed = true;
-          } else if (e.type === 'remove') {
-            liveCursorsRef.current.delete(e.position.userId);
-            changed = true;
-          }
-        }
-        if (changed) updateNodeColors();
+        // useCoordStream already applied this to positionsRef (its subscription
+        // is registered first); we just recolor nodes from the fresh positions.
+        updateNodeColors();
       } else if (msg.type === 'userJoined') {
         const uid: string = msg.userId;
         const existing = nodesRef.current.find(n => n.id === uid);
@@ -200,7 +194,6 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
         send(JSON.stringify({ type: 'requestNeighborEdges' }));
       } else if (msg.type === 'userLeft') {
         const uid: string = msg.userId;
-        liveCursorsRef.current.delete(uid);
         const node = nodesRef.current.find(n => n.id === uid);
         if (node) {
           node.offline = true;

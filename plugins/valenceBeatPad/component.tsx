@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import usePartySocket from 'partysocket/react';
 import { usePanelContext } from "../../app/context/PanelContext";
-import { getPartySocketConfig } from '../../app/utils/partyHost';
-import { expandCursorEvents } from '../../app/utils/cursor';
-import { generateUUID } from '../../app/utils/userId';
+import { useCoordStream } from '../../app/hooks/useCoordStream';
+import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
 import { computeCursorValence } from '../../app/utils/voteRegion';
 
 // ── Constants ──────────────────────────────────────────────────────
@@ -148,7 +146,7 @@ const KEY_TO_IDX = Object.fromEntries(KEY_MAP.map((k, i) => [k, i]));
 // ── Component ──────────────────────────────────────────────────────
 
 export default function ValenceBeatPadPanel() {
-  const { room } = usePanelContext();
+  const { userId } = usePanelContext();
 
   const [valence, setValence]           = useState(100);
   const [audienceSync, setAudienceSync] = useState(true);
@@ -159,7 +157,6 @@ export default function ValenceBeatPadPanel() {
   const [frozenChords, setFrozenChords] = useState<ChordResult[]>([]);
   const [activeChordNum, setActiveChordNum] = useState<number | null>(null);
   const [activeChordPads, setActiveChordPads] = useState<Set<number>>(new Set());
-  const [wsStatus, setWsStatus]         = useState<'disconnected'|'connecting'|'connected'>('disconnected');
   const [audienceCount, setAudienceCount] = useState(0);
 
   // Refs for audio
@@ -183,8 +180,9 @@ export default function ValenceBeatPadPanel() {
   const activeChordPadsRef= useRef<Set<number>>(new Set());
   const lockedValenceRef  = useRef<number | null>(null);
 
-  const socketUserId = useRef(generateUUID());
-  const cursorsRef   = useRef<Map<string, { x: number; y: number }>>(new Map());
+  // Live audience cursor positions from the shared room socket. includeSelf so a
+  // solo operator driving the canvas from the same instance still feeds the mood.
+  const { positionsRef } = useCoordStream(userId, { includeSelf: true });
 
   // Keep refs in sync
   useEffect(() => { valenceRef.current = valence; }, [valence]);
@@ -304,7 +302,7 @@ export default function ValenceBeatPadPanel() {
 
   const applyAudienceMood = useCallback(() => {
     if (!audienceSyncRef.current) return;
-    const cursors = cursorsRef.current;
+    const cursors = positionsRef.current;
     if (cursors.size === 0) { valenceRef.current = 50; setValence(50); return; }
     let sum = 0;
     for (const [, c] of cursors) sum += computeCursorValence(c.x, c.y);
@@ -324,34 +322,20 @@ export default function ValenceBeatPadPanel() {
     }
   }, [audienceSync, applyAudienceMood]);
 
-  // ── WebSocket ────────────────────────────────────────────────────
-
-  usePartySocket({
-    ...getPartySocketConfig(),
-    room,
-    query: { isAdmin: 'true', userId: socketUserId.current },
-    onOpen:  () => setWsStatus('connected'),
-    onClose: () => setWsStatus('disconnected'),
-    onError: () => setWsStatus('disconnected'),
-    onMessage(evt) {
-      let data: { type: string; count?: number; position?: { userId: string; x: number; y: number } };
-      try { data = JSON.parse(evt.data as string); } catch { return; }
-      if (data.type === 'presenceCount') {
-        setAudienceCount(data.count ?? 0);
-      } else {
-        for (const e of expandCursorEvents(data)) {
-          if (e.type === 'move' || e.type === 'touch') {
-            const { userId, x, y } = e.position;
-            cursorsRef.current.set(userId, { x, y });
-            applyAudienceMood();
-          } else if (e.type === 'remove') {
-            cursorsRef.current.delete(e.position.userId);
-            applyAudienceMood();
-          }
-        }
-      }
-    },
+  // ── Audience sync (shared room socket) ─────────────────────────────
+  // useCoordStream owns the cursor map; we only need presenceCount here.
+  useMessageSubscription((evt) => {
+    let data: { type: string; count?: number };
+    try { data = JSON.parse(evt.data as string); } catch { return; }
+    if (data.type === 'presenceCount') setAudienceCount(data.count ?? 0);
   });
+
+  // Poll positionsRef at 100ms — imperceptible for crowd-average mood.
+  useEffect(() => {
+    if (!audienceSync) return;
+    const id = setInterval(applyAudienceMood, 100);
+    return () => clearInterval(id);
+  }, [audienceSync, applyAudienceMood]);
 
   // ── Pad interaction ──────────────────────────────────────────────
 
@@ -586,7 +570,6 @@ export default function ValenceBeatPadPanel() {
     stat: { background: '#242424', borderRadius: 7, padding: '6px 8px', border: '0.5px solid rgba(255,255,255,0.1)' },
     statLbl: { fontSize: 9, textTransform: 'uppercase' as const, letterSpacing: '.05em', color: '#555', marginBottom: 2 },
     statVal: { fontSize: 12, fontWeight: 500, color: '#ddd', whiteSpace: 'nowrap' as const, overflow: 'hidden', textOverflow: 'ellipsis' },
-    wsStatus: { fontSize: 10, color: wsStatus === 'connected' ? '#40a060' : '#505060', marginBottom: 6 },
   };
 
   return (
@@ -702,12 +685,6 @@ export default function ValenceBeatPadPanel() {
             );
           })}
         </div>
-
-        {wsStatus !== 'connected' && (
-          <div style={s.wsStatus}>
-            {wsStatus === 'connecting' ? 'connecting…' : 'not connected'}
-          </div>
-        )}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@ import { useRef, useEffect, useState } from "react";
 import { select } from "d3";
 import type { Selection } from "d3";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
+import { CURSOR_STALE_MS } from "../../utils/cursor";
 import { makeImageCoordTransform } from "../../utils/imageCanvasCoords";
 import { flashSecondsRemaining } from "../../utils/flashTimer";
 import { useRoomSocket, useMessageSubscription } from "../../contexts/RoomSocketContext";
@@ -567,7 +568,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
                   if (cursor && cursor.timestamp === timestamp) newCursors.delete(cursorUserId);
                   return newCursors;
                 });
-              }, 3000);
+              }, CURSOR_STALE_MS);
             }
           }
           return;
@@ -592,7 +593,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
                 return newCursors;
               });
 
-              // Remove old cursor positions after 3 seconds of inactivity
+              // Remove old cursor positions after CURSOR_STALE_MS of inactivity
               setTimeout(() => {
                 setCursors(prev => {
                   const newCursors = new Map(prev);
@@ -602,7 +603,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
                   }
                   return newCursors;
                 });
-              }, 3000);
+              }, CURSOR_STALE_MS);
             }
           }
         }

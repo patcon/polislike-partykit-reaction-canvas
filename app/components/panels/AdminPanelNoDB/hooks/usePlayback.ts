@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { CURSOR_HEARTBEAT_MS } from "../../../../utils/cursor";
 import type { ReactionAnchors } from "../../../../utils/voteRegion";
 import type { PlaybackFile, RecordingMode } from "../types";
 import type PartySocket from "partysocket";
@@ -91,6 +92,8 @@ export function usePlayback(socket: PartySocket, activeAnchors: ReactionAnchors)
 
   const startPauseHeartbeat = () => {
     if (pauseHeartbeatRef.current) clearInterval(pauseHeartbeatRef.current);
+    // Re-broadcast paused playback cursors so consumers' CURSOR_STALE_MS timeout
+    // doesn't expire them while playback is held.
     pauseHeartbeatRef.current = setInterval(() => {
       lastPlaybackPositions.current.forEach(({ x, y }, uid) => {
         socket.send(JSON.stringify({
@@ -99,7 +102,7 @@ export function usePlayback(socket: PartySocket, activeAnchors: ReactionAnchors)
           position: { x, y, userId: uid, timestamp: Date.now() },
         }));
       });
-    }, 2000);
+    }, CURSOR_HEARTBEAT_MS);
   };
 
   const stopPauseHeartbeat = () => {

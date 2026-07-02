@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { generateUUID } from "../../../../utils/userId";
 import { computeReactionRegion } from "../../../../utils/voteRegion";
+import { CURSOR_STALE_MS } from "../../../../utils/cursor";
 import { parsePolisComments, parsePolisVotes, assemblePolisImport } from "../../../../utils/polisImport";
 import { idbGet, idbSet } from "../../../../utils/idbStorage";
 import { buildFlashTimerStart } from "../../../../utils/flashTimer";
@@ -173,7 +174,7 @@ export function useParticipants(socket: PartySocket, room: string, activeAnchors
       staleTimersRef.current.set(cursorUserId, setTimeout(() => {
         setLiveCursors(prev => { const m = new Map(prev); m.delete(cursorUserId); return m; });
         staleTimersRef.current.delete(cursorUserId);
-      }, 3000));
+      }, CURSOR_STALE_MS));
     }
 
     if (data.type === 'remove') {
