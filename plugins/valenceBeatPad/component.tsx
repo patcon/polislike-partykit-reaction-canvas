@@ -180,8 +180,9 @@ export default function ValenceBeatPadPanel() {
   const activeChordPadsRef= useRef<Set<number>>(new Set());
   const lockedValenceRef  = useRef<number | null>(null);
 
-  // Live audience cursor positions from the shared room socket (self filtered).
-  const { positionsRef } = useCoordStream(userId);
+  // Live audience cursor positions from the shared room socket. includeSelf so a
+  // solo operator driving the canvas from the same instance still feeds the mood.
+  const { positionsRef } = useCoordStream(userId, { includeSelf: true });
 
   // Keep refs in sync
   useEffect(() => { valenceRef.current = valence; }, [valence]);
