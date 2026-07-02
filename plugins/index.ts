@@ -13,6 +13,7 @@ import signatureCanvasPlugin from './signatureCanvas/index';
 import { neighborPlugin } from './neighbor/index';
 import narrativePlugins from './narrative/index';
 import voiceCallPlugin from './voiceCall/index';
+import boidsPlugin from './boids/index';
 // import helloWorldPlugin from './helloWorld/index';  // uncomment to activate the helloWorld example plugin
 
 type PluginExport = PanelPlugin | PanelPlugin[];
@@ -32,6 +33,7 @@ const pluginExports: PluginExport[] = [
   neighborPlugin,
   narrativePlugins,
   voiceCallPlugin,
+  boidsPlugin,
   // helloWorldPlugin,
 ];
 
