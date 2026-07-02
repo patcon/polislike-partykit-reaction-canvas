@@ -30,6 +30,8 @@ type Vec = { x: number; y: number };
 interface CoordStream {
   /** Per-frame readable. Same shape the real hook would fill from cursorBatch. */
   positionsRef: React.MutableRefObject<Map<string, Vec>>;
+  /** Optional — only populated by useRawCoordStream; mock leaves it undefined. */
+  status?: string;
 }
 
 /**
@@ -114,6 +116,9 @@ function BoidsCanvas({
   showHumans: boolean;
   tuning: BoidTuning;
 }) {
+  const statusColor: Record<string, string> = {
+    connected: '#9f9', connecting: '#ff9', disconnected: '#f99', error: '#f66',
+  };
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boidsRef = useRef<Boid[]>([]);
   // Read tuning live from a ref so slider drags apply without restarting the sim.
@@ -236,9 +241,12 @@ function BoidsCanvas({
         ctx.fill();
       }
 
-      // Refresh the render badge ~1x/sec (a React render, on purpose — proves
-      // the sim itself is NOT causing renders; only this throttled tick is).
-      if (t - lastBadge > 1000) { lastBadge = t; setRenderBadge((n) => n + 1); }
+      // Refresh the render badge ~1x/sec — proves the sim itself is NOT
+      // causing renders; only this throttled tick is.
+      if (t - lastBadge > 1000) {
+        lastBadge = t;
+        setRenderBadge(stream.positionsRef.current.size);
+      }
 
       raf = requestAnimationFrame(step);
     };
@@ -252,14 +260,17 @@ function BoidsCanvas({
       <div
         style={{
           position: 'absolute', top: 8, left: 8, font: '12px/1.5 monospace',
-          color: '#9f9', background: 'rgba(0,0,0,0.5)', padding: '6px 8px', borderRadius: 6,
+          color: '#ccc', background: 'rgba(0,0,0,0.6)', padding: '6px 8px', borderRadius: 6,
         }}
       >
-        mode: {mode}<br />
-        boids: {boidCount}<br />
-        React renders: {renderCountRef.current}
-        <span style={{ opacity: 0.6 }}> (badge tick #{renderBadge})</span><br />
-        <span style={{ opacity: 0.6 }}>↑ should stay tiny while sim runs</span>
+        {stream.status && (
+          <div style={{ color: statusColor[stream.status] ?? '#ccc', marginBottom: 2 }}>
+            ws: {stream.status}
+          </div>
+        )}
+        humans: <span style={{ color: renderBadge > 0 ? '#9f9' : '#888' }}>{renderBadge}</span><br />
+        boids: {boidCount} · mode: {mode}<br />
+        <span style={{ opacity: 0.5 }}>React renders: {renderCountRef.current}</span>
       </div>
     </div>
   );

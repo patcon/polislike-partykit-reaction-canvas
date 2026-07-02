@@ -1,10 +1,14 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useMessageSubscription } from '../contexts/RoomSocketContext';
 import { expandCursorEvents } from '../utils/cursor';
+
+export type CoordStreamStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
 export interface CoordStreamResult {
   /** Per-frame readable. Safe to read in a RAF loop without triggering re-renders. */
   positionsRef: React.MutableRefObject<Map<string, { x: number; y: number }>>;
+  /** Connection status — useful for overlays in standalone contexts. */
+  status?: CoordStreamStatus;
 }
 
 const STALE_MS = 3000;
@@ -65,56 +69,62 @@ export function useRawCoordStream(
 ): CoordStreamResult {
   const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const timestampsRef = useRef<Map<string, number>>(new Map());
+  const [status, setStatus] = useState<CoordStreamStatus>('connecting');
 
   useEffect(() => {
     if (!roomUrl) return;
 
-    // Parse http(s)://host/room  →  wss://host/parties/main/room
+    // Parse http(s)://host/room → wss://host/parties/main/room
+    // Protocol of the INPUT url doesn't matter — PartyKit always uses wss.
     let parsed: URL;
     try { parsed = new URL(roomUrl); } catch { return; }
     const host = parsed.host;
     const room = parsed.pathname.replace(/^\//, '') || 'default';
-    const wsUrl = `wss://${host}/parties/main/${room}`;
+    const params = new URLSearchParams({ userId: ownUserId });
+    const wsUrl = `wss://${host}/parties/main/${room}?${params}`;
 
-    // Use PartySocket from 'partysocket' (not 'partysocket/react') so
-    // Storybook's mock alias doesn't intercept it.
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    let ws: any = null;
-    import('partysocket').then(({ PartySocket }) => {
-      ws = new PartySocket({ host, room, party: 'main', query: { userId: ownUserId } });
+    // Use native WebSocket directly: explicit URL, no heuristics, synchronous
+    // construction so the cleanup closure reliably captures it.
+    const ws = new WebSocket(wsUrl);
+    setStatus('connecting');
 
-      ws.addEventListener('message', (evt: MessageEvent) => {
-        let data: unknown;
-        try { data = JSON.parse(evt.data); } catch { return; }
-        if (!data || typeof data !== 'object') return;
+    ws.addEventListener('open', () => setStatus('connected'));
+    ws.addEventListener('close', () => setStatus('disconnected'));
+    ws.addEventListener('error', () => setStatus('error'));
 
-        for (const event of expandCursorEvents(data as Parameters<typeof expandCursorEvents>[0])) {
-          const { userId, x, y } = event.position;
-          if (userId === ownUserId) continue;
+    ws.addEventListener('message', (evt: MessageEvent) => {
+      let data: unknown;
+      try { data = JSON.parse(evt.data); } catch { return; }
+      if (!data || typeof data !== 'object') return;
 
-          if (event.type === 'remove') {
+      for (const event of expandCursorEvents(data as Parameters<typeof expandCursorEvents>[0])) {
+        const { userId, x, y } = event.position;
+        if (userId === ownUserId) continue;
+
+        if (event.type === 'remove') {
+          positionsRef.current.delete(userId);
+          timestampsRef.current.delete(userId);
+          continue;
+        }
+
+        positionsRef.current.set(userId, { x, y });
+        const ts = Date.now();
+        timestampsRef.current.set(userId, ts);
+        setTimeout(() => {
+          if (timestampsRef.current.get(userId) === ts) {
             positionsRef.current.delete(userId);
             timestampsRef.current.delete(userId);
-            continue;
           }
-
-          positionsRef.current.set(userId, { x, y });
-          const ts = Date.now();
-          timestampsRef.current.set(userId, ts);
-          setTimeout(() => {
-            if (timestampsRef.current.get(userId) === ts) {
-              positionsRef.current.delete(userId);
-              timestampsRef.current.delete(userId);
-            }
-          }, STALE_MS);
-        }
-      });
-
-      void wsUrl; // documents intent; actual connection is via PartySocket opts above
+        }, STALE_MS);
+      }
     });
 
-    return () => { ws?.close(); positionsRef.current.clear(); timestampsRef.current.clear(); };
+    return () => {
+      ws.close();
+      positionsRef.current.clear();
+      timestampsRef.current.clear();
+    };
   }, [roomUrl, ownUserId]);
 
-  return { positionsRef };
+  return { positionsRef, status };
 }
