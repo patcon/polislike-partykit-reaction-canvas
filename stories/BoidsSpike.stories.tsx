@@ -1,7 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
-import { useRawCoordStream } from '../app/hooks/useCoordStream';
-import { getPersistentUserId } from '../app/utils/userId';
+import { BoidsCanvas, type BoidTuning, type CoordStream, type PairingMode } from './boids-shared';
 
 /**
  * BOIDS SPIKE — prototype-first validation of the useCoordStream() contract.
@@ -21,18 +20,11 @@ import { getPersistentUserId } from '../app/utils/userId';
  * affected by the boids — exactly the "render-others owns its own layout +
  * glyph + animation" thesis. Coordinates are 0..100 normalized, matching the
  * real cursor stream.
+ *
+ * For the live-room version (real PartyKit cursors), see BoidsSpikeLive.stories.tsx.
  */
 
-// --- The contract we're prototyping (mock of useCoordStream) --------------
-
-type Vec = { x: number; y: number };
-
-interface CoordStream {
-  /** Per-frame readable. Same shape the real hook would fill from cursorBatch. */
-  positionsRef: React.MutableRefObject<Map<string, Vec>>;
-  /** Optional — only populated by useRawCoordStream; mock leaves it undefined. */
-  status?: string;
-}
+// --- Mock coord stream: N humans wandering, written into a ref ---------------
 
 /**
  * Mock stream: N humans wandering via their own RAF, written into a ref.
@@ -40,7 +32,7 @@ interface CoordStream {
  * positions into a ref (never per-cursor React state).
  */
 function useMockCoordStream(count: number): CoordStream {
-  const positionsRef = useRef<Map<string, Vec>>(new Map());
+  const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   // Per-human wander target + velocity, kept out of React entirely.
   const stateRef = useRef<Map<string, { x: number; y: number; tx: number; ty: number }>>(new Map());
 
@@ -86,195 +78,7 @@ function useMockCoordStream(count: number): CoordStream {
   return { positionsRef };
 }
 
-// --- Boids sim (pure consumer of the stream) ------------------------------
-
-type PairingMode = 'dynamic' | 'strict';
-
-interface Boid { x: number; y: number; vx: number; vy: number; human?: string }
-
-interface BoidTuning {
-  /** Pull toward the human target. Low = aloof, high = clingy. */
-  humanAttraction: number;
-  /** Ring radius (0..100) boids try to keep from their human. High = keep distance. */
-  personalSpace: number;
-  separation: number;
-  alignment: number;
-  cohesion: number;
-  maxSpeed: number;
-}
-
-function BoidsCanvas({
-  stream,
-  boidCount,
-  mode,
-  showHumans,
-  tuning,
-}: {
-  stream: CoordStream;
-  boidCount: number;
-  mode: PairingMode;
-  showHumans: boolean;
-  tuning: BoidTuning;
-}) {
-  const statusColor: Record<string, string> = {
-    connected: '#9f9', connecting: '#ff9', disconnected: '#f99', error: '#f66',
-  };
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const boidsRef = useRef<Boid[]>([]);
-  // Read tuning live from a ref so slider drags apply without restarting the sim.
-  const tuningRef = useRef(tuning);
-  tuningRef.current = tuning;
-  // Assumption #2 probe: count React renders of THIS component.
-  const renderCountRef = useRef(0);
-  renderCountRef.current += 1;
-  const [renderBadge, setRenderBadge] = useState(0);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d')!;
-
-    // (Re)seed boids to the requested count.
-    const boids = boidsRef.current;
-    let bseed = 12345;
-    const rnd = () => { bseed = (bseed * 1103515245 + 12345) & 0x7fffffff; return bseed / 0x7fffffff; };
-    while (boids.length < boidCount) {
-      const i = boids.length;
-      boids.push({ x: rnd() * 100, y: rnd() * 100, vx: 0, vy: 0, human: `h${i}` });
-    }
-    boids.length = boidCount;
-
-    let raf = 0;
-    let lastBadge = 0;
-
-    const step = (t: number) => {
-      const tuning = tuningRef.current; // live-tunable, no sim restart
-      // READ THE STREAM — the whole point. ref.current, no React involved.
-      const humans = stream.positionsRef.current;
-      const humanList = [...humans.entries()];
-
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      if (canvas.width !== w) canvas.width = w;
-      if (canvas.height !== h) canvas.height = h;
-
-      // --- boids update ---
-      const SEP = 4, ALIGN_R = 8, COH_R = 10;
-      for (const b of boids) {
-        let sepX = 0, sepY = 0;
-        let aliX = 0, aliY = 0, aliN = 0;
-        let cohX = 0, cohY = 0, cohN = 0;
-
-        // Adaptive vision: shrink neighbour radius in dense areas.
-        let localDensity = 0;
-        for (const o of boids) {
-          if (o === b) continue;
-          const dx = b.x - o.x, dy = b.y - o.y;
-          const d2 = dx * dx + dy * dy;
-          if (d2 < SEP * SEP) { sepX += dx; sepY += dy; localDensity++; }
-          if (d2 < ALIGN_R * ALIGN_R) { aliX += o.vx; aliY += o.vy; aliN++; }
-          if (d2 < COH_R * COH_R) { cohX += o.x; cohY += o.y; cohN++; }
-        }
-        const visionScale = localDensity > 6 ? 0.5 : 1; // jitter guard in clusters
-        if (aliN) { aliX = aliX / aliN - b.vx; aliY = aliY / aliN - b.vy; }
-        if (cohN) { cohX = cohX / cohN - b.x; cohY = cohY / cohN - b.y; }
-
-        // Steer toward a human target.
-        let target: Vec | undefined;
-        if (mode === 'strict') {
-          target = (b.human && humans.get(b.human)) || undefined;
-          // If assigned human left, fall back to nearest (graceful churn).
-        }
-        if (!target && humanList.length) {
-          let best = Infinity;
-          for (const [, hp] of humanList) {
-            const dx = hp.x - b.x, dy = hp.y - b.y;
-            const d2 = dx * dx + dy * dy;
-            if (d2 < best) { best = d2; target = hp; }
-          }
-        }
-
-        let arrX = 0, arrY = 0;
-        if (target) {
-          const dx = target.x - b.x, dy = target.y - b.y;
-          const dist = Math.hypot(dx, dy) || 1;
-          // "Arrive" toward a RING at `personalSpace` from the human, with
-          // inverse-distance damping. Larger personalSpace => boids orbit
-          // rather than pile onto the human (less clingy).
-          const gap = dist - tuning.personalSpace;
-          const desired = Math.max(Math.min(gap / 6, tuning.maxSpeed), gap < 0 ? -tuning.maxSpeed : 0);
-          arrX = (dx / dist) * desired - b.vx;
-          arrY = (dy / dist) * desired - b.vy;
-        }
-
-        b.vx += (sepX * tuning.separation + aliX * tuning.alignment * visionScale + cohX * tuning.cohesion * visionScale + arrX * tuning.humanAttraction);
-        b.vy += (sepY * tuning.separation + aliY * tuning.alignment * visionScale + cohY * tuning.cohesion * visionScale + arrY * tuning.humanAttraction);
-
-        const sp = Math.hypot(b.vx, b.vy);
-        if (sp > tuning.maxSpeed) { b.vx = (b.vx / sp) * tuning.maxSpeed; b.vy = (b.vy / sp) * tuning.maxSpeed; }
-        b.x = Math.max(0, Math.min(100, b.x + b.vx));
-        b.y = Math.max(0, Math.min(100, b.y + b.vy));
-      }
-
-      // --- draw ---
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const sx = canvas.width / 100, sy = canvas.height / 100;
-
-      if (showHumans) {
-        ctx.fillStyle = 'rgba(80,140,255,0.9)';
-        for (const [, hp] of humanList) {
-          ctx.beginPath();
-          ctx.arc(hp.x * sx, hp.y * sy, 6, 0, Math.PI * 2);
-          ctx.fill();
-        }
-      }
-
-      ctx.fillStyle = '#e8e8e8';
-      for (const b of boids) {
-        const ang = Math.atan2(b.vy, b.vx);
-        const px = b.x * sx, py = b.y * sy;
-        ctx.beginPath();
-        ctx.moveTo(px + Math.cos(ang) * 6, py + Math.sin(ang) * 6);
-        ctx.lineTo(px + Math.cos(ang + 2.5) * 4, py + Math.sin(ang + 2.5) * 4);
-        ctx.lineTo(px + Math.cos(ang - 2.5) * 4, py + Math.sin(ang - 2.5) * 4);
-        ctx.closePath();
-        ctx.fill();
-      }
-
-      // Refresh the render badge ~1x/sec — proves the sim itself is NOT
-      // causing renders; only this throttled tick is.
-      if (t - lastBadge > 1000) {
-        lastBadge = t;
-        setRenderBadge(stream.positionsRef.current.size);
-      }
-
-      raf = requestAnimationFrame(step);
-    };
-    raf = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(raf);
-  }, [stream, boidCount, mode, showHumans]);
-
-  return (
-    <div style={{ position: 'relative', width: '100%', height: 480, background: '#111', borderRadius: 8 }}>
-      <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
-      <div
-        style={{
-          position: 'absolute', top: 8, left: 8, font: '12px/1.5 monospace',
-          color: '#ccc', background: 'rgba(0,0,0,0.6)', padding: '6px 8px', borderRadius: 6,
-        }}
-      >
-        {stream.status && (
-          <div style={{ color: statusColor[stream.status] ?? '#ccc', marginBottom: 2 }}>
-            ws: {stream.status}
-          </div>
-        )}
-        humans: <span style={{ color: renderBadge > 0 ? '#9f9' : '#888' }}>{renderBadge}</span><br />
-        boids: {boidCount} · mode: {mode}<br />
-        <span style={{ opacity: 0.5 }}>React renders: {renderCountRef.current}</span>
-      </div>
-    </div>
-  );
-}
+// --- Story component ---------------------------------------------------------
 
 function BoidsSpike({
   humanCount,
@@ -349,70 +153,5 @@ export const Aloof: Story = {
     humanCount: 8, boidCount: 200, mode: 'dynamic', showHumans: true,
     humanAttraction: 0.03, personalSpace: 22, separation: 0.08,
     alignment: 0.08, cohesion: 0.012, maxSpeed: 1.6,
-  },
-};
-
-// ---------------------------------------------------------------------------
-// Live room story — connects to a real PartyKit room via useRawCoordStream.
-// Uses PartySocket from 'partysocket' (not 'partysocket/react') so Storybook's
-// mock alias doesn't intercept the connection.
-// ---------------------------------------------------------------------------
-
-function BoidLiveRoom({
-  roomUrl,
-  boidCount,
-  mode,
-  showHumans,
-  humanAttraction,
-  personalSpace,
-  separation,
-  alignment,
-  cohesion,
-  maxSpeed,
-}: { roomUrl: string } & { boidCount: number; mode: PairingMode; showHumans: boolean } & BoidTuning) {
-  // Stable userId so we're excluded from our own position stream.
-  const userId = useRef(getPersistentUserId()).current;
-  const stream = useRawCoordStream(roomUrl || null, userId);
-  return (
-    <BoidsCanvas
-      stream={stream}
-      boidCount={boidCount}
-      mode={mode}
-      showHumans={showHumans}
-      tuning={{ humanAttraction, personalSpace, separation, alignment, cohesion, maxSpeed }}
-    />
-  );
-}
-
-const liveMeta = {
-  title: 'Spikes/BoidsSpike/LiveRoom',
-  component: BoidLiveRoom,
-  parameters: { layout: 'padded' },
-  argTypes: {
-    roomUrl: { control: 'text' },
-    mode: { control: 'radio', options: ['dynamic', 'strict'] },
-    boidCount: { control: { type: 'range', min: 0, max: 400, step: 10 } },
-    humanAttraction: { control: { type: 'range', min: 0, max: 0.4, step: 0.01 } },
-    personalSpace: { control: { type: 'range', min: 0, max: 40, step: 1 } },
-    separation: { control: { type: 'range', min: 0, max: 0.2, step: 0.01 } },
-    alignment: { control: { type: 'range', min: 0, max: 0.2, step: 0.01 } },
-    cohesion: { control: { type: 'range', min: 0, max: 0.05, step: 0.002 } },
-    maxSpeed: { control: { type: 'range', min: 0.2, max: 4, step: 0.1 } },
-  },
-} satisfies Meta<typeof BoidLiveRoom>;
-
-export const LiveRoom = {
-  ...liveMeta,
-  args: {
-    roomUrl: 'http://whispering-gallery.patcon.partykit.dev/default',
-    boidCount: 200,
-    mode: 'dynamic' as PairingMode,
-    showHumans: true,
-    humanAttraction: 0.03,
-    personalSpace: 22,
-    separation: 0.08,
-    alignment: 0.08,
-    cohesion: 0.012,
-    maxSpeed: 1.6,
   },
 };
