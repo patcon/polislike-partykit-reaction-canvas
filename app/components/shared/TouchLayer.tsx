@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState } from "react";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
-import { CURSOR_THROTTLE_MS } from "../../utils/cursor";
+import { CURSOR_THROTTLE_MS, CURSOR_HEARTBEAT_MS } from "../../utils/cursor";
 import { useRoomSocket } from "../../contexts/RoomSocketContext";
 import type { ReactionAnchors } from "../../utils/voteRegion";
 
@@ -91,8 +91,9 @@ export default function TouchLayer({
     }
   };
 
-  // Heartbeat: re-send position every 2s while holding still, so Canvas's 3s staleness
-  // timeout doesn't remove the cursor and incorrectly signal that the user lifted their finger.
+  // Heartbeat: re-send position on CURSOR_HEARTBEAT_MS while holding still, so
+  // consumers' CURSOR_STALE_MS timeout doesn't remove the cursor and incorrectly
+  // signal that the user lifted their finger.
   // Covers both touch (isDragging) and mouse hover (isMouseOver, for desktop debugging).
   useEffect(() => {
     if (!isDragging && !isMouseOver) return;
@@ -100,7 +101,7 @@ export default function TouchLayer({
       if (lastPositionRef.current) {
         sendCursorEvent('touch', { ...lastPositionRef.current, timestamp: Date.now() });
       }
-    }, 2000);
+    }, CURSOR_HEARTBEAT_MS);
     return () => clearInterval(interval);
   }, [isDragging, isMouseOver]);
 

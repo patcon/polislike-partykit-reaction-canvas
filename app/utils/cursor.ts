@@ -9,6 +9,16 @@ export const CURSOR_THROTTLE_MS = 33;
 // and broadcast each event immediately (useful for perf comparison).
 export const SERVER_CURSOR_BATCH_MS = 50;
 
+// How often TouchLayer re-sends a held-still cursor so consumers don't expire it
+// as stale (see CURSOR_STALE_MS). Every cursor-staleness consumer must derive its
+// timeout from these two constants so the heartbeat<stale invariant can't drift.
+export const CURSOR_HEARTBEAT_MS = 2000;
+
+// How long a cursor lingers without a fresh update before consumers treat it as
+// gone (touch lifted / user left). Kept strictly greater than the heartbeat so a
+// held-still cursor always refreshes before it would expire between beats.
+export const CURSOR_STALE_MS = CURSOR_HEARTBEAT_MS + 1000;
+
 /** Minimal cursor event shape shared by all consumers. */
 export type CursorEventMsg = {
   type: string;

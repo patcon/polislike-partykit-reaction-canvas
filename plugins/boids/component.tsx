@@ -21,7 +21,9 @@ const TUNING = {
 
 export default function BoidsPanel() {
   const { userId } = usePanelContext();
-  const { positionsRef } = useCoordStream(userId);
+  // Include our own cursor: this is a presentation viz, so it's natural for the
+  // swarm to react to the presenter's own movement (drives boids from one tab).
+  const { positionsRef } = useCoordStream(userId, { includeSelf: true });
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const boidsRef = useRef<Boid[]>([]);
 

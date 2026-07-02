@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useMessageSubscription } from '../contexts/RoomSocketContext';
-import { expandCursorEvents } from '../utils/cursor';
+import { expandCursorEvents, CURSOR_STALE_MS } from '../utils/cursor';
 
 export type CoordStreamStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
 
@@ -11,15 +11,26 @@ export interface CoordStreamResult {
   status?: CoordStreamStatus;
 }
 
-const STALE_MS = 3000;
+
+/** Options shared by both coord-stream hooks. */
+export interface CoordStreamOptions {
+  /**
+   * Include your own cursor in the positions map. Defaults to false (self is
+   * filtered out). Set true for presentation vizzes (e.g. boids) where you want
+   * your own cursor to drive the effect from a single tab.
+   */
+  includeSelf?: boolean;
+}
 
 /**
  * Extracts the coord-stream data spine out of CursorField.
  * Subscribes to the room socket, writes other participants' positions into a
- * ref (never React state), and expires stale cursors after STALE_MS.
- * Skips own userId so self is never included in the positions map.
+ * ref (never React state), and expires stale cursors after CURSOR_STALE_MS.
+ * Skips own userId so self is never included in the positions map, unless
+ * `includeSelf` is set.
  */
-export function useCoordStream(ownUserId: string): CoordStreamResult {
+export function useCoordStream(ownUserId: string, opts?: CoordStreamOptions): CoordStreamResult {
+  const includeSelf = opts?.includeSelf ?? false;
   const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   // Tracks the last-seen timestamp per user for expiry.
   const timestampsRef = useRef<Map<string, number>>(new Map());
@@ -31,7 +42,7 @@ export function useCoordStream(ownUserId: string): CoordStreamResult {
 
     for (const event of expandCursorEvents(data as Parameters<typeof expandCursorEvents>[0])) {
       const { userId, x, y } = event.position;
-      if (userId === ownUserId) continue;
+      if (!includeSelf && userId === ownUserId) continue;
 
       if (event.type === 'remove') {
         positionsRef.current.delete(userId);
@@ -43,13 +54,13 @@ export function useCoordStream(ownUserId: string): CoordStreamResult {
       const ts = Date.now();
       timestampsRef.current.set(userId, ts);
 
-      // Expire this position if no newer message arrives within STALE_MS.
+      // Expire this position if no newer message arrives within CURSOR_STALE_MS.
       setTimeout(() => {
         if (timestampsRef.current.get(userId) === ts) {
           positionsRef.current.delete(userId);
           timestampsRef.current.delete(userId);
         }
-      }, STALE_MS);
+      }, CURSOR_STALE_MS);
     }
   });
 
@@ -67,7 +78,9 @@ export function useCoordStream(ownUserId: string): CoordStreamResult {
 export function useRawCoordStream(
   roomUrl: string | null,
   ownUserId: string,
+  opts?: CoordStreamOptions,
 ): CoordStreamResult {
+  const includeSelf = opts?.includeSelf ?? false;
   const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const timestampsRef = useRef<Map<string, number>>(new Map());
   const [status, setStatus] = useState<CoordStreamStatus>('connecting');
@@ -102,7 +115,7 @@ export function useRawCoordStream(
 
       for (const event of expandCursorEvents(data as Parameters<typeof expandCursorEvents>[0])) {
         const { userId, x, y } = event.position;
-        if (userId === ownUserId) continue;
+        if (!includeSelf && userId === ownUserId) continue;
 
         if (event.type === 'remove') {
           positionsRef.current.delete(userId);
@@ -118,7 +131,7 @@ export function useRawCoordStream(
             positionsRef.current.delete(userId);
             timestampsRef.current.delete(userId);
           }
-        }, STALE_MS);
+        }, CURSOR_STALE_MS);
       }
     });
 
@@ -127,7 +140,7 @@ export function useRawCoordStream(
       positionsRef.current.clear();
       timestampsRef.current.clear();
     };
-  }, [roomUrl, ownUserId]);
+  }, [roomUrl, ownUserId, includeSelf]);
 
   return { positionsRef, status };
 }
