@@ -83,6 +83,7 @@ function useMockCoordStream(count: number): CoordStream {
 function BoidsSpike({
   humanCount,
   boidCount,
+  isBoidCountPerHuman,
   mode,
   showHumans,
   humanAttraction,
@@ -94,6 +95,7 @@ function BoidsSpike({
 }: {
   humanCount: number;
   boidCount: number;
+  isBoidCountPerHuman: boolean;
   mode: PairingMode;
   showHumans: boolean;
 } & BoidTuning) {
@@ -102,6 +104,7 @@ function BoidsSpike({
     <BoidsCanvas
       stream={stream}
       boidCount={boidCount}
+      isBoidCountPerHuman={isBoidCountPerHuman}
       mode={mode}
       showHumans={showHumans}
       tuning={{ humanAttraction, personalSpace, separation, alignment, cohesion, maxSpeed }}
@@ -117,6 +120,7 @@ const meta = {
     mode: { control: 'radio', options: ['dynamic', 'strict'] },
     humanCount: { control: { type: 'range', min: 0, max: 30, step: 1 } },
     boidCount: { control: { type: 'range', min: 0, max: 400, step: 10 } },
+    isBoidCountPerHuman: { control: 'boolean' },
     humanAttraction: { control: { type: 'range', min: 0, max: 0.4, step: 0.01 } },
     personalSpace: { control: { type: 'range', min: 0, max: 40, step: 1 } },
     separation: { control: { type: 'range', min: 0, max: 0.2, step: 0.01 } },
@@ -136,12 +140,21 @@ const CLINGY: BoidTuning = {
 
 /** Dynamic allocation: boids steer toward whichever human is nearest each frame. */
 export const DynamicAllocation: Story = {
-  args: { humanCount: 8, boidCount: 200, mode: 'dynamic', showHumans: true, ...CLINGY },
+  args: { humanCount: 8, boidCount: 200, isBoidCountPerHuman: false, mode: 'dynamic', showHumans: true, ...CLINGY },
 };
 
 /** Strict 1:1: each boid shadows its assigned human (falls back to nearest if it leaves). */
 export const StrictPairing: Story = {
-  args: { humanCount: 12, boidCount: 12, mode: 'strict', showHumans: true, ...CLINGY },
+  args: { humanCount: 12, boidCount: 12, isBoidCountPerHuman: false, mode: 'strict', showHumans: true, ...CLINGY },
+};
+
+/**
+ * 30 boids per human: `boidCount` is reinterpreted as a per-human multiplier,
+ * so the swarm grows and shrinks as humans join/leave. Drag `humanCount` and
+ * watch the total track it (6 humans → 180 boids).
+ */
+export const ThirtyPerHuman: Story = {
+  args: { humanCount: 6, boidCount: 30, isBoidCountPerHuman: true, mode: 'dynamic', showHumans: true, ...CLINGY },
 };
 
 /**
@@ -150,7 +163,7 @@ export const StrictPairing: Story = {
  */
 export const Aloof: Story = {
   args: {
-    humanCount: 8, boidCount: 200, mode: 'dynamic', showHumans: true,
+    humanCount: 8, boidCount: 200, isBoidCountPerHuman: false, mode: 'dynamic', showHumans: true,
     humanAttraction: 0.03, personalSpace: 22, separation: 0.08,
     alignment: 0.08, cohesion: 0.012, maxSpeed: 1.6,
   },

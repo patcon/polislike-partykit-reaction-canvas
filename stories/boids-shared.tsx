@@ -33,12 +33,23 @@ const STATUS_COLOR: Record<string, string> = {
 export function BoidsCanvas({
   stream,
   boidCount,
+  isBoidCountPerHuman,
   mode,
   showHumans,
   tuning,
 }: {
   stream: CoordStream;
+  /**
+   * Swarm size. A fixed total by default; when `isBoidCountPerHuman` is set,
+   * it's instead the number of boids per live human cursor.
+   */
   boidCount: number;
+  /**
+   * Reinterpret `boidCount` as boids-per-human: the swarm is sized each frame
+   * to `boidCount × liveHumanCount`, growing as humans join and dissolving as
+   * they leave. Works for both mock and live streams.
+   */
+  isBoidCountPerHuman?: boolean;
   mode: PairingMode;
   showHumans: boolean;
   tuning: BoidTuning;
@@ -52,21 +63,29 @@ export function BoidsCanvas({
   const renderCountRef = useRef(0);
   renderCountRef.current += 1;
   const [humanCount, setHumanCount] = useState(0);
+  // Live swarm size for the badge (varies per-frame in per-human mode).
+  const [swarmSize, setSwarmSize] = useState(0);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
 
-    // (Re)seed boids to the requested count.
     const boids = boidsRef.current;
+    // Persistent PRNG so boids spawned mid-run (per-human growth) keep getting
+    // fresh scatter positions rather than repeating the seed each frame.
     let bseed = 12345;
     const rnd = () => { bseed = (bseed * 1103515245 + 12345) & 0x7fffffff; return bseed / 0x7fffffff; };
-    while (boids.length < boidCount) {
-      const i = boids.length;
-      boids.push({ x: rnd() * 100, y: rnd() * 100, vx: 0, vy: 0, human: `h${i}` });
-    }
-    boids.length = boidCount;
+    // Resize the swarm to `target`, spawning/trimming as needed.
+    const resize = (target: number) => {
+      while (boids.length < target) {
+        const i = boids.length;
+        boids.push({ x: rnd() * 100, y: rnd() * 100, vx: 0, vy: 0, human: `h${i}` });
+      }
+      if (boids.length > target) boids.length = target;
+    };
+    // Seed fixed-count mode up front; per-human mode sizes inside the loop.
+    if (!isBoidCountPerHuman) resize(boidCount);
 
     let raf = 0;
     let lastBadge = 0;
@@ -76,6 +95,9 @@ export function BoidsCanvas({
       // READ THE STREAM — the whole point. ref.current, no React involved.
       const humans = stream.positionsRef.current;
       const humanList = [...humans.entries()];
+
+      // Per-human mode: swarm tracks live participation.
+      if (isBoidCountPerHuman) resize(Math.max(1, humanList.length) * boidCount);
 
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
@@ -169,13 +191,14 @@ export function BoidsCanvas({
       if (t - lastBadge > 1000) {
         lastBadge = t;
         setHumanCount(stream.positionsRef.current.size);
+        setSwarmSize(boids.length);
       }
 
       raf = requestAnimationFrame(step);
     };
     raf = requestAnimationFrame(step);
     return () => cancelAnimationFrame(raf);
-  }, [stream, boidCount, mode, showHumans]);
+  }, [stream, boidCount, isBoidCountPerHuman, mode, showHumans]);
 
   return (
     <div style={{ position: 'relative', width: '100%', height: 480, background: '#111', borderRadius: 8 }}>
@@ -192,7 +215,7 @@ export function BoidsCanvas({
           </div>
         )}
         humans: <span style={{ color: humanCount > 0 ? '#9f9' : '#888' }}>{humanCount}</span><br />
-        boids: {boidCount} · mode: {mode}<br />
+        boids: {swarmSize}{isBoidCountPerHuman ? ` (${boidCount}/human)` : ''} · mode: {mode}<br />
         <span style={{ opacity: 0.5 }}>React renders: {renderCountRef.current}</span>
       </div>
     </div>

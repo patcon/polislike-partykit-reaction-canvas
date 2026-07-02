@@ -21,6 +21,7 @@ import { getPersistentUserId } from '../app/utils/userId';
 function BoidLiveRoom({
   roomUrl,
   boidCount,
+  isBoidCountPerHuman,
   mode,
   showHumans,
   humanAttraction,
@@ -29,7 +30,7 @@ function BoidLiveRoom({
   alignment,
   cohesion,
   maxSpeed,
-}: { roomUrl: string; boidCount: number; mode: PairingMode; showHumans: boolean } & BoidTuning) {
+}: { roomUrl: string; boidCount: number; isBoidCountPerHuman: boolean; mode: PairingMode; showHumans: boolean } & BoidTuning) {
   // Stable userId so we're excluded from our own position stream.
   const userId = useRef(getPersistentUserId()).current;
   const stream = useRawCoordStream(roomUrl || null, userId);
@@ -37,6 +38,7 @@ function BoidLiveRoom({
     <BoidsCanvas
       stream={stream}
       boidCount={boidCount}
+      isBoidCountPerHuman={isBoidCountPerHuman}
       mode={mode}
       showHumans={showHumans}
       tuning={{ humanAttraction, personalSpace, separation, alignment, cohesion, maxSpeed }}
@@ -52,6 +54,7 @@ const meta = {
     roomUrl: { control: 'text' },
     mode: { control: 'radio', options: ['dynamic', 'strict'] },
     boidCount: { control: { type: 'range', min: 0, max: 400, step: 10 } },
+    isBoidCountPerHuman: { control: 'boolean' },
     humanAttraction: { control: { type: 'range', min: 0, max: 0.4, step: 0.01 } },
     personalSpace: { control: { type: 'range', min: 0, max: 40, step: 1 } },
     separation: { control: { type: 'range', min: 0, max: 0.2, step: 0.01 } },
@@ -69,6 +72,7 @@ export const Aloof: Story = {
   args: {
     roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default',
     boidCount: 200,
+    isBoidCountPerHuman: false,
     mode: 'dynamic',
     showHumans: true,
     humanAttraction: 0.03,
@@ -85,6 +89,28 @@ export const Clingy: Story = {
   args: {
     roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default',
     boidCount: 200,
+    isBoidCountPerHuman: false,
+    mode: 'dynamic',
+    showHumans: true,
+    humanAttraction: 0.12,
+    personalSpace: 0,
+    separation: 0.06,
+    alignment: 0.05,
+    cohesion: 0.008,
+    maxSpeed: 1.6,
+  },
+};
+
+/**
+ * 30 boids per live cursor: the swarm scales with the room's real occupancy.
+ * `boidCount` is the per-human multiplier here, so an empty room shows one
+ * human's worth and each joiner adds another 30.
+ */
+export const ThirtyPerHuman: Story = {
+  args: {
+    roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default',
+    boidCount: 30,
+    isBoidCountPerHuman: true,
     mode: 'dynamic',
     showHumans: true,
     humanAttraction: 0.12,

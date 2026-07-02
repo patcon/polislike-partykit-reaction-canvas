@@ -12,7 +12,11 @@ const TUNING = {
   alignment: 0.05,
   cohesion: 0.008,
   maxSpeed: 0.8,
-  boidCount: 200,
+  // Swarm size scales with participation: this many boids per live human cursor.
+  boidsPerHuman: 30,
+  // Hard ceiling on the swarm regardless of crowd size (perf guard).
+  // Matches the Storybook boidCount slider max.
+  maxBoids: 400,
 };
 
 export default function BoidsPanel() {
@@ -26,18 +30,26 @@ export default function BoidsPanel() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d')!;
 
-    // Seed boids once.
+    // Persistent PRNG so boids spawned mid-run (as humans join) keep getting
+    // fresh scatter positions rather than repeating the seed each frame.
     let bseed = 12345;
     const rnd = () => { bseed = (bseed * 1103515245 + 12345) & 0x7fffffff; return bseed / 0x7fffffff; };
     const boids = boidsRef.current;
-    while (boids.length < TUNING.boidCount) {
-      boids.push({ x: rnd() * 100, y: rnd() * 100, vx: 0, vy: 0 });
-    }
 
     let raf = 0;
     const step = () => {
       const humans = positionsRef.current;
       const humanList = [...humans.values()];
+
+      // Grow/shrink the swarm to track live participation, capped for perf.
+      const target = Math.min(
+        TUNING.maxBoids,
+        Math.max(1, humanList.length) * TUNING.boidsPerHuman,
+      );
+      while (boids.length < target) {
+        boids.push({ x: rnd() * 100, y: rnd() * 100, vx: 0, vy: 0 });
+      }
+      if (boids.length > target) boids.length = target;
 
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
