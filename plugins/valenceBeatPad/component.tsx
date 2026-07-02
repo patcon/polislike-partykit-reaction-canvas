@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { usePanelContext } from "../../app/context/PanelContext";
-import { useCoordStream } from '../../app/hooks/useCoordStream';
+import { useValenceStream } from '../../app/hooks/useValenceStream';
 import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
-import { computeCursorValence, valenceToPercent } from '../../app/utils/voteRegion';
+import { valenceToPercent } from '../../app/utils/voteRegion';
 
 // ── Constants ──────────────────────────────────────────────────────
 
@@ -183,9 +183,9 @@ export default function ValenceBeatPadPanel() {
   const activeChordPadsRef= useRef<Set<number>>(new Set());
   const lockedValenceRef  = useRef<number | null>(null);
 
-  // Live audience cursor positions from the shared room socket. includeSelf so a
+  // Live per-user valence (−1..1) from the shared room socket. includeSelf so a
   // solo operator driving the canvas from the same instance still feeds the mood.
-  const { positionsRef } = useCoordStream(userId, { includeSelf: true });
+  const { valencesRef } = useValenceStream(userId, { mode: 'continuous', includeSelf: true });
 
   // Keep refs in sync
   useEffect(() => { valenceRef.current = valence; }, [valence]);
@@ -304,11 +304,11 @@ export default function ValenceBeatPadPanel() {
 
   const applyAudienceMood = useCallback(() => {
     if (!audienceSyncRef.current) return;
-    const cursors = positionsRef.current;
-    if (cursors.size === 0) { valenceRef.current = 0; setValence(0); return; }
+    const valences = valencesRef.current;
+    if (valences.size === 0) { valenceRef.current = 0; setValence(0); return; }
     let sum = 0;
-    for (const [, c] of cursors) sum += computeCursorValence(c.x, c.y);
-    const val = clamp(sum / cursors.size, -1, 1);
+    for (const [, v] of valences) sum += v;
+    const val = clamp(sum / valences.size, -1, 1);
     valenceRef.current = val;
     setValence(val);
   }, []);

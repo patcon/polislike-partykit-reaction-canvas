@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { usePanelContext } from "../../app/context/PanelContext";
 import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
-import { useCoordStream } from '../../app/hooks/useCoordStream';
-import { computeCursorValence, computeReactionRegion } from '../../app/utils/voteRegion';
+import { useValenceStream } from '../../app/hooks/useValenceStream';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -215,17 +214,17 @@ export default function MoodTonesPanel() {
   const noteIndexRef    = useRef(0);
   const currentChordRef = useRef<number[]>([]);
 
-  // WS refs
-  const { positionsRef } = useCoordStream(userId);
+  // Per-user valence (−1..1) from the shared room socket. The hook applies the
+  // smooth/binary projection (valenceMode → continuous/unit) and reprojects when
+  // the mode flips, so this panel just averages.
+  const { valencesRef } = useValenceStream(userId, { mode: valenceMode });
   const audienceSyncRef = useRef(true);
-  const valenceModeRef  = useRef<'continuous'|'unit'>('continuous');
 
   // Keep refs in sync with state
   useEffect(() => { moodRef.current = mood; }, [mood]);
   useEffect(() => { playingRef.current = playing; }, [playing]);
   useEffect(() => { presetRef.current = activePreset; }, [activePreset]);
   useEffect(() => { audienceSyncRef.current = audienceSync; }, [audienceSync]);
-  useEffect(() => { valenceModeRef.current = valenceMode; }, [valenceMode]);
 
   // Volume change → update live gain node
   useEffect(() => {
@@ -242,23 +241,15 @@ export default function MoodTonesPanel() {
 
   const applyAudienceMood = useCallback(() => {
     if (!audienceSyncRef.current) return;
-    const cursors = positionsRef.current;
-    if (cursors.size === 0) {
+    const valences = valencesRef.current;
+    if (valences.size === 0) {
       setMoodWithDisplay(0);
       return;
     }
     let sum = 0;
-    if (valenceModeRef.current === 'continuous') {
-      for (const [, c] of cursors) sum += computeCursorValence(c.x, c.y);
-    } else {
-      for (const [, c] of cursors) {
-        const region = computeReactionRegion(c.x, c.y);
-        if (region === 'positive') sum += 1;
-        else if (region === 'negative') sum += -1;
-      }
-    }
-    setMoodWithDisplay(clamp(sum / cursors.size, -1, 1));
-  }, [positionsRef, setMoodWithDisplay]);
+    for (const [, v] of valences) sum += v;
+    setMoodWithDisplay(clamp(sum / valences.size, -1, 1));
+  }, [valencesRef, setMoodWithDisplay]);
 
   useEffect(() => {
     if (audienceSync) applyAudienceMood();

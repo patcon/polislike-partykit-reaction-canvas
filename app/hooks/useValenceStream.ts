@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { useMessageSubscription } from '../contexts/RoomSocketContext';
 import { useCoordStream, type CoordStreamOptions } from './useCoordStream';
 import {
@@ -66,6 +66,15 @@ export function useValenceStream(ownUserId: string, opts?: ValenceStreamOptions)
       next.set(userId, projectValence(pos.x, pos.y));
     }
   }
+
+  // Reproject existing cursors when the mode flips at runtime (e.g. moodTones'
+  // smooth/binary toggle), so the change lands immediately instead of waiting
+  // for the next cursor message.
+  useEffect(() => {
+    recompute();
+    // recompute reads stable refs; re-run only when the projection mode changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
 
   useMessageSubscription((evt: MessageEvent) => {
     let data: { type?: string; roomAnchors?: ReactionAnchors; anchors?: ReactionAnchors };

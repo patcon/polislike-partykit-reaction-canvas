@@ -94,6 +94,23 @@ describe('useValenceStream', () => {
     expect(included.current.valencesRef.current.get('me')).toBeCloseTo(1, 5);
   });
 
+  it('reprojects existing cursors when mode flips at runtime (no new move)', () => {
+    const wrapper = ({ children }: { children: React.ReactNode }) => (
+      <RoomSocketProvider room="test-room" userId="me">
+        {children}
+      </RoomSocketProvider>
+    );
+    const { result, rerender } = renderHook(
+      ({ mode }: { mode: ValenceMode }) => useValenceStream('me', { mode }),
+      { wrapper, initialProps: { mode: 'continuous' as ValenceMode } },
+    );
+    emit({ type: 'move', position: { userId: 'b', x: 59, y: 54.5 } });
+    expect(result.current.valencesRef.current.get('b')).toBeCloseTo(0.05, 2);
+
+    rerender({ mode: 'unit' });
+    expect(result.current.valencesRef.current.get('b')).toBe(1);
+  });
+
   it('recomputes existing valences when anchors change (no new move needed)', () => {
     const { result } = renderStream('continuous');
     emit({ type: 'move', position: { userId: 'u1', x: 95, y: 5 } });
