@@ -137,10 +137,30 @@ arrival"); they differ only in *target source*.
 2. **Region-hoppers** (`programs/regionHoppers.ts`) — same easing, but targets snap to
    AGREE/DISAGREE/PASS anchors (from `app/utils/voteRegion.ts`) with small jitter, with a short
    dwell before hopping. Looks like deliberate voting.
-3. **Recorded playback** (`programs/recordedPlayback.ts`) — consumes a bundled `PlaybackFile`
-   JSON (the existing emcee format, `AdminPanelNoDB/types.ts:13-19`) and re-emits events by
-   timestamp, looping. MVP bundles **one** sample recording under
-   `app/lib/simulation/recordings/`; file-upload is a later enhancement.
+3. **Recorded playback** (`programs/recordedPlayback.ts`) — consumes a `PlaybackFile` JSON (the
+   existing emcee format, `AdminPanelNoDB/types.ts:13-19`) and re-emits events by timestamp,
+   looping. File-upload is a later enhancement.
+   - **Event shape** (confirmed from the real capture): each event is
+     `{ connectionId, type, timestamp, x?, y? }` where `type ∈ {arrival, departure, move, touch,
+     remove}` and `x/y` (0..100) are present on `move`/`touch`. Top-level `mode` is `'positions'`.
+   - **Mapping**: each `connectionId` → sim user `sim_<connectionId>`; `move`/`touch` → emit the
+     same-type cursor event, `remove`/`departure` → emit `remove`; `arrival` is a no-op (the first
+     `move`/`touch` establishes the cursor). Loops on reaching `recordingEnd`.
+
+   #### Sample recording (provenance + slicing recipe)
+   Source (full, **not** committed — 25 MB, 154k events, ~42 min, room `civictechto`, mode
+   `positions`): the Google-Drive `PlaybackFile` provided by the owner. The full file is too large
+   to ship. MVP uses a **trimmed slice**, produced deterministically as:
+   - Window: the densest span, **+9.5 min → +11.0 min** (~41–51 active users at peak).
+   - Rebase all timestamps so the slice starts at `0`; set `recordingStart: 0`,
+     `recordingEnd: 90000`.
+   - Round `x`/`y` to **2 decimal places**.
+   - Result: **51 users, 16,603 events, 90 s, ~1.3 MB.**
+   - **Where it lives**: `app/lib/simulation/recordings/sample.json` (its eventual home), but
+     **gitignored for now** (`.gitignore`) so it's local-but-uncommitted. **Whether/how to ship it
+     is a pre-merge decision** (commit the 1.3 MB slice as-is, thin it further, host it as a
+     downloadable, or generate on demand). The recipe above regenerates it from the source at any
+     time.
 
 `programs/index.ts` exports a `PROGRAMS` registry `[{ id, label, create }]` the control bar reads.
 
@@ -167,12 +187,14 @@ behavior for `replay_` is unchanged; `sim_` now gets the same purple/dashed trea
 ### UI — SimControlBar & mount
 
 - `app/components/demos/SimControlBar.tsx` — a compact bottom bar styled after `InterfaceChipBar`
-  (`app/styles/panels.css`): program `<select>`, a user-count control (default 25, range 25–100),
-  and play / pause / stop buttons. Calls `useRoomSocket().send`.
+  (`app/styles/panels.css`): program `<select>`, a user-count **preset select (25 / 50 / 100,
+  default 25)**, and play / pause / stop buttons. Calls `useRoomSocket().send`.
 - `DemoLayout.tsx` gains an optional `controls` slot rendered as the last child of `.demo-page`
   (the layout already reserves 64px bottom padding). The slot is wrapped in its **own**
   `RoomSocketProvider room={room}` (a dedicated "sim driver" connection) so the bar can send into
-  the shared `demo-<uuid>` room independently of the two phone providers.
+  the shared `demo-<uuid>` room independently of the two phone providers. The driver connection
+  uses a **fixed** `sim-driver` userId (the demo room is a random `demo-<uuid>`, so collisions
+  aren't naturally expected; sim identities live in the payload regardless).
 - Both demo pages (`DemoAdminCanvas.tsx`, `DemoCanvasMood.tsx`) pass `<SimControlBar />` into the
   new slot. Same program set on both pages.
 
@@ -188,7 +210,7 @@ app/lib/simulation/
     regionHoppers.ts           → Region-hoppers
     recordedPlayback.ts        → Recorded playback
     index.ts                   → PROGRAMS registry
-  recordings/sample.json       → bundled sample recording (MVP)
+  recordings/sample.json       → sample recording slice (~1.3MB, GITIGNORED — decide before merge)
 app/utils/simulatedUser.ts     → SIM_PREFIX + isSimulatedUserId()
 app/components/demos/SimControlBar.tsx
 app/components/demos/DemoLayout.tsx        (edit: add `controls` slot)
@@ -260,12 +282,16 @@ export function createDriftProgram(): SimulationProgram {
 5. Existing simulation systems (playback, perf, boids, onboarding) are unchanged and still pass.
 6. `pnpm vitest` green, including new deterministic program tests.
 
-## Open Questions
+## Resolved Decisions
 
-1. **Sample recording source** — capture one via the emcee RecordTab and commit it as
-   `recordings/sample.json`, or synthesize one from the Drift program? (Lean: capture a real one.)
-2. **User-count control** — fixed presets (25 / 50 / 100) or a free slider? (Lean: a small select
-   with presets for MVP.)
-3. **Sim driver connection userId** — a fixed `sim-driver` id vs a per-session generated one. Either
-   works since sim identities live in the payload; fixed is simpler. (Lean: fixed.)
-```
+1. **Sample recording** — ✅ Use a real capture from the owner's 25 MB Drive `PlaybackFile`, trimmed
+   to a 51-user / 90 s slice (recipe under "Sample recording" above). Slice lives at
+   `app/lib/simulation/recordings/sample.json`, **gitignored for now**.
+2. **User-count control** — ✅ Preset select (25 / 50 / 100, default 25).
+3. **Sim-driver connection userId** — ✅ Fixed `sim-driver`.
+
+## Open Questions (pre-merge)
+
+1. **Recording storage** — settle before merging the PR: commit the 1.3 MB slice as-is, thin it
+   further (e.g. drop touch frame-rate), host it as a downloadable asset, or generate on demand.
+   Until decided, the slice stays gitignored.
