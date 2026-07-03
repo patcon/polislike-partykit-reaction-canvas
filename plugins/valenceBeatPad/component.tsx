@@ -185,7 +185,7 @@ export default function ValenceBeatPadPanel() {
 
   // Live per-user valence (−1..1) from the shared room socket. includeSelf so a
   // solo operator driving the canvas from the same instance still feeds the mood.
-  const { valencesRef } = useValenceStream(userId, { mode: 'continuous', includeSelf: true });
+  const { getValences } = useValenceStream(userId, { mode: 'continuous', includeSelf: true });
 
   // Keep refs in sync
   useEffect(() => { valenceRef.current = valence; }, [valence]);
@@ -304,14 +304,14 @@ export default function ValenceBeatPadPanel() {
 
   const applyAudienceMood = useCallback(() => {
     if (!audienceSyncRef.current) return;
-    const valences = valencesRef.current;
+    const valences = getValences();
     if (valences.size === 0) { valenceRef.current = 0; setValence(0); return; }
     let sum = 0;
     for (const [, v] of valences) sum += v;
     const val = clamp(sum / valences.size, -1, 1);
     valenceRef.current = val;
     setValence(val);
-  }, []);
+  }, [getValences]);
 
   useEffect(() => {
     if (audienceSync) {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useRef } from 'react';
 import { useMessageSubscription } from '../contexts/RoomSocketContext';
 import { useCoordStream, type CoordStreamOptions } from './useCoordStream';
 import {
@@ -24,8 +24,20 @@ export interface ValenceStreamOptions extends CoordStreamOptions {
 }
 
 export interface ValenceStreamResult {
-  /** Per-frame readable. Values in −1..1. Safe to read in a RAF loop / poll. */
-  valencesRef: React.MutableRefObject<Map<string, number>>;
+  /**
+   * Projects the CURRENT cursor positions into per-user valence (−1..1) on
+   * demand. Reads positionsRef live on every call, so a cursor that expired
+   * silently — useCoordStream's CURSOR_STALE_MS timeout prunes positionsRef
+   * without emitting any socket message — is simply absent the next time you
+   * call. There is no message-time cache to go stale, so mood/colors decay as
+   * soon as the underlying cursor does. Safe to call in a poll / RAF loop /
+   * repaint.
+   *
+   * Returns a REUSED Map (cleared and refilled each call) to avoid per-frame
+   * allocation. Read it immediately; copy it if you need to retain it past the
+   * next call.
+   */
+  getValences: () => Map<string, number>;
 }
 
 const REGION_VALENCE: Record<'positive' | 'neutral' | 'negative', number> = {
@@ -40,64 +52,50 @@ const REGION_VALENCE: Record<'positive' | 'neutral' | 'negative', number> = {
  * (socket → positionsRef, with expiry + includeSelf filtering); this hook owns
  * only the geometry — the anchors and the projection.
  *
- * valencesRef is rebuilt from positionsRef on every cursor/anchor message
- * (eager compute-on-write; useCoordStream's subscription is registered first,
- * so positionsRef is already fresh when we recompute). Anchor changes recompute
- * too, so colors/tones follow a live anchor edit without waiting for a move.
+ * The projection is compute-on-read (getValences), not a cache: consumers call
+ * it from their own poll/RAF/repaint and get valences derived from positionsRef
+ * as it stands right now. That keeps it in lockstep with cursor expiry — a
+ * silently-timed-out cursor (no socket message) drops out on the next read
+ * rather than lingering until the next message rebuilds a cache.
  */
 export function useValenceStream(ownUserId: string, opts?: ValenceStreamOptions): ValenceStreamResult {
   const mode = opts?.mode ?? 'continuous';
   const { positionsRef } = useCoordStream(ownUserId, { includeSelf: opts?.includeSelf });
-  const valencesRef = useRef<Map<string, number>>(new Map());
   const anchorsRef = useRef<ReactionAnchors>(DEFAULT_ANCHORS);
+  const modeRef = useRef(mode);
+  modeRef.current = mode;
+  const valencesRef = useRef<Map<string, number>>(new Map());
 
-  function projectValence(x: number, y: number): number {
-    if (mode === 'unit') {
-      const region = computeReactionRegion(x, y, anchorsRef.current);
-      return region ? REGION_VALENCE[region] : 0;
-    }
-    return computeCursorValence(x, y, anchorsRef.current);
-  }
-
-  function recompute() {
-    const next = valencesRef.current;
-    next.clear();
-    for (const [userId, pos] of positionsRef.current) {
-      next.set(userId, projectValence(pos.x, pos.y));
-    }
-  }
-
-  // Reproject existing cursors when the mode flips at runtime (e.g. moodTones'
-  // smooth/binary toggle), so the change lands immediately instead of waiting
-  // for the next cursor message.
-  useEffect(() => {
-    recompute();
-    // recompute reads stable refs; re-run only when the projection mode changes.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [mode]);
-
+  // The hook owns the anchors: keep them synced from the socket so getValences
+  // projects against live room geometry. Cursor messages need no handling here —
+  // getValences reads positionsRef (which useCoordStream keeps current) on call.
   useMessageSubscription((evt: MessageEvent) => {
     let data: { type?: string; roomAnchors?: ReactionAnchors; anchors?: ReactionAnchors };
     try { data = JSON.parse(evt.data); } catch { return; }
     if (!data || typeof data !== 'object') return;
 
-    switch (data.type) {
-      case 'connected':
-        if (data.roomAnchors) anchorsRef.current = data.roomAnchors;
-        recompute();
-        break;
-      case 'roomAnchorsChanged':
-        anchorsRef.current = data.anchors ?? DEFAULT_ANCHORS;
-        recompute();
-        break;
-      case 'move':
-      case 'touch':
-      case 'remove':
-      case 'cursorBatch':
-        recompute();
-        break;
+    if (data.type === 'connected') {
+      if (data.roomAnchors) anchorsRef.current = data.roomAnchors;
+    } else if (data.type === 'roomAnchorsChanged') {
+      anchorsRef.current = data.anchors ?? DEFAULT_ANCHORS;
     }
   });
 
-  return { valencesRef };
+  const getValences = useCallback((): Map<string, number> => {
+    const out = valencesRef.current;
+    out.clear();
+    const anchors = anchorsRef.current;
+    const unit = modeRef.current === 'unit';
+    for (const [userId, pos] of positionsRef.current) {
+      if (unit) {
+        const region = computeReactionRegion(pos.x, pos.y, anchors);
+        out.set(userId, region ? REGION_VALENCE[region] : 0);
+      } else {
+        out.set(userId, computeCursorValence(pos.x, pos.y, anchors));
+      }
+    }
+    return out;
+  }, [positionsRef]);
+
+  return { getValences };
 }

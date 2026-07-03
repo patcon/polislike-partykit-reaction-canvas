@@ -18,6 +18,7 @@ vi.mock('../app/utils/partyHost', () => ({
 
 import { useValenceStream, type ValenceMode } from '../app/hooks/useValenceStream';
 import { RoomSocketProvider } from '../app/contexts/RoomSocketContext';
+import { CURSOR_STALE_MS } from '../app/utils/cursor';
 
 function emit(data: object) {
   act(() => {
@@ -42,7 +43,7 @@ describe('useValenceStream', () => {
     const { result } = renderStream('continuous');
     emit({ type: 'move', position: { userId: 'pos', x: 95, y: 5 } });   // positive anchor
     emit({ type: 'move', position: { userId: 'neg', x: 5, y: 95 } });   // negative anchor
-    const v = result.current.valencesRef.current;
+    const v = result.current.getValences();
     expect(v.get('pos')).toBeCloseTo(1, 5);
     expect(v.get('neg')).toBeCloseTo(-1, 5);
   });
@@ -52,7 +53,7 @@ describe('useValenceStream', () => {
     emit({ type: 'move', position: { userId: 'pos', x: 95, y: 5 } });
     emit({ type: 'move', position: { userId: 'neu', x: 95, y: 95 } });
     emit({ type: 'move', position: { userId: 'neg', x: 5, y: 95 } });
-    const v = result.current.valencesRef.current;
+    const v = result.current.getValences();
     expect(v.get('pos')).toBe(1);
     expect(v.get('neu')).toBe(0);
     expect(v.get('neg')).toBe(-1);
@@ -65,36 +66,54 @@ describe('useValenceStream', () => {
     const boundary = { userId: 'b', x: 59, y: 54.5 };
     const { result: cont } = renderStream('continuous');
     emit({ type: 'move', position: boundary });
-    expect(cont.current.valencesRef.current.get('b')).toBeCloseTo(0.05, 2);
+    expect(cont.current.getValences().get('b')).toBeCloseTo(0.05, 2);
 
     cleanup();
     _onMessage = null;
     const { result: unit } = renderStream('unit');
     emit({ type: 'move', position: boundary });
-    expect(unit.current.valencesRef.current.get('b')).toBe(1);
+    expect(unit.current.getValences().get('b')).toBe(1);
   });
 
   it('drops a cursor on remove', () => {
     const { result } = renderStream('continuous');
     emit({ type: 'move', position: { userId: 'u1', x: 95, y: 5 } });
-    expect(result.current.valencesRef.current.has('u1')).toBe(true);
+    expect(result.current.getValences().has('u1')).toBe(true);
     emit({ type: 'remove', position: { userId: 'u1', x: 95, y: 5 } });
-    expect(result.current.valencesRef.current.has('u1')).toBe(false);
+    expect(result.current.getValences().has('u1')).toBe(false);
+  });
+
+  // Compute-on-read is what makes this pass: useCoordStream prunes positionsRef
+  // via a CURSOR_STALE_MS timeout WITHOUT emitting any socket message, so a cache
+  // rebuilt only on messages would keep the stale entry. getValences reads
+  // positionsRef live, so the timed-out cursor is gone on the next read.
+  it('drops a cursor that expires silently (no remove message)', () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderStream('continuous');
+      emit({ type: 'move', position: { userId: 'u1', x: 95, y: 5 } });
+      expect(result.current.getValences().has('u1')).toBe(true);
+
+      act(() => { vi.advanceTimersByTime(CURSOR_STALE_MS + 1); });
+      expect(result.current.getValences().has('u1')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('excludes self by default, includes it when includeSelf is set', () => {
     const { result: excluded } = renderStream('continuous');
     emit({ type: 'move', position: { userId: 'me', x: 95, y: 5 } });
-    expect(excluded.current.valencesRef.current.has('me')).toBe(false);
+    expect(excluded.current.getValences().has('me')).toBe(false);
 
     cleanup();
     _onMessage = null;
     const { result: included } = renderStream('continuous', { includeSelf: true });
     emit({ type: 'move', position: { userId: 'me', x: 95, y: 5 } });
-    expect(included.current.valencesRef.current.get('me')).toBeCloseTo(1, 5);
+    expect(included.current.getValences().get('me')).toBeCloseTo(1, 5);
   });
 
-  it('reprojects existing cursors when mode flips at runtime (no new move)', () => {
+  it('projects under the current mode when it flips at runtime (no new move)', () => {
     const wrapper = ({ children }: { children: React.ReactNode }) => (
       <RoomSocketProvider room="test-room" userId="me">
         {children}
@@ -105,16 +124,16 @@ describe('useValenceStream', () => {
       { wrapper, initialProps: { mode: 'continuous' as ValenceMode } },
     );
     emit({ type: 'move', position: { userId: 'b', x: 59, y: 54.5 } });
-    expect(result.current.valencesRef.current.get('b')).toBeCloseTo(0.05, 2);
+    expect(result.current.getValences().get('b')).toBeCloseTo(0.05, 2);
 
     rerender({ mode: 'unit' });
-    expect(result.current.valencesRef.current.get('b')).toBe(1);
+    expect(result.current.getValences().get('b')).toBe(1);
   });
 
-  it('recomputes existing valences when anchors change (no new move needed)', () => {
+  it('projects against updated anchors (no new move needed)', () => {
     const { result } = renderStream('continuous');
     emit({ type: 'move', position: { userId: 'u1', x: 95, y: 5 } });
-    expect(result.current.valencesRef.current.get('u1')).toBeCloseTo(1, 5);
+    expect(result.current.getValences().get('u1')).toBeCloseTo(1, 5);
 
     // Swap positive/negative anchors — the same point now reads as negative,
     // and it must update without another cursor message.
@@ -126,6 +145,6 @@ describe('useValenceStream', () => {
         neutral: { x: 95, y: 95 },
       },
     });
-    expect(result.current.valencesRef.current.get('u1')).toBeCloseTo(-1, 5);
+    expect(result.current.getValences().get('u1')).toBeCloseTo(-1, 5);
   });
 });

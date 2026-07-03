@@ -214,11 +214,11 @@ export default function MoodTonesPanel() {
   const noteIndexRef    = useRef(0);
   const currentChordRef = useRef<number[]>([]);
 
-  // Per-user valence (−1..1) from the shared room socket. The hook applies the
-  // smooth/binary projection (valenceMode → continuous/unit) and reprojects when
-  // the mode flips, so this panel just averages. includeSelf so an operator's own
-  // cursor feeds the crowd mood (matches valenceBeatPad).
-  const { valencesRef } = useValenceStream(userId, { mode: valenceMode, includeSelf: true });
+  // Per-user valence (−1..1) from the shared room socket. getValences() projects
+  // live on each call under the current mode (valenceMode → continuous/unit), so
+  // this panel just averages. includeSelf so an operator's own cursor feeds the
+  // crowd mood (matches valenceBeatPad).
+  const { getValences } = useValenceStream(userId, { mode: valenceMode, includeSelf: true });
   const audienceSyncRef = useRef(true);
 
   // Keep refs in sync with state
@@ -242,7 +242,7 @@ export default function MoodTonesPanel() {
 
   const applyAudienceMood = useCallback(() => {
     if (!audienceSyncRef.current) return;
-    const valences = valencesRef.current;
+    const valences = getValences();
     if (valences.size === 0) {
       setMoodWithDisplay(0);
       return;
@@ -250,7 +250,7 @@ export default function MoodTonesPanel() {
     let sum = 0;
     for (const [, v] of valences) sum += v;
     setMoodWithDisplay(clamp(sum / valences.size, -1, 1));
-  }, [valencesRef, setMoodWithDisplay]);
+  }, [getValences, setMoodWithDisplay]);
 
   useEffect(() => {
     if (audienceSync) applyAudienceMood();
