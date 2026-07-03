@@ -216,8 +216,9 @@ export default function MoodTonesPanel() {
 
   // Per-user valence (−1..1) from the shared room socket. The hook applies the
   // smooth/binary projection (valenceMode → continuous/unit) and reprojects when
-  // the mode flips, so this panel just averages.
-  const { valencesRef } = useValenceStream(userId, { mode: valenceMode });
+  // the mode flips, so this panel just averages. includeSelf so an operator's own
+  // cursor feeds the crowd mood (matches valenceBeatPad).
+  const { valencesRef } = useValenceStream(userId, { mode: valenceMode, includeSelf: true });
   const audienceSyncRef = useRef(true);
 
   // Keep refs in sync with state
