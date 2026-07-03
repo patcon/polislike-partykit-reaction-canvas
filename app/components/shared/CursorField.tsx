@@ -3,6 +3,7 @@ import { select } from "d3";
 import type { Selection } from "d3";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
 import { CURSOR_STALE_MS } from "../../utils/cursor";
+import { isSimulatedUserId } from "../../utils/simulatedUser";
 import { makeImageCoordTransform } from "../../utils/imageCanvasCoords";
 import { flashSecondsRemaining } from "../../utils/flashTimer";
 import { useRoomSocket, useMessageSubscription } from "../../contexts/RoomSocketContext";
@@ -114,7 +115,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
 
   useEffect(() => {
     onActiveCursorCountChange?.(cursors.size);
-    const simulatedCount = Array.from(cursors.keys()).filter(id => id.startsWith('replay_')).length;
+    const simulatedCount = Array.from(cursors.keys()).filter(isSimulatedUserId).length;
     onSimulatedCursorCountChange?.(simulatedCount);
   }, [cursors.size]);
 
@@ -272,7 +273,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
     const radius = avatarStyle ? smallerDim * 0.03 : smallerDim * 0.01;
     const styleMap = new Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string; avatarUrl: string | null; needsClip: boolean }>();
     for (const [cursorUserId, cursor] of cursors) {
-      const isPlayback = cursorUserId.startsWith('replay_');
+      const isPlayback = isSimulatedUserId(cursorUserId);
       let color: string;
       if (isPlayback) {
         color = 'hsl(270, 70%, 65%)';
@@ -798,7 +799,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
       ? smallerDim * 0.03  // 3% when showing avatars (needs to be recognizable)
       : smallerDim * 0.01; // 1% for default colored dots (original size)
 
-    const isPlaybackCursor = (d: any): boolean => d.cursorUserId.startsWith('replay_');
+    const isPlaybackCursor = (d: any): boolean => isSimulatedUserId(d.cursorUserId);
 
     const cursorColor = (d: any): string => {
       if (isPlaybackCursor(d)) return 'hsl(270, 70%, 65%)';

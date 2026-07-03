@@ -111,7 +111,7 @@ phones and mood-tones reacts. This de-risks the integration before we invest in 
 
 Sized to ≤ ~5 files each; ordered by dependency.
 
-- [ ] **T1 — Foundation: types + `sim_` recognition**
+- [x] **T1 — Foundation: types + `sim_` recognition**
   - Acceptance: `app/lib/simulation/types.ts` defines `SimulationProgram`, `SimSink`, `SimContext`,
     constants (`SIM_TICK_MS`, heartbeat), re-exports the canonical `CursorEvent`.
     `app/utils/simulatedUser.ts` exports `SIM_PREFIX`, `REPLAY_PREFIX`, `isSimulatedUserId()`.
