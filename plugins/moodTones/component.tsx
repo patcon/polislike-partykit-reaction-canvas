@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { usePanelContext } from "../../app/context/PanelContext";
 import { useMessageSubscription } from '../../app/contexts/RoomSocketContext';
-import { useCoordStream } from '../../app/hooks/useCoordStream';
-import { computeCursorValence, computeReactionRegion } from '../../app/utils/voteRegion';
+import { useValenceStream } from '../../app/hooks/useValenceStream';
 
 // ── Types ─────────────────────────────────────────────────────────
 
@@ -138,6 +137,8 @@ function noteName(n: number): string {
 }
 function lerp(a: number, b: number, t: number): number { return a + (b - a) * t; }
 function clamp(v: number, lo: number, hi: number): number { return Math.max(lo, Math.min(hi, v)); }
+// Mood/valence lives in −1..1; waypoint interpolation wants a 0..1 param `t`.
+function valenceToT(valence: number): number { return (valence + 1) / 2; }
 function midiToFreq(note: number, bendSemitones: number): number {
   return 440 * Math.pow(2, (note - 69 + bendSemitones) / 12);
 }
@@ -187,7 +188,7 @@ export default function MoodTonesPanel() {
   const { room, userId } = usePanelContext();
   const [activePreset, setActivePreset]   = useState<Preset>(PRESETS[0]);
   const [playing, setPlaying]             = useState(false);
-  const [mood, setMood]                   = useState(50);
+  const [mood, setMood]                   = useState(0); // −1..1
   const [audienceSync, setAudienceSync]   = useState(true);
   const [valenceMode, setValenceMode]     = useState<'continuous'|'unit'>('continuous');
   const [volume, setVolume]               = useState(100);
@@ -207,23 +208,24 @@ export default function MoodTonesPanel() {
   const schedTimerRef = useRef<ReturnType<typeof setTimeout>|null>(null);
 
   // Loop-state refs (avoid stale closures in setTimeout tick)
-  const moodRef         = useRef(50);
+  const moodRef         = useRef(0); // −1..1
   const playingRef      = useRef(false);
   const presetRef       = useRef<Preset>(PRESETS[0]);
   const noteIndexRef    = useRef(0);
   const currentChordRef = useRef<number[]>([]);
 
-  // WS refs
-  const { positionsRef } = useCoordStream(userId);
+  // Per-user valence (−1..1) from the shared room socket. getValences() projects
+  // live on each call under the current mode (valenceMode → continuous/unit), so
+  // this panel just averages. includeSelf so an operator's own cursor feeds the
+  // crowd mood (matches valenceBeatPad).
+  const { getValences } = useValenceStream(userId, { mode: valenceMode, includeSelf: true });
   const audienceSyncRef = useRef(true);
-  const valenceModeRef  = useRef<'continuous'|'unit'>('continuous');
 
   // Keep refs in sync with state
   useEffect(() => { moodRef.current = mood; }, [mood]);
   useEffect(() => { playingRef.current = playing; }, [playing]);
   useEffect(() => { presetRef.current = activePreset; }, [activePreset]);
   useEffect(() => { audienceSyncRef.current = audienceSync; }, [audienceSync]);
-  useEffect(() => { valenceModeRef.current = valenceMode; }, [valenceMode]);
 
   // Volume change → update live gain node
   useEffect(() => {
@@ -234,33 +236,21 @@ export default function MoodTonesPanel() {
   const setMoodWithDisplay = useCallback((value: number) => {
     moodRef.current = value;
     setMood(value);
-    const p = interpolateWaypoints(presetRef.current, value / 100);
+    const p = interpolateWaypoints(presetRef.current, valenceToT(value));
     setDisplayInfo(prev => ({ ...prev, emoji: p.emoji, chordName: p.chordName }));
   }, []);
 
   const applyAudienceMood = useCallback(() => {
     if (!audienceSyncRef.current) return;
-    const cursors = positionsRef.current;
-    if (cursors.size === 0) {
-      setMoodWithDisplay(50);
+    const valences = getValences();
+    if (valences.size === 0) {
+      setMoodWithDisplay(0);
       return;
     }
-    let val: number;
-    if (valenceModeRef.current === 'continuous') {
-      let sum = 0;
-      for (const [, c] of cursors) sum += computeCursorValence(c.x, c.y);
-      val = sum / cursors.size;
-    } else {
-      let sum = 0;
-      for (const [, c] of cursors) {
-        const region = computeReactionRegion(c.x, c.y);
-        if (region === 'positive') sum += 1;
-        else if (region === 'negative') sum += -1;
-      }
-      val = (sum / cursors.size + 1) / 2 * 100;
-    }
-    setMoodWithDisplay(Math.round(clamp(val, 0, 100)));
-  }, [positionsRef, setMoodWithDisplay]);
+    let sum = 0;
+    for (const [, v] of valences) sum += v;
+    setMoodWithDisplay(clamp(sum / valences.size, -1, 1));
+  }, [getValences, setMoodWithDisplay]);
 
   useEffect(() => {
     if (audienceSync) applyAudienceMood();
@@ -384,7 +374,7 @@ export default function MoodTonesPanel() {
   const tickRef = useRef<() => void>(() => {});
   tickRef.current = () => {
     if (!playingRef.current) return;
-    const t = moodRef.current / 100;
+    const t = valenceToT(moodRef.current);
     const p = interpolateWaypoints(presetRef.current, t);
 
     const chordLo   = p.chordLo.map(n => n + p.octShift * 12);
@@ -470,13 +460,13 @@ export default function MoodTonesPanel() {
     setActivePreset(p);
     presetRef.current = p;
     if (!audienceSyncRef.current) {
-      moodRef.current = 50;
-      setMood(50);
+      moodRef.current = 0;
+      setMood(0);
     }
     noteIndexRef.current = 0;
     currentChordRef.current = [];
     setCurrentChord([]);
-    const mid = interpolateWaypoints(p, (audienceSyncRef.current ? moodRef.current : 50) / 100);
+    const mid = interpolateWaypoints(p, valenceToT(audienceSyncRef.current ? moodRef.current : 0));
     setDisplayInfo(prev => ({
       ...prev,
       emoji: mid.emoji,
@@ -567,16 +557,16 @@ export default function MoodTonesPanel() {
             <span style={s.emojiEnd}>{wp0.emoji}</span>
             <div style={s.sliderWrap}>
               <input
-                type="range" min={0} max={100} value={mood} step={1}
+                type="range" min={-1} max={1} value={mood} step={0.01}
                 disabled={audienceSync}
                 style={{ ...s.range, background: activePreset.sliderGradient, opacity: audienceSync ? 0.6 : 1, cursor: audienceSync ? 'not-allowed' : 'pointer' }}
                 onChange={e => {
                   if (audienceSync) return;
-                  const v = parseInt(e.target.value);
+                  const v = parseFloat(e.target.value);
                   moodRef.current = v;
                   setMood(v);
                   setDisplayInfo(prev => {
-                    const p = interpolateWaypoints(activePreset, v / 100);
+                    const p = interpolateWaypoints(activePreset, valenceToT(v));
                     return { ...prev, emoji: p.emoji, chordName: p.chordName, velocity: String(p.velocity), tempo: p.tempo + 'ms', octave: p.octShift === 0 ? '±0' : (p.octShift > 0 ? '+' : '') + p.octShift, explain: p.explain };
                   });
                 }}

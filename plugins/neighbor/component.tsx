@@ -1,10 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as d3 from 'd3';
 import { usePanelContext } from '../../app/context/PanelContext';
-import { useCoordStream } from '../../app/hooks/useCoordStream';
+import { useValenceStream } from '../../app/hooks/useValenceStream';
 import { useRoomSocket, useMessageSubscription } from '../../app/contexts/RoomSocketContext';
-import { computeReactionRegion, DEFAULT_ANCHORS } from '../../app/utils/voteRegion';
-import type { ReactionAnchors } from '../../app/utils/voteRegion';
 import { VOTE_COLORS, USER_STATUS_COLORS, EDGE_COLOR, EDGE_FLASH_COLOR, EDGE_FLASH_MS } from '../../app/constants/userStatus';
 
 type View = 'entry' | 'graph';
@@ -25,9 +23,10 @@ const ERROR_MESSAGES: Record<EdgeError, string> = {
 export default function NeighborPanel({ initialView = 'entry' as View }: { initialView?: View }) {
   const { userId } = usePanelContext();
   const { send } = useRoomSocket();
-  // Live cursor positions keyed by userId. includeSelf so our own node is
-  // colored by region too (neighbor renders every participant, self included).
-  const { positionsRef } = useCoordStream(userId, { includeSelf: true });
+  // Live per-user valence in {−1, 0, +1} (unit mode = argmax reaction region),
+  // keyed by userId. includeSelf so our own node is colored too (neighbor
+  // renders every participant, self included). The hook owns anchor sync.
+  const { getValences } = useValenceStream(userId, { mode: 'unit', includeSelf: true });
 
   const [view, setView] = useState<View>(initialView);
   const [digits, setDigits] = useState('');
@@ -51,7 +50,6 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   const paddingRef = useRef(20);
   const sizeRef = useRef({ width: 320, height: 280 });
   const statusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const anchorsRef = useRef<ReactionAnchors>(DEFAULT_ANCHORS);
 
   // D3 mutates link source/target from string IDs to node objects; normalize back and drop any links
   // whose endpoints are missing from nodesRef (server/timing inconsistency guard)
@@ -65,12 +63,14 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     });
   }
 
-  function getNodeColor(node: D3Node): string {
+  // valences: a snapshot from getValences(), taken once per repaint by the
+  // caller (getValences returns a reused map, so don't call it per-node here).
+  function getNodeColor(node: D3Node, valences: Map<string, number>): string {
     if (node.offline) return USER_STATUS_COLORS.offline;
-    const pos = positionsRef.current.get(node.id);
-    if (!pos) return USER_STATUS_COLORS.idle;
-    const region = computeReactionRegion(pos.x, pos.y, anchorsRef.current);
-    return region ? VOTE_COLORS[region] : USER_STATUS_COLORS.idle;
+    const valence = valences.get(node.id);
+    if (valence === undefined) return USER_STATUS_COLORS.idle;
+    const region = valence > 0 ? 'positive' : valence < 0 ? 'negative' : 'neutral';
+    return VOTE_COLORS[region];
   }
 
   function getLinkDisplay(d: D3Link): string | null {
@@ -83,8 +83,9 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
   }
 
   function updateNodeColors() {
+    const valences = getValences();
     nodeGroupRef.current?.selectAll<SVGCircleElement, D3Node>('circle')
-      .attr('fill', d => getNodeColor(d));
+      .attr('fill', d => getNodeColor(d, valences));
   }
 
   function updateVisibility() {
@@ -100,10 +101,11 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     const nodeGroup = nodeGroupRef.current;
     if (!sim || !nodeGroup) return;
     sim.nodes(nodesRef.current);
+    const valences = getValences();
     nodeGroup.selectAll<SVGCircleElement, D3Node>('circle')
       .data(nodesRef.current, d => d.id)
       .join(enter => enter.append('circle')
-        .attr('r', 8).attr('fill', d => getNodeColor(d))
+        .attr('r', 8).attr('fill', d => getNodeColor(d, valences))
         .attr('stroke', '#fff').attr('stroke-width', 1.5)
         .attr('display', d => (!showOfflineRef.current && d.offline) ? 'none' : null)
         .call(makeDrag(sim))
@@ -128,12 +130,13 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     }
     if (nodesChanged) {
       sim.nodes(nodesRef.current);
+      const valences = getValences();
       nodeGroup
         .selectAll<SVGCircleElement, D3Node>('circle')
         .data(nodesRef.current, d => d.id)
         .join(enter => enter.append('circle')
           .attr('r', 8)
-          .attr('fill', d => getNodeColor(d))
+          .attr('fill', d => getNodeColor(d, valences))
           .attr('stroke', '#fff')
           .attr('stroke-width', 1.5)
           .attr('display', d => (!showOfflineRef.current && d.offline) ? 'none' : null)
@@ -167,14 +170,13 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
     const msg = JSON.parse(evt.data);
       if (msg.type === 'neighborCode') {
         setMyCode(msg.code);
-      } else if (msg.type === 'connected') {
-        if (msg.roomAnchors) anchorsRef.current = msg.roomAnchors;
       } else if (msg.type === 'roomAnchorsChanged') {
-        anchorsRef.current = msg.anchors ?? DEFAULT_ANCHORS;
+        // useValenceStream owns anchors and updates them from its own
+        // subscription (registered first); repaint reads fresh valences.
         updateNodeColors();
       } else if (msg.type === 'move' || msg.type === 'touch' || msg.type === 'remove' || msg.type === 'cursorBatch') {
-        // useCoordStream already applied this to positionsRef (its subscription
-        // is registered first); we just recolor nodes from the fresh positions.
+        // updateNodeColors projects live via getValences(), so this recolors
+        // from the current cursor positions.
         updateNodeColors();
       } else if (msg.type === 'userJoined') {
         const uid: string = msg.userId;
@@ -183,7 +185,7 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
           existing.offline = false;
           nodeGroupRef.current?.selectAll<SVGCircleElement, D3Node>('circle')
             .filter(d => d.id === uid)
-            .attr('fill', getNodeColor(existing))
+            .attr('fill', getNodeColor(existing, getValences()))
             .attr('display', null);
           updateVisibility();
         } else {
@@ -223,10 +225,11 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
           }
           if (nodesChanged) {
             sim.nodes(nodesRef.current);
+            const valences = getValences();
             nodeGroup.selectAll<SVGCircleElement, D3Node>('circle')
               .data(nodesRef.current, d => d.id)
               .join(enter => enter.append('circle')
-                .attr('r', 8).attr('fill', d => getNodeColor(d))
+                .attr('r', 8).attr('fill', d => getNodeColor(d, valences))
                 .attr('stroke', '#fff').attr('stroke-width', 1.5)
                 .attr('display', d => (!showOfflineRef.current && d.offline) ? 'none' : null)
                 .call(makeDrag(sim))
@@ -353,12 +356,13 @@ export default function NeighborPanel({ initialView = 'entry' as View }: { initi
       .attr('stroke-width', 1.5)
       .attr('display', d => getLinkDisplay(d));
 
+    const initialValences = getValences();
     nodeGroupRef.current
       .selectAll<SVGCircleElement, D3Node>('circle')
       .data(nodesRef.current, d => d.id)
       .join('circle')
       .attr('r', 8)
-      .attr('fill', d => getNodeColor(d))
+      .attr('fill', d => getNodeColor(d, initialValences))
       .attr('stroke', '#fff')
       .attr('stroke-width', 1.5)
       .attr('display', d => (!showOfflineRef.current && d.offline) ? 'none' : null)

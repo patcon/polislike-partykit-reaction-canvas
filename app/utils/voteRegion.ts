@@ -58,8 +58,11 @@ export function valenceToPosition(valence: number, anchors: ReactionAnchors): { 
  * @param anchors - Anchor positions in 0–100 canvas space; defaults to DEFAULT_ANCHORS
  */
 /**
- * Maps a cursor position to a 0–100 valence value using barycentric coordinates
- * relative to three anchor points: positive=100, negative=0, neutral=50.
+ * Maps a cursor position to a −1..1 valence value using barycentric coordinates
+ * relative to three anchor points: positive=+1, negative=−1, neutral=0.
+ *
+ * The weighted centroid `wPos·(+1) + wNeg·(−1) + wNeu·0` simplifies to `wPos − wNeg`.
+ * Round-trips with valenceToPosition (which also uses the −1..1 range).
  *
  * @param normalizedX - X position in 0–100 canvas space
  * @param normalizedY - Y position in 0–100 canvas space
@@ -79,13 +82,19 @@ export function computeCursorValence(normalizedX: number, normalizedY: number, a
     const invSum = 1/dp + 1/dn + 1/dz;
     const wPos = (1/dp) / invSum;
     const wNeg = (1/dn) / invSum;
-    const wNeu = 1 - wPos - wNeg;
-    return Math.max(0, Math.min(100, wPos * 100 + wNeg * 0 + wNeu * 50));
+    return Math.max(-1, Math.min(1, wPos - wNeg));
   }
   const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
   const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
-  const wNeu = 1 - wPos - wNeg;
-  return Math.max(0, Math.min(100, wPos * 100 + wNeg * 0 + wNeu * 50));
+  return Math.max(-1, Math.min(1, wPos - wNeg));
+}
+
+/**
+ * Converts a −1..1 valence to a 0–100 percent, for CSS `left: %` positioning
+ * and slider marker placement. valence −1 → 0%, 0 → 50%, +1 → 100%.
+ */
+export function valenceToPercent(valence: number): number {
+  return (valence + 1) / 2 * 100;
 }
 
 export function computeReactionRegion(normalizedX: number, normalizedY: number, anchors: ReactionAnchors = DEFAULT_ANCHORS): ReactionRegion {
