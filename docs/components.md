@@ -16,6 +16,7 @@
 | `AdminPanel` | V1 queue management + vote monitoring (admin mode only) |
 | `AdminPanelV4` | V4 admin: records live reaction data, downloads as JSON |
 | `AdminPanelV5` | V5 admin: manages labels/anchors/participant cap, views/clears Supabase data |
+| `SimControlBar` | Demo-page bottom bar: play/pause/stop a "program" of simulated cursors (Drift, Region-hoppers, Recorded playback). See [simulated-users spec](specs/simulated-users.md) |
 | `Counter` | Legacy PartyKit starter example (not used in main app) |
 
 `Canvas` and `TouchLayer` both accept an optional `heightOffset` prop (pixels to subtract from `window.innerHeight` for dimension math). Default is the statement panel height (~140px). Pass the YouTube player height in V2/V5.

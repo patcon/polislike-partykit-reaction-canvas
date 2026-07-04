@@ -9,7 +9,7 @@ import type { PluginContext, PluginConnection } from '../plugins/types';
 import { getSoccerBallState, getSoccerScore } from '../plugins/soccer/server';
 import type {
   CursorEvent, PersistedState, ClientEvent,
-  PlaybackCursorBroadcastEvent,
+  PlaybackCursorBroadcastEvent, SimCursorBatchEvent,
   SetTimecodeEvent, SetRecordingStateEvent, SetRoomLabelsEvent, SetRoomAnchorsEvent,
   SetRoomAvatarStyleEvent, SetScreenPanelEvent, SetNowLabelEvent, StartFlashTimerEvent, SetImageUrlEvent,
   SetUserCapEvent, TriggerActivityEvent, SubmitGithubUsernameEvent, SubmitFeedbackStarsEvent,
@@ -285,6 +285,7 @@ private pluginStates = new Map<string, unknown>(
 
       switch (event.type) {
         case 'playbackCursorBroadcast': this.handlePlaybackCursorBroadcast(event); break;
+        case 'simCursorBatch': this.handleSimCursorBatch(event, sender); break;
         case 'move':
         case 'touch':
         case 'remove': this.handleCursorEvent(event, message, sender); break;
@@ -336,6 +337,22 @@ private pluginStates = new Map<string, unknown>(
       type: event.cursorType,
       position: { ...event.position, isPlayback: true },
     }));
+  }
+
+  private handleSimCursorBatch(event: SimCursorBatchEvent, sender: Party.Connection): void {
+    // A single sim-driver connection injects many virtual cursors per tick.
+    // Keep cursorPositions in sync (mirrors handleCursorEvent), then rebroadcast
+    // the whole array as one cursorBatch to everyone except the driver (it doesn't
+    // render its own cursors). Sim identity is carried by the sim_ userId prefix,
+    // so no per-cursor flag is needed. Presence/targeting are intentionally untouched.
+    for (const cursor of event.cursors) {
+      if (cursor.type === 'move' || cursor.type === 'touch') {
+        this.cursorPositions.set(cursor.position.userId, { x: cursor.position.x, y: cursor.position.y });
+      } else if (cursor.type === 'remove') {
+        this.cursorPositions.delete(cursor.position.userId);
+      }
+    }
+    this.room.broadcast(JSON.stringify({ type: 'cursorBatch', cursors: event.cursors }), [sender.id]);
   }
 
   private handleCursorEvent(event: CursorEvent, message: string, sender: Party.Connection): void {

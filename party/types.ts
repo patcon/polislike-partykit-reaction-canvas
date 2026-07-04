@@ -64,6 +64,14 @@ export interface PlaybackCursorBroadcastEvent {
   position: CursorPosition;
 }
 
+// Demo-page simulation engine: one connection injects many virtual cursors per
+// tick. The server rebroadcasts the whole array as a single cursorBatch so 25-100
+// sim users cost one client->server message per tick. See app/lib/simulation.
+export interface SimCursorBatchEvent {
+  type: 'simCursorBatch';
+  cursors: CursorEvent[];
+}
+
 export interface PushInterfaceEvent {
   type: 'pushInterface';
   targetUserId?: string;
@@ -114,7 +122,7 @@ export type ClientEvent =
   | SetRecordingStateEvent | SetRoomLabelsEvent | SetRoomAnchorsEvent
   | SetRoomAvatarStyleEvent | SetScreenPanelEvent | SetImageUrlEvent
   | ResetSoccerScoreEvent | SetUserCapEvent | RequestJoinEvent
-  | PlaybackCursorBroadcastEvent | TriggerActivityEvent | SubmitGithubUsernameEvent
+  | PlaybackCursorBroadcastEvent | SimCursorBatchEvent | TriggerActivityEvent | SubmitGithubUsernameEvent
   | SubmitFeedbackStarsEvent | SetSocialConfigEvent | SetGreeterConfigEvent
   | PushInterfaceEvent | AcceptInterfaceEvent | ClearPushedInterfacesEvent
   | PushHapticEvent | SetNowLabelEvent | StartFlashTimerEvent | RecordInvitationsEvent

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
 import { generateUUID } from "../../utils/userId";
 import { expandCursorEvents } from "../../utils/cursor";
+import { isSimulatedUserId } from "../../utils/simulatedUser";
 
 const CAM_MODES = ['static', 'lerp', 'exp', 'spring', 'quat'];
 
@@ -825,7 +826,7 @@ export default function ValenceViz({ room: roomProp = 'default' }: { room?: stri
               cursors.set(userId,{x,y}); assignLiveSlot(userId);
             } else if (e.type==='remove') {
               const {userId}=e.position; cursors.delete(userId);
-              if (userId.startsWith('replay_')) freeLiveSlot(userId);
+              if (isSimulatedUserId(userId)) freeLiveSlot(userId);
             }
           }
           if (events.length > 0) setAudienceN(cursors.size);

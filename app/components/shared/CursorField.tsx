@@ -3,6 +3,7 @@ import { select } from "d3";
 import type { Selection } from "d3";
 import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
 import { CURSOR_STALE_MS } from "../../utils/cursor";
+import { isSimulatedUserId, shouldMarkAsSimulated } from "../../utils/simulatedUser";
 import { makeImageCoordTransform } from "../../utils/imageCanvasCoords";
 import { flashSecondsRemaining } from "../../utils/flashTimer";
 import { useRoomSocket, useMessageSubscription } from "../../contexts/RoomSocketContext";
@@ -27,6 +28,7 @@ interface CanvasProps {
   userId: string;
   screenName?: string; // which screen this canvas represents; ignores screenPanelChanged for other screens. default 'personal'
   colorCursorsByVote?: boolean; // Optional prop to enable reaction-based coloring
+  markSimulatedCursors?: boolean; // When false, simulated (sim_/replay_) cursors render like real ones (no purple/dashed). Default true.
   hideActualCursors?: boolean; // When true, raw cursor dots are not rendered (labels/anchors still sync; use when smooth cursors replace them)
   currentReactionState?: ReactionState; // Current reaction state for background color
   heightOffset?: number; // Pixels to subtract from window.innerHeight (default: statement panel height)
@@ -93,7 +95,7 @@ function clipLineToRect(
   return [px + tMin * dx, py + tMin * dy, px + tMax * dx, py + tMax * dy];
 }
 
-export default function CursorField({ userId, screenName = 'personal', colorCursorsByVote: colorCursorsByVoteProp = false, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onRoomImageUrlChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false, cursorSmoothingConfig }: CanvasProps) {
+export default function CursorField({ userId, screenName = 'personal', colorCursorsByVote: colorCursorsByVoteProp = false, markSimulatedCursors = true, disableCursorValence = false, disableBackgroundValence = false, hideActualCursors = false, currentReactionState, heightOffset, autoSize = false, onPresenceCount, onActiveCursorCountChange, onSimulatedCursorCountChange, onTimecodeUpdate, onRecordingStateChange, onRoomLabelsChange, onRoomAnchorsChange, onRoomAvatarStyleChange, onViewerCount, onConnectedAsViewer, onUserCapChanged, onJoinApproved, onSocketReady, onActivityTriggered, onRoomImageUrlChange, onSocialConfigChange, onGreeterConfigChange, onConnected, onNowLabelChange, onInviteEdges, onOwnValenceDisplayChange, onValenceInputModeChange, onStrokeSegment, onSignatureCleared, onConnectedUsers, onUserJoined, onUserLeft, debug = false, cursorSmoothingConfig }: CanvasProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const smoothCursorLayerRef = useRef<SVGSVGElement>(null);
   const [cursors, setCursors] = useState<Map<string, CursorPosition>>(new Map());
@@ -114,7 +116,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
 
   useEffect(() => {
     onActiveCursorCountChange?.(cursors.size);
-    const simulatedCount = Array.from(cursors.keys()).filter(id => id.startsWith('replay_')).length;
+    const simulatedCount = Array.from(cursors.keys()).filter(isSimulatedUserId).length;
     onSimulatedCursorCountChange?.(simulatedCount);
   }, [cursors.size]);
 
@@ -272,9 +274,9 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
     const radius = avatarStyle ? smallerDim * 0.03 : smallerDim * 0.01;
     const styleMap = new Map<string, { color: string; radius: number; stroke: string; strokeDasharray: string; avatarUrl: string | null; needsClip: boolean }>();
     for (const [cursorUserId, cursor] of cursors) {
-      const isPlayback = cursorUserId.startsWith('replay_');
+      const markAsSimulated = shouldMarkAsSimulated(cursorUserId, markSimulatedCursors);
       let color: string;
-      if (isPlayback) {
+      if (markAsSimulated) {
         color = 'hsl(270, 70%, 65%)';
       } else if (colorCursorsByVote && !disableCursorValence) {
         switch (computeReactionRegion(cursor.x, cursor.y, anchors)) {
@@ -289,12 +291,12 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
         const hue = cursorUserId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
         color = `hsl(${hue}, 70%, 50%)`;
       }
-      const stroke = isPlayback ? 'hsl(270, 70%, 80%)' : '#000000';
-      const strokeDasharray = isPlayback ? `${radius * 0.8} ${radius * 0.5}` : 'none';
+      const stroke = markAsSimulated ? 'hsl(270, 70%, 80%)' : '#000000';
+      const strokeDasharray = markAsSimulated ? `${radius * 0.8} ${radius * 0.5}` : 'none';
 
       let avatarUrl: string | null = null;
       let needsClip = false;
-      if (avatarStyle && !isPlayback) {
+      if (avatarStyle && !markAsSimulated) {
         const isCustomMode = avatarStyle === 'custom' || avatarStyle.startsWith('custom+');
         if (isCustomMode) {
           avatarUrl = customAvatars[cursorUserId] ?? null;
@@ -312,7 +314,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
       styleMap.set(cursorUserId, { color, radius, stroke, strokeDasharray, avatarUrl, needsClip });
     }
     smoothCursorStyleRef.current = styleMap;
-  }, [cursors, dimensions, anchors, colorCursorsByVote, disableCursorValence, defaultCursorColor, avatarStyle, customAvatars]);
+  }, [cursors, dimensions, anchors, colorCursorsByVote, disableCursorValence, defaultCursorColor, avatarStyle, customAvatars, markSimulatedCursors]);
 
   const { send } = useRoomSocket();
 
@@ -798,10 +800,10 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
       ? smallerDim * 0.03  // 3% when showing avatars (needs to be recognizable)
       : smallerDim * 0.01; // 1% for default colored dots (original size)
 
-    const isPlaybackCursor = (d: any): boolean => d.cursorUserId.startsWith('replay_');
+    const isMarkedSimulated = (d: any): boolean => shouldMarkAsSimulated(d.cursorUserId, markSimulatedCursors);
 
     const cursorColor = (d: any): string => {
-      if (isPlaybackCursor(d)) return 'hsl(270, 70%, 65%)';
+      if (isMarkedSimulated(d)) return 'hsl(270, 70%, 65%)';
       if (colorCursorsByVote && !disableCursorValence && d.reactionState) {
         switch (d.reactionState) {
           case 'positive': return 'rgba(0, 255, 0, 0.8)';
@@ -820,7 +822,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
       .enter()
       .append('g')
       .attr('class', 'cursor-group')
-      .attr('opacity', (d: any) => isPlaybackCursor(d) ? 0.7 : 1.0);
+      .attr('opacity', (d: any) => isMarkedSimulated(d) ? 0.7 : 1.0);
 
     const isCustomMode = avatarStyle === 'custom' || (typeof avatarStyle === 'string' && avatarStyle.startsWith('custom+'));
     const customFallbackStyle = isCustomMode && avatarStyle !== 'custom' ? avatarStyle!.slice(7) : null;
@@ -864,9 +866,9 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
           .attr('cy', (d: any) => d.y)
           .attr('r', cursorRadius)
           .attr('fill', cursorColor)
-          .attr('stroke', (d: any) => isPlaybackCursor(d) ? 'hsl(270, 70%, 80%)' : '#000000')
+          .attr('stroke', (d: any) => isMarkedSimulated(d) ? 'hsl(270, 70%, 80%)' : '#000000')
           .attr('stroke-width', 2)
-          .attr('stroke-dasharray', (d: any) => isPlaybackCursor(d) ? `${cursorRadius * 0.8} ${cursorRadius * 0.5}` : 'none');
+          .attr('stroke-dasharray', (d: any) => isMarkedSimulated(d) ? `${cursorRadius * 0.8} ${cursorRadius * 0.5}` : 'none');
       }
 
       // Custom photo for users with a registered avatar
@@ -909,9 +911,9 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
         .attr('cy', d => d.y)
         .attr('r', cursorRadius)
         .attr('fill', cursorColor)
-        .attr('stroke', (d: any) => isPlaybackCursor(d) ? 'hsl(270, 70%, 80%)' : '#000000')
+        .attr('stroke', (d: any) => isMarkedSimulated(d) ? 'hsl(270, 70%, 80%)' : '#000000')
         .attr('stroke-width', 2)
-        .attr('stroke-dasharray', (d: any) => isPlaybackCursor(d) ? `${cursorRadius * 0.8} ${cursorRadius * 0.5}` : 'none');
+        .attr('stroke-dasharray', (d: any) => isMarkedSimulated(d) ? `${cursorRadius * 0.8} ${cursorRadius * 0.5}` : 'none');
 
       // Add user ID labels with responsive font size and positioning
       const cursorLabelFontSize = Math.min(dimensions.width, dimensions.height) * 0.015; // 1.5% of smaller dimension
@@ -925,7 +927,7 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
         .text((d: any) => d.cursorUserId.substring(0, 6));
     }
 
-  }, [cursors, dimensions, anchors, debug, hideActualCursors, avatarStyle, customAvatars, colorCursorsByVote, defaultCursorColor, ownValenceDisplay, screenPanel, ballPos, soccerScore, imageUrl, imageNaturalSize]);
+  }, [cursors, dimensions, anchors, debug, hideActualCursors, avatarStyle, customAvatars, colorCursorsByVote, defaultCursorColor, ownValenceDisplay, screenPanel, ballPos, soccerScore, imageUrl, imageNaturalSize, markSimulatedCursors]);
 
   // Handle resize. In autoSize mode, track the parent element's box (for embedding in
   // constrained containers like the demo phone frames); otherwise track the window.

@@ -5,6 +5,8 @@ interface DemoLayoutProps {
   room: string;
   left: ReactNode;
   right: ReactNode;
+  /** Optional bottom control bar (e.g. the simulator). Rendered below the phones. */
+  controls?: ReactNode;
 }
 
 // Two phone frames (~360px each) + gap + page padding need roughly this much
@@ -28,7 +30,7 @@ function useViewportWideEnough(): boolean {
  * Renders a header (title + the active random `demo-<uuid>` room) above a two-up
  * phone layout.
  */
-export default function DemoLayout({ title, room, left, right }: DemoLayoutProps) {
+export default function DemoLayout({ title, room, left, right, controls }: DemoLayoutProps) {
   const wideEnough = useViewportWideEnough();
 
   if (!wideEnough) {
@@ -53,6 +55,7 @@ export default function DemoLayout({ title, room, left, right }: DemoLayoutProps
         {left}
         {right}
       </div>
+      {controls}
     </div>
   );
 }

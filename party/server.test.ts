@@ -117,3 +117,58 @@ describe('pushInterface routing', () => {
     expect(sentTypes(targetConn)).not.toContain('interfacePushed');
   });
 });
+
+describe('simCursorBatch handling', () => {
+  let connections: Party.Connection[];
+  let room: Party.Room;
+  let server: Server;
+
+  beforeEach(() => {
+    connections = [];
+    room = makeRoom(connections);
+    server = new Server(room);
+  });
+
+  function addConn(id: string): Party.Connection {
+    const conn = makeConn(id);
+    connections.push(conn);
+    return conn;
+  }
+
+  function broadcasts(): Array<{ msg: any; exclude: unknown }> {
+    return (room.broadcast as ReturnType<typeof vi.fn>).mock.calls.map((c: string[]) => ({
+      msg: JSON.parse(c[0]),
+      exclude: c[1],
+    }));
+  }
+
+  it('rebroadcasts a batch of simulated cursors as one cursorBatch, excluding the sender', () => {
+    const driver = addConn('c-sim-driver');
+    const viewer = addConn('c-viewer');
+    connectParticipant(server, driver, 'sim-driver');
+    connectParticipant(server, viewer, 'viewer');
+
+    const cursors = [
+      { type: 'move', position: { x: 10, y: 20, timestamp: 1, userId: 'sim_0' } },
+      { type: 'touch', position: { x: 30, y: 40, timestamp: 1, userId: 'sim_1' } },
+    ];
+    server.onMessage(JSON.stringify({ type: 'simCursorBatch', cursors }), driver);
+
+    const cb = broadcasts().find(b => b.msg.type === 'cursorBatch');
+    expect(cb).toBeTruthy();
+    expect(cb!.msg.cursors).toEqual(cursors);
+    // Excluded from the sim-driver connection (it doesn't render its own cursors).
+    expect(cb!.exclude).toEqual([driver.id]);
+  });
+
+  it('forwards remove events in the batch so clients can drop sim cursors', () => {
+    const driver = addConn('c-sim-driver');
+    connectParticipant(server, driver, 'sim-driver');
+
+    const cursors = [{ type: 'remove', position: { x: 0, y: 0, timestamp: 2, userId: 'sim_0' } }];
+    server.onMessage(JSON.stringify({ type: 'simCursorBatch', cursors }), driver);
+
+    const cb = broadcasts().find(b => b.msg.type === 'cursorBatch');
+    expect(cb!.msg.cursors).toEqual(cursors);
+  });
+});
