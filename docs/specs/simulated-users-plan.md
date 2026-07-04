@@ -148,7 +148,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
   - Files: `app/lib/simulation/programs/drift.ts`, `app/lib/simulation/programs/_easing.ts`,
     `app/lib/simulation/programs/index.ts`, `tests/simulation/drift.test.ts`.
 
-- [ ] **T5 — SimControlBar + DemoLayout slot + canvas-mood wiring** *(integration)*
+- [x] **T5 — SimControlBar + DemoLayout slot + canvas-mood wiring** *(integration; CP3 verified)*
   - Acceptance: `SimControlBar.tsx` renders program `<select>`, user-count preset (25/50/100),
     play/pause/stop; drives the engine via `useRoomSocket().send`. `DemoLayout` gains a `controls`
     slot at the bottom of `.demo-page`; the slot is wrapped in its own `RoomSocketProvider room`
