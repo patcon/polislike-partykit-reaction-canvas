@@ -185,7 +185,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
   - Verify: story loads headless in `pnpm vitest`.
   - Files: `stories/SimControlBar.stories.tsx`.
 
-- [ ] **T10 — Coverage pass**
+- [x] **T10 — Coverage pass**
   - Acceptance: gaps from T1–T8 filled; all sim tests deterministic and green.
   - Verify: `pnpm vitest` green.
   - Files: `tests/simulation/*`.

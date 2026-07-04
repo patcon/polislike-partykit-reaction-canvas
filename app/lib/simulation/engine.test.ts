@@ -157,4 +157,26 @@ describe('SimulationEngine stop', () => {
     engine.play();
     expect(p.inits).toBe(1);
   });
+
+  it('stop() while idle is a no-op (no teardown emitted, stays idle)', () => {
+    const c = makeFakeClock();
+    const p = makeFakeProgram();
+    const s = makeFakeSink();
+    const engine = new SimulationEngine(p.program, s.sink, CTX, c.clock);
+    engine.stop();
+    expect(engine.getState()).toBe('idle');
+    expect(s.batches).toHaveLength(0);
+  });
+
+  it('resume from paused does not re-initialize the program', () => {
+    const c = makeFakeClock();
+    const p = makeFakeProgram();
+    const s = makeFakeSink();
+    const engine = new SimulationEngine(p.program, s.sink, CTX, c.clock);
+    engine.play();
+    engine.pause();
+    engine.play(); // resume
+    expect(engine.getState()).toBe('running');
+    expect(p.inits).toBe(1); // still the same run
+  });
 });
