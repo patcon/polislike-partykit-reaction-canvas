@@ -129,7 +129,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
     `dev-https` (send a `simCursorBatch`, observe a `cursorBatch` broadcast). Commit before any deploy.
   - Files: `party/server.ts`, `party/types.ts`, (optional) `tests/…server.test.ts`.
 
-- [ ] **T3 — Engine + socket sink**
+- [x] **T3 — Engine + socket sink**
   - Acceptance: `engine.ts` implements `idle → running ⇄ paused` with an injectable scheduler; ticks
     at `SIM_TICK_MS`; running → `sink.emit(program.tick())`; paused → heartbeat every
     `CURSOR_HEARTBEAT_MS`; stop → `sink.emit(program.teardown())` then idle; elapsed excludes paused
