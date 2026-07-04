@@ -156,7 +156,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
   - Verify: **CP3 manual** (see table). Bar styled like `InterfaceChipBar`.
   - Files: `SimControlBar.tsx`, `DemoLayout.tsx`, `DemoCanvasMood.tsx`, `app/styles/demos.css`.
 
-- [ ] **T6 — Wire SimControlBar into admin-canvas**
+- [x] **T6 — Wire SimControlBar into admin-canvas**
   - Acceptance: `DemoAdminCanvas` shows the same control bar; same program set.
   - Verify: manual — same as CP3 on `/demos/admin-canvas`.
   - Files: `DemoAdminCanvas.tsx`.

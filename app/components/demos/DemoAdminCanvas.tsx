@@ -5,6 +5,7 @@ import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { generateUUID } from "../../utils/userId";
 import DemoLayout from "./DemoLayout";
 import PhoneFrame from "./PhoneFrame";
+import SimControlBar from "./SimControlBar";
 
 /**
  * Demo: emcee admin panel (left) + participant reaction canvas (right), sharing one
@@ -19,6 +20,12 @@ export default function DemoAdminCanvas() {
     <DemoLayout
       title="Demo — Admin + Reaction Canvas"
       room={room}
+      controls={
+        // Dedicated sim-driver connection: injects sim_ cursors into the shared room.
+        <RoomSocketProvider room={room} userId="sim-driver">
+          <SimControlBar />
+        </RoomSocketProvider>
+      }
       left={
         <PhoneFrame label="Emcee">
           <AdminPanelNoDB room={room} userId={adminId} />
@@ -31,6 +38,7 @@ export default function DemoAdminCanvas() {
               room={room}
               userId={participantId}
               autoSize
+              markSimulatedCursors={false}
               shareUrl={`${window.location.origin}/${room}`}
             />
           </RoomSocketProvider>
