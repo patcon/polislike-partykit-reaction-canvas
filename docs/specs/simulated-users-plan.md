@@ -139,7 +139,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
   - Files: `app/lib/simulation/engine.ts`, `app/lib/simulation/sinks/socketSink.ts`,
     `tests/simulation/engine.test.ts`, `tests/simulation/socketSink.test.ts`.
 
-- [ ] **T4 — Drift / Wander program**
+- [x] **T4 — Drift / Wander program**
   - Acceptance: `programs/drift.ts` ports `useMockCoordStream` (seeded PRNG, `x += (tx-x)*0.02`,
     retarget random canvas point on arrival), emits one `move` per user per tick keyed `sim_<i>`;
     `teardown` emits a `remove` per user. Shared easing core extracted for reuse by T7.
