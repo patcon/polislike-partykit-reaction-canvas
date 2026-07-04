@@ -156,14 +156,23 @@ arrival"); they differ only in *target source*.
    - Window: **+885 s → +975 s** (14:45–16:15), selected by scoring 90 s windows on region spread
      (Gini-Simpson over agree/disagree/neutral) × path-length movement. This window has all three
      regions represented (~agree 0.19 / disagree 0.29 / neutral 0.52) with high movement.
-   - Rebase all timestamps so the slice starts at `0`; set `recordingStart: 0`,
-     `recordingEnd: 90000`.
-   - Round `x`/`y` to **2 decimal places**.
-   - Result: **7 users, 7,335 events, 90 s, ~0.78 MB.**
-   - **Where it lives**: `public/sim-recordings/sample.json` (served at runtime), but **gitignored**
-     (`.gitignore`) so it's local-but-uncommitted. **Whether/how to ship it is a pre-merge decision**
-     (commit the slice as-is, thin it further, host it as a downloadable, or generate on demand).
-     The recipe above regenerates it from the source at any time.
+   All of the below is done by **`scripts/thin-recording.js`** (crop + thin + short-ids + rounding):
+   ```
+   node scripts/thin-recording.js <source.json> public/sim-recordings/sample.json --start=885 --end=975
+   ```
+   - Crop to the window and rebase timestamps so the slice starts at `0`.
+   - **Thin, losslessly at playback resolution** (per user, in time order): drop positional events
+     `< 50 ms` since the last kept one (playback ticks at `SIM_TICK_MS`, so sub-tick events collapse
+     anyway); among the rest, keep an event only when it moved `> 0.5` from the last kept position
+     **or** it's been `≥ 2000 ms` (a heartbeat, under the 3 s stale timeout so a held-still cursor
+     survives). Always keep control events (`arrival`/`remove`/`departure`).
+   - **Remap connectionId UUIDs → short ids** (`0`,`1`,…) — the biggest size lever, since a 36-char
+     UUID is ~half of each event; ids become `sim_0`…`sim_6` on playback (format-compatible).
+   - Round `x`/`y` to **2 decimal places** (`--round=1` saves little once ids are short).
+   - Result: **7 users, 1,044 events, 90 s, ~0.075 MB** (from ~29 MB / 151k events, a 99% cut). The
+     only large inter-event gaps are legitimate absences bounded by a `remove`.
+   - **Where it lives**: `public/sim-recordings/sample.json` (served at runtime), **committed** to the
+     repo — at ~75 KB it's small enough to ship. The command above regenerates it from the source.
 
 `programs/index.ts` exports a `PROGRAMS` registry `[{ id, label, create }]` the control bar reads.
 
