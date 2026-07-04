@@ -28,6 +28,7 @@ export interface ReactionCanvasParticipantProps {
 
   // canvas behavior flags (defaults match V4)
   colorCursorsByVote?: boolean;
+  markSimulatedCursors?: boolean; // false → simulated cursors look like real users (demo pages)
   useCursorSmoothing?: boolean;
   disableCursorValence?: boolean;
   disableBackgroundValence?: boolean;
@@ -110,6 +111,7 @@ export default function ReactionCanvasParticipant({
   labelsOverride,
   showLabels = true,
   colorCursorsByVote = true,
+  markSimulatedCursors = true,
   useCursorSmoothing = true,
   disableCursorValence = false,
   disableBackgroundValence = false,
@@ -245,6 +247,7 @@ export default function ReactionCanvasParticipant({
         autoSize={autoSize}
         heightOffset={autoSize ? undefined : heightOffset}
         colorCursorsByVote={colorCursorsByVote}
+        markSimulatedCursors={markSimulatedCursors}
         cursorSmoothingConfig={useCursorSmoothing && SMOOTH_CURSOR_ENABLED ? { ...SMOOTH_CURSOR_CONFIG, showSmoothCursor: true } : undefined}
         hideActualCursors={useCursorSmoothing && SMOOTH_CURSOR_ENABLED}
         disableCursorValence={disableCursorValence}

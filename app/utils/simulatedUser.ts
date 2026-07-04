@@ -16,3 +16,12 @@ export const REPLAY_PREFIX = 'replay_';
 export function isSimulatedUserId(userId: string): boolean {
   return userId.startsWith(SIM_PREFIX) || userId.startsWith(REPLAY_PREFIX);
 }
+
+/**
+ * Whether a cursor should get the distinct "simulated" look (purple/dashed).
+ * Simulated cursors are only marked when `mark` is on — demo pages that want
+ * sim cursors to pass as real users set it false. Real cursors are never marked.
+ */
+export function shouldMarkAsSimulated(userId: string, mark: boolean): boolean {
+  return mark && isSimulatedUserId(userId);
+}

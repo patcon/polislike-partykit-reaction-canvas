@@ -3,6 +3,7 @@ import {
   SIM_PREFIX,
   REPLAY_PREFIX,
   isSimulatedUserId,
+  shouldMarkAsSimulated,
 } from '../../app/utils/simulatedUser';
 
 describe('simulatedUser prefixes', () => {
@@ -32,5 +33,22 @@ describe('isSimulatedUserId', () => {
     expect(isSimulatedUserId('sim')).toBe(false);
     expect(isSimulatedUserId('simulated')).toBe(false);
     expect(isSimulatedUserId('replayer')).toBe(false);
+  });
+});
+
+describe('shouldMarkAsSimulated', () => {
+  it('marks a simulated cursor only when marking is enabled', () => {
+    expect(shouldMarkAsSimulated('sim_0', true)).toBe(true);
+    expect(shouldMarkAsSimulated('replay_x', true)).toBe(true);
+  });
+
+  it('does not mark when marking is disabled (sim cursors look real)', () => {
+    expect(shouldMarkAsSimulated('sim_0', false)).toBe(false);
+    expect(shouldMarkAsSimulated('replay_x', false)).toBe(false);
+  });
+
+  it('never marks a real cursor regardless of the flag', () => {
+    expect(shouldMarkAsSimulated('real-user', true)).toBe(false);
+    expect(shouldMarkAsSimulated('real-user', false)).toBe(false);
   });
 });

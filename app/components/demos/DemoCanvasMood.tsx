@@ -36,6 +36,7 @@ export default function DemoCanvasMood() {
               room={room}
               userId={participantId}
               autoSize
+              markSimulatedCursors={false}
               shareUrl={`${window.location.origin}/${room}`}
             />
           </RoomSocketProvider>
