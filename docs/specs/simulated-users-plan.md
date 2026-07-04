@@ -121,7 +121,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
   - Files: `app/lib/simulation/types.ts`, `app/utils/simulatedUser.ts`, `CursorField.tsx`,
     `viz/ValenceViz.tsx`, `tests/simulation/simulatedUser.test.ts`.
 
-- [ ] **T2 — Server `simCursorBatch` handler** *(parallel with T1)*
+- [x] **T2 — Server `simCursorBatch` handler** *(parallel with T1)*
   - Acceptance: `party/types.ts` adds `SimCursorBatch` to the `ClientEvent` union; `party/server.ts`
     handles it — updates `cursorPositions` per cursor and rebroadcasts a single `cursorBatch` to all
     clients except the sender. Mirrors `handlePlaybackCursorBroadcast`. Presence/targeting untouched.
