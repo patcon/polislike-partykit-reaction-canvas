@@ -4,9 +4,9 @@ import {
   createRecordedPlaybackProgram,
   isRecordingAvailable,
   type RecordingFile,
-} from '../../app/lib/simulation/programs/recordedPlayback';
-import { DEFAULT_ANCHORS } from '../../app/utils/voteRegion';
-import type { SimContext } from '../../app/lib/simulation/types';
+} from './recordedPlayback';
+import { DEFAULT_ANCHORS } from '../../../utils/voteRegion';
+import type { SimContext } from '../types';
 
 // Recorded playback ignores ctx, but the SimulationProgram.init signature requires one.
 const CTX: SimContext = { userCount: 0, seed: 0, regionAnchors: DEFAULT_ANCHORS };

@@ -4,7 +4,7 @@ import {
   REPLAY_PREFIX,
   isSimulatedUserId,
   shouldMarkAsSimulated,
-} from '../../app/utils/simulatedUser';
+} from './simulatedUser';
 
 describe('simulatedUser prefixes', () => {
   it('exposes the sim_ and replay_ prefixes', () => {

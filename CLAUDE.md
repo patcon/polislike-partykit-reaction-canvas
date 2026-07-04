@@ -28,8 +28,13 @@ pnpm run storybook    # Storybook on localhost:6006
 pnpm run deploy       # Deploy to PartyKit — see rules below
 pnpm run deploy:staging  # Deploy to staging preview environment
 pnpm run cachebust    # Production build with cache-busting
-pnpm vitest           # Run all tests: Storybook stories (headless Chromium) + unit tests in tests/
+pnpm vitest           # Run all tests: Storybook stories (headless Chromium) + unit/component tests
 ```
+
+**Test location:** new unit/component tests are co-located next to the file they test (e.g.
+`app/lib/simulation/engine.test.ts` beside `engine.ts`). `.test.ts` runs in the `unit` (node)
+project, `.test.tsx` in the `components` (jsdom) project. The `tests/` directory still holds older
+tests; both locations are picked up by `vitest.config.ts`. Prefer co-location for new tests.
 
 **`pnpm run dev` is currently broken for LAN access** — a partykit upstream bug ([partykit/partykit#764](https://github.com/partykit/partykit/pull/764)) uses `Sec-Fetch-Mode: navigate` for SPA routing detection, which browsers only send over HTTPS. Plain HTTP LAN addresses (e.g. `192.168.x.x:1999`) get a 404 instead of the app shell. Use `pnpm run dev-https` until this is resolved upstream.
 

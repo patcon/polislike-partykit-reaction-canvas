@@ -18,14 +18,14 @@ export default defineConfig({
       {
         test: {
           name: 'unit',
-          include: ['tests/**/*.test.ts', 'party/**/*.test.ts', 'plugins/**/*.test.ts'],
+          include: ['tests/**/*.test.ts', 'app/**/*.test.ts', 'party/**/*.test.ts', 'plugins/**/*.test.ts'],
           environment: 'node',
         },
       },
       {
         test: {
           name: 'components',
-          include: ['tests/**/*.test.tsx', 'plugins/**/*.test.tsx'],
+          include: ['tests/**/*.test.tsx', 'app/**/*.test.tsx', 'plugins/**/*.test.tsx'],
           environment: 'jsdom',
           setupFiles: ['tests/setup.tsx'],
         },

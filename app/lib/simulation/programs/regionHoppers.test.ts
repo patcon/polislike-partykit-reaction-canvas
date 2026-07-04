@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { createRegionHoppersProgram, pickRegionTarget } from '../../app/lib/simulation/programs/regionHoppers';
-import { makePrng } from '../../app/lib/simulation/programs/_easing';
-import { DEFAULT_ANCHORS } from '../../app/utils/voteRegion';
-import type { SimContext } from '../../app/lib/simulation/types';
+import { createRegionHoppersProgram, pickRegionTarget } from './regionHoppers';
+import { makePrng } from './_easing';
+import { DEFAULT_ANCHORS } from '../../../utils/voteRegion';
+import type { SimContext } from '../types';
 
 const CTX: SimContext = { userCount: 5, seed: 42, regionAnchors: DEFAULT_ANCHORS };
 const ANCHORS = [DEFAULT_ANCHORS.positive, DEFAULT_ANCHORS.negative, DEFAULT_ANCHORS.neutral];

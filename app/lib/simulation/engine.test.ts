@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { SimulationEngine, type SimEngineClock } from '../../app/lib/simulation/engine';
-import { SIM_TICK_MS } from '../../app/lib/simulation/types';
-import type { CursorEvent, SimContext, SimSink, SimulationProgram } from '../../app/lib/simulation/types';
-import { CURSOR_HEARTBEAT_MS } from '../../app/utils/cursor';
+import { SimulationEngine, type SimEngineClock } from './engine';
+import { SIM_TICK_MS } from './types';
+import type { CursorEvent, SimContext, SimSink, SimulationProgram } from './types';
+import { CURSOR_HEARTBEAT_MS } from '../../utils/cursor';
 
 // Controllable clock: tests advance time and fire the tick manually.
 function makeFakeClock() {

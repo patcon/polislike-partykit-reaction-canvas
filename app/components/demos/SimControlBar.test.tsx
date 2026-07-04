@@ -1,8 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act, fireEvent, cleanup } from '@testing-library/react';
-import SimControlBar from '../../app/components/demos/SimControlBar';
-import { RoomSocketProvider } from '../../app/contexts/RoomSocketContext';
-import { SIM_TICK_MS } from '../../app/lib/simulation/types';
+import SimControlBar from './SimControlBar';
+import { RoomSocketProvider } from '../../contexts/RoomSocketContext';
+import { SIM_TICK_MS } from '../../lib/simulation/types';
 
 const mockSend = vi.hoisted(() => vi.fn());
 vi.mock('partysocket/react', () => ({

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createSocketSink } from '../../app/lib/simulation/sinks/socketSink';
-import type { CursorEvent } from '../../app/lib/simulation/types';
+import { createSocketSink } from './socketSink';
+import type { CursorEvent } from '../types';
 
 describe('createSocketSink', () => {
   it('sends a simCursorBatch message wrapping the events', () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { createDriftProgram } from '../../app/lib/simulation/programs/drift';
-import type { SimContext } from '../../app/lib/simulation/types';
+import { createDriftProgram } from './drift';
+import type { SimContext } from '../types';
 
 const CTX: SimContext = { userCount: 5, seed: 42, regionAnchors: {} as SimContext['regionAnchors'] };
 
