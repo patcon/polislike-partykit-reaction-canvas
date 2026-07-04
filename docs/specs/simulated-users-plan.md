@@ -161,7 +161,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
   - Verify: manual — same as CP3 on `/demos/admin-canvas`.
   - Files: `DemoAdminCanvas.tsx`.
 
-- [ ] **T7 — Region-hoppers program** *(parallel with T8)*
+- [x] **T7 — Region-hoppers program** *(parallel with T8)*
   - Acceptance: `programs/regionHoppers.ts` reuses `_easing.ts` but targets AGREE/DISAGREE/PASS
     anchors (`app/utils/voteRegion.ts`) with jitter + short dwell before hopping.
   - Verify: determinism test; targets resolve to region anchors ± jitter; registered in `index.ts`.

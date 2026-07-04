@@ -23,12 +23,14 @@ export function makePrng(seed: number): () => number {
   };
 }
 
-/** A single wandering user: current position and its current target. */
+/** A single wandering user: current position, current target, and dwell counter. */
 export interface Wanderer {
   x: number;
   y: number;
   tx: number;
   ty: number;
+  /** Steps remaining to wait at the current target before retargeting. */
+  wait: number;
 }
 
 export interface WanderConfig {
@@ -44,6 +46,8 @@ export interface WanderConfig {
   ease?: number;
   /** Arrival threshold (defaults to {@link ARRIVE_DIST}). */
   arriveDist?: number;
+  /** Steps to pause at a target on arrival before picking a new one (default 0). */
+  dwell?: number;
 }
 
 export interface WanderField {
@@ -61,10 +65,11 @@ export function createWanderField(cfg: WanderConfig): WanderField {
   const rnd = makePrng(cfg.seed);
   const ease = cfg.ease ?? EASE;
   const arrive = cfg.arriveDist ?? ARRIVE_DIST;
+  const dwell = cfg.dwell ?? 0;
   const users: Wanderer[] = [];
   for (let i = 0; i < cfg.count; i++) {
     const p = cfg.initial(i, rnd);
-    users.push({ x: p.x, y: p.y, tx: p.x, ty: p.y });
+    users.push({ x: p.x, y: p.y, tx: p.x, ty: p.y, wait: 0 });
   }
   return {
     users,
@@ -72,9 +77,14 @@ export function createWanderField(cfg: WanderConfig): WanderField {
       for (let i = 0; i < users.length; i++) {
         const u = users[i];
         if (Math.hypot(u.tx - u.x, u.ty - u.y) < arrive) {
-          const t = cfg.pickTarget(i, rnd);
-          u.tx = t.x;
-          u.ty = t.y;
+          if (u.wait > 0) {
+            u.wait -= 1; // dwell at the target before moving on
+          } else {
+            const t = cfg.pickTarget(i, rnd);
+            u.tx = t.x;
+            u.ty = t.y;
+            u.wait = dwell;
+          }
         }
         u.x += (u.tx - u.x) * ease;
         u.y += (u.ty - u.y) * ease;
