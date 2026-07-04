@@ -196,7 +196,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
   - Verify: entry present under the right week header.
   - Files: `CHANGELOG.md`.
 
-- [ ] **T12 — Docs note**
+- [x] **T12 — Docs note**
   - Acceptance: brief mention in `docs/components.md` (SimControlBar) and/or `docs/routing.md`
     (demo simulator); link to the spec.
   - Verify: docs render; links resolve.
