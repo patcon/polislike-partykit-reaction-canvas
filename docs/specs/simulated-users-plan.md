@@ -168,7 +168,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
   - Files: `app/lib/simulation/programs/regionHoppers.ts`, `programs/index.ts`,
     `tests/simulation/regionHoppers.test.ts`.
 
-- [ ] **T8 — Recorded playback program + runtime slice loading**
+- [x] **T8 — Recorded playback program + runtime slice loading**
   - Acceptance: `programs/recordedPlayback.ts` fetches `public/sim-recordings/sample.json` at
     runtime, parses the `PlaybackFile` (`connectionId` → `sim_<connectionId>`; `move`/`touch` →
     same, `remove`/`departure` → `remove`; `arrival` no-op), replays by timestamp, loops. If the

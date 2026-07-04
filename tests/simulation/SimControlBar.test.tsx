@@ -24,8 +24,14 @@ function simBatches() {
   return mockSend.mock.calls.map((c: string[]) => JSON.parse(c[0])).filter((m: any) => m.type === 'simCursorBatch');
 }
 
-beforeEach(() => { mockSend.mockClear(); vi.useFakeTimers(); });
-afterEach(() => { cleanup(); vi.useRealTimers(); });
+beforeEach(() => {
+  mockSend.mockClear();
+  vi.useFakeTimers();
+  // SimControlBar probes program availability with fetch on mount; stub it so
+  // no real network request hangs the test worker. Default: recording present.
+  vi.stubGlobal('fetch', vi.fn(async () => ({ ok: true })));
+});
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('SimControlBar', () => {
   it('emits simCursorBatch messages of sim_ cursors after Play', () => {
@@ -66,5 +72,13 @@ describe('SimControlBar', () => {
     act(() => { fireEvent.click(getByRole('button', { name: /play/i })); });
     expect((getByLabelText('Program') as HTMLSelectElement).disabled).toBe(true);
     expect((getByLabelText('Users') as HTMLSelectElement).disabled).toBe(true);
+  });
+
+  it('disables a program whose availability probe fails', async () => {
+    vi.useRealTimers(); // let findBy* poll for the async probe + state update
+    vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false })));
+    const { findByRole } = renderBar();
+    const recorded = (await findByRole('option', { name: /recorded playback \(unavailable\)/i })) as HTMLOptionElement;
+    expect(recorded.disabled).toBe(true);
   });
 });

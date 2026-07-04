@@ -175,7 +175,9 @@ public/index.html
 *storybook.log
 storybook-static
 
-# Sample simulation recording (~1.3MB slice) — kept local until we decide
-# whether/how to commit it (see docs/specs/simulated-users.md). Regenerable
-# from the source Drive file via the slicing recipe in the spec.
-app/lib/simulation/recordings/sample.json
+# Sample simulation recording (~1.3MB slice) — served at runtime by the
+# Recorded-playback program, which degrades gracefully when it's absent.
+# Kept local until we decide whether/how to ship it (see
+# docs/specs/simulated-users.md). Regenerable from the source Drive file
+# via the slicing recipe in the spec.
+public/sim-recordings/sample.json

@@ -23,6 +23,21 @@ export default function SimControlBar() {
   const [programId, setProgramId] = useState(PROGRAMS[0].id);
   const [userCount, setUserCount] = useState(USER_COUNTS[0]);
   const [state, setState] = useState<SimEngineState>("idle");
+  const [unavailable, setUnavailable] = useState<Set<string>>(new Set());
+
+  // Probe programs that gate on an external asset (e.g. recorded playback needs
+  // its recording file); disable their option if the probe fails.
+  useEffect(() => {
+    let cancelled = false;
+    for (const p of PROGRAMS) {
+      if (!p.checkAvailable) continue;
+      p.checkAvailable().then((ok) => {
+        if (cancelled || ok) return;
+        setUnavailable((prev) => new Set(prev).add(p.id));
+      });
+    }
+    return () => { cancelled = true; };
+  }, []);
 
   // The engine is created once per run; route it through a ref so it always
   // sends via the current socket even if `send` identity changes.
@@ -33,6 +48,7 @@ export default function SimControlBar() {
   useEffect(() => () => { engineRef.current?.stop(); }, []);
 
   const handlePlay = () => {
+    if (unavailable.has(programId)) return;
     if (state === "idle") {
       const entry = PROGRAMS.find((p) => p.id === programId) ?? PROGRAMS[0];
       engineRef.current = new SimulationEngine(
@@ -72,7 +88,14 @@ export default function SimControlBar() {
         onChange={(e) => setProgramId(e.target.value)}
       >
         {PROGRAMS.map((p) => (
-          <option key={p.id} value={p.id}>{p.label}</option>
+          <option
+            key={p.id}
+            value={p.id}
+            disabled={unavailable.has(p.id)}
+            title={unavailable.has(p.id) ? p.unavailableHint : undefined}
+          >
+            {p.label}{unavailable.has(p.id) ? " (unavailable)" : ""}
+          </option>
         ))}
       </select>
 
