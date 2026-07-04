@@ -179,7 +179,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
   - Files: `app/lib/simulation/programs/recordedPlayback.ts`, `programs/index.ts`, `.gitignore`,
     `SimControlBar.tsx` (disabled-option affordance), `tests/simulation/recordedPlayback.test.ts`.
 
-- [ ] **T9 — Storybook story for SimControlBar**
+- [x] **T9 — Storybook story for SimControlBar**
   - Acceptance: a story renders the bar over the mock socket bus; play/pause/stop exercised without
     a live server; no dependency on the recording file.
   - Verify: story loads headless in `pnpm vitest`.
