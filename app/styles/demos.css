@@ -57,6 +57,72 @@
   flex-wrap: wrap;
 }
 
+/* Simulator control bar — dark pill anchored to the bottom of the demo page. */
+.sim-control-bar {
+  position: sticky;
+  bottom: 12px;
+  align-self: center;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  padding: 8px 14px;
+  background: #111;
+  color: #fff;
+  border-radius: 999px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
+  font-size: 13px;
+}
+
+.sim-control-title {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  opacity: 0.85;
+  padding-right: 2px;
+}
+
+.sim-control-select {
+  background: #222;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 13px;
+}
+
+.sim-control-select:disabled {
+  opacity: 0.5;
+}
+
+.sim-control-btn {
+  background: #fff;
+  color: #111;
+  border: none;
+  border-radius: 999px;
+  padding: 4px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.sim-control-btn--ghost {
+  background: transparent;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px #444;
+}
+
+.sim-control-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.sim-control-state {
+  opacity: 0.55;
+  min-width: 52px;
+  text-align: right;
+  text-transform: capitalize;
+}
+
 .demo-phone-wrap {
   position: relative;
   display: flex;

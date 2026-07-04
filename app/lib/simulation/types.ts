@@ -6,7 +6,7 @@
 // *sink*. See docs/specs/simulated-users.md.
 
 import type { CursorEvent } from '../../../party/types';
-import type { ReactionAnchors } from '../../../party/types';
+import type { ReactionAnchors } from '../../utils/voteRegion';
 
 export type { CursorEvent };
 

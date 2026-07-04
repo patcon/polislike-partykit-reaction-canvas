@@ -6,6 +6,7 @@ import { RoomSocketProvider } from "../../contexts/RoomSocketContext";
 import { generateUUID } from "../../utils/userId";
 import DemoLayout from "./DemoLayout";
 import PhoneFrame from "./PhoneFrame";
+import SimControlBar from "./SimControlBar";
 
 /**
  * Demo: participant reaction canvas (left) + mood-tones readout (right), sharing one
@@ -21,6 +22,13 @@ export default function DemoCanvasMood() {
     <DemoLayout
       title="Demo — Reaction Canvas + Mood Tones"
       room={room}
+      controls={
+        // Dedicated sim-driver connection: injects sim_ cursors into the shared
+        // room independently of the two phone providers above.
+        <RoomSocketProvider room={room} userId="sim-driver">
+          <SimControlBar />
+        </RoomSocketProvider>
+      }
       left={
         <PhoneFrame label="Participant" showSharePrompt>
           <RoomSocketProvider room={room} userId={participantId}>
