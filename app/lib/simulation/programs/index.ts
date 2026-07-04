@@ -4,6 +4,7 @@
 import type { SimulationProgram } from '../types';
 import { createDriftProgram } from './drift';
 import { createRegionHoppersProgram } from './regionHoppers';
+import { createRealisticRegionHoppersProgram } from './regionHoppersRealistic';
 import { createRecordedPlaybackProgram, isRecordingAvailable } from './recordedPlayback';
 
 /** A selectable program: stable id, human label, factory, and optional gating. */
@@ -22,7 +23,8 @@ export interface ProgramEntry {
 /** All programs offered on the demo pages. Order is the dropdown order. */
 export const PROGRAMS: ProgramEntry[] = [
   { id: 'drift', label: 'Drift / Wander', create: createDriftProgram },
-  { id: 'region-hoppers', label: 'Region-hoppers', create: createRegionHoppersProgram },
+  { id: 'region-hoppers-realistic', label: 'Region-hoppers (realistic)', create: createRealisticRegionHoppersProgram },
+  { id: 'region-hoppers-simple', label: 'Region-hoppers (simple)', create: createRegionHoppersProgram },
   {
     id: 'recorded',
     label: 'Recorded playback',

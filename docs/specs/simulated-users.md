@@ -134,9 +134,15 @@ arrival"); they differ only in *target source*.
    `useMockCoordStream`. Per user `{x,y,tx,ty}`; each tick `x += (tx-x)*0.02`; on arrival
    (`hypot < 3`) retarget to a random canvas point (`8 + rnd()*84`). Deterministic seeded PRNG.
    Free-roaming organic motion.
-2. **Region-hoppers** (`programs/regionHoppers.ts`) — same easing, but targets snap to
+2. **Region-hoppers (simple)** (`programs/regionHoppers.ts`) — same easing, but targets snap to
    AGREE/DISAGREE/PASS anchors (from `app/utils/voteRegion.ts`) with small jitter, with a short
    dwell before hopping. Looks like deliberate voting.
+2b. **Region-hoppers (realistic)** (`programs/regionHoppersRealistic.ts`) — a per-cursor MOVE/REST
+   state machine ported from the old server `GhostCursorManager`: eased travel to an **inset
+   hotspot** (region anchor pulled ~30% toward centre), then a **simplex-noise** rest wander, with
+   **active/calm personality** tiers, **timing jitter** (staggered move/rest durations), and
+   **off-canvas entry**. Deterministic via a seeded PRNG + `createNoise2D(seededRng)` and the tick's
+   `tMs` clock (no `Date.now`/`Math.random`).
 3. **Recorded playback** (`programs/recordedPlayback.ts`) — consumes a `PlaybackFile` JSON (the
    existing emcee format, `AdminPanelNoDB/types.ts:13-19`) and re-emits events by timestamp,
    looping. File-upload is a later enhancement.

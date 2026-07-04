@@ -41,8 +41,8 @@ export function createRegionHoppersProgram(): SimulationProgram {
   let count = 0;
 
   return {
-    id: 'region-hoppers',
-    label: 'Region-hoppers',
+    id: 'region-hoppers-simple',
+    label: 'Region-hoppers (simple)',
 
     init(ctx: SimContext) {
       count = ctx.userCount;
