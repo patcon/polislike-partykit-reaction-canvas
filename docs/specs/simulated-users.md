@@ -148,19 +148,22 @@ arrival"); they differ only in *target source*.
      `move`/`touch` establishes the cursor). Loops on reaching `recordingEnd`.
 
    #### Sample recording (provenance + slicing recipe)
-   Source (full, **not** committed — 25 MB, 154k events, ~42 min, room `civictechto`, mode
-   `positions`): the Google-Drive `PlaybackFile` provided by the owner. The full file is too large
-   to ship. MVP uses a **trimmed slice**, produced deterministically as:
-   - Window: the densest span, **+9.5 min → +11.0 min** (~41–51 active users at peak).
+   Source (full, **not** committed — ~29 MB, 151k events, ~26 h span but activity concentrated in
+   the first ~35 min, room `default`, mode `positions`): the owner's `PlaybackFile` at
+   <https://drive.google.com/file/d/1tC0nEfnCTSL2WVbLn1xxlo6hS2SkSUF7/view>
+   (download id `1tC0nEfnCTSL2WVbLn1xxlo6hS2SkSUF7`). The full file is too large to ship; we use a
+   **trimmed slice**, chosen for a lively spread of disagreement + movement (not a boring stretch):
+   - Window: **+885 s → +975 s** (14:45–16:15), selected by scoring 90 s windows on region spread
+     (Gini-Simpson over agree/disagree/neutral) × path-length movement. This window has all three
+     regions represented (~agree 0.19 / disagree 0.29 / neutral 0.52) with high movement.
    - Rebase all timestamps so the slice starts at `0`; set `recordingStart: 0`,
      `recordingEnd: 90000`.
    - Round `x`/`y` to **2 decimal places**.
-   - Result: **51 users, 16,603 events, 90 s, ~1.3 MB.**
-   - **Where it lives**: `app/lib/simulation/recordings/sample.json` (its eventual home), but
-     **gitignored for now** (`.gitignore`) so it's local-but-uncommitted. **Whether/how to ship it
-     is a pre-merge decision** (commit the 1.3 MB slice as-is, thin it further, host it as a
-     downloadable, or generate on demand). The recipe above regenerates it from the source at any
-     time.
+   - Result: **7 users, 7,335 events, 90 s, ~0.78 MB.**
+   - **Where it lives**: `public/sim-recordings/sample.json` (served at runtime), but **gitignored**
+     (`.gitignore`) so it's local-but-uncommitted. **Whether/how to ship it is a pre-merge decision**
+     (commit the slice as-is, thin it further, host it as a downloadable, or generate on demand).
+     The recipe above regenerates it from the source at any time.
 
 `programs/index.ts` exports a `PROGRAMS` registry `[{ id, label, create }]` the control bar reads.
 
