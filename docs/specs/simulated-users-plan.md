@@ -190,7 +190,7 @@ Sized to ≤ ~5 files each; ordered by dependency.
   - Verify: `pnpm vitest` green.
   - Files: `tests/simulation/*`.
 
-- [ ] **T11 — CHANGELOG entry**
+- [x] **T11 — CHANGELOG entry**
   - Acceptance: current-week section entry (append to bottom) describing the demo-page simulator,
     linked to the PR.
   - Verify: entry present under the right week header.
