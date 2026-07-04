@@ -75,6 +75,8 @@ export default function SimControlBar() {
   };
 
   const active = state !== "idle";
+  const selectedProgram = PROGRAMS.find((p) => p.id === programId);
+  const userCountDisabled = active || Boolean(selectedProgram?.ignoresUserCount);
 
   return (
     <div className="sim-control-bar">
@@ -103,7 +105,7 @@ export default function SimControlBar() {
         aria-label="Users"
         className="sim-control-select"
         value={userCount}
-        disabled={active}
+        disabled={userCountDisabled}
         onChange={(e) => setUserCount(Number(e.target.value))}
       >
         {USER_COUNTS.map((n) => (

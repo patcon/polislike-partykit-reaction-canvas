@@ -15,6 +15,8 @@ export interface ProgramEntry {
   checkAvailable?: () => Promise<boolean>;
   /** Tooltip shown when the program is unavailable. */
   unavailableHint?: string;
+  /** True when the user-count control is meaningless (e.g. a fixed recording). */
+  ignoresUserCount?: boolean;
 }
 
 /** All programs offered on the demo pages. Order is the dropdown order. */
@@ -27,5 +29,6 @@ export const PROGRAMS: ProgramEntry[] = [
     create: createRecordedPlaybackProgram,
     checkAvailable: isRecordingAvailable,
     unavailableHint: 'Sample recording not found (public/sim-recordings/sample.json)',
+    ignoresUserCount: true, // crowd size is fixed by the recording
   },
 ];

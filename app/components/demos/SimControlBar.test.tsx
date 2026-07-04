@@ -74,6 +74,14 @@ describe('SimControlBar', () => {
     expect((getByLabelText('Users') as HTMLSelectElement).disabled).toBe(true);
   });
 
+  it('disables the user-count select for programs that ignore it (recorded playback)', () => {
+    const { getByLabelText } = renderBar();
+    const users = getByLabelText('Users') as HTMLSelectElement;
+    expect(users.disabled).toBe(false); // drift uses the count
+    fireEvent.change(getByLabelText('Program'), { target: { value: 'recorded' } });
+    expect(users.disabled).toBe(true); // recorded's crowd size is fixed by the recording
+  });
+
   it('disables a program whose availability probe fails', async () => {
     vi.useRealTimers(); // let findBy* poll for the async probe + state update
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false })));
