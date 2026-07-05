@@ -54,7 +54,7 @@ export function OldFrontPage({ title = DEFAULT_TITLE }: { title?: string }) {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="/mood-sounds.html" className="app-card">
+        <a href="https://patcon.github.io/polislike-partykit-reaction-canvas/mood-sounds.html" className="app-card" target="_blank" rel="noopener noreferrer">
           <div className="app-card-content">
             <h2 className="app-card-title">Experience: Mood Sounds</h2>
             <p className="app-card-description">Facilitator tool: ambient generative sound driven by live audience cursor positions. Open in a separate tab — invisible to participant count.</p>
@@ -68,21 +68,21 @@ export function OldFrontPage({ title = DEFAULT_TITLE }: { title?: string }) {
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="/valence-onboarding-v1.html" className="app-card">
+        <a href="https://patcon.github.io/polislike-partykit-reaction-canvas/valence-onboarding-v1.html" className="app-card" target="_blank" rel="noopener noreferrer">
           <div className="app-card-content">
             <h2 className="app-card-title">Onboarding: Valence V1</h2>
             <p className="app-card-description">Interactive onboarding experience for the valence wave visualization.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="/valence-onboarding-v2.html" className="app-card">
+        <a href="https://patcon.github.io/polislike-partykit-reaction-canvas/valence-onboarding-v2.html" className="app-card" target="_blank" rel="noopener noreferrer">
           <div className="app-card-content">
             <h2 className="app-card-title">Onboarding: Valence V2</h2>
             <p className="app-card-description">Interactive onboarding experience for the valence wave visualization.</p>
           </div>
           <span className="app-card-arrow">→</span>
         </a>
-        <a href="/valence-onboarding-v3.html" className="app-card">
+        <a href="https://patcon.github.io/polislike-partykit-reaction-canvas/valence-onboarding-v3.html" className="app-card" target="_blank" rel="noopener noreferrer">
           <div className="app-card-content">
             <h2 className="app-card-title">Onboarding: Valence V3</h2>
             <p className="app-card-description">Valence wave with particle-life physics mode.</p>
