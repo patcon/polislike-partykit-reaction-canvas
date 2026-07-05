@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file. Releases cu
 
 **Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) — e.g. `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`.
 
+## Week 33 (2026-07-06)
+
+### Changed
+- **Prototype pages moved to GitHub Pages** — `valence-onboarding-v1.html`, `valence-onboarding-v2.html`, `valence-onboarding-v3.html`, and `mood-sounds.html` moved from `public/` to `docs/pages/` and now deploy to `https://patcon.github.io/polislike-partykit-reaction-canvas/` via a new GitHub Actions workflow. Pages with WebSocket connections gain a **server URL input** (default: `wss://whispering-gallery.patcon.partykit.dev`) so the PartyKit host can be specified when accessed from a different origin. Links in `OldFrontPage` and `NewFrontPage` updated to the GitHub Pages URLs.
+
 ## Week 32 (2026-06-29)
 
 ### Removed
