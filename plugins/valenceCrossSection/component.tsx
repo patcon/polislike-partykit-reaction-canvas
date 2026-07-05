@@ -145,6 +145,8 @@ export default function ValenceCrossSectionPanel() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const actionsRef = useRef<Actions | null>(null);
+  const getValencesRef = useRef(getValences);
+  getValencesRef.current = getValences;
 
   const [viewMode, setViewModeDisplay] = useState<ViewMode>('2d');
   const [geoMode, setGeoModeDisplay] = useState<GeoMode>('diametric');
@@ -315,7 +317,7 @@ export default function ValenceCrossSectionPanel() {
     function animate() {
       animFrameId = requestAnimationFrame(animate);
 
-      reconcile(getValences());
+      reconcile(getValencesRef.current());
       advanceTimers();
 
       const tTarget = viewModeLocal === '3d' ? 1 : 0;
@@ -385,41 +387,44 @@ export default function ValenceCrossSectionPanel() {
       chordGeo.attributes.position.needsUpdate = true; chordGeo.attributes.color.needsUpdate = true;
       dotGeo.attributes.position.needsUpdate = true; dotGeo.attributes.color.needsUpdate = true;
 
-      for (let i = 0; i < MAX_CHORDS; i++) {
-        const c = i < all.length ? all[i] : null;
-        const hlen = c ? c.histLen : 0;
-        const ringStart = c ? (c.histLen < TRACE_LEN ? 0 : c.histHead) : 0;
-        for (let j = 0; j < TRACE_SEGS; j++) {
-          const base = (i * TRACE_SEGS + j) * 6;
-          const fbase = (i * TRACE_SEGS + j) * FILL_VERTS_PER_SEG * 3;
-          if (showTrace && c && j + 1 < hlen) {
-            const riA = ((ringStart + j) % TRACE_LEN) * 5;
-            const riB = ((ringStart + j + 1) % TRACE_LEN) * 5;
-            const ax = c.histBuf[riA], ay = c.histBuf[riA + 1], orx = c.histBuf[riA + 2], ory = c.histBuf[riA + 3];
-            const bx = c.histBuf[riB], by = c.histBuf[riB + 1], brx = c.histBuf[riB + 2], bry = c.histBuf[riB + 3];
-            const zA = -(hlen - 1 - j) * TRACE_Z_STEP, zB = -(hlen - 1 - (j + 1)) * TRACE_Z_STEP;
-            const fadeA = j / (hlen - 1), fadeB = (j + 1) / (hlen - 1);
-            const [tR, tG, tB] = elementRGBA(c.histBuf[riA + 4], 1);
-            const rA = (bgR + (tR - bgR) * fadeA) / 255, gA = (bgG + (tG - bgG) * fadeA) / 255, bA = (bgB + (tB - bgB) * fadeA) / 255;
-            const rB = (bgR + (tR - bgR) * fadeB) / 255, gB = (bgG + (tG - bgG) * fadeB) / 255, bB = (bgB + (tB - bgB) * fadeB) / 255;
-            tracePosArr.set([ax, ay, zA, bx, by, zB], base);
-            traceColArr.set([rA, gA, bA, rB, gB, bB], base);
-
-            const oR = bgR / 255, oG = bgG / 255, oB = bgB / 255;
-            fillPosArr.set([orx, ory, zA, ax, ay, zA, brx, bry, zB, ax, ay, zA, bx, by, zB, brx, bry, zB], fbase);
-            fillColArr.set([oR, oG, oB, rA, gA, bA, oR, oG, oB, rA, gA, bA, rB, gB, bB, oR, oG, oB], fbase);
-          } else {
-            tracePosArr.fill(0, base, base + 6);
-            traceColArr.set([bgR / 255, bgG / 255, bgB / 255, bgR / 255, bgG / 255, bgB / 255], base);
-            fillPosArr.fill(0, fbase, fbase + FILL_VERTS_PER_SEG * 3);
-            fillColArr.fill(bgR / 255, fbase, fbase + FILL_VERTS_PER_SEG * 3);
+      traceLines.visible = showTrace;
+      fillMesh.visible = showTrace;
+      if (showTrace) {
+        for (let i = 0; i < MAX_CHORDS; i++) {
+          const c = i < all.length ? all[i] : null;
+          const hlen = c ? c.histLen : 0;
+          const ringStart = c ? (c.histLen < TRACE_LEN ? 0 : c.histHead) : 0;
+          for (let j = 0; j < TRACE_SEGS; j++) {
+            const base = (i * TRACE_SEGS + j) * 6;
+            const fbase = (i * TRACE_SEGS + j) * FILL_VERTS_PER_SEG * 3;
+            if (c && j + 1 < hlen) {
+              const riA = ((ringStart + j) % TRACE_LEN) * 5;
+              const riB = ((ringStart + j + 1) % TRACE_LEN) * 5;
+              const ax = c.histBuf[riA], ay = c.histBuf[riA + 1], orx = c.histBuf[riA + 2], ory = c.histBuf[riA + 3];
+              const bx = c.histBuf[riB], by = c.histBuf[riB + 1], brx = c.histBuf[riB + 2], bry = c.histBuf[riB + 3];
+              const zA = -(hlen - 1 - j) * TRACE_Z_STEP, zB = -(hlen - 1 - (j + 1)) * TRACE_Z_STEP;
+              const fadeA = j / (hlen - 1), fadeB = (j + 1) / (hlen - 1);
+              const [tR, tG, tB] = elementRGBA(c.histBuf[riA + 4], 1);
+              const rA = (bgR + (tR - bgR) * fadeA) / 255, gA = (bgG + (tG - bgG) * fadeA) / 255, bA = (bgB + (tB - bgB) * fadeA) / 255;
+              const rB = (bgR + (tR - bgR) * fadeB) / 255, gB = (bgG + (tG - bgG) * fadeB) / 255, bB = (bgB + (tB - bgB) * fadeB) / 255;
+              tracePosArr.set([ax, ay, zA, bx, by, zB], base);
+              traceColArr.set([rA, gA, bA, rB, gB, bB], base);
+              const oR = bgR / 255, oG = bgG / 255, oB = bgB / 255;
+              fillPosArr.set([orx, ory, zA, ax, ay, zA, brx, bry, zB, ax, ay, zA, bx, by, zB, brx, bry, zB], fbase);
+              fillColArr.set([oR, oG, oB, rA, gA, bA, oR, oG, oB, rA, gA, bA, rB, gB, bB, oR, oG, oB], fbase);
+            } else {
+              tracePosArr.fill(0, base, base + 6);
+              traceColArr.set([bgR / 255, bgG / 255, bgB / 255, bgR / 255, bgG / 255, bgB / 255], base);
+              fillPosArr.fill(0, fbase, fbase + FILL_VERTS_PER_SEG * 3);
+              fillColArr.fill(bgR / 255, fbase, fbase + FILL_VERTS_PER_SEG * 3);
+            }
           }
         }
+        traceGeo.attributes.position.needsUpdate = true; traceGeo.attributes.color.needsUpdate = true;
+        traceMat.opacity = OPACITIES.trace;
+        fillGeo.attributes.position.needsUpdate = true; fillGeo.attributes.color.needsUpdate = true;
+        fillMat.opacity = OPACITIES.fill;
       }
-      traceGeo.attributes.position.needsUpdate = true; traceGeo.attributes.color.needsUpdate = true;
-      traceMat.opacity = OPACITIES.trace; traceLines.visible = showTrace;
-      fillGeo.attributes.position.needsUpdate = true; fillGeo.attributes.color.needsUpdate = true;
-      fillMat.opacity = OPACITIES.fill; fillMesh.visible = showTrace;
 
       // ── Frame timing diagnostic (remove once root cause confirmed) ──
       const tRender0 = performance.now();
@@ -515,7 +520,8 @@ export default function ValenceCrossSectionPanel() {
       [chordMat, dotMat, traceMat, fillMat, zAxisMat].forEach((m) => m.dispose());
       [outerRing, midRing, ...ghostRings].forEach((r) => { r.geometry.dispose(); r.material.dispose(); });
     };
-  }, [getValences]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%', background: '#0f0f0e' }}>
