@@ -125,8 +125,11 @@ interface ChordEntry {
   departT: number | null;
   departI?: number;
   departN?: number;
-  // [tipX, tipY, rootX, rootY, valueAtTime] in world space, oldest first
-  history: [number, number, number, number, number][];
+  // Ring buffer: [tipX, tipY, rootX, rootY, valueAtTime] × TRACE_LEN, oldest-first via head pointer.
+  // Avoids Array.shift() O(n) copies and per-frame tuple allocations.
+  histBuf: Float32Array;
+  histHead: number;
+  histLen: number;
 }
 
 interface Actions {
@@ -276,7 +279,7 @@ export default function ValenceCrossSectionPanel() {
           chords.push(c);
           continue;
         }
-        chords.push({ userId: uid, raw: v, value: v, arrivalT: 0, departT: null, history: [] });
+        chords.push({ userId: uid, raw: v, value: v, arrivalT: 0, departT: null, histBuf: new Float32Array(TRACE_LEN * 5), histHead: 0, histLen: 0 });
       }
       const n = chords.length;
       for (let i = chords.length - 1; i >= 0; i--) {
@@ -363,8 +366,10 @@ export default function ValenceCrossSectionPanel() {
           dotPosArr.set([tx, ty, tz], i * 3);
           const dc = elementRGBA(v, OPACITIES.cursor);
           dotColArr.set([dc[0] / 255, dc[1] / 255, dc[2] / 255], i * 3);
-          c.history.push([tx, ty, rx, ry, c.value]);
-          if (c.history.length > TRACE_LEN) c.history.shift();
+          const hi = c.histHead * 5;
+          c.histBuf[hi] = tx; c.histBuf[hi + 1] = ty; c.histBuf[hi + 2] = rx; c.histBuf[hi + 3] = ry; c.histBuf[hi + 4] = c.value;
+          c.histHead = (c.histHead + 1) % TRACE_LEN;
+          if (c.histLen < TRACE_LEN) c.histLen++;
         } else {
           chordPosArr.fill(0, i * 6, (i + 1) * 6); chordColArr.fill(0, i * 6, (i + 1) * 6);
           dotPosArr.fill(0, i * 3, (i + 1) * 3); dotColArr.fill(0, i * 3, (i + 1) * 3);
@@ -375,16 +380,19 @@ export default function ValenceCrossSectionPanel() {
 
       for (let i = 0; i < MAX_CHORDS; i++) {
         const c = i < all.length ? all[i] : null;
-        const hlen = c ? c.history.length : 0;
+        const hlen = c ? c.histLen : 0;
+        const ringStart = c ? (c.histLen < TRACE_LEN ? 0 : c.histHead) : 0;
         for (let j = 0; j < TRACE_SEGS; j++) {
           const base = (i * TRACE_SEGS + j) * 6;
           const fbase = (i * TRACE_SEGS + j) * FILL_VERTS_PER_SEG * 3;
           if (showTrace && c && j + 1 < hlen) {
-            const [ax, ay, orx, ory] = c.history[j];
-            const [bx, by, brx, bry] = c.history[j + 1];
+            const riA = ((ringStart + j) % TRACE_LEN) * 5;
+            const riB = ((ringStart + j + 1) % TRACE_LEN) * 5;
+            const ax = c.histBuf[riA], ay = c.histBuf[riA + 1], orx = c.histBuf[riA + 2], ory = c.histBuf[riA + 3];
+            const bx = c.histBuf[riB], by = c.histBuf[riB + 1], brx = c.histBuf[riB + 2], bry = c.histBuf[riB + 3];
             const zA = -(hlen - 1 - j) * TRACE_Z_STEP, zB = -(hlen - 1 - (j + 1)) * TRACE_Z_STEP;
             const fadeA = j / (hlen - 1), fadeB = (j + 1) / (hlen - 1);
-            const [tR, tG, tB] = elementRGBA(c.history[j][4], 1);
+            const [tR, tG, tB] = elementRGBA(c.histBuf[riA + 4], 1);
             const rA = (bgR + (tR - bgR) * fadeA) / 255, gA = (bgG + (tG - bgG) * fadeA) / 255, bA = (bgB + (tB - bgB) * fadeA) / 255;
             const rB = (bgR + (tR - bgR) * fadeB) / 255, gB = (bgG + (tG - bgG) * fadeB) / 255, bB = (bgB + (tB - bgB) * fadeB) / 255;
             tracePosArr.set([ax, ay, zA, bx, by, zB], base);
