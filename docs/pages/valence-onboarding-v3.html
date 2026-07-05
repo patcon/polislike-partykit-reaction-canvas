@@ -156,6 +156,14 @@
 
     <hr class="divider">
 
+    <div class="row" id="server-row">
+      <span class="label">server</span>
+      <input type="text" id="server-input"
+        value="wss://whispering-gallery.patcon.partykit.dev"
+        placeholder="wss://whispering-gallery.patcon.partykit.dev"
+        autocomplete="off" spellcheck="false"
+        style="font-family:inherit;font-size:10px;background:transparent;border:.5px solid rgba(200,198,190,.18);border-radius:3px;color:var(--text);padding:3px 7px;outline:none;width:280px;flex-shrink:0;">
+    </div>
     <div class="row" id="conn-row">
       <span class="label">room</span>
       <input type="text" id="room-input" value="default" placeholder="default" autocomplete="off" spellcheck="false" style="font-family:inherit;font-size:10px;background:transparent;border:.5px solid rgba(200,198,190,.18);border-radius:3px;color:var(--text);padding:3px 7px;outline:none;width:80px;flex-shrink:0;">
@@ -751,16 +759,20 @@ function handleLiveCursorEvent(e){
   }
 }
 
+function buildWsUrl(room){
+  const serverRaw=document.getElementById('server-input').value.trim()||'wss://whispering-gallery.patcon.partykit.dev';
+  const withProto=/^wss?:\/\//.test(serverRaw)?serverRaw:'wss://'+serverRaw;
+  const parsed=new URL(withProto);
+  const proto=parsed.protocol==='ws:'?'ws':'wss';
+  const host=parsed.host;
+  const userId=crypto.randomUUID?.()??'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
+  return`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`;
+}
 function connectWs(room){
   if(ws){ws.onclose=null;ws.close();}
   if(wsReconnectTimer){clearTimeout(wsReconnectTimer);wsReconnectTimer=null;}
   setConnStatus('connecting…','connecting');
-  const {hostname,port}=window.location;
-  const isLocal=port==='1999';
-  const host=isLocal?`${hostname}:1999`:hostname;
-  const proto=window.location.protocol==='https:'?'wss':'ws';
-  const userId=crypto.randomUUID?.()??'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16);});
-  ws=new WebSocket(`${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`);
+  ws=new WebSocket(buildWsUrl(room));
   ws.onopen=()=>{
     wsConnectedFlag=true;
     document.getElementById('btn-connect').textContent='disconnect';

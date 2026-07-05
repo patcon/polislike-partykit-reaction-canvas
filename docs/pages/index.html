@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Prototype Pages</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --bg: #0e0e0e; --text: rgba(200,198,190,0.85); --accent: rgba(200,198,190,0.4); --hover: rgba(200,198,190,0.12); }
+    body { background: var(--bg); color: var(--text); font-family: 'SF Mono', 'Fira Mono', 'Consolas', monospace; font-size: 13px; line-height: 1.6; padding: 40px 32px; min-height: 100vh; }
+    h1 { font-size: 11px; text-transform: uppercase; letter-spacing: 0.12em; color: var(--accent); margin-bottom: 32px; font-weight: 400; }
+    ul { list-style: none; }
+    li { border-top: 0.5px solid rgba(200,198,190,0.1); }
+    li:last-child { border-bottom: 0.5px solid rgba(200,198,190,0.1); }
+    a { display: flex; align-items: baseline; gap: 16px; padding: 14px 0; color: var(--text); text-decoration: none; transition: background 0.1s; border-radius: 3px; }
+    a:hover { color: rgba(200,198,190,1); }
+    .name { flex-shrink: 0; min-width: 220px; }
+    .desc { font-size: 11px; color: var(--accent); }
+    .arrow { margin-left: auto; color: var(--accent); font-size: 11px; }
+  </style>
+</head>
+<body>
+  <h1>polislike · prototype pages</h1>
+  <ul>
+    <li>
+      <a href="valence-onboarding-v1.html">
+        <span class="name">valence-onboarding-v1.html</span>
+        <span class="desc">Valence wave onboarding — version 1</span>
+        <span class="arrow">→</span>
+      </a>
+    </li>
+    <li>
+      <a href="valence-onboarding-v2.html">
+        <span class="name">valence-onboarding-v2.html</span>
+        <span class="desc">Valence wave onboarding — version 2, with live audience sync</span>
+        <span class="arrow">→</span>
+      </a>
+    </li>
+    <li>
+      <a href="valence-onboarding-v3.html">
+        <span class="name">valence-onboarding-v3.html</span>
+        <span class="desc">Valence wave onboarding — version 3, particle-life physics mode</span>
+        <span class="arrow">→</span>
+      </a>
+    </li>
+    <li>
+      <a href="mood-sounds.html">
+        <span class="name">mood-sounds.html</span>
+        <span class="desc">Facilitator tool — ambient generative sound driven by live cursor positions</span>
+        <span class="arrow">→</span>
+      </a>
+    </li>
+  </ul>
+</body>
+</html>

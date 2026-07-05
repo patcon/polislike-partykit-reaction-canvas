@@ -334,6 +334,13 @@
   <!-- Connection card -->
   <div class="card">
     <div class="conn-row">
+      <label for="server-input">server</label>
+      <input type="text" id="server-input"
+        value="wss://whispering-gallery.patcon.partykit.dev"
+        placeholder="wss://whispering-gallery.patcon.partykit.dev"
+        autocomplete="off" spellcheck="false">
+    </div>
+    <div class="conn-row">
       <label for="room-input">room</label>
       <input type="text" id="room-input" placeholder="default" autocomplete="off" spellcheck="false">
       <button class="ctrl" id="btn-connect" style="flex:0 0 auto; padding: 0.4rem 1rem;">connect</button>
@@ -1029,10 +1036,12 @@ valenceUnit.addEventListener('click', () => {
 
 // ── WebSocket ────────────────────────────────────────────────────
 function wsUrl(room) {
-  const host = window.location.hostname === 'localhost'
-    ? 'localhost:1999'
-    : window.location.host;
-  const proto = window.location.protocol === 'https:' ? 'wss' : 'ws';
+  const serverRaw = document.getElementById('server-input').value.trim()
+    || 'wss://whispering-gallery.patcon.partykit.dev';
+  const withProto = /^wss?:\/\//.test(serverRaw) ? serverRaw : 'wss://' + serverRaw;
+  const parsed = new URL(withProto);
+  const proto = parsed.protocol === 'ws:' ? 'ws' : 'wss';
+  const host = parsed.host;
   const userId = crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
   return `${proto}://${host}/parties/main/${encodeURIComponent(room)}?isAdmin=true&userId=${userId}`;
 }
