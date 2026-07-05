@@ -102,7 +102,7 @@ const EXPERIMENTS: { value: ExperimentType; label: string; desc: string }[] = [
 const PROTOTYPES: { label: string; href: string; desc: string }[] = [
   {
     label: 'Valence Visualizer V2',
-    href: 'https://patcon.github.io/polislike-partykit-reaction-canvas/valence-onboarding-v2.html',
+    href: 'https://patcon.github.io/polislike-partykit-reaction-canvas/valence-onboarding-v3.html',
     desc: 'Guided onboarding into a wave-form visualization of live audience sentiment.',
   },
   {

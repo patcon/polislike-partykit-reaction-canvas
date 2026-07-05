@@ -81,7 +81,7 @@ describe('React component links use GitHub Pages URLs', () => {
 
   it('NewFrontPage.tsx PROTOTYPES hrefs point to GitHub Pages', () => {
     const file = readFileSync(join(ROOT, 'app/components/NewFrontPage.tsx'), 'utf8');
-    expect(file).toContain(`${GH_BASE}/valence-onboarding-v2.html`);
+    expect(file).toContain(`${GH_BASE}/valence-onboarding-v3.html`);
     expect(file).toContain(`${GH_BASE}/mood-sounds.html`);
   });
 });
