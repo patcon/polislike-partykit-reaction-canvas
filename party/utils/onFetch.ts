@@ -5,18 +5,6 @@ import type * as Party from "partykit/server";
 // from being swallowed by the SPA router.
 export async function onFetch(req: Party.Request, lobby: Party.FetchLobby) {
   const url = new URL(req.url);
-
-  // Diagnostic: confirms onFetch is being called and shows lobby.assets.fetch behaviour.
-  // Remove once the routing/serving issue is understood.
-  if (url.pathname === '/__debug-fetch') {
-    const indexAsset = await lobby.assets.fetch('/index.html');
-    return new Response(JSON.stringify({
-      onFetchCalled: true,
-      indexHtmlStatus: indexAsset?.status ?? null,
-      indexHtmlOk: indexAsset?.ok ?? null,
-    }), { headers: { 'Content-Type': 'application/json' } });
-  }
-
   const hasExtension = url.pathname.includes('.');
 
   const asset = await lobby.assets.fetch(url.pathname);
