@@ -8,7 +8,6 @@
   "compatibilityDate": "2025-11-20",
   "serve": {
     "path": "public",
-    "singlePageApp": true,
     "build": {
       "entry": "app/client.tsx",
       "define": {
