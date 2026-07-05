@@ -148,6 +148,7 @@ export default function ValenceCrossSectionPanel() {
 
   const [viewMode, setViewModeDisplay] = useState<ViewMode>('2d');
   const [geoMode, setGeoModeDisplay] = useState<GeoMode>('diametric');
+  const [isOrbiting, setIsOrbiting] = useState(false);
 
   useEffect(() => {
     const canvas = canvasRef.current, wrap = wrapRef.current;
@@ -232,6 +233,7 @@ export default function ValenceCrossSectionPanel() {
     const CAM_2D_TS = { radius: 480, theta: Math.PI / 2, phi: 0 };
     const CAM_3D = { radius: 560, theta: Math.PI / 5, phi: Math.PI / 9 };
     let transT = 0, transTts = 0;
+    let orbitDTheta = 0, orbitDPhi = 0, orbitDRadius = 0;
 
     function lerpCam(et: number) {
       camRadius = CAM_2D.radius + (CAM_3D.radius - CAM_2D.radius) * et;
@@ -239,10 +241,13 @@ export default function ValenceCrossSectionPanel() {
       camPhi = CAM_2D.phi + (CAM_3D.phi - CAM_2D.phi) * et;
     }
     function applyCam() {
+      const theta = camTheta + orbitDTheta;
+      const phi = Math.max(-Math.PI / 2.2, Math.min(Math.PI / 2.2, camPhi + orbitDPhi));
+      const effR = camRadius + orbitDRadius;
       camera.position.set(
-        camRadius * Math.sin(camTheta) * Math.cos(camPhi),
-        camRadius * Math.sin(camPhi),
-        camRadius * Math.cos(camTheta) * Math.cos(camPhi),
+        effR * Math.sin(theta) * Math.cos(phi),
+        effR * Math.sin(phi),
+        effR * Math.cos(theta) * Math.cos(phi),
       );
       camera.lookAt(0, 0, 0);
       camera.up.set(0, 1, 0);
@@ -256,6 +261,7 @@ export default function ValenceCrossSectionPanel() {
     actionsRef.current = {
       cycleView: () => {
         viewModeLocal = VIEW_MODES[(VIEW_MODES.indexOf(viewModeLocal) + 1) % VIEW_MODES.length];
+        if (viewModeLocal !== '3d') { orbitDTheta = 0; orbitDPhi = 0; }
         setViewModeDisplay(viewModeLocal);
       },
       cycleGeometry: () => {
@@ -314,6 +320,7 @@ export default function ValenceCrossSectionPanel() {
 
       const tTarget = viewModeLocal === '3d' ? 1 : 0;
       transT = clamp01(transT + (tTarget - transT) * TRANS_SPEED * 3);
+      if (viewModeLocal !== '3d') orbitDRadius += (0 - orbitDRadius) * TRANS_SPEED * 3;
       const ttsTarget = viewModeLocal === '2d-ts' ? 1 : 0;
       transTts = clamp01(transTts + (ttsTarget - transTts) * TRANS_SPEED * 3);
       lerpCam(ease(transT));
@@ -414,10 +421,75 @@ export default function ValenceCrossSectionPanel() {
       fillGeo.attributes.position.needsUpdate = true; fillGeo.attributes.color.needsUpdate = true;
       fillMat.opacity = OPACITIES.fill; fillMesh.visible = showTrace;
 
+      // ── Frame timing diagnostic (remove once root cause confirmed) ──
+      const tRender0 = performance.now();
       renderer.render(scene, camera);
+      const tRender1 = performance.now();
+      if (tRender1 - tRender0 > 8) {
+        console.warn(`[VCS] slow frame: render=${(tRender1 - tRender0).toFixed(1)}ms chords=${all.length} showTrace=${showTrace}`);
+      }
     }
     applyCam();
     animFrameId = requestAnimationFrame(animate);
+
+    // ── Orbit controls (mouse + touch + wheel) ────────────────────────
+    let isDragging = false, dragLast = { x: 0, y: 0 }, dtBase = 0, dpBase = 0;
+
+    function onMouseDown(e: MouseEvent) {
+      if (viewModeLocal !== '3d' || transT < 0.7) return;
+      isDragging = true; dragLast = { x: e.clientX, y: e.clientY };
+      dtBase = orbitDTheta; dpBase = orbitDPhi;
+      setIsOrbiting(true);
+      e.preventDefault();
+    }
+    function onMouseMove(e: MouseEvent) {
+      if (!isDragging) return;
+      orbitDTheta = dtBase - (e.clientX - dragLast.x) * 0.009;
+      orbitDPhi = dpBase + (e.clientY - dragLast.y) * 0.009;
+      applyCam();
+    }
+    function onMouseUp() { isDragging = false; setIsOrbiting(false); }
+    function onWheel(e: WheelEvent) {
+      if (viewModeLocal !== '3d') return;
+      orbitDRadius = Math.max(250 - camRadius, Math.min(1400 - camRadius, orbitDRadius + e.deltaY * 0.6));
+      applyCam(); e.preventDefault();
+    }
+
+    let lastTouchDist = 0, touchBase = { dt: 0, dp: 0 }, touchStart = { x: 0, y: 0 };
+    function onTouchStart(e: TouchEvent) {
+      if (e.touches.length === 1) {
+        isDragging = viewModeLocal === '3d';
+        touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        touchBase = { dt: orbitDTheta, dp: orbitDPhi };
+      } else if (e.touches.length === 2) {
+        isDragging = false;
+        lastTouchDist = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      }
+      e.preventDefault();
+    }
+    function onTouchMove(e: TouchEvent) {
+      if (e.touches.length === 1 && isDragging) {
+        orbitDTheta = touchBase.dt - (e.touches[0].clientX - touchStart.x) * 0.009;
+        orbitDPhi = touchBase.dp + (e.touches[0].clientY - touchStart.y) * 0.009;
+        applyCam();
+      } else if (e.touches.length === 2) {
+        const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+        const newEff = Math.max(250, Math.min(1400, (camRadius + orbitDRadius) * (lastTouchDist / d)));
+        orbitDRadius = newEff - camRadius;
+        lastTouchDist = d; applyCam();
+      }
+      e.preventDefault();
+    }
+    function onTouchEnd() { isDragging = false; }
+
+    const el = renderer.domElement;
+    el.addEventListener('mousedown', onMouseDown);
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+    el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('touchstart', onTouchStart, { passive: false });
+    el.addEventListener('touchmove', onTouchMove, { passive: false });
+    el.addEventListener('touchend', onTouchEnd);
 
     function handleResize() {
       const w = wrap!.clientWidth, h = wrap!.clientHeight;
@@ -430,6 +502,13 @@ export default function ValenceCrossSectionPanel() {
     return () => {
       cancelAnimationFrame(animFrameId);
       window.removeEventListener('resize', handleResize);
+      el.removeEventListener('mousedown', onMouseDown);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      el.removeEventListener('wheel', onWheel);
+      el.removeEventListener('touchstart', onTouchStart);
+      el.removeEventListener('touchmove', onTouchMove);
+      el.removeEventListener('touchend', onTouchEnd);
       actionsRef.current = null;
       renderer.dispose();
       [chordGeo, dotGeo, traceGeo, fillGeo].forEach((g) => g.dispose());
@@ -440,7 +519,7 @@ export default function ValenceCrossSectionPanel() {
 
   return (
     <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%', background: '#0f0f0e' }}>
-      <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block' }} />
+      <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block', cursor: isOrbiting ? 'grabbing' : viewMode === '3d' ? 'grab' : 'default' }} />
       <div style={{ position: 'absolute', top: 12, left: 12, display: 'flex', gap: 8 }}>
         <button
           type="button"
