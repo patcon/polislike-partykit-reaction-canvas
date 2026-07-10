@@ -72,7 +72,8 @@ export default function ValenceCertaintyPanel() {
   }, [W, H, anchors, geo]);
 
   const [dragId, setDragId] = useState<CellId | null>(null);
-  const [debug, setDebug] = useState<Pt | null>(null);
+  const [livePos, setLivePos] = useState<Pt | null>(null);
+  const [debugPos, setDebugPos] = useState<Pt | null>(null);
   const [debugActive, setDebugActive] = useState(false);
 
   const toLocal = useCallback((e: React.PointerEvent): Pt => {
@@ -93,32 +94,34 @@ export default function ValenceCertaintyPanel() {
       }
     }
     svgRef.current?.setPointerCapture(e.pointerId);
+    setLivePos(p);
     if (nearest) {
       setDragId(nearest);
     } else {
       setDebugActive(true);
-      setDebug(p);
+      setDebugPos(p);
     }
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!anchors) return;
     const p = toLocal(e);
+    setLivePos(p);
     if (dragId) {
       setAnchors((a) => ({ ...a!, [dragId]: p }));
     } else if (debugActive) {
-      setDebug(p);
+      setDebugPos(p);
     }
   };
 
-  const endPointer = (e: React.PointerEvent) => {
+  const onPointerUp = (e: React.PointerEvent) => {
     setDragId(null);
     setDebugActive(false);
     svgRef.current?.releasePointerCapture(e.pointerId);
   };
 
   if (W === 0 || H === 0 || !anchors) {
-    return <div ref={containerRef} style={{ width: "100%", height: "100%", background: "#0c0c10" }} />;
+    return <div ref={containerRef} style={{ width: "100%", flex: 1, minHeight: 0, background: "#0c0c10" }} />;
   }
 
   const { r0, r1, rm, threshold } = geo;
@@ -136,12 +139,13 @@ export default function ValenceCertaintyPanel() {
   const edgeA = `M ${pointAt(geo, r0, 0).x} ${pointAt(geo, r0, 0).y} L ${pointAt(geo, r1, 0).x} ${pointAt(geo, r1, 0).y}`;
   const edgeB = `M ${pointAt(geo, r0, HALF_PI).x} ${pointAt(geo, r0, HALF_PI).y} L ${pointAt(geo, r1, HALF_PI).x} ${pointAt(geo, r1, HALF_PI).y}`;
 
-  const dbg = debug ? regionFromPoint(geo, debug) : null;
+  const active = livePos ?? debugPos;
+  const dbg = active ? regionFromPoint(geo, active) : null;
 
   return (
     <div
       ref={containerRef}
-      style={{ width: "100%", height: "100%", background: "#0c0c10", position: "relative", touchAction: "none", userSelect: "none" }}
+      style={{ width: "100%", flex: 1, minHeight: 0, background: "#0c0c10", position: "relative", touchAction: "none", userSelect: "none" }}
     >
       <svg
         ref={svgRef}
@@ -151,8 +155,9 @@ export default function ValenceCertaintyPanel() {
         style={{ display: "block", touchAction: "none" }}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
-        onPointerUp={endPointer}
-        onPointerCancel={endPointer}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onPointerLeave={() => setLivePos(null)}
       >
         {cells.map((c) => (
           <path key={c.id} d={c.path} fill={CELL_STYLE[c.id].fill} stroke="none" />
@@ -182,18 +187,26 @@ export default function ValenceCertaintyPanel() {
           );
         })}
 
-        {/* Debug cursor */}
-        {debug && (
+        {/* Live cursor (your own finger / pointer) */}
+        {livePos && (
           <g style={{ pointerEvents: "none" }}>
-            <circle cx={debug.x} cy={debug.y} r={16} fill="none" stroke="#ffd43b" strokeWidth={2} />
-            <line x1={debug.x - 22} y1={debug.y} x2={debug.x + 22} y2={debug.y} stroke="#ffd43b" strokeWidth={1.5} />
-            <line x1={debug.x} y1={debug.y - 22} x2={debug.x} y2={debug.y + 22} stroke="#ffd43b" strokeWidth={1.5} />
+            <circle cx={livePos.x} cy={livePos.y} r={13} fill="rgba(77,171,247,0.35)" stroke="#4dabf7" strokeWidth={2} />
+            <circle cx={livePos.x} cy={livePos.y} r={3} fill="#4dabf7" />
+          </g>
+        )}
+
+        {/* Pinned debug cursor (from a tap) */}
+        {debugPos && (
+          <g style={{ pointerEvents: "none" }}>
+            <circle cx={debugPos.x} cy={debugPos.y} r={16} fill="none" stroke="#ffd43b" strokeWidth={2} />
+            <line x1={debugPos.x - 22} y1={debugPos.y} x2={debugPos.x + 22} y2={debugPos.y} stroke="#ffd43b" strokeWidth={1.5} />
+            <line x1={debugPos.x} y1={debugPos.y - 22} x2={debugPos.x} y2={debugPos.y + 22} stroke="#ffd43b" strokeWidth={1.5} />
           </g>
         )}
       </svg>
 
-      {/* Debug readout */}
-      {debug && dbg && (
+      {/* Live readout */}
+      {active && dbg && (
         <div
           style={{
             position: "absolute",
@@ -211,7 +224,7 @@ export default function ValenceCertaintyPanel() {
           <div>region: <b>{dbg.region}</b></div>
           <div>valence: {dbg.valence.toFixed(2)}</div>
           <div>certainty: {(dbg.certainty * 100).toFixed(0)}%</div>
-          <div>r: {Math.hypot(debug.x - W, debug.y - H).toFixed(0)}px</div>
+          <div>r: {Math.hypot(active.x - W, active.y - H).toFixed(0)}px</div>
         </div>
       )}
 
@@ -228,7 +241,7 @@ export default function ValenceCertaintyPanel() {
         }}
       >
         Annular-sector valence × certainty prototype.<br />
-        Drag anchors to reposition. Tap anywhere (not on an anchor) to drop a debug cursor.
+        Move your finger/cursor to read the region live. Drag anchors to reposition. Tap (not on an anchor) to pin a debug cursor.
       </div>
     </div>
   );
