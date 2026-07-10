@@ -430,6 +430,7 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
           const panelId = isScreen(activeInterface) ? (screenPanels[activeInterface] ?? 'canvas')
             : activeInterface === 'emcee' ? null
             : activeInterface;
+          console.log('[routing] activeInterface=', activeInterface, 'panelId=', panelId, 'hasComponent=', !!PANEL_COMPONENTS[panelId], 'isScreen=', isScreen(activeInterface));
           const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
           return ActivePanel ? <ActivePanel /> : null;
         })()}
