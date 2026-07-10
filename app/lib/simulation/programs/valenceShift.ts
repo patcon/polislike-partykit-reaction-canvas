@@ -1,15 +1,16 @@
 // Valence Shift program: users belong to one of N correlated opinion groups,
 // sized by Fibonacci ratios — same group model as the "correlated" trace mode
 // in docs/pages/valence-onboarding-v3.html. On a fixed interval every group's
-// target re-randomizes together; each user glides to its group's new shared
-// target valence over a bounded duration (eased, like Region-hoppers'
-// move phase), then holds — with a small 2D noise wander layered on top, like
-// Region-hoppers' rest phase — until the next "valence shift" event.
+// target re-randomizes together; each user glides (eased, like Region-hoppers'
+// move phase) directly to a point sampled from its own personal-valence chord
+// (see docs/specs/valence-shift-organic-positioning.md), then holds — with a
+// small 2D noise wander layered on top, like Region-hoppers' rest phase —
+// until the next "valence shift" event.
 
 import { createNoise2D } from 'simplex-noise';
 import type { CursorEvent, SimContext, SimulationProgram } from '../types';
 import { makePrng, easeInOutCubic, noiseWanderOffset } from './_easing';
-import { valenceToPosition, type ReactionAnchors } from '../../../utils/voteRegion';
+import { valenceChordEndpoints, sampleValencePosition, type ReactionAnchors } from '../../../utils/voteRegion';
 
 /** Group-size weights (matches the onboarding v3 prototype's `FIBS`). */
 const FIBS = [1, 2, 3, 5, 8, 13, 21];
@@ -23,9 +24,33 @@ const NOISE_SPAN = 0.15;
 const WANDER_RADIUS = 1.5;
 /** Speed the micro-wander noise field advances at. */
 const WANDER_SPEED = 0.6;
+/**
+ * How far a group's members scatter around their shared anchor point on the target-valence
+ * chord. Dual-mode, inferred from magnitude — hand-edit to explore:
+ *   0 <= SPREAD <= 1 → fraction of chord length (0 = single shared point, 1 = full chord).
+ *   SPREAD > 1       → absolute canvas units (0-100 space, open-ended); holds a constant
+ *                       scatter footprint as valence gets extreme instead of shrinking toward
+ *                       the vertex, falling back to the full chord once it's shorter than this.
+ */
+const SPREAD = 0.15;
 
 const clampValence = (v: number): number => Math.max(-1, Math.min(1, v));
 const clampCoord = (n: number): number => Math.max(0, Math.min(100, n));
+const clamp01 = (n: number): number => Math.max(0, Math.min(1, n));
+const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
+
+/**
+ * Resolves `SPREAD` to a 0..1 fraction of a chord of length `chordLen`.
+ * `spread <= 1` is already a fraction and passes through unchanged. `spread > 1`
+ * is treated as absolute canvas units and divided by the chord's actual length,
+ * clamped to 1 (the full chord) — including when `chordLen` is 0 (the chord
+ * degenerates to a point at valence ±1, so there's nowhere further to scatter).
+ */
+export function resolveSpreadFraction(spread: number, chordLen: number): number {
+  if (spread <= 1) return spread;
+  if (chordLen <= 0) return 1;
+  return Math.min(1, spread / chordLen);
+}
 
 /**
  * Assign position `i` of `n` to one of `groupCount` groups, sized by
@@ -47,25 +72,51 @@ export function assignGroup(i: number, n: number, groupCount: number): number {
 /**
  * Create a Valence Shift program. Every group's target re-randomizes together
  * every {@link SHIFT_INTERVAL_MS}; each user then glides (eased, over
- * {@link TRAVEL_DURATION_MS}) from its current valence to its group's new
- * shared target, mapped onto the canvas via `valenceToPosition`, and holds
- * steady once arrived. Deterministic for a given `ctx.seed`.
+ * {@link TRAVEL_DURATION_MS}) from its current canvas position to a point
+ * sampled from its own personal-valence chord, scattered around a shared
+ * group anchor by `SPREAD`, and holds steady once arrived. Deterministic for
+ * a given `ctx.seed`.
  */
 export function createValenceShiftProgram(): SimulationProgram {
   let count = 0;
   let anchors: ReactionAnchors;
   let group: number[] = [];
   let noiseOffset: number[] = [];
-  let value: number[] = [];
   let groupTarget: number[] = [];
-  let travelFrom: number[] = [];
-  let travelTo: number[] = [];
+  let anchorT: number[] = [];
+  let travelFromX: number[] = [];
+  let travelFromY: number[] = [];
+  let travelToX: number[] = [];
+  let travelToY: number[] = [];
   let travelStart = 0;
   let rnd: () => number = () => 0;
   let noise2D: (x: number, y: number) => number = () => 0;
   let wanderOffX: number[] = [];
   let wanderOffY: number[] = [];
   let nextShiftAt = SHIFT_INTERVAL_MS;
+
+  /** Reroll every group's target valence and each member's destination point. */
+  function pickTargets() {
+    groupTarget = groupTarget.map(() => rnd() * 2 - 1);
+    anchorT = anchorT.map(() => rnd());
+    for (let i = 0; i < count; i++) {
+      const g = group[i];
+      const personalValence = clampValence(groupTarget[g] + noiseOffset[i]);
+      const { a, b } = valenceChordEndpoints(personalValence, anchors);
+      const chordLen = Math.hypot(b.x - a.x, b.y - a.y);
+      const spreadFraction = resolveSpreadFraction(SPREAD, chordLen);
+      const memberT = clamp01(anchorT[g] + (rnd() * 2 - 1) * spreadFraction / 2);
+      const p = sampleValencePosition(personalValence, memberT, anchors);
+      travelToX[i] = p.x;
+      travelToY[i] = p.y;
+    }
+  }
+
+  /** Current eased position (pre-wander) for user `i` at `tMs`, given the active glide. */
+  function currentPos(i: number, tMs: number): { x: number; y: number } {
+    const e = easeInOutCubic(clamp01((tMs - travelStart) / TRAVEL_DURATION_MS));
+    return { x: lerp(travelFromX[i], travelToX[i], e), y: lerp(travelFromY[i], travelToY[i], e) };
+  }
 
   return {
     id: 'valence-shift',
@@ -80,12 +131,15 @@ export function createValenceShiftProgram(): SimulationProgram {
       travelStart = 0;
 
       const groupCount = Math.max(1, Math.min(FIBS.length, Math.round(ctx.groupCount ?? 3)));
-      groupTarget = Array.from({ length: groupCount }, () => rnd() * 2 - 1);
+      groupTarget = new Array(groupCount).fill(0);
+      anchorT = new Array(groupCount).fill(0);
       group = Array.from({ length: count }, (_, i) => assignGroup(i, count, groupCount));
       noiseOffset = Array.from({ length: count }, () => (rnd() * 2 - 1) * NOISE_SPAN);
-      value = group.map((g, i) => clampValence(groupTarget[g] + noiseOffset[i]));
-      travelFrom = [...value];
-      travelTo = [...value];
+      travelToX = new Array(count).fill(0);
+      travelToY = new Array(count).fill(0);
+      pickTargets();
+      travelFromX = [...travelToX];
+      travelFromY = [...travelToY];
       wanderOffX = Array.from({ length: count }, () => rnd() * 1000);
       wanderOffY = Array.from({ length: count }, () => rnd() * 1000);
     },
@@ -93,15 +147,16 @@ export function createValenceShiftProgram(): SimulationProgram {
     tick(tMs: number): CursorEvent[] {
       if (tMs >= nextShiftAt) {
         nextShiftAt += SHIFT_INTERVAL_MS;
-        groupTarget = groupTarget.map(() => rnd() * 2 - 1);
+        for (let i = 0; i < count; i++) {
+          const cur = currentPos(i, tMs);
+          travelFromX[i] = cur.x;
+          travelFromY[i] = cur.y;
+        }
         travelStart = tMs;
-        travelFrom = [...value];
-        travelTo = group.map((g, i) => clampValence(groupTarget[g] + noiseOffset[i]));
+        pickTargets();
       }
-      const e = easeInOutCubic(Math.max(0, Math.min((tMs - travelStart) / TRAVEL_DURATION_MS, 1)));
       return Array.from({ length: count }, (_, i) => {
-        value[i] = travelFrom[i] + (travelTo[i] - travelFrom[i]) * e;
-        const p = valenceToPosition(value[i], anchors);
+        const p = currentPos(i, tMs);
         const wander = noiseWanderOffset(noise2D, wanderOffX[i], wanderOffY[i], tMs, WANDER_SPEED, WANDER_RADIUS);
         return {
           type: 'move',

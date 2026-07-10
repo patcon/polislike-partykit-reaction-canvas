@@ -1,7 +1,13 @@
 import { describe, it, expect } from 'vitest';
-import { createValenceShiftProgram, assignGroup, SHIFT_INTERVAL_MS, TRAVEL_DURATION_MS } from './valenceShift';
+import {
+  createValenceShiftProgram,
+  assignGroup,
+  resolveSpreadFraction,
+  SHIFT_INTERVAL_MS,
+  TRAVEL_DURATION_MS,
+} from './valenceShift';
 import type { SimContext } from '../types';
-import { DEFAULT_ANCHORS } from '../../../utils/voteRegion';
+import { DEFAULT_ANCHORS, computeCursorValence } from '../../../utils/voteRegion';
 
 const CTX: SimContext = { userCount: 20, seed: 42, regionAnchors: DEFAULT_ANCHORS, groupCount: 3 };
 
@@ -86,6 +92,37 @@ describe('valence-shift program', () => {
     expect(shifted.some((x, i) => Math.abs(x - settled[i]) > 1)).toBe(true); // but it moved
   });
 
+  it('does not put every member of a group at the exact same point (chord + spread jitter)', () => {
+    const p = createValenceShiftProgram();
+    p.init({ ...CTX, userCount: 8, groupCount: 1 });
+    let last;
+    // Settle well into the hold window of the first shift.
+    for (let i = 0; i < 100; i++) last = p.tick(i * 50, 50);
+    const xs = last!.map((e) => e.position.x);
+    const ys = last!.map((e) => e.position.y);
+    const distinctPoints = new Set(xs.map((x, i) => `${x.toFixed(3)},${ys[i].toFixed(3)}`));
+    // Chord + non-zero SPREAD jitter means members land at different points on
+    // the chord, not all glued to one shared valenceToPosition point.
+    expect(distinctPoints.size).toBeGreaterThan(1);
+  });
+
+  it('valence stays close to its chord-sampled value while holding, despite micro-wander', () => {
+    const p = createValenceShiftProgram();
+    p.init({ ...CTX, userCount: 6, groupCount: 3 });
+    const atArrival = p
+      .tick(TRAVEL_DURATION_MS, 50)
+      .map((e) => computeCursorValence(e.position.x, e.position.y, DEFAULT_ANCHORS));
+    const startStep = Math.round(TRAVEL_DURATION_MS / 50) + 1;
+    const endStep = Math.round(SHIFT_INTERVAL_MS / 50) - 1; // stay inside the hold window
+    for (let i = startStep; i < endStep; i++) {
+      const ev = p.tick(i * 50, 50);
+      ev.forEach((e, idx) => {
+        const v = computeCursorValence(e.position.x, e.position.y, DEFAULT_ANCHORS);
+        expect(Math.abs(v - atArrival[idx])).toBeLessThan(0.15);
+      });
+    }
+  });
+
   it('teardown emits a remove for every user', () => {
     const p = createValenceShiftProgram(); p.init(CTX);
     const t = p.teardown();
@@ -130,5 +167,35 @@ describe('valence-shift program', () => {
       prev = x;
     }
     expect(sawMovement).toBe(true);
+  });
+});
+
+describe('resolveSpreadFraction', () => {
+  it('passes proportional spread (<=1) through unchanged, regardless of chord length', () => {
+    expect(resolveSpreadFraction(0, 64)).toBe(0);
+    expect(resolveSpreadFraction(0.15, 64)).toBe(0.15);
+    expect(resolveSpreadFraction(1, 5)).toBe(1);
+  });
+
+  it('treats spread >1 as absolute canvas units, dividing by the chord length', () => {
+    expect(resolveSpreadFraction(10, 64)).toBeCloseTo(10 / 64, 5);
+  });
+
+  it('clamps absolute-unit spread to the full chord once the chord is shorter than it', () => {
+    expect(resolveSpreadFraction(10, 5)).toBe(1);
+  });
+
+  it('falls back to the full chord for a degenerate (zero-length) chord, without dividing by zero', () => {
+    expect(resolveSpreadFraction(10, 0)).toBe(1);
+    expect(Number.isFinite(resolveSpreadFraction(10, 0))).toBe(true);
+  });
+
+  it('scales monotonically with absolute-unit spread for a fixed chord length, then clamps at 1', () => {
+    const chordLen = 64;
+    const fractions = [2, 10, 30, 64, 100, 200].map((s) => resolveSpreadFraction(s, chordLen));
+    for (let i = 1; i < fractions.length; i++) {
+      expect(fractions[i]).toBeGreaterThanOrEqual(fractions[i - 1]);
+    }
+    expect(fractions[fractions.length - 1]).toBe(1);
   });
 });
