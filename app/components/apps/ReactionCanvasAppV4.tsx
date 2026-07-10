@@ -37,7 +37,7 @@ import { useWakeLock } from "../../utils/useWakeLock";
 import { PLUGIN_MAP } from "../../../plugins/index";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
-  valenceCertainty: ValenceCertaintyPanel,
+  'valence-certainty': ValenceCertaintyPanel,
   ...Object.fromEntries(
     Object.entries(PLUGIN_MAP)
       .filter(([, p]) => p.component)
@@ -430,7 +430,6 @@ function ReactionCanvasAppV4Inner({ room, userId }: { room: string; userId: stri
           const panelId = isScreen(activeInterface) ? (screenPanels[activeInterface] ?? 'canvas')
             : activeInterface === 'emcee' ? null
             : activeInterface;
-          console.log('[routing] activeInterface=', activeInterface, 'panelId=', panelId, 'hasComponent=', !!PANEL_COMPONENTS[panelId], 'isScreen=', isScreen(activeInterface));
           const ActivePanel = panelId ? PANEL_COMPONENTS[panelId] : null;
           return ActivePanel ? <ActivePanel /> : null;
         })()}
