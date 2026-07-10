@@ -25,6 +25,8 @@ export interface SimContext {
   seed: number;
   /** AGREE/DISAGREE/PASS anchor points, coords 0..100. */
   regionAnchors: ReactionAnchors;
+  /** Number of correlated opinion groups (only read by group-aware programs). */
+  groupCount?: number;
 }
 
 /**

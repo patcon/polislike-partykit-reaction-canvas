@@ -7,6 +7,8 @@ import { DEFAULT_ANCHORS } from "../../utils/voteRegion";
 
 /** User-count presets (see docs/specs/simulated-users.md). */
 const USER_COUNTS = [25, 50, 100];
+/** Group-count options for group-aware programs (e.g. Valence Shift). */
+const GROUP_COUNTS = [1, 2, 3, 4, 5, 6, 7];
 /** Fixed seed — demo motion is reproducible; the room is a random demo-<uuid>. */
 const SIM_SEED = 1;
 
@@ -22,6 +24,7 @@ export default function SimControlBar() {
   const engineRef = useRef<SimulationEngine | null>(null);
   const [programId, setProgramId] = useState(PROGRAMS[0].id);
   const [userCount, setUserCount] = useState(USER_COUNTS[0]);
+  const [groupCount, setGroupCount] = useState(3);
   const [state, setState] = useState<SimEngineState>("idle");
   const [unavailable, setUnavailable] = useState<Set<string>>(new Set());
 
@@ -54,7 +57,7 @@ export default function SimControlBar() {
       engineRef.current = new SimulationEngine(
         entry.create(),
         createSocketSink((msg) => sendRef.current(msg)),
-        { userCount, seed: SIM_SEED, regionAnchors: DEFAULT_ANCHORS },
+        { userCount, seed: SIM_SEED, regionAnchors: DEFAULT_ANCHORS, groupCount },
       );
       engineRef.current.play();
     } else if (state === "paused") {
@@ -77,6 +80,7 @@ export default function SimControlBar() {
   const active = state !== "idle";
   const selectedProgram = PROGRAMS.find((p) => p.id === programId);
   const userCountDisabled = active || Boolean(selectedProgram?.ignoresUserCount);
+  const groupCountDisabled = active || !selectedProgram?.usesGroupCount;
 
   return (
     <div className="sim-control-bar">
@@ -110,6 +114,18 @@ export default function SimControlBar() {
       >
         {USER_COUNTS.map((n) => (
           <option key={n} value={n}>{n} users</option>
+        ))}
+      </select>
+
+      <select
+        aria-label="Groups"
+        className="sim-control-select"
+        value={groupCount}
+        disabled={groupCountDisabled}
+        onChange={(e) => setGroupCount(Number(e.target.value))}
+      >
+        {GROUP_COUNTS.map((n) => (
+          <option key={n} value={n}>{n} group{n === 1 ? "" : "s"}</option>
         ))}
       </select>
 
