@@ -3,10 +3,12 @@
 // in docs/pages/valence-onboarding-v3.html. On a fixed interval every group's
 // target re-randomizes together; each user glides to its group's new shared
 // target valence over a bounded duration (eased, like Region-hoppers'
-// move phase), then holds steady until the next "valence shift" event.
+// move phase), then holds — with a small 2D noise wander layered on top, like
+// Region-hoppers' rest phase — until the next "valence shift" event.
 
+import { createNoise2D } from 'simplex-noise';
 import type { CursorEvent, SimContext, SimulationProgram } from '../types';
-import { makePrng, easeInOutCubic } from './_easing';
+import { makePrng, easeInOutCubic, noiseWanderOffset } from './_easing';
 import { valenceToPosition, type ReactionAnchors } from '../../../utils/voteRegion';
 
 /** Group-size weights (matches the onboarding v3 prototype's `FIBS`). */
@@ -14,11 +16,16 @@ const FIBS = [1, 2, 3, 5, 8, 13, 21];
 /** How often group targets re-randomize (ms) — the "valence shift" event. */
 export const SHIFT_INTERVAL_MS = 4000;
 /** How long a user takes to glide to its new target after a shift (ms). */
-const TRAVEL_DURATION_MS = 2000;
+export const TRAVEL_DURATION_MS = 2000;
 /** Max per-user offset from its group's shared target, so members don't overlap exactly. */
 const NOISE_SPAN = 0.15;
+/** Radius of the 2D micro-wander layered on top of the valence-derived point (canvas units). */
+const WANDER_RADIUS = 1.5;
+/** Speed the micro-wander noise field advances at. */
+const WANDER_SPEED = 0.6;
 
 const clampValence = (v: number): number => Math.max(-1, Math.min(1, v));
+const clampCoord = (n: number): number => Math.max(0, Math.min(100, n));
 
 /**
  * Assign position `i` of `n` to one of `groupCount` groups, sized by
@@ -55,6 +62,9 @@ export function createValenceShiftProgram(): SimulationProgram {
   let travelTo: number[] = [];
   let travelStart = 0;
   let rnd: () => number = () => 0;
+  let noise2D: (x: number, y: number) => number = () => 0;
+  let wanderOffX: number[] = [];
+  let wanderOffY: number[] = [];
   let nextShiftAt = SHIFT_INTERVAL_MS;
 
   return {
@@ -65,6 +75,7 @@ export function createValenceShiftProgram(): SimulationProgram {
       count = ctx.userCount;
       anchors = ctx.regionAnchors;
       rnd = makePrng(ctx.seed);
+      noise2D = createNoise2D(makePrng(ctx.seed + 1)); // independent seeded stream
       nextShiftAt = SHIFT_INTERVAL_MS;
       travelStart = 0;
 
@@ -75,6 +86,8 @@ export function createValenceShiftProgram(): SimulationProgram {
       value = group.map((g, i) => clampValence(groupTarget[g] + noiseOffset[i]));
       travelFrom = [...value];
       travelTo = [...value];
+      wanderOffX = Array.from({ length: count }, () => rnd() * 1000);
+      wanderOffY = Array.from({ length: count }, () => rnd() * 1000);
     },
 
     tick(tMs: number): CursorEvent[] {
@@ -89,9 +102,10 @@ export function createValenceShiftProgram(): SimulationProgram {
       return Array.from({ length: count }, (_, i) => {
         value[i] = travelFrom[i] + (travelTo[i] - travelFrom[i]) * e;
         const p = valenceToPosition(value[i], anchors);
+        const wander = noiseWanderOffset(noise2D, wanderOffX[i], wanderOffY[i], tMs, WANDER_SPEED, WANDER_RADIUS);
         return {
           type: 'move',
-          position: { x: p.x, y: p.y, timestamp: 0, userId: `sim_${i}` },
+          position: { x: clampCoord(p.x + wander.x), y: clampCoord(p.y + wander.y), timestamp: 0, userId: `sim_${i}` },
         };
       });
     },

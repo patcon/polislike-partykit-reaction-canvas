@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createValenceShiftProgram, assignGroup, SHIFT_INTERVAL_MS } from './valenceShift';
+import { createValenceShiftProgram, assignGroup, SHIFT_INTERVAL_MS, TRAVEL_DURATION_MS } from './valenceShift';
 import type { SimContext } from '../types';
 import { DEFAULT_ANCHORS } from '../../../utils/voteRegion';
 
@@ -93,24 +93,42 @@ describe('valence-shift program', () => {
     expect(t.every((e) => e.type === 'remove')).toBe(true);
   });
 
-  it('completes a shift as a bounded glide, then holds steady (no perpetual asymptotic creep)', () => {
+  it('settles into a small bounded band after the glide window, rather than drifting all the way to the next shift', () => {
+    const p = createValenceShiftProgram();
+    p.init({ ...CTX, userCount: 1, groupCount: 1 });
+    const settledXs: number[] = [];
+    for (let i = 0; i < 160; i++) {
+      const tMs = i * 50;
+      const x = p.tick(tMs, 50)[0].position.x;
+      // Sample only the settled portion of the *first* cycle (after its
+      // glide completes, before the *second* shift retargets). Sampling
+      // across multiple cycles would mix in the difference between
+      // unrelated random targets, not measure within-cycle stability.
+      if (tMs > SHIFT_INTERVAL_MS + TRAVEL_DURATION_MS && tMs < 2 * SHIFT_INTERVAL_MS) settledXs.push(x);
+    }
+    const spread = Math.max(...settledXs) - Math.min(...settledXs);
+    // A flat exponential ease is still closing a large residual gap well past
+    // the glide window's duration; a bounded glide (with only small organic
+    // wander layered on top) stays within a tight band once arrived.
+    expect(spread).toBeLessThan(10);
+  });
+
+  it('adds small organic micro-wander once settled, so position keeps gently varying rather than freezing solid', () => {
     const p = createValenceShiftProgram();
     p.init({ ...CTX, userCount: 1, groupCount: 1 });
     let prev: number | undefined;
-    let stableTicksAfterFirstShift = 0;
+    let sawMovement = false;
     for (let i = 0; i < 200; i++) {
       const tMs = i * 50;
       const x = p.tick(tMs, 50)[0].position.x;
-      // Only count ticks after the first shift — before that, position
-      // trivially hasn't moved from its initial value, which would pass
-      // even under the old always-creeping algorithm.
-      if (prev !== undefined && tMs > SHIFT_INTERVAL_MS && Math.abs(x - prev) < 1e-9) {
-        stableTicksAfterFirstShift++;
+      // Well into the hold window (past the glide) — should still be moving,
+      // just by a small amount, rather than pixel-frozen.
+      const sinceShift = tMs % SHIFT_INTERVAL_MS;
+      if (tMs > 0 && sinceShift > TRAVEL_DURATION_MS + 200 && prev !== undefined) {
+        if (Math.abs(x - prev) > 1e-6) sawMovement = true;
       }
       prev = x;
     }
-    // A duration-based glide holds exactly steady once travel completes; a
-    // flat exponential ease keeps moving indefinitely after every shift.
-    expect(stableTicksAfterFirstShift).toBeGreaterThan(10);
+    expect(sawMovement).toBe(true);
   });
 });
