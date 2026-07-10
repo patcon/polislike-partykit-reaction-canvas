@@ -208,9 +208,13 @@ cluster," and "full scatter" — no control-bar or `SimContext` changes needed.
 3. **(Separable cleanup, do last, only if time allows)** Consider whether any further code-sharing
    with `regionHoppersRealistic.ts` is now worthwhile. Given task 2's finding — Valence Shift doesn't
    need Region-hoppers' independent per-cursor move/rest state machine, since all users glide on one
-   shared shift timer — there may be **nothing further to extract**; the two programs already share
-   `easeInOutCubic` and `noiseWanderOffset` (done earlier this branch). Don't force an abstraction
-   that isn't there; only extract if a *third* real duplication shows up.
+   shared shift timer — the state-machine shape stays unshared, but the ["compute a clamped 0..1
+   elapsed/duration fraction, then ease it"](../../app/lib/simulation/programs/_easing.ts) one-liner
+   turned out to appear a *third* time (Region-hoppers' move phase, its rest→wander blend, and
+   Valence Shift's glide) — extracted as `easedProgress(tMs, start, duration)` in `_easing.ts`,
+   alongside the already-shared `easeInOutCubic`/`noiseWanderOffset`. Pure refactor, no behavior
+   change (`p >= 1` checks became the equivalent `e >= 1`, since `easeInOutCubic` only reaches 1 at
+   `p = 1`). Nothing else warranted extracting.
 4. **CHANGELOG.md** — one concise (per established preference — see feedback memory) entry folded
    into the existing Week 33 "Valence Shift" bullet (this feature hasn't shipped yet this week),
    describing organic chord-based positioning.

@@ -16,6 +16,16 @@ export function easeInOutCubic(t: number): number {
 }
 
 /**
+ * Eased 0..1 progress through a `duration`-long span starting at `start`,
+ * clamped before `start` (0) and past `start + duration` (1). The shared
+ * "how far through this glide am I" calculation used by every program that
+ * eases a value toward a target over a fixed duration.
+ */
+export function easedProgress(tMs: number, start: number, duration: number): number {
+  return easeInOutCubic(Math.max(0, Math.min((tMs - start) / duration, 1)));
+}
+
+/**
  * Sample a 2D simplex-noise offset for organic micro-wander around a point.
  * `offX`/`offY` give each user an independent stream from a shared `noise2D`
  * field; `speed` scales how fast the sample advances with `tMs`; `radius`

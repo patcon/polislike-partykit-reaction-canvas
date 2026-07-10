@@ -11,7 +11,7 @@
 import { createNoise2D } from 'simplex-noise';
 import type { CursorEvent, SimContext, SimulationProgram } from '../types';
 import type { ReactionAnchors } from '../../../utils/voteRegion';
-import { makePrng, easeInOutCubic, noiseWanderOffset } from './_easing';
+import { makePrng, easedProgress, noiseWanderOffset } from './_easing';
 
 const HOTSPOT_PULL = 0.3;     // fraction pulled from the anchor toward canvas centre
 const TARGET_JITTER = 6;      // spread of a picked target around its hotspot
@@ -98,11 +98,10 @@ export function createRealisticRegionHoppersProgram(): SimulationProgram {
       for (let i = 0; i < ghosts.length; i++) {
         const g = ghosts[i];
         if (g.phase === 'move') {
-          const p = Math.max(0, Math.min((tMs - g.moveStart) / g.moveDuration, 1));
-          const e = easeInOutCubic(p);
+          const e = easedProgress(tMs, g.moveStart, g.moveDuration);
           g.x = g.fromX + (g.targetX - g.fromX) * e;
           g.y = g.fromY + (g.targetY - g.fromY) * e;
-          if (p >= 1) {
+          if (e >= 1) {
             g.phase = 'rest';
             g.restStart = tMs;
             g.restDuration = REST_MIN + rnd() * REST_JITTER;
@@ -113,7 +112,7 @@ export function createRealisticRegionHoppersProgram(): SimulationProgram {
           const off = noiseWanderOffset(noise2D, g.noiseOffX, g.noiseOffY, tMs, g.restingSpeed, g.restingRadius);
           const nx = g.hotX + off.x;
           const ny = g.hotY + off.y;
-          const b = easeInOutCubic(Math.min((tMs - g.restStart) / BLEND_MS, 1));
+          const b = easedProgress(tMs, g.restStart, BLEND_MS);
           g.x = g.arriveX + (nx - g.arriveX) * b;
           g.y = g.arriveY + (ny - g.arriveY) * b;
           if (tMs - g.restStart >= g.restDuration) {

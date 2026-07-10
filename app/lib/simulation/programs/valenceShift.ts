@@ -9,7 +9,7 @@
 
 import { createNoise2D } from 'simplex-noise';
 import type { CursorEvent, SimContext, SimulationProgram } from '../types';
-import { makePrng, easeInOutCubic, noiseWanderOffset } from './_easing';
+import { makePrng, easedProgress, noiseWanderOffset } from './_easing';
 import { valenceChordEndpoints, sampleValencePosition, type ReactionAnchors } from '../../../utils/voteRegion';
 
 /** Group-size weights (matches the onboarding v3 prototype's `FIBS`). */
@@ -117,7 +117,7 @@ export function createValenceShiftProgram(): SimulationProgram {
 
   /** Current eased position (pre-wander) for user `i` at `tMs`, given the active glide. */
   function currentPos(i: number, tMs: number): { x: number; y: number } {
-    const e = easeInOutCubic(clamp01((tMs - travelStart) / TRAVEL_DURATION_MS));
+    const e = easedProgress(tMs, travelStart, TRAVEL_DURATION_MS);
     return { x: lerp(travelFromX[i], travelToX[i], e), y: lerp(travelFromY[i], travelToY[i], e) };
   }
 

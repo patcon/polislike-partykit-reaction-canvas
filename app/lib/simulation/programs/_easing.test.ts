@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createNoise2D } from 'simplex-noise';
-import { makePrng, createWanderField, easeInOutCubic, noiseWanderOffset } from './_easing';
+import { makePrng, createWanderField, easeInOutCubic, easedProgress, noiseWanderOffset } from './_easing';
 
 describe('easeInOutCubic', () => {
   it('maps 0 to 0 and 1 to 1', () => {
@@ -24,6 +24,24 @@ describe('easeInOutCubic', () => {
   it('starts and ends slower than linear (ease-in / ease-out)', () => {
     expect(easeInOutCubic(0.1)).toBeLessThan(0.1);
     expect(easeInOutCubic(0.9)).toBeGreaterThan(0.9);
+  });
+});
+
+describe('easedProgress', () => {
+  it('equals easeInOutCubic of the elapsed/duration fraction', () => {
+    expect(easedProgress(500, 0, 1000)).toBeCloseTo(easeInOutCubic(0.5), 10);
+  });
+
+  it('clamps before start to 0', () => {
+    expect(easedProgress(-50, 0, 1000)).toBe(0);
+  });
+
+  it('clamps past the duration to 1', () => {
+    expect(easedProgress(5000, 0, 1000)).toBe(1);
+  });
+
+  it('reaches exactly 1 at tMs === start + duration', () => {
+    expect(easedProgress(1500, 500, 1000)).toBe(1);
   });
 });
 
