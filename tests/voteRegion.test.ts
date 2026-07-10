@@ -6,6 +6,8 @@ import {
   valenceToPosition,
   valenceToPercent,
   reactionLabelStyle,
+  valenceChordEndpoints,
+  sampleValencePosition,
   type ReactionAnchors,
 } from '../app/utils/voteRegion';
 
@@ -160,6 +162,70 @@ describe('valenceToPosition', () => {
     const p = valenceToPosition(5, DEFAULT_ANCHORS);
     expect(p.x).toBeCloseTo(DEFAULT_ANCHORS.positive.x, 5);
     expect(p.y).toBeCloseTo(DEFAULT_ANCHORS.positive.y, 5);
+  });
+});
+
+describe('sampleValencePosition', () => {
+  const valences = [-1, -0.6, -0.3, 0, 0.3, 0.6, 1];
+  const ts = [0, 0.25, 0.5, 0.75, 1];
+
+  it('round-trips through computeCursorValence for every valence/t combination', () => {
+    for (const v of valences) {
+      for (const t of ts) {
+        const p = sampleValencePosition(v, t, DEFAULT_ANCHORS);
+        expect(computeCursorValence(p.x, p.y, DEFAULT_ANCHORS)).toBeCloseTo(v, 4);
+      }
+    }
+  });
+
+  it('collapses to a single point regardless of t when valence is ±1', () => {
+    for (const v of [-1, 1]) {
+      const points = ts.map((t) => sampleValencePosition(v, t, DEFAULT_ANCHORS));
+      for (const p of points) {
+        expect(p.x).toBeCloseTo(points[0].x, 5);
+        expect(p.y).toBeCloseTo(points[0].y, 5);
+      }
+    }
+  });
+
+  it('stays within the DEFAULT_ANCHORS triangle (barycentric weights in [0,1])', () => {
+    const pos = { x: DEFAULT_ANCHORS.positive.x / 100, y: DEFAULT_ANCHORS.positive.y / 100 };
+    const neg = { x: DEFAULT_ANCHORS.negative.x / 100, y: DEFAULT_ANCHORS.negative.y / 100 };
+    const neu = { x: DEFAULT_ANCHORS.neutral.x / 100, y: DEFAULT_ANCHORS.neutral.y / 100 };
+    const denom = (neg.y - neu.y) * (pos.x - neu.x) + (neu.x - neg.x) * (pos.y - neu.y);
+
+    for (const v of valences) {
+      for (const t of ts) {
+        const p = sampleValencePosition(v, t, DEFAULT_ANCHORS);
+        const x = p.x / 100;
+        const y = p.y / 100;
+        const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
+        const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
+        const wNeu = 1 - wPos - wNeg;
+        for (const w of [wPos, wNeg, wNeu]) {
+          expect(w).toBeGreaterThanOrEqual(-1e-9);
+          expect(w).toBeLessThanOrEqual(1 + 1e-9);
+        }
+      }
+    }
+  });
+});
+
+describe('valenceChordEndpoints', () => {
+  it('produces endpoints that both round-trip to the requested valence', () => {
+    for (const v of [-1, -0.5, 0, 0.5, 1]) {
+      const { a, b } = valenceChordEndpoints(v, DEFAULT_ANCHORS);
+      expect(computeCursorValence(a.x, a.y, DEFAULT_ANCHORS)).toBeCloseTo(v, 4);
+      expect(computeCursorValence(b.x, b.y, DEFAULT_ANCHORS)).toBeCloseTo(v, 4);
+    }
+  });
+
+  it('the v=0 chord spans from the neutral anchor to the negative-positive midpoint', () => {
+    const { a, b } = valenceChordEndpoints(0, DEFAULT_ANCHORS);
+    // a(0) = lerp(neutral, positive, 0) = neutral; b(0) = lerp(negative, positive, 0.5) = midpoint
+    expect(a).toEqual(DEFAULT_ANCHORS.neutral);
+    expect(b.x).toBeCloseTo(50, 5);
+    expect(b.y).toBeCloseTo(50, 5);
   });
 });
 

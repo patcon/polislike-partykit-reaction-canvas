@@ -1,5 +1,10 @@
 export type ReactionRegion = 'positive' | 'negative' | 'neutral' | null;
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
 export interface ReactionAnchors {
   positive: { x: number; y: number }; // 0–100 normalized
   negative: { x: number; y: number };
@@ -87,6 +92,30 @@ export function computeCursorValence(normalizedX: number, normalizedY: number, a
   const wPos = ((neg.y - neu.y) * (x - neu.x) + (neu.x - neg.x) * (y - neu.y)) / denom;
   const wNeg = ((neu.y - pos.y) * (x - neu.x) + (pos.x - neu.x) * (y - neu.y)) / denom;
   return Math.max(-1, Math.min(1, wPos - wNeg));
+}
+
+/**
+ * Endpoints of the chord of canvas positions that all produce the given valence
+ * under computeCursorValence (one linear constraint on two free barycentric
+ * weights → a line segment, not a point). `a` sits on a neutral-adjacent edge,
+ * `b` on the negative–positive edge; both collapse to the same vertex at v=±1.
+ */
+export function valenceChordEndpoints(valence: number, anchors: ReactionAnchors): { a: Point; b: Point } {
+  const v = Math.max(-1, Math.min(1, valence));
+  const lerp = (p: Point, q: Point, t: number): Point => ({ x: p.x + (q.x - p.x) * t, y: p.y + (q.y - p.y) * t });
+  const a = v >= 0 ? lerp(anchors.neutral, anchors.positive, v) : lerp(anchors.neutral, anchors.negative, -v);
+  const b = lerp(anchors.negative, anchors.positive, (v + 1) / 2);
+  return { a, b };
+}
+
+/**
+ * Samples a point on the valence-v chord at fraction `t` (0=a, 1=b). Every
+ * point on this chord round-trips through computeCursorValence to ~v.
+ */
+export function sampleValencePosition(valence: number, t: number, anchors: ReactionAnchors): Point {
+  const { a, b } = valenceChordEndpoints(valence, anchors);
+  const clampedT = Math.max(0, Math.min(1, t));
+  return { x: a.x + (b.x - a.x) * clampedT, y: a.y + (b.y - a.y) * clampedT };
 }
 
 /**
