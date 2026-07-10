@@ -11,7 +11,7 @@ import { valenceToPosition, type ReactionAnchors } from '../../../utils/voteRegi
 /** Group-size weights (matches the onboarding v3 prototype's `FIBS`). */
 const FIBS = [1, 2, 3, 5, 8, 13, 21];
 /** How often group targets re-randomize (ms) — the "valence shift" event. */
-const SHIFT_INTERVAL_MS = 8000;
+const SHIFT_INTERVAL_MS = 4000;
 /** Per-tick easing fraction toward the group target (drift speed). */
 const DRIFT_EASE = 0.03;
 /** Max per-user offset from its group's shared target, so members don't overlap exactly. */
