@@ -18,7 +18,8 @@ const FIBS = [1, 2, 3, 5, 8, 13, 21];
 export const SHIFT_INTERVAL_MS = 4000;
 /** How long a user takes to glide to its new target after a shift (ms). */
 export const TRAVEL_DURATION_MS = 2000;
-/** Max per-user offset from its group's shared target, so members don't overlap exactly. */
+/** Max per-user offset from its group's shared target, re-rolled every shift so members
+ *  don't overlap exactly and don't ride the same fixed offset hop after hop. */
 const NOISE_SPAN = 0.15;
 /** Radius of the 2D micro-wander layered on top of the valence-derived point (canvas units). */
 const WANDER_RADIUS = 1.5;
@@ -95,10 +96,12 @@ export function createValenceShiftProgram(): SimulationProgram {
   let wanderOffY: number[] = [];
   let nextShiftAt = SHIFT_INTERVAL_MS;
 
-  /** Reroll every group's target valence and each member's destination point. */
+  /** Reroll every group's target valence, each member's personal offset from it, and each
+   *  member's destination point. */
   function pickTargets() {
     groupTarget = groupTarget.map(() => rnd() * 2 - 1);
     anchorT = anchorT.map(() => rnd());
+    noiseOffset = noiseOffset.map(() => (rnd() * 2 - 1) * NOISE_SPAN);
     for (let i = 0; i < count; i++) {
       const g = group[i];
       const personalValence = clampValence(groupTarget[g] + noiseOffset[i]);
@@ -134,7 +137,7 @@ export function createValenceShiftProgram(): SimulationProgram {
       groupTarget = new Array(groupCount).fill(0);
       anchorT = new Array(groupCount).fill(0);
       group = Array.from({ length: count }, (_, i) => assignGroup(i, count, groupCount));
-      noiseOffset = Array.from({ length: count }, () => (rnd() * 2 - 1) * NOISE_SPAN);
+      noiseOffset = new Array(count).fill(0);
       travelToX = new Array(count).fill(0);
       travelToY = new Array(count).fill(0);
       pickTargets();

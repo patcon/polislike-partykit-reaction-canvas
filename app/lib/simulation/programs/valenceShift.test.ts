@@ -123,6 +123,35 @@ describe('valence-shift program', () => {
     }
   });
 
+  it('re-scrambles each member\'s personal offset from the group target on every shift, not just the group target itself', () => {
+    const p = createValenceShiftProgram();
+    p.init({ ...CTX, userCount: 2, groupCount: 1 });
+    // Because sampleValencePosition round-trips exactly through computeCursorValence
+    // (spread/anchorT only move a point *along* the fixed-valence chord), the valence
+    // gap between two same-group users at any settled moment is exactly the gap
+    // between their personal offsets — group target cancels out since they share it.
+    const gapsByShift: number[] = [];
+    let lastRecordedShift = -1;
+    const totalShifts = 5;
+    for (let tMs = 0; tMs <= totalShifts * SHIFT_INTERVAL_MS; tMs += 50) {
+      const ev = p.tick(tMs, 50);
+      const shiftIndex = Math.floor(tMs / SHIFT_INTERVAL_MS);
+      const sinceShift = tMs % SHIFT_INTERVAL_MS;
+      if (shiftIndex > 0 && shiftIndex !== lastRecordedShift && sinceShift > TRAVEL_DURATION_MS + 200) {
+        const v0 = computeCursorValence(ev[0].position.x, ev[0].position.y, DEFAULT_ANCHORS);
+        const v1 = computeCursorValence(ev[1].position.x, ev[1].position.y, DEFAULT_ANCHORS);
+        gapsByShift.push(v0 - v1);
+        lastRecordedShift = shiftIndex;
+      }
+    }
+    expect(gapsByShift.length).toBeGreaterThanOrEqual(4);
+    // Wander alone perturbs this gap by at most ~0.012 within a hold window (measured);
+    // a gap that moves by more than that between shifts means the underlying personal
+    // offsets themselves were re-rolled, not just the shared group target.
+    const maxDeltaFromFirst = Math.max(...gapsByShift.slice(1).map((g) => Math.abs(g - gapsByShift[0])));
+    expect(maxDeltaFromFirst).toBeGreaterThan(0.05);
+  });
+
   it('teardown emits a remove for every user', () => {
     const p = createValenceShiftProgram(); p.init(CTX);
     const t = p.teardown();

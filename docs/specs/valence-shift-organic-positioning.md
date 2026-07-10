@@ -90,8 +90,11 @@ no new "ghost" abstraction needed for this program.
 Per shift, per group `g`:
 1. Roll one shared **anchor fraction** `anchorT[g] = rnd()` — "where along this group's target
    valence chord does the group tend to sit this shift."
-2. Each member `i` in group `g` computes its own (already-existing) personal valence
-   `clampValence(groupTarget[g] + noiseOffset[i])`, then its own chord endpoints
+2. Each member `i` in group `g` also re-rolls its own personal offset `noiseOffset[i] = (rnd() * 2
+   - 1) * NOISE_SPAN` **every shift**, not just once at init — a member that read as slightly more
+   extreme than its group last hop isn't locked into being "the extreme one" forever; the personal
+   deviation itself scrambles hop to hop, same as the group target does. It then computes its
+   personal valence `clampValence(groupTarget[g] + noiseOffset[i])`, then its own chord endpoints
    `{a, b} = valenceChordEndpoints(personalValence[i], anchors)` and chord length
    `chordLen[i] = hypot(b.x - a.x, b.y - a.y)`, then its own chord position:
    `spreadFraction[i] = resolveSpreadFraction(SPREAD, chordLen[i])`
@@ -144,7 +147,8 @@ switches on magnitude.
 
 - Drop `value: number[]` (scalar valence, no longer needed — position is eased directly).
 - Add `travelFromX/Y: number[]`, `travelToX/Y: number[]`, `anchorT: number[]` (per group).
-- `groupTarget`/`noiseOffset`/`group` assignment: unchanged.
+- `group` assignment: unchanged. `groupTarget` and `noiseOffset` are both re-rolled every shift
+  (previously `noiseOffset` was fixed once at init — amended mid-build, see Resolved decisions).
 - On shift (and at `init`, treating it as shift 0): reroll `anchorT`, recompute
   `travelToX/Y[i]` via the sampling above; `travelFromX/Y[i]` = current rendered (pre-wander) base
   position.
@@ -227,6 +231,11 @@ cluster," and "full scatter" — no control-bar or `SimContext` changes needed.
    `±1` because the chord itself shrinks to a point there — real people don't cluster tighter and
    tighter just because their opinion is more extreme, so absolute-unit mode holds a constant scatter
    footprint instead, only degrading once the chord is physically too short to hold it.
+6. **`noiseOffset` re-rolls every shift, not just once at init.** Added mid-build: with a
+   fixed-at-init offset, a member that happened to draw a more extreme offset stayed "the extreme
+   one" relative to its group for the whole session, every hop — read as fake/scripted. Scrambling
+   it alongside `groupTarget` on every shift means each member's personal deviation is fresh each
+   hop, same as the group's target itself.
 
 ## Files touched
 
