@@ -91,21 +91,54 @@ Per shift, per group `g`:
 1. Roll one shared **anchor fraction** `anchorT[g] = rnd()` — "where along this group's target
    valence chord does the group tend to sit this shift."
 2. Each member `i` in group `g` computes its own (already-existing) personal valence
-   `clampValence(groupTarget[g] + noiseOffset[i])`, then its own chord position:
-   `memberT[i] = clamp(anchorT[g] + (rnd() * 2 - 1) * spread / 2, 0, 1)`
+   `clampValence(groupTarget[g] + noiseOffset[i])`, then its own chord endpoints
+   `{a, b} = valenceChordEndpoints(personalValence[i], anchors)` and chord length
+   `chordLen[i] = hypot(b.x - a.x, b.y - a.y)`, then its own chord position:
+   `spreadFraction[i] = resolveSpreadFraction(SPREAD, chordLen[i])`
+   `memberT[i] = clamp(anchorT[g] + (rnd() * 2 - 1) * spreadFraction[i] / 2, 0, 1)`
    `travelToXY[i] = sampleValencePosition(personalValence[i], memberT[i], anchors)`
 
-`spread` (0..1, fraction of chord length members can scatter around the shared anchor):
-- `spread = 0` → every group member lands on the exact same point (today's behavior, minus the
+**`SPREAD` is dual-mode** — a single number whose *units* are inferred from its magnitude, so one
+constant still reaches every look without a second knob:
+- **`0 <= SPREAD <= 1`** → treated as a **fraction of chord length**, exactly as before.
+  `resolveSpreadFraction` returns `SPREAD` unchanged.
+- **`SPREAD > 1`** → treated as **absolute canvas units** (the same 0–100 normalized space as
+  anchors — note the canvas *diagonal* can exceed 100 units, so this range is open-ended, not
+  capped at 100). `resolveSpreadFraction = min(1, SPREAD / chordLen[i])`.
+
+```ts
+function resolveSpreadFraction(spread: number, chordLen: number): number {
+  if (spread <= 1) return spread;
+  if (chordLen <= 0) return 1; // degenerate chord (v=±1): whole "chord" is the point itself
+  return Math.min(1, spread / chordLen);
+}
+```
+
+**Why two modes:** the chord's length is not constant — it shrinks toward 0 as `personalValence`
+approaches `±1` (extreme opinions are geometrically less ambiguous, so there's less room to scatter
+within). A purely proportional spread (mode 1) shrinks in lockstep, which reads as "extreme voters
+all stand on top of each other" — unrealistic; real people occupy a roughly constant amount of
+physical space regardless of how strong their opinion is. Absolute-unit mode (mode 2) holds that
+footprint constant in canvas units as valence gets more extreme, and only degrades gracefully back
+toward "use the whole chord" once the chord itself becomes shorter than the requested footprint —
+never scatter than what's geometrically available, but never artificially tinier either.
+
+- `SPREAD = 0` → every group member lands on the exact same point (today's behavior, minus the
   scalar-line artifact — still one point, just wherever `anchorT` landed on the chord instead of
   always the same `valenceToPosition` point).
-- `spread ≈ 0.15` → **bounded jitter around a group anchor** — groups still read as visible
-  clusters, members no longer overlap or ride one line.
-- `spread = 1` → **full free scatter** — every member independently samples anywhere on their
+- `SPREAD ≈ 0.15` (proportional) → **bounded jitter around a group anchor** — groups still read as
+  visible clusters, members no longer overlap or ride one line, but the cluster visibly shrinks near
+  `valence ≈ ±1`.
+- `SPREAD ≈ 10` (absolute units) → **constant-footprint jitter** — same "bounded cluster" look near
+  `valence ≈ 0` (chord ≈64 units, so ≈10/64 ≈ 0.16 fraction, close to the proportional default
+  above), but groups near the extremes keep a similar-sized footprint instead of collapsing,
+  clamped to the full (shorter) chord once it's less than 10 units long.
+- `SPREAD = 1` → **full free scatter** — every member independently samples anywhere on their
   personal chord; groups may not read as visible clusters near `valence≈0` (chord ≈64 units wide).
 
-This is one mechanism, not two — a single `SPREAD` constant reaches both requested behaviors by
-hand-editing the value and re-running the demo.
+This is one mechanism, not two separate code paths — a single `SPREAD` constant reaches every
+requested behavior by hand-editing the value and re-running the demo; only its *interpretation*
+switches on magnitude.
 
 ### State changes in `createValenceShiftProgram()`
 
@@ -127,13 +160,18 @@ hand-editing the value and re-running the demo.
 No `SimContext`/UI plumbing — just a named, easily-editable constant in `valenceShift.ts`:
 
 ```ts
-/** Fraction of a group's target-valence chord members can scatter around the shared anchor
- *  point (0 = single shared point, 1 = full-chord free scatter). Hand-edit to explore. */
+/** How far a group's members scatter around their shared anchor point on the target-valence
+ *  chord. Dual-mode, inferred from magnitude — hand-edit to explore:
+ *    0 <= SPREAD <= 1 → fraction of chord length (0 = single shared point, 1 = full chord).
+ *    SPREAD > 1       → absolute canvas units (0-100 space, open-ended); holds a constant
+ *                       scatter footprint as valence gets extreme instead of shrinking toward
+ *                       the vertex, falling back to the full chord once it's shorter than this.
+ */
 const SPREAD = 0.15;
 ```
 
-Editing this one value and re-running the demo moves between "tight cluster" and "full scatter" —
-no control-bar or `SimContext` changes needed.
+Editing this one value and re-running the demo moves between "tight cluster," "constant-footprint
+cluster," and "full scatter" — no control-bar or `SimContext` changes needed.
 
 ## Task breakdown (TDD, one commit per task — mirrors the pattern already used on this branch)
 
@@ -141,7 +179,11 @@ no control-bar or `SimContext` changes needed.
    `tests/voteRegion.test.ts` (round-trip assertions above), watch RED (function doesn't exist),
    implement, GREEN.
 2. **Redesign `valenceShift.ts` to glide directly between sampled XY points**, using the hardcoded
-   `SPREAD` constant. Update `valenceShift.test.ts`:
+   `SPREAD` constant and a `resolveSpreadFraction(spread, chordLen)` helper (dual-mode: `<=1` is a
+   chord-length fraction, `>1` is absolute canvas units with a full-chord floor — see "Spread as a
+   hardcoded constant" above). Export `resolveSpreadFraction` (or keep it module-local and test via
+   the target-picking helper — whichever the existing file's export style favors) so it's unit
+   testable in isolation from the RNG-driven per-tick logic. Update `valenceShift.test.ts`:
    - Existing tests should mostly still pass conceptually but will need re-verification against the
      new mechanism (positions are no longer literally `valenceToPosition(scalar)`); re-run and fix
      any that assumed the old single-line geometry.
@@ -154,6 +196,11 @@ no control-bar or `SimContext` changes needed.
      `1` — or, more simply, testing the internal target-picking helper directly if it's exported)
      shows the resulting within-group spread scales up accordingly (monotonic, not just
      present/absent), proving the constant actually drives the effect claimed above.
+   - New test for `resolveSpreadFraction` directly: `resolveSpreadFraction(0.15, anyChordLen) ===
+     0.15` (proportional mode passes through unchanged); `resolveSpreadFraction(10, 64) ≈ 10/64`
+     (absolute mode divides by chord length); `resolveSpreadFraction(10, 5) === 1` (absolute mode
+     clamps to the full chord when the chord is shorter than the requested footprint);
+     `resolveSpreadFraction(10, 0) === 1` (degenerate v=±1 chord doesn't divide by zero).
 3. **(Separable cleanup, do last, only if time allows)** Consider whether any further code-sharing
    with `regionHoppersRealistic.ts` is now worthwhile. Given task 2's finding — Valence Shift doesn't
    need Region-hoppers' independent per-cursor move/rest state machine, since all users glide on one
@@ -166,7 +213,7 @@ no control-bar or `SimContext` changes needed.
 
 ## Resolved decisions (from conversation)
 
-1. Ship **one mechanism** (a `SPREAD` constant, 0..1) rather than two separate code paths for
+1. Ship **one mechanism** (a `SPREAD` constant) rather than two separate code paths for
    "bounded jitter" vs "full scatter" — they're the same math at different parameter values.
 2. **Hardcoded constant, no UI control** — the user will hand-edit `SPREAD` in the source to explore
    the range, not drag a live slider. No `SimContext`/`SimControlBar` changes needed.
@@ -174,6 +221,12 @@ no control-bar or `SimContext` changes needed.
    looks like "correlated groups," with the option to hand-edit it to `1` to see full scatter.
 4. No new shared "ghost" state-machine abstraction planned — the redesign turned out simpler than
    originally scoped (see task 3).
+5. **`SPREAD` is dual-mode, inferred from magnitude** (`<=1` → chord-length fraction, `>1` → absolute
+   canvas units, floored to the full chord when the chord is shorter than the requested footprint).
+   Added mid-build: a purely proportional spread shrinks toward zero as `personalValence` approaches
+   `±1` because the chord itself shrinks to a point there — real people don't cluster tighter and
+   tighter just because their opinion is more extreme, so absolute-unit mode holds a constant scatter
+   footprint instead, only degrading once the chord is physically too short to hold it.
 
 ## Files touched
 
