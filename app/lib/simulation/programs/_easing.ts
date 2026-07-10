@@ -10,6 +10,11 @@ export const EASE = 0.02;
 /** Distance under which a user is "arrived" and picks a new target. */
 export const ARRIVE_DIST = 3;
 
+/** Cubic ease-in-out: slow start, fast middle, slow finish. `t` in 0..1. */
+export function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
 /**
  * Deterministic LCG returning values in [0, 1). Seeded so a given seed always
  * produces the same sequence (unlike Math.random).

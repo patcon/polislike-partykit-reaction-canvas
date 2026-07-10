@@ -1,5 +1,30 @@
 import { describe, it, expect } from 'vitest';
-import { makePrng, createWanderField } from './_easing';
+import { makePrng, createWanderField, easeInOutCubic } from './_easing';
+
+describe('easeInOutCubic', () => {
+  it('maps 0 to 0 and 1 to 1', () => {
+    expect(easeInOutCubic(0)).toBe(0);
+    expect(easeInOutCubic(1)).toBe(1);
+  });
+
+  it('is symmetric around the midpoint (0.5 -> 0.5)', () => {
+    expect(easeInOutCubic(0.5)).toBeCloseTo(0.5, 10);
+  });
+
+  it('is monotonically increasing', () => {
+    let prev = -Infinity;
+    for (let t = 0; t <= 1; t += 0.1) {
+      const v = easeInOutCubic(t);
+      expect(v).toBeGreaterThanOrEqual(prev);
+      prev = v;
+    }
+  });
+
+  it('starts and ends slower than linear (ease-in / ease-out)', () => {
+    expect(easeInOutCubic(0.1)).toBeLessThan(0.1);
+    expect(easeInOutCubic(0.9)).toBeGreaterThan(0.9);
+  });
+});
 
 describe('makePrng', () => {
   it('is deterministic for a seed and differs across seeds', () => {

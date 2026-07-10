@@ -11,7 +11,7 @@
 import { createNoise2D } from 'simplex-noise';
 import type { CursorEvent, SimContext, SimulationProgram } from '../types';
 import type { ReactionAnchors } from '../../../utils/voteRegion';
-import { makePrng } from './_easing';
+import { makePrng, easeInOutCubic } from './_easing';
 
 const HOTSPOT_PULL = 0.3;     // fraction pulled from the anchor toward canvas centre
 const TARGET_JITTER = 6;      // spread of a picked target around its hotspot
@@ -22,7 +22,6 @@ const BLEND_MS = 900;         // eased blend from arrival into the noise orbit
 const ENTRY_START_JITTER = 2000; // stagger of the initial move-in
 
 const clamp = (n: number) => Math.max(0, Math.min(100, n));
-const easeInOutCubic = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
 /** Region anchors pulled `pull` of the way toward the canvas centre (50,50). */
 export function regionHotspots(anchors: ReactionAnchors, pull = HOTSPOT_PULL): Array<{ x: number; y: number }> {
