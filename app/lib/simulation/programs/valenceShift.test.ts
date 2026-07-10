@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createValenceShiftProgram, assignGroup } from './valenceShift';
+import { createValenceShiftProgram, assignGroup, SHIFT_INTERVAL_MS } from './valenceShift';
 import type { SimContext } from '../types';
 import { DEFAULT_ANCHORS } from '../../../utils/voteRegion';
 
@@ -91,5 +91,26 @@ describe('valence-shift program', () => {
     const t = p.teardown();
     expect(t).toHaveLength(20);
     expect(t.every((e) => e.type === 'remove')).toBe(true);
+  });
+
+  it('completes a shift as a bounded glide, then holds steady (no perpetual asymptotic creep)', () => {
+    const p = createValenceShiftProgram();
+    p.init({ ...CTX, userCount: 1, groupCount: 1 });
+    let prev: number | undefined;
+    let stableTicksAfterFirstShift = 0;
+    for (let i = 0; i < 200; i++) {
+      const tMs = i * 50;
+      const x = p.tick(tMs, 50)[0].position.x;
+      // Only count ticks after the first shift — before that, position
+      // trivially hasn't moved from its initial value, which would pass
+      // even under the old always-creeping algorithm.
+      if (prev !== undefined && tMs > SHIFT_INTERVAL_MS && Math.abs(x - prev) < 1e-9) {
+        stableTicksAfterFirstShift++;
+      }
+      prev = x;
+    }
+    // A duration-based glide holds exactly steady once travel completes; a
+    // flat exponential ease keeps moving indefinitely after every shift.
+    expect(stableTicksAfterFirstShift).toBeGreaterThan(10);
   });
 });

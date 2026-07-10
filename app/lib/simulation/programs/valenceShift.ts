@@ -1,19 +1,20 @@
 // Valence Shift program: users belong to one of N correlated opinion groups,
 // sized by Fibonacci ratios — same group model as the "correlated" trace mode
-// in docs/pages/valence-onboarding-v3.html. Each user eases toward its group's
-// shared target valence; on a fixed interval every group's target
-// re-randomizes together, reading as a "valence shift" event.
+// in docs/pages/valence-onboarding-v3.html. On a fixed interval every group's
+// target re-randomizes together; each user glides to its group's new shared
+// target valence over a bounded duration (eased, like Region-hoppers'
+// move phase), then holds steady until the next "valence shift" event.
 
 import type { CursorEvent, SimContext, SimulationProgram } from '../types';
-import { makePrng } from './_easing';
+import { makePrng, easeInOutCubic } from './_easing';
 import { valenceToPosition, type ReactionAnchors } from '../../../utils/voteRegion';
 
 /** Group-size weights (matches the onboarding v3 prototype's `FIBS`). */
 const FIBS = [1, 2, 3, 5, 8, 13, 21];
 /** How often group targets re-randomize (ms) — the "valence shift" event. */
-const SHIFT_INTERVAL_MS = 4000;
-/** Per-tick easing fraction toward the group target (drift speed). */
-const DRIFT_EASE = 0.03;
+export const SHIFT_INTERVAL_MS = 4000;
+/** How long a user takes to glide to its new target after a shift (ms). */
+const TRAVEL_DURATION_MS = 2000;
 /** Max per-user offset from its group's shared target, so members don't overlap exactly. */
 const NOISE_SPAN = 0.15;
 
@@ -37,10 +38,11 @@ export function assignGroup(i: number, n: number, groupCount: number): number {
 }
 
 /**
- * Create a Valence Shift program. Users ease toward a shared per-group target
- * valence, mapped onto the canvas via `valenceToPosition`; every group's
- * target re-randomizes together every {@link SHIFT_INTERVAL_MS}. Deterministic
- * for a given `ctx.seed`.
+ * Create a Valence Shift program. Every group's target re-randomizes together
+ * every {@link SHIFT_INTERVAL_MS}; each user then glides (eased, over
+ * {@link TRAVEL_DURATION_MS}) from its current valence to its group's new
+ * shared target, mapped onto the canvas via `valenceToPosition`, and holds
+ * steady once arrived. Deterministic for a given `ctx.seed`.
  */
 export function createValenceShiftProgram(): SimulationProgram {
   let count = 0;
@@ -49,8 +51,11 @@ export function createValenceShiftProgram(): SimulationProgram {
   let noiseOffset: number[] = [];
   let value: number[] = [];
   let groupTarget: number[] = [];
+  let travelFrom: number[] = [];
+  let travelTo: number[] = [];
+  let travelStart = 0;
   let rnd: () => number = () => 0;
-  let elapsed = 0;
+  let nextShiftAt = SHIFT_INTERVAL_MS;
 
   return {
     id: 'valence-shift',
@@ -60,24 +65,29 @@ export function createValenceShiftProgram(): SimulationProgram {
       count = ctx.userCount;
       anchors = ctx.regionAnchors;
       rnd = makePrng(ctx.seed);
-      elapsed = 0;
+      nextShiftAt = SHIFT_INTERVAL_MS;
+      travelStart = 0;
 
       const groupCount = Math.max(1, Math.min(FIBS.length, Math.round(ctx.groupCount ?? 3)));
       groupTarget = Array.from({ length: groupCount }, () => rnd() * 2 - 1);
       group = Array.from({ length: count }, (_, i) => assignGroup(i, count, groupCount));
       noiseOffset = Array.from({ length: count }, () => (rnd() * 2 - 1) * NOISE_SPAN);
       value = group.map((g, i) => clampValence(groupTarget[g] + noiseOffset[i]));
+      travelFrom = [...value];
+      travelTo = [...value];
     },
 
-    tick(_tMs: number, dtMs: number): CursorEvent[] {
-      elapsed += dtMs;
-      if (elapsed >= SHIFT_INTERVAL_MS) {
-        elapsed -= SHIFT_INTERVAL_MS;
+    tick(tMs: number): CursorEvent[] {
+      if (tMs >= nextShiftAt) {
+        nextShiftAt += SHIFT_INTERVAL_MS;
         groupTarget = groupTarget.map(() => rnd() * 2 - 1);
+        travelStart = tMs;
+        travelFrom = [...value];
+        travelTo = group.map((g, i) => clampValence(groupTarget[g] + noiseOffset[i]));
       }
+      const e = easeInOutCubic(Math.max(0, Math.min((tMs - travelStart) / TRAVEL_DURATION_MS, 1)));
       return Array.from({ length: count }, (_, i) => {
-        const target = clampValence(groupTarget[group[i]] + noiseOffset[i]);
-        value[i] += (target - value[i]) * DRIFT_EASE;
+        value[i] = travelFrom[i] + (travelTo[i] - travelFrom[i]) * e;
         const p = valenceToPosition(value[i], anchors);
         return {
           type: 'move',
