@@ -16,6 +16,27 @@ export function easeInOutCubic(t: number): number {
 }
 
 /**
+ * Sample a 2D simplex-noise offset for organic micro-wander around a point.
+ * `offX`/`offY` give each user an independent stream from a shared `noise2D`
+ * field; `speed` scales how fast the sample advances with `tMs`; `radius`
+ * scales the offset magnitude (each axis stays within +/- radius).
+ */
+export function noiseWanderOffset(
+  noise2D: (x: number, y: number) => number,
+  offX: number,
+  offY: number,
+  tMs: number,
+  speed: number,
+  radius: number,
+): { x: number; y: number } {
+  const t = tMs * 0.001 * speed;
+  return {
+    x: noise2D(offX, t) * radius,
+    y: noise2D(offY, t) * radius,
+  };
+}
+
+/**
  * Deterministic LCG returning values in [0, 1). Seeded so a given seed always
  * produces the same sequence (unlike Math.random).
  * @param seed Any integer; 0 is coerced to 1 to avoid a stuck sequence.

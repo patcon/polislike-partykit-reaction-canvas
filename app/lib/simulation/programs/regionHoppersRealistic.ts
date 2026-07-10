@@ -11,7 +11,7 @@
 import { createNoise2D } from 'simplex-noise';
 import type { CursorEvent, SimContext, SimulationProgram } from '../types';
 import type { ReactionAnchors } from '../../../utils/voteRegion';
-import { makePrng, easeInOutCubic } from './_easing';
+import { makePrng, easeInOutCubic, noiseWanderOffset } from './_easing';
 
 const HOTSPOT_PULL = 0.3;     // fraction pulled from the anchor toward canvas centre
 const TARGET_JITTER = 6;      // spread of a picked target around its hotspot
@@ -110,9 +110,9 @@ export function createRealisticRegionHoppersProgram(): SimulationProgram {
             g.hotX = g.x; g.hotY = g.y; // wander around where it landed
           }
         } else {
-          const nt = tMs * 0.001 * g.restingSpeed;
-          const nx = g.hotX + noise2D(g.noiseOffX, nt) * g.restingRadius;
-          const ny = g.hotY + noise2D(g.noiseOffY, nt) * g.restingRadius;
+          const off = noiseWanderOffset(noise2D, g.noiseOffX, g.noiseOffY, tMs, g.restingSpeed, g.restingRadius);
+          const nx = g.hotX + off.x;
+          const ny = g.hotY + off.y;
           const b = easeInOutCubic(Math.min((tMs - g.restStart) / BLEND_MS, 1));
           g.x = g.arriveX + (nx - g.arriveX) * b;
           g.y = g.arriveY + (ny - g.arriveY) * b;
