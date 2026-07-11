@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   arcPath,
   cellPath,
-  makeGeometryFromAnchors,
-  outerRadiusAt,
-  pointAtRadius,
+  ellipsePoint,
+  makeGeometry,
   radialPath,
   regionFromPoint,
+  toBasis,
   type CellId,
   type Pt,
   type SectorGeometry,
@@ -71,19 +71,12 @@ export default function ValenceCertaintyPanel() {
 
   const geo: SectorGeometry | null = useMemo(() => {
     if (!anchors) return null;
-    // The bisector (and thus the pass anchor position) depends only on the
-    // disagree/agree anchors, not on the pass anchor itself. Build a provisional
-    // geometry to find the bisector, then place pass at thresholdFrac along it.
-    const provisional = makeGeometryFromAnchors(apex, anchors.disagree, anchors.agree, apex, INNER_FRAC);
-    const rOutBis = outerRadiusAt(provisional, provisional.bisectorPhi);
-    const pass = pointAtRadius(provisional, thresholdFrac * rOutBis, provisional.bisectorPhi);
-    return makeGeometryFromAnchors(apex, anchors.disagree, anchors.agree, pass, INNER_FRAC);
+    return makeGeometry(apex, anchors.disagree, anchors.agree, thresholdFrac, INNER_FRAC);
   }, [apex, anchors, thresholdFrac]);
 
   const passPixel = useMemo<Pt | null>(() => {
     if (!geo) return null;
-    const rOutBis = outerRadiusAt(geo, geo.bisectorPhi);
-    return pointAtRadius(geo, thresholdFrac * rOutBis, geo.bisectorPhi);
+    return ellipsePoint(geo, thresholdFrac, geo.bisectorTheta);
   }, [geo, thresholdFrac]);
 
   const [dragId, setDragId] = useState<DragId | null>(null);
@@ -136,12 +129,12 @@ export default function ValenceCertaintyPanel() {
     } else if (dragId === "agree") {
       setAnchors((a) => ({ ...a!, agree: p }));
     } else if (dragId === "pass") {
-      const vx = p.x - apex.x;
-      const vy = p.y - apex.y;
-      const dir = { x: Math.cos(geo.bisectorPhi), y: Math.sin(geo.bisectorPhi) };
-      const proj = vx * dir.x + vy * dir.y;
-      const rOutBis = outerRadiusAt(geo, geo.bisectorPhi);
-      setThresholdFrac(Math.max(0.05, Math.min(0.95, proj / rOutBis)));
+      // Project the drag point onto the valence bisector (θ = π/4) in the
+      // anchor basis, and use its ellipse fraction as the threshold.
+      const { alpha, beta } = toBasis(geo, p);
+      const k = Math.SQRT1_2; // cos(π/4) = sin(π/4)
+      const frac = alpha * k + beta * k;
+      setThresholdFrac(Math.max(0.05, Math.min(0.95, frac)));
     }
   };
 
@@ -155,19 +148,21 @@ export default function ValenceCertaintyPanel() {
     return <div ref={containerRef} style={{ width: "100%", flex: 1, minHeight: 0, background: "#0c0c10" }} />;
   }
 
-  const { phiStart, phiEnd, bisectorPhi, thresholdFrac: tf, innerFrac } = geo;
+  const { bisectorTheta, thresholdFrac: tf, innerFrac } = geo;
+  const T0 = 0;
+  const T1 = Math.PI / 2;
 
-  const disagreeCell = cellPath(geo, tf, 1, phiStart, bisectorPhi);
-  const agreeCell = cellPath(geo, tf, 1, bisectorPhi, phiEnd);
-  const passCellA = cellPath(geo, innerFrac, tf, phiStart, bisectorPhi);
-  const passCellB = cellPath(geo, innerFrac, tf, bisectorPhi, phiEnd);
+  const disagreeCell = cellPath(geo, tf, 1, T0, bisectorTheta);
+  const agreeCell = cellPath(geo, tf, 1, bisectorTheta, T1);
+  const passCellA = cellPath(geo, innerFrac, tf, T0, bisectorTheta);
+  const passCellB = cellPath(geo, innerFrac, tf, bisectorTheta, T1);
 
-  const outerArc = arcPath(geo, 1, phiStart, phiEnd);
-  const innerArc = arcPath(geo, innerFrac, phiStart, phiEnd);
-  const thresholdArc = arcPath(geo, tf, phiStart, phiEnd);
-  const edgeStart = radialPath(geo, phiStart);
-  const edgeEnd = radialPath(geo, phiEnd);
-  const bisector = radialPath(geo, bisectorPhi);
+  const outerArc = arcPath(geo, 1, T0, T1);
+  const innerArc = arcPath(geo, innerFrac, T0, T1);
+  const thresholdArc = arcPath(geo, tf, T0, T1);
+  const edgeStart = radialPath(geo, T0);
+  const edgeEnd = radialPath(geo, T1);
+  const bisector = radialPath(geo, bisectorTheta);
 
   const active = livePos ?? debugPos;
   const dbg = active ? regionFromPoint(geo, active) : null;

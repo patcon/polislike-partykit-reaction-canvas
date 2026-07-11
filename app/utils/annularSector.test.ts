@@ -1,8 +1,8 @@
 import { describe, it, expect } from "vitest";
 import {
-  makeGeometryFromAnchors,
-  outerRadiusAt,
-  pointAtRadius,
+  makeGeometry,
+  ellipsePoint,
+  toBasis,
   regionFromPoint,
   type CellId,
   type Pt,
@@ -15,31 +15,27 @@ const agree: Pt = { x: apex.x, y: apex.y - rOut }; // north edge
 const thresholdFrac = 0.5;
 const innerFrac = 0.12;
 
-const geo = makeGeometryFromAnchors(apex, disagree, agree, pointAtRadius(
-  makeGeometryFromAnchors(apex, disagree, agree, apex, innerFrac),
-  thresholdFrac * outerRadiusAt(makeGeometryFromAnchors(apex, disagree, agree, apex, innerFrac), Math.PI + Math.PI / 4),
-  Math.PI + Math.PI / 4,
-), innerFrac);
+const geo = makeGeometry(apex, disagree, agree, thresholdFrac, innerFrac);
 
-describe("makeGeometryFromAnchors", () => {
-  it("uses the two edge distances as the outer radii", () => {
-    expect(geo.rStart).toBeCloseTo(rOut);
-    expect(geo.rEnd).toBeCloseTo(rOut);
-    expect(geo.delta).toBeCloseTo(Math.PI / 2);
+describe("makeGeometry", () => {
+  it("stores the anchor vectors from the apex", () => {
+    expect(geo.u).toEqual({ x: -rOut, y: 0 });
+    expect(geo.v).toEqual({ x: 0, y: -rOut });
+    expect(geo.bisectorTheta).toBeCloseTo(Math.PI / 4);
   });
 
   it("pins the pass anchor to the bisector at the threshold fraction", () => {
-    const rOutBis = outerRadiusAt(geo, geo.bisectorPhi);
+    const pass = ellipsePoint(geo, thresholdFrac, geo.bisectorTheta);
+    const { alpha, beta } = toBasis(geo, pass);
+    expect(Math.hypot(alpha, beta)).toBeCloseTo(thresholdFrac);
     expect(geo.thresholdFrac).toBeCloseTo(thresholdFrac);
-    expect(geo.bisectorPhi).toBeCloseTo(Math.PI + Math.PI / 4);
-    expect(rOutBis).toBeCloseTo(rOut);
   });
 });
 
 function sampleAt(id: CellId): Pt {
-  const mid = id === "agree" ? geo.bisectorPhi + geo.delta / 4 : geo.bisectorPhi - geo.delta / 4;
-  const r = outerRadiusAt(geo, mid) * (id === "pass" ? 0.25 : 0.75);
-  return pointAtRadius(geo, r, mid);
+  const theta = id === "agree" ? geo.bisectorTheta + Math.PI / 8 : geo.bisectorTheta - Math.PI / 8;
+  const frac = id === "pass" ? 0.25 : 0.75;
+  return ellipsePoint(geo, frac, theta);
 }
 
 describe("regionFromPoint", () => {
@@ -67,15 +63,22 @@ describe("regionFromPoint", () => {
 });
 
 describe("ellipsoid: independent edges", () => {
-  it("makes the outer radius follow the disagree/agree distances independently", () => {
-    const stretched = makeGeometryFromAnchors(
+  it("smoothly connects unequal anchor offsets via the ellipse", () => {
+    const stretched = makeGeometry(
       apex,
       { x: apex.x - 1200, y: apex.y },
       { x: apex.x, y: apex.y - 400 },
-      { x: apex.x - 200, y: apex.y - 200 },
+      thresholdFrac,
     );
-    expect(stretched.rStart).toBeCloseTo(1200);
-    expect(stretched.rEnd).toBeCloseTo(400);
-    expect(outerRadiusAt(stretched, stretched.bisectorPhi)).toBeCloseTo(800);
+    // Outer boundary must pass through both anchors exactly.
+    const atDisagree = ellipsePoint(stretched, 1, 0);
+    const atAgree = ellipsePoint(stretched, 1, Math.PI / 2);
+    expect(Math.hypot(atDisagree.x - (apex.x - 1200), atDisagree.y - apex.y)).toBeLessThan(1);
+    expect(Math.hypot(atAgree.x - apex.x, atAgree.y - (apex.y - 400))).toBeLessThan(1);
+    // Midpoint of the outer arc should bulge beyond the straight chord.
+    const mid = ellipsePoint(stretched, 1, Math.PI / 4);
+    const chordMid = { x: (atDisagree.x + atAgree.x) / 2, y: (atDisagree.y + atAgree.y) / 2 };
+    const bulge = Math.hypot(mid.x - chordMid.x, mid.y - chordMid.y);
+    expect(bulge).toBeGreaterThan(1);
   });
 });

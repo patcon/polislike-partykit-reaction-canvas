@@ -1,18 +1,18 @@
 // Anchor-driven, ellipsoid annular-sector geometry for the valence × certainty
 // prototype.
 //
-// Unlike a fixed circular sector, the sector shape is defined by three anchors:
-//   • `disagree` — outer corner of the DISAGREE edge (one side of the wedge)
-//   • `agree`    — outer corner of the AGREE edge (other side of the wedge)
+// The sector shape is defined by three anchors:
+//   • `disagree` — one outer corner of the sector (a vector `u` from the apex)
+//   • `agree`    — the other outer corner (a vector `v` from the apex)
 //   • `pass`     — sits on the valence bisector (the Q3/Q4 boundary) and sets
 //                 the certainty threshold (how far the PASS band reaches out)
 //
-// The wedge is the angular span between the disagree and agree rays that
-// contains the pass anchor. The outer radius is interpolated between the two
-// edge distances, so moving disagree/agree independently makes the boundary
-// ellipsoid rather than circular. The inner boundary (annular hole) is a fixed
-// fraction of the outer radius, and the threshold (PASS vs AGREE/DISAGREE) is a
-// fixed fraction, so the whole sector scales homothetically with the anchors.
+// The outer boundary is a smooth ELLIPSE through the two anchors, parameterised
+// by their offset from the apex:  E(θ) = apex + frac · (u·cosθ + v·sinθ).
+// θ runs 0 → π/2, with the disagree anchor at θ=0 and the agree anchor at θ=π/2,
+// so the boundary smoothly connects them with no jarring edge. The inner
+// (annular) boundary and the threshold (PASS vs AGREE/DISAGREE) are the same
+// ellipse scaled by a fraction, so the whole sector is homothetic.
 
 export interface Pt {
   x: number;
@@ -25,164 +25,134 @@ export type SectorRegion = "disagree" | "agree" | "pass" | "outside";
 
 export interface SectorGeometry {
   apex: Pt;
-  /** Starting angle of the wedge (disagree edge), radians. */
-  phiStart: number;
-  /** Ending angle of the wedge (agree edge), radians. */
-  phiEnd: number;
-  /** phiEnd − phiStart wrapped to (0, 2π]. */
-  delta: number;
-  /** Outer radius at the disagree edge. */
-  rStart: number;
-  /** Outer radius at the agree edge. */
-  rEnd: number;
-  /** Angle of the valence bisector (Q3/Q4 boundary), radians. */
-  bisectorPhi: number;
-  /** PASS fraction of the outer radius (certainty threshold). */
+  /** apex → disagree anchor (one conjugate radius of the ellipse). */
+  u: Pt;
+  /** apex → agree anchor (other conjugate radius of the ellipse). */
+  v: Pt;
+  /** Angle (θ-space) of the valence bisector — always π/4. */
+  bisectorTheta: number;
+  /** PASS fraction of the outer ellipse (certainty threshold). */
   thresholdFrac: number;
-  /** Inner (annular) fraction of the outer radius. */
+  /** Inner (annular) fraction of the outer ellipse. */
   innerFrac: number;
 }
 
 export interface RegionReadout {
   region: SectorRegion;
-  /** −1 (disagree) … +1 (agree), derived from angle within the wedge. */
+  /** −1 (disagree) … +1 (agree), derived from θ within the wedge. */
   valence: number;
-  /** 0 (inner) … 1 (outer), derived from radius within the wedge. */
+  /** 0 (inner) … 1 (outer), derived from the ellipse fraction. */
   certainty: number;
   inSector: boolean;
 }
 
-const TWO_PI = Math.PI * 2;
+const HALF_PI = Math.PI / 2;
 
-function norm2pi(a: number): number {
-  return ((a % TWO_PI) + TWO_PI) % TWO_PI;
+/** Point on the ellipse at fraction `frac` (0..1) and angle θ (0..π/2). */
+export function ellipsePoint(geo: SectorGeometry, frac: number, theta: number): Pt {
+  const c = Math.cos(theta);
+  const s = Math.sin(theta);
+  return {
+    x: geo.apex.x + frac * (geo.u.x * c + geo.v.x * s),
+    y: geo.apex.y + frac * (geo.u.y * c + geo.v.y * s),
+  };
 }
 
-/** True if angle `a` lies on the CCW arc from aStart to aEnd (inclusive). */
-function inArc(aStart: number, aEnd: number, a: number): boolean {
-  const s = norm2pi(aStart);
-  let e = norm2pi(aEnd);
-  let x = norm2pi(a);
-  if (e < s) e += TWO_PI;
-  if (x < s) x += TWO_PI;
-  return x <= e + 1e-9;
+/**
+ * Solve p − apex = α·u + β·v, returning the (α, β) coordinates in the
+ * anchor basis. For points on the ellipse, (α, β) = (frac·cosθ, frac·sinθ),
+ * so frac = hypot(α, β) and θ = atan2(β, α).
+ */
+export function toBasis(geo: SectorGeometry, p: Pt): { alpha: number; beta: number } {
+  const dx = p.x - geo.apex.x;
+  const dy = p.y - geo.apex.y;
+  const det = geo.u.x * geo.v.y - geo.v.x * geo.u.y;
+  if (Math.abs(det) < 1e-6) {
+    // Degenerate (u ‖ v): fall back to projecting onto u.
+    const lu = Math.hypot(geo.u.x, geo.u.y) || 1;
+    const proj = (dx * geo.u.x + dy * geo.u.y) / (lu * lu);
+    return { alpha: proj, beta: proj };
+  }
+  return {
+    alpha: (dx * geo.v.y - dy * geo.v.x) / det,
+    beta: (geo.u.x * dy - dx * geo.u.y) / det,
+  };
 }
 
-/** Outer radius at angle φ (linear interpolation between the two edge distances). */
-export function outerRadiusAt(geo: SectorGeometry, phi: number): number {
-  const t = norm2pi(phi - geo.phiStart) / geo.delta;
-  return geo.rStart + (geo.rEnd - geo.rStart) * t;
-}
-
-export function pointAtRadius(geo: SectorGeometry, r: number, phi: number): Pt {
-  return { x: geo.apex.x + r * Math.cos(phi), y: geo.apex.y + r * Math.sin(phi) };
-}
-
-export function makeGeometryFromAnchors(
+export function makeGeometry(
   apex: Pt,
   disagree: Pt,
   agree: Pt,
-  pass: Pt,
+  thresholdFrac: number,
   innerFrac = 0.12,
 ): SectorGeometry {
-  const ang = (p: Pt) => Math.atan2(p.y - apex.y, p.x - apex.x);
-  const aD = ang(disagree);
-  const aG = ang(agree);
-  const aP = ang(pass);
-  const rD = Math.hypot(disagree.x - apex.x, disagree.y - apex.y);
-  const rG = Math.hypot(agree.x - apex.x, agree.y - apex.y);
-
-  let phiStart: number, phiEnd: number, rStart: number, rEnd: number;
-  if (inArc(aD, aG, aP)) {
-    phiStart = aD;
-    phiEnd = aG;
-    rStart = rD;
-    rEnd = rG;
-  } else {
-    // Pass falls in the other arc — swap so the wedge contains the pass anchor.
-    phiStart = aG;
-    phiEnd = aD;
-    rStart = rG;
-    rEnd = rD;
-  }
-
-  let delta = norm2pi(phiEnd - phiStart);
-  if (delta < 1e-6) delta = Math.PI / 2;
-
-  const bisectorPhi = phiStart + delta / 2;
-  const rOutBis = (rStart + rEnd) / 2;
-  const rPass = Math.hypot(pass.x - apex.x, pass.y - apex.y);
-  const thresholdFrac = Math.max(0.05, Math.min(0.95, rPass / rOutBis));
-
-  return { apex, phiStart, phiEnd, delta, rStart, rEnd, bisectorPhi, thresholdFrac, innerFrac };
+  return {
+    apex,
+    u: { x: disagree.x - apex.x, y: disagree.y - apex.y },
+    v: { x: agree.x - apex.x, y: agree.y - apex.y },
+    bisectorTheta: HALF_PI / 2,
+    thresholdFrac: Math.max(0.05, Math.min(0.95, thresholdFrac)),
+    innerFrac,
+  };
 }
 
-/** Filled polygon for a sub-cell bounded by radius fractions [rInnerFrac, rOuterFrac] × [phi0, phi1]. */
+/** Filled polygon for a sub-cell bounded by fraction [rInnerFrac, rOuterFrac] × [theta0, theta1]. */
 export function cellPath(
   geo: SectorGeometry,
   rInnerFrac: number,
   rOuterFrac: number,
-  phi0: number,
-  phi1: number,
+  theta0: number,
+  theta1: number,
   steps = 48,
 ): string {
   const pts: Pt[] = [];
   for (let i = 0; i <= steps; i++) {
-    const phi = phi0 + (phi1 - phi0) * (i / steps);
-    const r = rOuterFrac * outerRadiusAt(geo, phi);
-    pts.push(pointAtRadius(geo, r, phi));
+    const theta = theta0 + (theta1 - theta0) * (i / steps);
+    pts.push(ellipsePoint(geo, rOuterFrac, theta));
   }
   for (let i = steps; i >= 0; i--) {
-    const phi = phi0 + (phi1 - phi0) * (i / steps);
-    const r = rInnerFrac * outerRadiusAt(geo, phi);
-    pts.push(pointAtRadius(geo, r, phi));
+    const theta = theta0 + (theta1 - theta0) * (i / steps);
+    pts.push(ellipsePoint(geo, rInnerFrac, theta));
   }
   return "M " + pts.map((p) => `${p.x} ${p.y}`).join(" L ") + " Z";
 }
 
-/** Open polyline along a radius fraction (0..1 of outer) from φ0 to φ1. */
+/** Open polyline along a fraction (0..1 of outer) from θ0 to θ1. */
 export function arcPath(
   geo: SectorGeometry,
-  rFrac: number,
-  phi0: number,
-  phi1: number,
+  frac: number,
+  theta0: number,
+  theta1: number,
   steps = 48,
 ): string {
   const pts: Pt[] = [];
   for (let i = 0; i <= steps; i++) {
-    const phi = phi0 + (phi1 - phi0) * (i / steps);
-    const r = rFrac * outerRadiusAt(geo, phi);
-    pts.push(pointAtRadius(geo, r, phi));
+    const theta = theta0 + (theta1 - theta0) * (i / steps);
+    pts.push(ellipsePoint(geo, frac, theta));
   }
   return "M " + pts.map((p) => `${p.x} ${p.y}`).join(" L ");
 }
 
-/** Radial line (inner → outer boundary) at a fixed angle. */
-export function radialPath(geo: SectorGeometry, phi: number): string {
-  const rOut = outerRadiusAt(geo, phi);
-  const inner = pointAtRadius(geo, geo.innerFrac * rOut, phi);
-  const outer = pointAtRadius(geo, rOut, phi);
+/** Radial line (inner → outer boundary) at a fixed θ. */
+export function radialPath(geo: SectorGeometry, theta: number): string {
+  const inner = ellipsePoint(geo, geo.innerFrac, theta);
+  const outer = ellipsePoint(geo, 1, theta);
   return `M ${inner.x} ${inner.y} L ${outer.x} ${outer.y}`;
 }
 
 /** Map a panel point to its region, valence, and certainty. */
 export function regionFromPoint(geo: SectorGeometry, p: Pt): RegionReadout {
-  const vx = p.x - geo.apex.x;
-  const vy = p.y - geo.apex.y;
-  const r = Math.hypot(vx, vy);
-  const ang = Math.atan2(vy, vx);
-  const inWedge = inArc(geo.phiStart, geo.phiEnd, ang);
-  const rOut = outerRadiusAt(geo, ang);
-  const inSector = inWedge && r <= rOut + 1;
+  const { alpha, beta } = toBasis(geo, p);
+  const frac = Math.hypot(alpha, beta);
+  const theta = Math.atan2(beta, alpha);
+  const inWedge = theta >= -1e-9 && theta <= HALF_PI + 1e-9;
+  const inSector = inWedge && frac <= 1 + 1e-9;
   if (!inSector) {
     return { region: "outside", valence: 0, certainty: 0, inSector: false };
   }
-  const t = norm2pi(ang - geo.phiStart) / geo.delta;
-  const rThr = geo.thresholdFrac * rOut;
-  const rIn = geo.innerFrac * rOut;
-  const certainty = Math.max(0, Math.min(1, (r - rIn) / (rOut - rIn)));
-  const valence = 2 * t - 1;
+  const certainty = Math.max(0, Math.min(1, (frac - geo.innerFrac) / (1 - geo.innerFrac)));
+  const valence = (2 * theta) / HALF_PI - 1;
   let region: SectorRegion = "pass";
-  if (r >= rThr) region = t < 0.5 ? "disagree" : "agree";
+  if (frac >= geo.thresholdFrac) region = theta < geo.bisectorTheta ? "disagree" : "agree";
   return { region, valence, certainty, inSector: true };
 }
