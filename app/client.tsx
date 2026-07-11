@@ -23,6 +23,7 @@ const NewFrontPage = lazy(() => import("./components/NewFrontPage").then(m => ({
 const DemosIndex = lazy(() => import("./components/demos/DemosIndex"));
 const DemoAdminCanvas = lazy(() => import("./components/demos/DemoAdminCanvas"));
 const DemoCanvasMood = lazy(() => import("./components/demos/DemoCanvasMood"));
+const DemoValenceCrossSection = lazy(() => import("./components/demos/DemoValenceCrossSection"));
 
 const TITLES: Record<string, (admin: boolean) => string> = {
   '#v2': ()      => 'YouTube Reaction (Sync) — Polislike',
@@ -125,11 +126,19 @@ const demoCanvasMoodRoute = createRoute({
   component: () => <Suspense fallback={null}><DemoCanvasMood /></Suspense>,
 });
 
+const demoValenceCrossSectionRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/demos/canvas-valence-cross-section',
+  beforeLoad: () => { document.title = 'Demo: Reaction Canvas + Valence Cross-Section — Polislike'; },
+  component: () => <Suspense fallback={null}><DemoValenceCrossSection /></Suspense>,
+});
+
 const routeTree = rootRoute.addChildren([
   indexRoute,
   demosIndexRoute,
   demoAdminCanvasRoute,
   demoCanvasMoodRoute,
+  demoValenceCrossSectionRoute,
   roomRoute,
 ]);
 

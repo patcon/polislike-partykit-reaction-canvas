@@ -19,6 +19,10 @@ export default function DemosIndex() {
           <Link to="/demos/canvas-mood">Reaction Canvas + Mood Tones</Link>
           <span className="demo-list-desc">Participant cursors feeding the mood-tones readout.</span>
         </li>
+        <li>
+          <Link to="/demos/canvas-valence-cross-section">Reaction Canvas + Valence Cross-Section</Link>
+          <span className="demo-list-desc">Participant cursors feeding the valence cross-section visualization.</span>
+        </li>
       </ul>
     </div>
   );
