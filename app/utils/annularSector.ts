@@ -1,18 +1,18 @@
-// Anchor-driven, ellipsoid annular-sector geometry for the valence × certainty
-// prototype.
+// Anchor-driven, axis-aligned ellipsoid annular-sector geometry for the
+// valence × certainty prototype.
 //
-// The sector shape is defined by three anchors:
-//   • `disagree` — one outer corner of the sector (a vector `u` from the apex)
-//   • `agree`    — the other outer corner (a vector `v` from the apex)
-//   • `pass`     — sits on the valence bisector (the Q3/Q4 boundary) and sets
-//                 the certainty threshold (how far the PASS band reaches out)
+// The outer boundary is a quarter ELLIPSE centred at the apex (the bottom-right
+// corner) with its two axes horizontal + vertical. That axis-alignment is what
+// makes the arc meet each radial edge at a right angle (at the ellipse's
+// vertices). The inner (annular) boundary and the threshold (PASS vs AGREE /
+// DISAGREE) are the same ellipse scaled by a fraction, so the whole sector is
+// homothetic and still meets every edge at a right angle.
 //
-// The outer boundary is a smooth ELLIPSE through the two anchors, parameterised
-// by their offset from the apex:  E(θ) = apex + frac · (u·cosθ + v·sinθ).
-// θ runs 0 → π/2, with the disagree anchor at θ=0 and the agree anchor at θ=π/2,
-// so the boundary smoothly connects them with no jarring edge. The inner
-// (annular) boundary and the threshold (PASS vs AGREE/DISAGREE) are the same
-// ellipse scaled by a fraction, so the whole sector is homothetic.
+// DISAGREE / AGREE are points ON the outer arc (free to slide along it). They
+// set the horizontal reach `a` and vertical reach `b` (reshaping the ellipse),
+// and mark where valence = −1 / +1 sit. The arc extends past them to the
+// vertices. A single PASS anchor rides the valence bisector (the Q3/Q4
+// boundary) and sets the certainty threshold.
 
 export interface Pt {
   x: number;
@@ -25,11 +25,15 @@ export type SectorRegion = "disagree" | "agree" | "pass" | "outside";
 
 export interface SectorGeometry {
   apex: Pt;
-  /** apex → disagree anchor (one conjugate radius of the ellipse). */
-  u: Pt;
-  /** apex → agree anchor (other conjugate radius of the ellipse). */
-  v: Pt;
-  /** Angle (θ-space) of the valence bisector — always π/4. */
+  /** Horizontal semi-axis (DISAGREE reach). */
+  a: number;
+  /** Vertical semi-axis (AGREE reach). */
+  b: number;
+  /** Ellipse parameter where valence = −1 (DISAGREE handle). */
+  thetaDisagree: number;
+  /** Ellipse parameter where valence = +1 (AGREE handle). */
+  thetaAgree: number;
+  /** Ellipse parameter of the valence bisector (valence = 0). */
   bisectorTheta: number;
   /** PASS fraction of the outer ellipse (certainty threshold). */
   thresholdFrac: number;
@@ -39,7 +43,7 @@ export interface SectorGeometry {
 
 export interface RegionReadout {
   region: SectorRegion;
-  /** −1 (disagree) … +1 (agree), derived from θ within the wedge. */
+  /** −1 (disagree) … +1 (agree), derived from angle within the wedge. */
   valence: number;
   /** 0 (inner) … 1 (outer), derived from the ellipse fraction. */
   certainty: number;
@@ -47,52 +51,42 @@ export interface RegionReadout {
 }
 
 const HALF_PI = Math.PI / 2;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
-/** Point on the ellipse at fraction `frac` (0..1) and angle θ (0..π/2). */
+/** Point on the ellipse at fraction `frac` (0..1) and parameter θ (0..π/2). */
 export function ellipsePoint(geo: SectorGeometry, frac: number, theta: number): Pt {
-  const c = Math.cos(theta);
-  const s = Math.sin(theta);
   return {
-    x: geo.apex.x + frac * (geo.u.x * c + geo.v.x * s),
-    y: geo.apex.y + frac * (geo.u.y * c + geo.v.y * s),
-  };
-}
-
-/**
- * Solve p − apex = α·u + β·v, returning the (α, β) coordinates in the
- * anchor basis. For points on the ellipse, (α, β) = (frac·cosθ, frac·sinθ),
- * so frac = hypot(α, β) and θ = atan2(β, α).
- */
-export function toBasis(geo: SectorGeometry, p: Pt): { alpha: number; beta: number } {
-  const dx = p.x - geo.apex.x;
-  const dy = p.y - geo.apex.y;
-  const det = geo.u.x * geo.v.y - geo.v.x * geo.u.y;
-  if (Math.abs(det) < 1e-6) {
-    // Degenerate (u ‖ v): fall back to projecting onto u.
-    const lu = Math.hypot(geo.u.x, geo.u.y) || 1;
-    const proj = (dx * geo.u.x + dy * geo.u.y) / (lu * lu);
-    return { alpha: proj, beta: proj };
-  }
-  return {
-    alpha: (dx * geo.v.y - dy * geo.v.x) / det,
-    beta: (geo.u.x * dy - dx * geo.u.y) / det,
+    x: geo.apex.x - frac * geo.a * Math.cos(theta),
+    y: geo.apex.y - frac * geo.b * Math.sin(theta),
   };
 }
 
 export function makeGeometry(
   apex: Pt,
-  disagree: Pt,
-  agree: Pt,
+  a: number,
+  b: number,
+  thetaDisagree: number,
+  thetaAgree: number,
   thresholdFrac: number,
   innerFrac = 0.12,
 ): SectorGeometry {
   return {
     apex,
-    u: { x: disagree.x - apex.x, y: disagree.y - apex.y },
-    v: { x: agree.x - apex.x, y: agree.y - apex.y },
-    bisectorTheta: HALF_PI / 2,
-    thresholdFrac: Math.max(0.05, Math.min(0.95, thresholdFrac)),
+    a: Math.max(1, a),
+    b: Math.max(1, b),
+    thetaDisagree: clamp(thetaDisagree, 0, HALF_PI),
+    thetaAgree: clamp(thetaAgree, 0, HALF_PI),
+    bisectorTheta: (clamp(thetaDisagree, 0, HALF_PI) + clamp(thetaAgree, 0, HALF_PI)) / 2,
+    thresholdFrac: clamp(thresholdFrac, 0.05, 0.95),
     innerFrac,
+  };
+}
+
+/** Solve p − apex = α·(−a,0) + β·(0,−b), returning the ellipse basis coords. */
+export function toBasis(geo: SectorGeometry, p: Pt): { alpha: number; beta: number } {
+  return {
+    alpha: (geo.apex.x - p.x) / geo.a,
+    beta: (geo.apex.y - p.y) / geo.b,
   };
 }
 
@@ -145,14 +139,17 @@ export function regionFromPoint(geo: SectorGeometry, p: Pt): RegionReadout {
   const { alpha, beta } = toBasis(geo, p);
   const frac = Math.hypot(alpha, beta);
   const theta = Math.atan2(beta, alpha);
-  const inWedge = theta >= -1e-9 && theta <= HALF_PI + 1e-9;
-  const inSector = inWedge && frac <= 1 + 1e-9;
+  const inSector = theta >= -1e-9 && theta <= HALF_PI + 1e-9 && frac <= 1 + 1e-9;
   if (!inSector) {
     return { region: "outside", valence: 0, certainty: 0, inSector: false };
   }
-  const certainty = Math.max(0, Math.min(1, (frac - geo.innerFrac) / (1 - geo.innerFrac)));
-  const valence = (2 * theta) / HALF_PI - 1;
+  const certainty = clamp((frac - geo.innerFrac) / (1 - geo.innerFrac), 0, 1);
+  const span = Math.max(1e-6, geo.thetaAgree - geo.thetaDisagree);
+  let valence: number;
+  if (theta <= geo.thetaDisagree) valence = -1;
+  else if (theta >= geo.thetaAgree) valence = 1;
+  else valence = (2 * (theta - geo.thetaDisagree)) / span - 1;
   let region: SectorRegion = "pass";
-  if (frac >= geo.thresholdFrac) region = theta < geo.bisectorTheta ? "disagree" : "agree";
+  if (frac >= geo.thresholdFrac) region = valence < 0 ? "disagree" : "agree";
   return { region, valence, certainty, inSector: true };
 }

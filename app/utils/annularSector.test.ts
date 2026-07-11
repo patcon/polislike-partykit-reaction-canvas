@@ -8,20 +8,22 @@ import {
   type Pt,
 } from "./annularSector";
 
+const HALF_PI = Math.PI / 2;
 const apex: Pt = { x: 1000, y: 1000 };
-const rOut = 800;
-const disagree: Pt = { x: apex.x - rOut, y: apex.y }; // west edge
-const agree: Pt = { x: apex.x, y: apex.y - rOut }; // north edge
+const a = 800;
+const b = 600;
 const thresholdFrac = 0.5;
 const innerFrac = 0.12;
 
-const geo = makeGeometry(apex, disagree, agree, thresholdFrac, innerFrac);
+const geo = makeGeometry(apex, a, b, 0, HALF_PI, thresholdFrac, innerFrac);
 
 describe("makeGeometry", () => {
-  it("stores the anchor vectors from the apex", () => {
-    expect(geo.u).toEqual({ x: -rOut, y: 0 });
-    expect(geo.v).toEqual({ x: 0, y: -rOut });
-    expect(geo.bisectorTheta).toBeCloseTo(Math.PI / 4);
+  it("stores the semi-axes and anchor thetas", () => {
+    expect(geo.a).toBeCloseTo(a);
+    expect(geo.b).toBeCloseTo(b);
+    expect(geo.thetaDisagree).toBeCloseTo(0);
+    expect(geo.thetaAgree).toBeCloseTo(HALF_PI);
+    expect(geo.bisectorTheta).toBeCloseTo(HALF_PI / 2);
   });
 
   it("pins the pass anchor to the bisector at the threshold fraction", () => {
@@ -29,6 +31,16 @@ describe("makeGeometry", () => {
     const { alpha, beta } = toBasis(geo, pass);
     expect(Math.hypot(alpha, beta)).toBeCloseTo(thresholdFrac);
     expect(geo.thresholdFrac).toBeCloseTo(thresholdFrac);
+  });
+
+  it("puts the disagree handle on the bottom edge vertex", () => {
+    const p = ellipsePoint(geo, 1, geo.thetaDisagree);
+    expect(p.y).toBeCloseTo(apex.y);
+  });
+
+  it("puts the agree handle on the right edge vertex", () => {
+    const p = ellipsePoint(geo, 1, geo.thetaAgree);
+    expect(p.x).toBeCloseTo(apex.x);
   });
 });
 
@@ -62,23 +74,21 @@ describe("regionFromPoint", () => {
   });
 });
 
-describe("ellipsoid: independent edges", () => {
-  it("smoothly connects unequal anchor offsets via the ellipse", () => {
-    const stretched = makeGeometry(
-      apex,
-      { x: apex.x - 1200, y: apex.y },
-      { x: apex.x, y: apex.y - 400 },
-      thresholdFrac,
-    );
-    // Outer boundary must pass through both anchors exactly.
-    const atDisagree = ellipsePoint(stretched, 1, 0);
-    const atAgree = ellipsePoint(stretched, 1, Math.PI / 2);
-    expect(Math.hypot(atDisagree.x - (apex.x - 1200), atDisagree.y - apex.y)).toBeLessThan(1);
-    expect(Math.hypot(atAgree.x - apex.x, atAgree.y - (apex.y - 400))).toBeLessThan(1);
-    // Midpoint of the outer arc should bulge beyond the straight chord.
-    const mid = ellipsePoint(stretched, 1, Math.PI / 4);
-    const chordMid = { x: (atDisagree.x + atAgree.x) / 2, y: (atDisagree.y + atAgree.y) / 2 };
-    const bulge = Math.hypot(mid.x - chordMid.x, mid.y - chordMid.y);
-    expect(bulge).toBeGreaterThan(1);
+describe("axis-aligned ellipse: free anchors", () => {
+  it("meets both screen edges at 90° (radial edges are horizontal & vertical at the vertices)", () => {
+    const atDisagree = ellipsePoint(geo, 1, 0);
+    const atAgree = ellipsePoint(geo, 1, HALF_PI);
+    expect(atDisagree.y).toBeCloseTo(apex.y); // bottom edge → horizontal radial
+    expect(atAgree.x).toBeCloseTo(apex.x); // right edge → vertical radial
+  });
+
+  it("keeps a free anchor on the arc when reshaped", () => {
+    // Drag DISAGREE: change a (horizontal) and slide theta (vertical). The
+    // handle must still lie exactly on the outer arc for its theta.
+    const a2 = 500;
+    const thetaDisagree = 0.6;
+    const g2 = makeGeometry(apex, a2, b, thetaDisagree, HALF_PI, thresholdFrac, innerFrac);
+    const handle = ellipsePoint(g2, 1, g2.thetaDisagree);
+    expect(Math.hypot(handle.x - (apex.x - a2 * Math.cos(thetaDisagree)), handle.y - (apex.y - b * Math.sin(thetaDisagree)))).toBeLessThan(1);
   });
 });

@@ -20,6 +20,10 @@ const ANCHOR_LABELS: Record<CellId, string> = {
 
 const ANCHOR_HIT_RADIUS = 30;
 const INNER_FRAC = 0.12;
+const MIN_A = 20;
+const MIN_B = 20;
+const HALF_PI = Math.PI / 2;
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
 const CELL_STYLE: Record<CellId, { fill: string }> = {
   disagree: { fill: "rgba(255,107,107,0.18)" },
@@ -28,6 +32,14 @@ const CELL_STYLE: Record<CellId, { fill: string }> = {
 };
 
 type DragId = "disagree" | "agree" | "pass";
+
+interface GeoState {
+  a: number;
+  b: number;
+  thetaDisagree: number;
+  thetaAgree: number;
+  thresholdFrac: number;
+}
 
 export default function ValenceCertaintyPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,37 +59,33 @@ export default function ValenceCertaintyPanel() {
 
   const { W, H } = size;
 
-  const [anchors, setAnchors] = useState<{ disagree: Pt; agree: Pt } | null>(null);
-  const [thresholdFrac, setThresholdFrac] = useState(0.5);
+  const [gs, setGs] = useState<GeoState | null>(null);
   const prevSize = useRef<{ W: number; H: number } | null>(null);
 
   useEffect(() => {
     if (W === 0 || H === 0) return;
-    const rOut = Math.min(W, H) * 0.92;
-    if (!anchors) {
-      setAnchors({ disagree: { x: W - rOut, y: H }, agree: { x: W, y: H - rOut } });
+    if (!gs) {
+      const a = Math.min(W, H) * 0.92;
+      const b = Math.min(W, H) * 0.92;
+      setGs({ a, b, thetaDisagree: 0, thetaAgree: HALF_PI, thresholdFrac: 0.5 });
     } else if (prevSize.current && (prevSize.current.W !== W || prevSize.current.H !== H)) {
       const sx = W / prevSize.current.W;
       const sy = H / prevSize.current.H;
-      setAnchors((a) => ({
-        disagree: { x: a!.disagree.x * sx, y: a!.disagree.y * sy },
-        agree: { x: a!.agree.x * sx, y: a!.agree.y * sy },
-      }));
+      setGs((g) => ({ ...g!, a: g!.a * sx, b: g!.b * sy }));
     }
     prevSize.current = { W, H };
-  }, [W, H, anchors]);
+  }, [W, H, gs]);
 
   const apex = useMemo<Pt>(() => ({ x: W, y: H }), [W, H]);
 
   const geo: SectorGeometry | null = useMemo(() => {
-    if (!anchors) return null;
-    return makeGeometry(apex, anchors.disagree, anchors.agree, thresholdFrac, INNER_FRAC);
-  }, [apex, anchors, thresholdFrac]);
+    if (!gs) return null;
+    return makeGeometry(apex, gs.a, gs.b, gs.thetaDisagree, gs.thetaAgree, gs.thresholdFrac, INNER_FRAC);
+  }, [apex, gs]);
 
-  const passPixel = useMemo<Pt | null>(() => {
-    if (!geo) return null;
-    return ellipsePoint(geo, thresholdFrac, geo.bisectorTheta);
-  }, [geo, thresholdFrac]);
+  const disagreePos = useMemo<Pt | null>(() => (geo ? ellipsePoint(geo, 1, geo.thetaDisagree) : null), [geo]);
+  const agreePos = useMemo<Pt | null>(() => (geo ? ellipsePoint(geo, 1, geo.thetaAgree) : null), [geo]);
+  const passPos = useMemo<Pt | null>(() => (geo ? ellipsePoint(geo, geo.thresholdFrac, geo.bisectorTheta) : null), [geo]);
 
   const [dragId, setDragId] = useState<DragId | null>(null);
   const [livePos, setLivePos] = useState<Pt | null>(null);
@@ -90,12 +98,12 @@ export default function ValenceCertaintyPanel() {
   }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (!anchors || !passPixel || !geo) return;
+    if (!geo || !disagreePos || !agreePos || !passPos) return;
     const p = toLocal(e);
     const candidates: { id: DragId; pos: Pt }[] = [
-      { id: "disagree", pos: anchors.disagree },
-      { id: "agree", pos: anchors.agree },
-      { id: "pass", pos: passPixel },
+      { id: "disagree", pos: disagreePos },
+      { id: "agree", pos: agreePos },
+      { id: "pass", pos: passPos },
     ];
     let nearest: DragId | null = null;
     let best = ANCHOR_HIT_RADIUS;
@@ -117,7 +125,7 @@ export default function ValenceCertaintyPanel() {
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!anchors || !geo) return;
+    if (!geo) return;
     const p = toLocal(e);
     setLivePos(p);
     if (!dragId) {
@@ -125,22 +133,26 @@ export default function ValenceCertaintyPanel() {
       return;
     }
     if (dragId === "disagree") {
-      // Lock to the bottom screen edge so the radial edge stays horizontal
-      // (perpendicular to the right screen edge) — keeps u ⊥ v.
-      const x = Math.max(20, Math.min(W - 20, p.x));
-      setAnchors((a) => ({ ...a!, disagree: { x, y: H } }));
+      // Horizontal drag reshapes the ellipse (a); vertical drag slides the
+      // handle along the arc (thetaDisagree). a is clamped to the panel width,
+      // theta to [0, π/2] so the handle stays on the arc.
+      const a = clamp(Math.abs(p.x - W), MIN_A, Math.max(MIN_A, W));
+      const sd = clamp(Math.asin(clamp((H - p.y) / geo.b, -1, 1)), 0, HALF_PI);
+      setGs((g) => ({ ...g!, a, thetaDisagree: sd }));
     } else if (dragId === "agree") {
-      // Lock to the right screen edge so the radial edge stays vertical
-      // (perpendicular to the bottom screen edge) — keeps u ⊥ v.
-      const y = Math.max(20, Math.min(H - 20, p.y));
-      setAnchors((a) => ({ ...a!, agree: { x: W, y } }));
+      // Vertical drag reshapes the ellipse (b); horizontal drag slides the
+      // handle along the arc (thetaAgree). b clamped to panel height.
+      const b = clamp(Math.abs(p.y - H), MIN_B, Math.max(MIN_B, H));
+      const sa = clamp(Math.acos(clamp((W - p.x) / geo.a, -1, 1)), 0, HALF_PI);
+      setGs((g) => ({ ...g!, b, thetaAgree: sa }));
     } else if (dragId === "pass") {
-      // Project the drag point onto the valence bisector (θ = π/4) in the
-      // anchor basis, and use its ellipse fraction as the threshold.
+      // Project the drag point onto the valence bisector in the ellipse basis;
+      // its fraction along the bisector becomes the threshold.
       const { alpha, beta } = toBasis(geo, p);
-      const k = Math.SQRT1_2; // cos(π/4) = sin(π/4)
-      const frac = alpha * k + beta * k;
-      setThresholdFrac(Math.max(0.05, Math.min(0.95, frac)));
+      const c = Math.cos(geo.bisectorTheta);
+      const s = Math.sin(geo.bisectorTheta);
+      const frac = alpha * c + beta * s;
+      setGs((g) => ({ ...g!, thresholdFrac: clamp(frac, 0.05, 0.95) }));
     }
   };
 
@@ -150,7 +162,7 @@ export default function ValenceCertaintyPanel() {
     svgRef.current?.releasePointerCapture(e.pointerId);
   };
 
-  if (W === 0 || H === 0 || !anchors || !geo || !passPixel) {
+  if (W === 0 || H === 0 || !geo || !disagreePos || !agreePos || !passPos) {
     return <div ref={containerRef} style={{ width: "100%", flex: 1, minHeight: 0, background: "#0c0c10" }} />;
   }
 
@@ -215,9 +227,9 @@ export default function ValenceCertaintyPanel() {
         <path d={bisector} fill="none" stroke="#e9ecef" strokeWidth={2} strokeDasharray="6 5" />
         <path d={thresholdArc} fill="none" stroke="#ffd43b" strokeWidth={3} />
 
-        {renderAnchor("disagree", anchors.disagree)}
-        {renderAnchor("agree", anchors.agree)}
-        {renderAnchor("pass", passPixel)}
+        {renderAnchor("disagree", disagreePos)}
+        {renderAnchor("agree", agreePos)}
+        {renderAnchor("pass", passPos)}
 
         {/* Live cursor (your own finger / pointer) */}
         {livePos && (
@@ -273,7 +285,7 @@ export default function ValenceCertaintyPanel() {
         }}
       >
         Annular-sector valence × certainty prototype.<br />
-        Drag DISAGREE along the bottom edge and AGREE along the right edge (edges stay perpendicular to the screen). Drag PASS along the divider to set the certainty threshold. Tap (not on an anchor) to pin a debug cursor.
+        Drag DISAGREE / AGREE along the outer arc to reshape &amp; reposition them; drag PASS along the divider to set the certainty threshold. Tap (not on an anchor) to pin a debug cursor.
       </div>
     </div>
   );
