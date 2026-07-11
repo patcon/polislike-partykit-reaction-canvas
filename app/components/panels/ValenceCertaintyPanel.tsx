@@ -125,9 +125,15 @@ export default function ValenceCertaintyPanel() {
       return;
     }
     if (dragId === "disagree") {
-      setAnchors((a) => ({ ...a!, disagree: p }));
+      // Lock to the bottom screen edge so the radial edge stays horizontal
+      // (perpendicular to the right screen edge) — keeps u ⊥ v.
+      const x = Math.max(20, Math.min(W - 20, p.x));
+      setAnchors((a) => ({ ...a!, disagree: { x, y: H } }));
     } else if (dragId === "agree") {
-      setAnchors((a) => ({ ...a!, agree: p }));
+      // Lock to the right screen edge so the radial edge stays vertical
+      // (perpendicular to the bottom screen edge) — keeps u ⊥ v.
+      const y = Math.max(20, Math.min(H - 20, p.y));
+      setAnchors((a) => ({ ...a!, agree: { x: W, y } }));
     } else if (dragId === "pass") {
       // Project the drag point onto the valence bisector (θ = π/4) in the
       // anchor basis, and use its ellipse fraction as the threshold.
@@ -267,7 +273,7 @@ export default function ValenceCertaintyPanel() {
         }}
       >
         Annular-sector valence × certainty prototype.<br />
-        Drag DISAGREE / AGREE to reshape the sector (ellipsoid). Drag PASS along the divider to set the certainty threshold. Tap (not on an anchor) to pin a debug cursor.
+        Drag DISAGREE along the bottom edge and AGREE along the right edge (edges stay perpendicular to the screen). Drag PASS along the divider to set the certainty threshold. Tap (not on an anchor) to pin a debug cursor.
       </div>
     </div>
   );
