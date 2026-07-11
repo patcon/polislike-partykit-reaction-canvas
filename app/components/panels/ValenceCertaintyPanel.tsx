@@ -2,12 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   arcPath,
   cellPath,
-  defaultAnchors,
-  makeGeometry,
-  pointAt,
+  makeGeometryFromAnchors,
+  outerRadiusAt,
+  pointAtRadius,
+  radialPath,
   regionFromPoint,
-  HALF_PI,
-  PHI_MID,
   type CellId,
   type Pt,
   type SectorGeometry,
@@ -16,20 +15,19 @@ import {
 const ANCHOR_LABELS: Record<CellId, string> = {
   disagree: "DISAGREE",
   agree: "AGREE",
-  pass1: "PASS",
-  pass2: "PASS",
+  pass: "PASS",
 };
 
 const ANCHOR_HIT_RADIUS = 30;
+const INNER_FRAC = 0.12;
 
 const CELL_STYLE: Record<CellId, { fill: string }> = {
   disagree: { fill: "rgba(255,107,107,0.18)" },
   agree: { fill: "rgba(81,207,102,0.18)" },
-  pass1: { fill: "rgba(130,150,180,0.14)" },
-  pass2: { fill: "rgba(130,150,180,0.14)" },
+  pass: { fill: "rgba(130,150,180,0.14)" },
 };
 
-const ANCHOR_IDS: CellId[] = ["disagree", "agree", "pass1", "pass2"];
+type DragId = "disagree" | "agree" | "pass";
 
 export default function ValenceCertaintyPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -49,29 +47,46 @@ export default function ValenceCertaintyPanel() {
 
   const { W, H } = size;
 
-  const geo: SectorGeometry = useMemo(() => makeGeometry(W, H), [W, H]);
-
-  const [anchors, setAnchors] = useState<Record<CellId, Pt> | null>(null);
+  const [anchors, setAnchors] = useState<{ disagree: Pt; agree: Pt } | null>(null);
+  const [thresholdFrac, setThresholdFrac] = useState(0.5);
   const prevSize = useRef<{ W: number; H: number } | null>(null);
 
   useEffect(() => {
     if (W === 0 || H === 0) return;
+    const rOut = Math.min(W, H) * 0.92;
     if (!anchors) {
-      setAnchors(defaultAnchors(geo));
+      setAnchors({ disagree: { x: W - rOut, y: H }, agree: { x: W, y: H - rOut } });
     } else if (prevSize.current && (prevSize.current.W !== W || prevSize.current.H !== H)) {
       const sx = W / prevSize.current.W;
       const sy = H / prevSize.current.H;
       setAnchors((a) => ({
         disagree: { x: a!.disagree.x * sx, y: a!.disagree.y * sy },
         agree: { x: a!.agree.x * sx, y: a!.agree.y * sy },
-        pass1: { x: a!.pass1.x * sx, y: a!.pass1.y * sy },
-        pass2: { x: a!.pass2.x * sx, y: a!.pass2.y * sy },
       }));
     }
     prevSize.current = { W, H };
-  }, [W, H, anchors, geo]);
+  }, [W, H, anchors]);
 
-  const [dragId, setDragId] = useState<CellId | null>(null);
+  const apex = useMemo<Pt>(() => ({ x: W, y: H }), [W, H]);
+
+  const geo: SectorGeometry | null = useMemo(() => {
+    if (!anchors) return null;
+    // The bisector (and thus the pass anchor position) depends only on the
+    // disagree/agree anchors, not on the pass anchor itself. Build a provisional
+    // geometry to find the bisector, then place pass at thresholdFrac along it.
+    const provisional = makeGeometryFromAnchors(apex, anchors.disagree, anchors.agree, apex, INNER_FRAC);
+    const rOutBis = outerRadiusAt(provisional, provisional.bisectorPhi);
+    const pass = pointAtRadius(provisional, thresholdFrac * rOutBis, provisional.bisectorPhi);
+    return makeGeometryFromAnchors(apex, anchors.disagree, anchors.agree, pass, INNER_FRAC);
+  }, [apex, anchors, thresholdFrac]);
+
+  const passPixel = useMemo<Pt | null>(() => {
+    if (!geo) return null;
+    const rOutBis = outerRadiusAt(geo, geo.bisectorPhi);
+    return pointAtRadius(geo, thresholdFrac * rOutBis, geo.bisectorPhi);
+  }, [geo, thresholdFrac]);
+
+  const [dragId, setDragId] = useState<DragId | null>(null);
   const [livePos, setLivePos] = useState<Pt | null>(null);
   const [debugPos, setDebugPos] = useState<Pt | null>(null);
   const [debugActive, setDebugActive] = useState(false);
@@ -82,15 +97,20 @@ export default function ValenceCertaintyPanel() {
   }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (!anchors) return;
+    if (!anchors || !passPixel || !geo) return;
     const p = toLocal(e);
-    let nearest: CellId | null = null;
+    const candidates: { id: DragId; pos: Pt }[] = [
+      { id: "disagree", pos: anchors.disagree },
+      { id: "agree", pos: anchors.agree },
+      { id: "pass", pos: passPixel },
+    ];
+    let nearest: DragId | null = null;
     let best = ANCHOR_HIT_RADIUS;
-    for (const id of ANCHOR_IDS) {
-      const d = Math.hypot(anchors[id].x - p.x, anchors[id].y - p.y);
+    for (const c of candidates) {
+      const d = Math.hypot(c.pos.x - p.x, c.pos.y - p.y);
       if (d < best) {
         best = d;
-        nearest = id;
+        nearest = c.id;
       }
     }
     svgRef.current?.setPointerCapture(e.pointerId);
@@ -104,13 +124,24 @@ export default function ValenceCertaintyPanel() {
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
-    if (!anchors) return;
+    if (!anchors || !geo) return;
     const p = toLocal(e);
     setLivePos(p);
-    if (dragId) {
-      setAnchors((a) => ({ ...a!, [dragId]: p }));
-    } else if (debugActive) {
-      setDebugPos(p);
+    if (!dragId) {
+      if (debugActive) setDebugPos(p);
+      return;
+    }
+    if (dragId === "disagree") {
+      setAnchors((a) => ({ ...a!, disagree: p }));
+    } else if (dragId === "agree") {
+      setAnchors((a) => ({ ...a!, agree: p }));
+    } else if (dragId === "pass") {
+      const vx = p.x - apex.x;
+      const vy = p.y - apex.y;
+      const dir = { x: Math.cos(geo.bisectorPhi), y: Math.sin(geo.bisectorPhi) };
+      const proj = vx * dir.x + vy * dir.y;
+      const rOutBis = outerRadiusAt(geo, geo.bisectorPhi);
+      setThresholdFrac(Math.max(0.05, Math.min(0.95, proj / rOutBis)));
     }
   };
 
@@ -120,27 +151,36 @@ export default function ValenceCertaintyPanel() {
     svgRef.current?.releasePointerCapture(e.pointerId);
   };
 
-  if (W === 0 || H === 0 || !anchors) {
+  if (W === 0 || H === 0 || !anchors || !geo || !passPixel) {
     return <div ref={containerRef} style={{ width: "100%", flex: 1, minHeight: 0, background: "#0c0c10" }} />;
   }
 
-  const { r0, r1, rm, threshold } = geo;
+  const { phiStart, phiEnd, bisectorPhi, thresholdFrac: tf, innerFrac } = geo;
 
-  const disagreeCell = { id: "disagree" as CellId, path: cellPath(geo, rm, r1, 0, PHI_MID) };
-  const agreeCell = { id: "agree" as CellId, path: cellPath(geo, rm, r1, PHI_MID, HALF_PI) };
-  const passCellA = { id: "pass1" as CellId, path: cellPath(geo, r0, rm, 0, PHI_MID) };
-  const passCellB = { id: "pass2" as CellId, path: cellPath(geo, r0, rm, PHI_MID, HALF_PI) };
-  const cells = [disagreeCell, agreeCell, passCellA, passCellB];
+  const disagreeCell = cellPath(geo, tf, 1, phiStart, bisectorPhi);
+  const agreeCell = cellPath(geo, tf, 1, bisectorPhi, phiEnd);
+  const passCellA = cellPath(geo, innerFrac, tf, phiStart, bisectorPhi);
+  const passCellB = cellPath(geo, innerFrac, tf, bisectorPhi, phiEnd);
 
-  const radialLine = `M ${pointAt(geo, r0, PHI_MID).x} ${pointAt(geo, r0, PHI_MID).y} L ${pointAt(geo, r1, PHI_MID).x} ${pointAt(geo, r1, PHI_MID).y}`;
-  const outerArc = arcPath(geo, r1, 0, HALF_PI);
-  const innerArc = arcPath(geo, r0, 0, HALF_PI);
-  const thresholdArc = arcPath(geo, rm, 0, HALF_PI);
-  const edgeA = `M ${pointAt(geo, r0, 0).x} ${pointAt(geo, r0, 0).y} L ${pointAt(geo, r1, 0).x} ${pointAt(geo, r1, 0).y}`;
-  const edgeB = `M ${pointAt(geo, r0, HALF_PI).x} ${pointAt(geo, r0, HALF_PI).y} L ${pointAt(geo, r1, HALF_PI).x} ${pointAt(geo, r1, HALF_PI).y}`;
+  const outerArc = arcPath(geo, 1, phiStart, phiEnd);
+  const innerArc = arcPath(geo, innerFrac, phiStart, phiEnd);
+  const thresholdArc = arcPath(geo, tf, phiStart, phiEnd);
+  const edgeStart = radialPath(geo, phiStart);
+  const edgeEnd = radialPath(geo, phiEnd);
+  const bisector = radialPath(geo, bisectorPhi);
 
   const active = livePos ?? debugPos;
   const dbg = active ? regionFromPoint(geo, active) : null;
+
+  const renderAnchor = (id: DragId, pos: Pt) => (
+    <g key={id}>
+      <circle cx={pos.x} cy={pos.y} r={11} fill="#fff" stroke="#111" strokeWidth={2} style={{ cursor: "grab" }} />
+      <circle cx={pos.x} cy={pos.y} r={4} fill="#111" />
+      <text x={pos.x} y={pos.y - 18} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" style={{ pointerEvents: "none" }}>
+        {ANCHOR_LABELS[id]}
+      </text>
+    </g>
+  );
 
   return (
     <div
@@ -159,33 +199,24 @@ export default function ValenceCertaintyPanel() {
         onPointerCancel={onPointerUp}
         onPointerLeave={() => setLivePos(null)}
       >
-        {cells.map((c) => (
-          <path key={c.id} d={c.path} fill={CELL_STYLE[c.id].fill} stroke="none" />
-        ))}
+        <path d={disagreeCell} fill={CELL_STYLE.disagree.fill} stroke="none" />
+        <path d={agreeCell} fill={CELL_STYLE.agree.fill} stroke="none" />
+        <path d={passCellA} fill={CELL_STYLE.pass.fill} stroke="none" />
+        <path d={passCellB} fill={CELL_STYLE.pass.fill} stroke="none" />
 
         {/* Sector boundary */}
         <path d={outerArc} fill="none" stroke="#5a5a66" strokeWidth={2} />
         <path d={innerArc} fill="none" stroke="#5a5a66" strokeWidth={2} />
-        <path d={edgeA} fill="none" stroke="#5a5a66" strokeWidth={2} />
-        <path d={edgeB} fill="none" stroke="#5a5a66" strokeWidth={2} />
+        <path d={edgeStart} fill="none" stroke="#5a5a66" strokeWidth={2} />
+        <path d={edgeEnd} fill="none" stroke="#5a5a66" strokeWidth={2} />
 
         {/* Dividing lines */}
-        <path d={radialLine} fill="none" stroke="#e9ecef" strokeWidth={2} strokeDasharray="6 5" />
+        <path d={bisector} fill="none" stroke="#e9ecef" strokeWidth={2} strokeDasharray="6 5" />
         <path d={thresholdArc} fill="none" stroke="#ffd43b" strokeWidth={3} />
 
-        {/* Anchors */}
-        {ANCHOR_IDS.map((id) => {
-          const a = anchors[id];
-          return (
-            <g key={id}>
-              <circle cx={a.x} cy={a.y} r={11} fill="#fff" stroke="#111" strokeWidth={2} style={{ cursor: "grab" }} />
-              <circle cx={a.x} cy={a.y} r={4} fill="#111" />
-              <text x={a.x} y={a.y - 18} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" style={{ pointerEvents: "none" }}>
-                {ANCHOR_LABELS[id]}
-              </text>
-            </g>
-          );
-        })}
+        {renderAnchor("disagree", anchors.disagree)}
+        {renderAnchor("agree", anchors.agree)}
+        {renderAnchor("pass", passPixel)}
 
         {/* Live cursor (your own finger / pointer) */}
         {livePos && (
@@ -241,7 +272,7 @@ export default function ValenceCertaintyPanel() {
         }}
       >
         Annular-sector valence × certainty prototype.<br />
-        Move your finger/cursor to read the region live. Drag anchors to reposition. Tap (not on an anchor) to pin a debug cursor.
+        Drag DISAGREE / AGREE to reshape the sector (ellipsoid). Drag PASS along the divider to set the certainty threshold. Tap (not on an anchor) to pin a debug cursor.
       </div>
     </div>
   );

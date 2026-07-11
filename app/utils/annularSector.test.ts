@@ -1,65 +1,81 @@
 import { describe, it, expect } from "vitest";
 import {
-  makeGeometry,
-  pointAt,
+  makeGeometryFromAnchors,
+  outerRadiusAt,
+  pointAtRadius,
   regionFromPoint,
   type CellId,
+  type Pt,
 } from "./annularSector";
 
-const geo = makeGeometry(1000, 1000, { outerFrac: 0.92, innerFrac: 0.14, threshold: 0.5 });
+const apex: Pt = { x: 1000, y: 1000 };
+const rOut = 800;
+const disagree: Pt = { x: apex.x - rOut, y: apex.y }; // west edge
+const agree: Pt = { x: apex.x, y: apex.y - rOut }; // north edge
+const thresholdFrac = 0.5;
+const innerFrac = 0.12;
 
-describe("makeGeometry", () => {
-  it("derives radii from the panel size and threshold", () => {
-    expect(geo.r1).toBeCloseTo(920);
-    expect(geo.r0).toBeCloseTo(128.8);
-    // rm sits at the threshold fraction of the radial span
-    expect(geo.rm).toBeCloseTo(geo.r0 + 0.5 * (geo.r1 - geo.r0));
+const geo = makeGeometryFromAnchors(apex, disagree, agree, pointAtRadius(
+  makeGeometryFromAnchors(apex, disagree, agree, apex, innerFrac),
+  thresholdFrac * outerRadiusAt(makeGeometryFromAnchors(apex, disagree, agree, apex, innerFrac), Math.PI + Math.PI / 4),
+  Math.PI + Math.PI / 4,
+), innerFrac);
+
+describe("makeGeometryFromAnchors", () => {
+  it("uses the two edge distances as the outer radii", () => {
+    expect(geo.rStart).toBeCloseTo(rOut);
+    expect(geo.rEnd).toBeCloseTo(rOut);
+    expect(geo.delta).toBeCloseTo(Math.PI / 2);
+  });
+
+  it("pins the pass anchor to the bisector at the threshold fraction", () => {
+    const rOutBis = outerRadiusAt(geo, geo.bisectorPhi);
+    expect(geo.thresholdFrac).toBeCloseTo(thresholdFrac);
+    expect(geo.bisectorPhi).toBeCloseTo(Math.PI + Math.PI / 4);
+    expect(rOutBis).toBeCloseTo(rOut);
   });
 });
 
-describe("pointAt", () => {
-  it("pins the apex at the bottom-right corner for r=0", () => {
-    expect(pointAt(geo, 0, 0)).toEqual({ x: 1000, y: 1000 });
-  });
-
-  it("places φ=0 along the bottom edge (west) and φ=π/2 up the right edge (north)", () => {
-    expect(pointAt(geo, geo.r0, 0).x).toBeCloseTo(1000 - geo.r0);
-    expect(pointAt(geo, geo.r0, 0).y).toBeCloseTo(1000);
-    expect(pointAt(geo, geo.r0, Math.PI / 2).x).toBeCloseTo(1000);
-    expect(pointAt(geo, geo.r0, Math.PI / 2).y).toBeCloseTo(1000 - geo.r0);
-  });
-});
-
-function anchorOf(id: CellId) {
-  // Recompute the default anchor for a cell using the same formula as the component.
-  const mid = id.startsWith("pass") ? (geo.r0 + geo.rm) / 2 : (geo.rm + geo.r1) / 2;
-  const phi = id === "agree" || id === "pass2" ? (3 * Math.PI) / 8 : Math.PI / 8;
-  return pointAt(geo, mid, phi);
+function sampleAt(id: CellId): Pt {
+  const mid = id === "agree" ? geo.bisectorPhi + geo.delta / 4 : geo.bisectorPhi - geo.delta / 4;
+  const r = outerRadiusAt(geo, mid) * (id === "pass" ? 0.25 : 0.75);
+  return pointAtRadius(geo, r, mid);
 }
 
 describe("regionFromPoint", () => {
-  it("maps the disagree cell to disagree with negative valence", () => {
-    const r = regionFromPoint(geo, anchorOf("disagree"));
+  it("maps the disagree side to disagree with negative valence", () => {
+    const r = regionFromPoint(geo, sampleAt("disagree"));
     expect(r.region).toBe("disagree");
     expect(r.valence).toBeLessThan(0);
   });
 
-  it("maps the agree cell to agree with positive valence", () => {
-    const r = regionFromPoint(geo, anchorOf("agree"));
+  it("maps the agree side to agree with positive valence", () => {
+    const r = regionFromPoint(geo, sampleAt("agree"));
     expect(r.region).toBe("agree");
     expect(r.valence).toBeGreaterThan(0);
   });
 
-  it("maps both pass cells to pass with sub-threshold certainty", () => {
-    for (const id of ["pass1", "pass2"] as CellId[]) {
-      const r = regionFromPoint(geo, anchorOf(id));
-      expect(r.region).toBe("pass");
-      expect(r.certainty).toBeLessThan(geo.threshold);
-    }
+  it("maps the inner band to pass with sub-threshold certainty", () => {
+    const r = regionFromPoint(geo, sampleAt("pass"));
+    expect(r.region).toBe("pass");
+    expect(r.certainty).toBeLessThan(thresholdFrac);
   });
 
-  it("treats points outside the wedge or beyond the outer radius as outside", () => {
-    expect(regionFromPoint(geo, { x: 1100, y: 1000 }).region).toBe("outside"); // east of apex
-    expect(regionFromPoint(geo, { x: 0, y: 0 }).region).toBe("outside"); // top-left, beyond r1
+  it("treats points outside the wedge as outside", () => {
+    expect(regionFromPoint(geo, { x: apex.x + 100, y: apex.y }).region).toBe("outside");
+  });
+});
+
+describe("ellipsoid: independent edges", () => {
+  it("makes the outer radius follow the disagree/agree distances independently", () => {
+    const stretched = makeGeometryFromAnchors(
+      apex,
+      { x: apex.x - 1200, y: apex.y },
+      { x: apex.x, y: apex.y - 400 },
+      { x: apex.x - 200, y: apex.y - 200 },
+    );
+    expect(stretched.rStart).toBeCloseTo(1200);
+    expect(stretched.rEnd).toBeCloseTo(400);
+    expect(outerRadiusAt(stretched, stretched.bisectorPhi)).toBeCloseTo(800);
   });
 });
