@@ -6,6 +6,7 @@ import { createDriftProgram } from './drift';
 import { createRegionHoppersProgram } from './regionHoppers';
 import { createRealisticRegionHoppersProgram } from './regionHoppersRealistic';
 import { createRecordedPlaybackProgram, isRecordingAvailable } from './recordedPlayback';
+import { createValenceShiftProgram } from './valenceShift';
 
 /** A selectable program: stable id, human label, factory, and optional gating. */
 export interface ProgramEntry {
@@ -18,6 +19,8 @@ export interface ProgramEntry {
   unavailableHint?: string;
   /** True when the user-count control is meaningless (e.g. a fixed recording). */
   ignoresUserCount?: boolean;
+  /** True when the program reads `SimContext.groupCount` (shows the Groups control). */
+  usesGroupCount?: boolean;
 }
 
 /** All programs offered on the demo pages. Order is the dropdown order. */
@@ -25,6 +28,7 @@ export const PROGRAMS: ProgramEntry[] = [
   { id: 'drift', label: 'Drift / Wander', create: createDriftProgram },
   { id: 'region-hoppers-realistic', label: 'Region-hoppers (realistic)', create: createRealisticRegionHoppersProgram },
   { id: 'region-hoppers-simple', label: 'Region-hoppers (simple)', create: createRegionHoppersProgram },
+  { id: 'valence-shift', label: 'Valence Shift (groups)', create: createValenceShiftProgram, usesGroupCount: true },
   {
     id: 'recorded',
     label: 'Recorded playback',

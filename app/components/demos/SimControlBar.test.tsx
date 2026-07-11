@@ -82,6 +82,28 @@ describe('SimControlBar', () => {
     expect(users.disabled).toBe(true); // recorded's crowd size is fixed by the recording
   });
 
+  it('enables the group-count select only for group-aware programs (Valence Shift)', () => {
+    const { getByLabelText } = renderBar();
+    const groups = getByLabelText('Groups') as HTMLSelectElement;
+    expect(groups.disabled).toBe(true); // drift doesn't use groups
+    fireEvent.change(getByLabelText('Program'), { target: { value: 'valence-shift' } });
+    expect(groups.disabled).toBe(false);
+  });
+
+  it('passes the selected group count through to the sim context', () => {
+    const { getByRole, getByLabelText } = renderBar();
+    fireEvent.change(getByLabelText('Program'), { target: { value: 'valence-shift' } });
+    fireEvent.change(getByLabelText('Groups'), { target: { value: '1' } });
+    act(() => { fireEvent.click(getByRole('button', { name: /play/i })); });
+    act(() => { vi.advanceTimersByTime(SIM_TICK_MS * 200); });
+
+    // With 1 group, all sim cursors should be tightly clustered (correlated),
+    // unlike the wide spread of an unconstrained program like Drift.
+    const last = simBatches().filter((b: any) => b.cursors.every((c: any) => c.type === 'move')).pop();
+    const xs = last.cursors.map((c: any) => c.position.x);
+    expect(Math.max(...xs) - Math.min(...xs)).toBeLessThan(20);
+  });
+
   it('disables a program whose availability probe fails', async () => {
     vi.useRealTimers(); // let findBy* poll for the async probe + state update
     vi.stubGlobal('fetch', vi.fn(async () => ({ ok: false })));

@@ -10,6 +10,42 @@ export const EASE = 0.02;
 /** Distance under which a user is "arrived" and picks a new target. */
 export const ARRIVE_DIST = 3;
 
+/** Cubic ease-in-out: slow start, fast middle, slow finish. `t` in 0..1. */
+export function easeInOutCubic(t: number): number {
+  return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+}
+
+/**
+ * Eased 0..1 progress through a `duration`-long span starting at `start`,
+ * clamped before `start` (0) and past `start + duration` (1). The shared
+ * "how far through this glide am I" calculation used by every program that
+ * eases a value toward a target over a fixed duration.
+ */
+export function easedProgress(tMs: number, start: number, duration: number): number {
+  return easeInOutCubic(Math.max(0, Math.min((tMs - start) / duration, 1)));
+}
+
+/**
+ * Sample a 2D simplex-noise offset for organic micro-wander around a point.
+ * `offX`/`offY` give each user an independent stream from a shared `noise2D`
+ * field; `speed` scales how fast the sample advances with `tMs`; `radius`
+ * scales the offset magnitude (each axis stays within +/- radius).
+ */
+export function noiseWanderOffset(
+  noise2D: (x: number, y: number) => number,
+  offX: number,
+  offY: number,
+  tMs: number,
+  speed: number,
+  radius: number,
+): { x: number; y: number } {
+  const t = tMs * 0.001 * speed;
+  return {
+    x: noise2D(offX, t) * radius,
+    y: noise2D(offY, t) * radius,
+  };
+}
+
 /**
  * Deterministic LCG returning values in [0, 1). Seeded so a given seed always
  * produces the same sequence (unlike Math.random).

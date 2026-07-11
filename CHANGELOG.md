@@ -8,6 +8,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 33 (2026-07-06)
 
+### Added
+- **"Valence Shift (groups)" simulator program** — sim cursors split into Fibonacci-sized opinion groups (matching `docs/pages/valence-onboarding-v3.html`) and periodically re-randomize their group's target valence together. Users glide (eased, shared with Region-hoppers realistic) to a point sampled from the full range of canvas positions matching their target valence, rather than one fixed line, with a tunable spread constant for tight-cluster vs. full-scatter looks; each member's personal offset from the group target rescrambles on every shift. Group count (1–7) is configurable via `SimControlBar`.
+
 ### Changed
 - **Prototype pages moved to GitHub Pages** — `valence-onboarding-v1.html`, `valence-onboarding-v2.html`, `valence-onboarding-v3.html`, and `mood-sounds.html` moved from `public/` to `docs/pages/` and now deploy to `https://patcon.github.io/polislike-partykit-reaction-canvas/` via a new GitHub Actions workflow. Pages with WebSocket connections gain a **server URL input** (default: `wss://whispering-gallery.patcon.partykit.dev`) so the PartyKit host can be specified when accessed from a different origin. Links in `OldFrontPage` and `NewFrontPage` updated to the GitHub Pages URLs.
 
