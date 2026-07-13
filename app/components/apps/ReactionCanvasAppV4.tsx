@@ -15,6 +15,7 @@ import type { GreeterConfig } from "../../../plugins/greeter/types";
 // each by name here.
 import { SocialMediaConfigProvider } from "../../../plugins/socialSharing/context";
 import { ImageCanvasConfigProvider } from "../../../plugins/imageCanvas/context";
+import ValenceCertaintyPanel from "../panels/ValenceCertaintyPanel";
 import GithubUsernameModal from "../modals/GithubUsernameModal";
 import FeedbackStarsModal from "../modals/FeedbackStarsModal";
 import InterfacePushModal from "../modals/InterfacePushModal";
@@ -36,6 +37,7 @@ import { useWakeLock } from "../../utils/useWakeLock";
 import { PLUGIN_MAP } from "../../../plugins/index";
 
 const PANEL_COMPONENTS: Partial<Record<string, PanelDefinition['component']>> = {
+  'valence-certainty': ValenceCertaintyPanel,
   ...Object.fromEntries(
     Object.entries(PLUGIN_MAP)
       .filter(([, p]) => p.component)

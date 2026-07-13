@@ -18,6 +18,7 @@ export interface PanelMeta {
 
 export const PANEL_REGISTRY: PanelMeta[] = [
   { id: 'emcee',  label: 'Emcee',           description: 'Event host controls and tools',  canStandalone: true,  canScreenMount: false },
+  { id: 'valence-certainty', label: 'Valence × Certainty', description: 'Experimental annular-sector valence/certainty touch prototype', canStandalone: true, canScreenMount: true },
   { id: 'canvas', label: 'Reaction Canvas', description: 'Standard reaction canvas',       canStandalone: false, canScreenMount: true  },
   ...PLUGINS,
 ];
