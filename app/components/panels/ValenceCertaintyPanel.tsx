@@ -63,25 +63,40 @@ const anchorButtonStyle = (pos: Pt, color: string, locked: boolean): React.CSSPr
   whiteSpace: "nowrap",
 });
 
-const BAR_W = 120;
-const BAR_H = 6;
+// Status palette (agree=good, pass=warning, disagree=critical) — a small fixed
+// scale with reserved meaning, kept separate from the vivid avatar-matching
+// ANCHOR_COLOR/CELL_STYLE above. Used for the readout badge and spectrum bar
+// below, where it's paired with the region name (never color alone).
+const STATUS_COLOR: Record<CellId, string> = {
+  agree: "#0ca30c",
+  pass: "#fab219",
+  disagree: "#d03b3b",
+};
+const STATUS_TEXT_ON_FILL: Record<CellId, string> = {
+  agree: "#ffffff",
+  pass: "#1a1608",
+  disagree: "#ffffff",
+};
+const SPECTRUM_MID = "#2b2b2b";
 
-const barTrackStyle: React.CSSProperties = {
-  position: "relative",
-  width: BAR_W,
-  height: BAR_H,
-  marginTop: 6,
-  background: "#333",
-  borderRadius: BAR_H / 2,
+const regionBadgeStyle = (region: CellId | "outside"): React.CSSProperties => {
+  const bg = region === "outside" ? "#555" : STATUS_COLOR[region];
+  const fg = region === "outside" ? "#ddd" : STATUS_TEXT_ON_FILL[region];
+  return {
+    display: "inline-block",
+    padding: "2px 8px",
+    borderRadius: 999,
+    fontSize: 11,
+    fontWeight: 700,
+    letterSpacing: "0.06em",
+    textTransform: "uppercase",
+    background: bg,
+    color: fg,
+  };
 };
 
-const barTickStyle = (leftPct: number): React.CSSProperties => ({
-  position: "absolute",
-  top: -1,
-  bottom: -1,
-  left: `${leftPct}%`,
-  width: 1,
-});
+const SPECTRUM_W = 140;
+const SPECTRUM_TRACK_H = 8;
 
 const toggleButtonStyle = (active: boolean): React.CSSProperties => ({
   fontFamily: "inherit",
@@ -361,58 +376,81 @@ export default function ValenceCertaintyPanel() {
         </div>
 
         {/* Live readout */}
-        {active && dbg && (
-          <div
-            style={{
-              background: "rgba(0,0,0,0.6)",
-              color: "#fff",
-              fontFamily: "monospace",
-              fontSize: 12,
-              padding: "8px 10px",
-              borderRadius: 6,
-              lineHeight: 1.5,
-            }}
-          >
-            <div>region: <b>{dbg.region}</b></div>
-            <div>valence: {dbg.valence.toFixed(2)}</div>
-            <div>certainty: {(dbg.certainty * 100).toFixed(0)}%</div>
-            <div>r: {Math.hypot(active.x - W, active.y - H).toFixed(0)}px</div>
+        {active && dbg && (() => {
+          const region = dbg.region;
+          const regionColor = region === "outside" ? "#999" : STATUS_COLOR[region];
+          const valencePct = 50 + clamp(dbg.valence, -1, 1) * 50;
+          // Half-width (%) of the PASS zone straddling center. Guards against
+          // thresholdFrac dipping below innerFrac (clamped independently to
+          // [0.05, 0.95]), which would otherwise show as a negative-width zone.
+          const zoneHalfPct = Math.max(0, certaintyThreshold) * 50;
+          const isPass = region === "pass";
+          return (
+            <div
+              style={{
+                background: "rgba(12,12,16,0.78)",
+                border: "1px solid rgba(255,255,255,0.08)",
+                boxShadow: "0 4px 16px rgba(0,0,0,0.35)",
+                color: "#fff",
+                fontFamily: "monospace",
+                padding: "10px 12px",
+                borderRadius: 10,
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+                <span style={regionBadgeStyle(region)}>{region}</span>
+                <span style={{ color: "#888", fontSize: 11 }}>
+                  v {dbg.valence.toFixed(2)} · c {(dbg.certainty * 100).toFixed(0)}%
+                </span>
+              </div>
 
-            {/* Valence: grows left (red) for negative, right (green) for positive */}
-            <div style={barTrackStyle}>
-              <div style={{ ...barTickStyle(50), background: "#666" }} />
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  bottom: 0,
-                  left: `${50 - Math.max(0, -dbg.valence) * 50}%`,
-                  width: `${Math.abs(dbg.valence) * 50}%`,
-                  background: dbg.valence < 0 ? "#ff0000" : "#00ff00",
-                  borderRadius: BAR_H / 2,
-                }}
-              />
+              {/* Valence spectrum: the "path" between DISAGREE and AGREE, with the
+                  PASS zone (width = certainty threshold) shaded around center and
+                  a marker showing the current position + decisiveness. */}
+              <div style={{ position: "relative", width: SPECTRUM_W, height: 18, marginTop: 10 }}>
+                <div
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 0,
+                    top: "50%",
+                    height: SPECTRUM_TRACK_H,
+                    transform: "translateY(-50%)",
+                    borderRadius: SPECTRUM_TRACK_H / 2,
+                    background: `linear-gradient(90deg, ${STATUS_COLOR.disagree}, ${SPECTRUM_MID}, ${STATUS_COLOR.agree})`,
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    left: `${50 - zoneHalfPct}%`,
+                    width: `${zoneHalfPct * 2}%`,
+                    top: "50%",
+                    height: SPECTRUM_TRACK_H,
+                    transform: "translateY(-50%)",
+                    background: `${STATUS_COLOR.pass}2e`,
+                    borderLeft: `1px dashed ${STATUS_COLOR.pass}99`,
+                    borderRight: `1px dashed ${STATUS_COLOR.pass}99`,
+                  }}
+                />
+                <div
+                  style={{
+                    position: "absolute",
+                    left: `${valencePct}%`,
+                    top: "50%",
+                    width: isPass ? 9 : 12,
+                    height: isPass ? 9 : 12,
+                    transform: "translate(-50%, -50%)",
+                    borderRadius: "50%",
+                    background: regionColor,
+                    border: "2px solid rgba(255,255,255,0.9)",
+                    boxShadow: `0 0 6px ${regionColor}`,
+                  }}
+                />
+              </div>
             </div>
-
-            {/* Certainty: grows out from center; yellow while in PASS (below the
-                threshold), black once past it into AGREE/DISAGREE */}
-            <div style={barTrackStyle}>
-              <div style={{ ...barTickStyle(50 - certaintyThreshold * 50), background: "#ffd43b", opacity: 0.6 }} />
-              <div style={{ ...barTickStyle(50 + certaintyThreshold * 50), background: "#ffd43b", opacity: 0.6 }} />
-              <div
-                style={{
-                  position: "absolute",
-                  top: 0,
-                  bottom: 0,
-                  left: `${50 - dbg.certainty * 50}%`,
-                  width: `${dbg.certainty * 100}%`,
-                  background: dbg.certainty < certaintyThreshold ? "#ffd43b" : "#000",
-                  borderRadius: BAR_H / 2,
-                }}
-              />
-            </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
 
       <div
