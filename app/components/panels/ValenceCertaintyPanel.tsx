@@ -208,8 +208,15 @@ export default function ValenceCertaintyPanel() {
   const T0 = 0;
   const T1 = Math.PI / 2;
 
-  const disagreeCell = cellPath(geo, tf, 1, T0, bisectorTheta);
-  const agreeCell = cellPath(geo, tf, 1, bisectorTheta, T1);
+  // Extend the AGREE/DISAGREE fills past the outer arc so there's no dead
+  // (uncolored) zone in the "outside" corner of the panel. Purely visual —
+  // every panel point already has theta in [0, π/2], so any frac large enough
+  // to clear the farthest corner covers the whole panel. regionFromPoint's
+  // frac<=1 check (and thus the numeric readout) is untouched.
+  const outFrac = Math.hypot(W / geo.a, H / geo.b) + 0.5;
+
+  const disagreeCell = cellPath(geo, tf, outFrac, T0, bisectorTheta);
+  const agreeCell = cellPath(geo, tf, outFrac, bisectorTheta, T1);
   const passCellA = cellPath(geo, innerFrac, tf, T0, bisectorTheta);
   const passCellB = cellPath(geo, innerFrac, tf, bisectorTheta, T1);
 
@@ -272,15 +279,6 @@ export default function ValenceCertaintyPanel() {
           <g style={{ pointerEvents: "none" }}>
             <circle cx={livePos.x} cy={livePos.y} r={13} fill="rgba(77,171,247,0.35)" stroke="#4dabf7" strokeWidth={2} />
             <circle cx={livePos.x} cy={livePos.y} r={3} fill="#4dabf7" />
-          </g>
-        )}
-
-        {/* Pinned debug cursor (from a tap) */}
-        {debugPos && (
-          <g style={{ pointerEvents: "none" }}>
-            <circle cx={debugPos.x} cy={debugPos.y} r={16} fill="none" stroke="#ffd43b" strokeWidth={2} />
-            <line x1={debugPos.x - 22} y1={debugPos.y} x2={debugPos.x + 22} y2={debugPos.y} stroke="#ffd43b" strokeWidth={1.5} />
-            <line x1={debugPos.x} y1={debugPos.y - 22} x2={debugPos.x} y2={debugPos.y + 22} stroke="#ffd43b" strokeWidth={1.5} />
           </g>
         )}
       </svg>
