@@ -19,6 +19,9 @@ const ANCHOR_LABELS: Record<CellId, string> = {
 };
 
 const INNER_FRAC = 0.12;
+// theta=0 / theta=HALF_PI sit exactly on the bottom/right panel edge, clipping
+// the anchor button there — start both handles inset from the axis instead.
+const EDGE_INSET_THETA = 0.15;
 const MIN_A = 20;
 const MIN_B = 20;
 const HALF_PI = Math.PI / 2;
@@ -92,7 +95,7 @@ export default function ValenceCertaintyPanel() {
     if (!gs) {
       const a = Math.min(W, H) * 0.92;
       const b = Math.min(W, H) * 0.92;
-      setGs({ a, b, thetaDisagree: 0, thetaAgree: HALF_PI, thresholdFrac: 0.5 });
+      setGs({ a, b, thetaDisagree: EDGE_INSET_THETA, thetaAgree: HALF_PI - EDGE_INSET_THETA, thresholdFrac: 0.5 });
     } else if (prevSize.current && (prevSize.current.W !== W || prevSize.current.H !== H)) {
       const sx = W / prevSize.current.W;
       const sy = H / prevSize.current.H;
