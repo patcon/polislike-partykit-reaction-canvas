@@ -40,6 +40,7 @@ const anchorButtonStyle = (pos: Pt, color: string): React.CSSProperties => ({
   position: "absolute",
   left: pos.x,
   top: pos.y,
+  zIndex: 5,
   transform: "translate(-50%, -50%)",
   padding: "6px 12px",
   borderRadius: 999,
