@@ -18,7 +18,6 @@ const ANCHOR_LABELS: Record<CellId, string> = {
   pass: "PASS",
 };
 
-const ANCHOR_HIT_RADIUS = 30;
 const INNER_FRAC = 0.12;
 const MIN_A = 20;
 const MIN_B = 20;
@@ -30,6 +29,31 @@ const CELL_STYLE: Record<CellId, { fill: string }> = {
   agree: { fill: "rgba(81,207,102,0.18)" },
   pass: { fill: "rgba(130,150,180,0.14)" },
 };
+
+const ANCHOR_COLOR: Record<CellId, string> = {
+  disagree: "#ff6b6b",
+  agree: "#51cf66",
+  pass: "#8296b4",
+};
+
+const anchorButtonStyle = (pos: Pt, color: string): React.CSSProperties => ({
+  position: "absolute",
+  left: pos.x,
+  top: pos.y,
+  transform: "translate(-50%, -50%)",
+  padding: "6px 12px",
+  borderRadius: 999,
+  border: `2px solid ${color}`,
+  background: "#111",
+  color: "#fff",
+  fontSize: 12,
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+  cursor: "grab",
+  touchAction: "none",
+  userSelect: "none",
+  whiteSpace: "nowrap",
+});
 
 type DragId = "disagree" | "agree" | "pass";
 
@@ -91,6 +115,7 @@ export default function ValenceCertaintyPanel() {
   const [livePos, setLivePos] = useState<Pt | null>(null);
   const [debugPos, setDebugPos] = useState<Pt | null>(null);
   const [debugActive, setDebugActive] = useState(false);
+  const captureElRef = useRef<Element | null>(null);
 
   const toLocal = useCallback((e: React.PointerEvent): Pt => {
     const rect = svgRef.current!.getBoundingClientRect();
@@ -98,30 +123,23 @@ export default function ValenceCertaintyPanel() {
   }, []);
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (!geo || !disagreePos || !agreePos || !passPos) return;
+    if (!geo) return;
     const p = toLocal(e);
-    const candidates: { id: DragId; pos: Pt }[] = [
-      { id: "disagree", pos: disagreePos },
-      { id: "agree", pos: agreePos },
-      { id: "pass", pos: passPos },
-    ];
-    let nearest: DragId | null = null;
-    let best = ANCHOR_HIT_RADIUS;
-    for (const c of candidates) {
-      const d = Math.hypot(c.pos.x - p.x, c.pos.y - p.y);
-      if (d < best) {
-        best = d;
-        nearest = c.id;
-      }
-    }
+    captureElRef.current = svgRef.current;
     svgRef.current?.setPointerCapture(e.pointerId);
     setLivePos(p);
-    if (nearest) {
-      setDragId(nearest);
-    } else {
-      setDebugActive(true);
-      setDebugPos(p);
-    }
+    setDebugActive(true);
+    setDebugPos(p);
+  };
+
+  const startDrag = (id: DragId) => (e: React.PointerEvent) => {
+    e.stopPropagation();
+    if (!geo) return;
+    const p = toLocal(e);
+    captureElRef.current = e.currentTarget;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    setLivePos(p);
+    setDragId(id);
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -159,7 +177,8 @@ export default function ValenceCertaintyPanel() {
   const onPointerUp = (e: React.PointerEvent) => {
     setDragId(null);
     setDebugActive(false);
-    svgRef.current?.releasePointerCapture(e.pointerId);
+    captureElRef.current?.releasePointerCapture(e.pointerId);
+    captureElRef.current = null;
   };
 
   if (W === 0 || H === 0 || !geo || !disagreePos || !agreePos || !passPos) {
@@ -186,19 +205,24 @@ export default function ValenceCertaintyPanel() {
   const dbg = active ? regionFromPoint(geo, active) : null;
 
   const renderAnchor = (id: DragId, pos: Pt) => (
-    <g key={id}>
-      <circle cx={pos.x} cy={pos.y} r={11} fill="#fff" stroke="#111" strokeWidth={2} style={{ cursor: "grab" }} />
-      <circle cx={pos.x} cy={pos.y} r={4} fill="#111" />
-      <text x={pos.x} y={pos.y - 18} textAnchor="middle" fontSize={13} fontWeight={700} fill="#fff" style={{ pointerEvents: "none" }}>
-        {ANCHOR_LABELS[id]}
-      </text>
-    </g>
+    <button
+      key={id}
+      type="button"
+      aria-label={`${ANCHOR_LABELS[id]} anchor — drag to reposition`}
+      onPointerDown={startDrag(id)}
+      style={anchorButtonStyle(pos, ANCHOR_COLOR[id])}
+    >
+      {ANCHOR_LABELS[id]}
+    </button>
   );
 
   return (
     <div
       ref={containerRef}
       style={{ width: "100%", flex: 1, minHeight: 0, background: "#0c0c10", position: "relative", touchAction: "none", userSelect: "none" }}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerUp}
     >
       <svg
         ref={svgRef}
@@ -207,9 +231,6 @@ export default function ValenceCertaintyPanel() {
         viewBox={`0 0 ${W} ${H}`}
         style={{ display: "block", touchAction: "none" }}
         onPointerDown={onPointerDown}
-        onPointerMove={onPointerMove}
-        onPointerUp={onPointerUp}
-        onPointerCancel={onPointerUp}
         onPointerLeave={() => setLivePos(null)}
       >
         <path d={disagreeCell} fill={CELL_STYLE.disagree.fill} stroke="none" />
@@ -226,10 +247,6 @@ export default function ValenceCertaintyPanel() {
         {/* Dividing lines */}
         <path d={bisector} fill="none" stroke="#e9ecef" strokeWidth={2} strokeDasharray="6 5" />
         <path d={thresholdArc} fill="none" stroke="#ffd43b" strokeWidth={3} />
-
-        {renderAnchor("disagree", disagreePos)}
-        {renderAnchor("agree", agreePos)}
-        {renderAnchor("pass", passPos)}
 
         {/* Live cursor (your own finger / pointer) */}
         {livePos && (
@@ -248,6 +265,10 @@ export default function ValenceCertaintyPanel() {
           </g>
         )}
       </svg>
+
+      {renderAnchor("disagree", disagreePos)}
+      {renderAnchor("agree", agreePos)}
+      {renderAnchor("pass", passPos)}
 
       {/* Live readout */}
       {active && dbg && (
