@@ -63,6 +63,26 @@ const anchorButtonStyle = (pos: Pt, color: string, locked: boolean): React.CSSPr
   whiteSpace: "nowrap",
 });
 
+const BAR_W = 120;
+const BAR_H = 6;
+
+const barTrackStyle: React.CSSProperties = {
+  position: "relative",
+  width: BAR_W,
+  height: BAR_H,
+  marginTop: 6,
+  background: "#333",
+  borderRadius: BAR_H / 2,
+};
+
+const barTickStyle = (leftPct: number): React.CSSProperties => ({
+  position: "absolute",
+  top: -1,
+  bottom: -1,
+  left: `${leftPct}%`,
+  width: 1,
+});
+
 const toggleButtonStyle = (active: boolean): React.CSSProperties => ({
   fontFamily: "inherit",
   fontSize: 11,
@@ -244,6 +264,10 @@ export default function ValenceCertaintyPanel() {
   const active = livePos ?? debugPos;
   const dbg = active ? regionFromPoint(geo, active) : null;
 
+  // Certainty threshold in the same normalized 0..1 space as dbg.certainty,
+  // for the readout's mini certainty bar.
+  const certaintyThreshold = (tf - innerFrac) / (1 - innerFrac);
+
   const renderAnchor = (id: DragId, pos: Pt) => (
     <button
       key={id}
@@ -353,6 +377,40 @@ export default function ValenceCertaintyPanel() {
             <div>valence: {dbg.valence.toFixed(2)}</div>
             <div>certainty: {(dbg.certainty * 100).toFixed(0)}%</div>
             <div>r: {Math.hypot(active.x - W, active.y - H).toFixed(0)}px</div>
+
+            {/* Valence: grows left (red) for negative, right (green) for positive */}
+            <div style={barTrackStyle}>
+              <div style={{ ...barTickStyle(50), background: "#666" }} />
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  bottom: 0,
+                  left: `${50 - Math.max(0, -dbg.valence) * 50}%`,
+                  width: `${Math.abs(dbg.valence) * 50}%`,
+                  background: dbg.valence < 0 ? "#ff0000" : "#00ff00",
+                  borderRadius: BAR_H / 2,
+                }}
+              />
+            </div>
+
+            {/* Certainty: grows out from center; yellow while in PASS (below the
+                threshold), black once past it into AGREE/DISAGREE */}
+            <div style={barTrackStyle}>
+              <div style={{ ...barTickStyle(50 - certaintyThreshold * 50), background: "#ffd43b", opacity: 0.6 }} />
+              <div style={{ ...barTickStyle(50 + certaintyThreshold * 50), background: "#ffd43b", opacity: 0.6 }} />
+              <div
+                style={{
+                  position: "absolute",
+                  top: 0,
+                  bottom: 0,
+                  left: `${50 - dbg.certainty * 50}%`,
+                  width: `${dbg.certainty * 100}%`,
+                  background: dbg.certainty < certaintyThreshold ? "#ffd43b" : "#000",
+                  borderRadius: BAR_H / 2,
+                }}
+              />
+            </div>
           </div>
         )}
       </div>
