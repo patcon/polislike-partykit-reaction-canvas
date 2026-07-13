@@ -14,7 +14,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Changed
 - **Prototype pages moved to GitHub Pages** — `valence-onboarding-v1.html`, `valence-onboarding-v2.html`, `valence-onboarding-v3.html`, and `mood-sounds.html` moved from `public/` to `docs/pages/` and now deploy to `https://patcon.github.io/polislike-partykit-reaction-canvas/` via a new GitHub Actions workflow. Pages with WebSocket connections gain a **server URL input** (default: `wss://whispering-gallery.patcon.partykit.dev`) so the PartyKit host can be specified when accessed from a different origin. Links in `OldFrontPage` and `NewFrontPage` updated to the GitHub Pages URLs.
-- **Valence × certainty panel polish** — DISAGREE/AGREE/PASS anchors are now real, lockable `<button>` elements (was a drag-circle with an offset text label) inset from the panel edge so they don't clip. AGREE/DISAGREE color fills extend past the outer arc so there's no uncolored corner, and the debug-tap crosshair marker is gone.
+- **Valence × certainty panel polish** — DISAGREE/AGREE/PASS anchors are now real, lockable `<button>` elements (was a drag-circle with an offset text label) inset from the panel edge so they don't clip. Region colors match the avatar vote-color scheme (green/red/yellow); PASS now sits at the middle of its region (dragging it moves the threshold line at 2× the anchor's own movement). A new guides toggle hides the sector/threshold lines; the debug-tap crosshair marker is gone.
 
 ## Week 32 (2026-06-29)
 

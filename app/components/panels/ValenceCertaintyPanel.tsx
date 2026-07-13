@@ -27,16 +27,19 @@ const MIN_B = 20;
 const HALF_PI = Math.PI / 2;
 const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
 
+// Matches the avatar/cursor vote-color scheme (CursorField's cursorColor,
+// AvatarsTab's VALENCE_COLORS) — pure green/red/yellow — rather than the
+// softer VOTE_COLORS palette used for map dots elsewhere in the app.
 const CELL_STYLE: Record<CellId, { fill: string }> = {
-  disagree: { fill: "rgba(255,107,107,0.18)" },
-  agree: { fill: "rgba(81,207,102,0.18)" },
-  pass: { fill: "rgba(130,150,180,0.14)" },
+  disagree: { fill: "rgba(255,0,0,0.18)" },
+  agree: { fill: "rgba(0,255,0,0.18)" },
+  pass: { fill: "rgba(255,255,0,0.14)" },
 };
 
 const ANCHOR_COLOR: Record<CellId, string> = {
-  disagree: "#ff6b6b",
-  agree: "#51cf66",
-  pass: "#8296b4",
+  disagree: "#ff0000",
+  agree: "#00ff00",
+  pass: "#ffff00",
 };
 
 const anchorButtonStyle = (pos: Pt, color: string, locked: boolean): React.CSSProperties => ({
@@ -60,16 +63,16 @@ const anchorButtonStyle = (pos: Pt, color: string, locked: boolean): React.CSSPr
   whiteSpace: "nowrap",
 });
 
-const lockButtonStyle = (locked: boolean): React.CSSProperties => ({
+const toggleButtonStyle = (active: boolean): React.CSSProperties => ({
   fontFamily: "inherit",
   fontSize: 11,
   fontWeight: 700,
   letterSpacing: "0.04em",
   padding: "5px 10px",
   borderRadius: 6,
-  border: `1px solid ${locked ? "#ffd43b" : "#444"}`,
-  background: locked ? "rgba(255,212,59,0.15)" : "rgba(255,255,255,0.06)",
-  color: locked ? "#ffd43b" : "#ccc",
+  border: `1px solid ${active ? "#ffd43b" : "#444"}`,
+  background: active ? "rgba(255,212,59,0.15)" : "rgba(255,255,255,0.06)",
+  color: active ? "#ffd43b" : "#ccc",
   cursor: "pointer",
 });
 
@@ -127,13 +130,20 @@ export default function ValenceCertaintyPanel() {
 
   const disagreePos = useMemo<Pt | null>(() => (geo ? ellipsePoint(geo, 1, geo.thetaDisagree) : null), [geo]);
   const agreePos = useMemo<Pt | null>(() => (geo ? ellipsePoint(geo, 1, geo.thetaAgree) : null), [geo]);
-  const passPos = useMemo<Pt | null>(() => (geo ? ellipsePoint(geo, geo.thresholdFrac, geo.bisectorTheta) : null), [geo]);
+  // PASS anchor sits at the midpoint of the PASS band (innerFrac..thresholdFrac)
+  // rather than on the threshold line itself, so it reads as "the middle of
+  // the region" instead of sitting on its own boundary.
+  const passPos = useMemo<Pt | null>(
+    () => (geo ? ellipsePoint(geo, (geo.innerFrac + geo.thresholdFrac) / 2, geo.bisectorTheta) : null),
+    [geo],
+  );
 
   const [dragId, setDragId] = useState<DragId | null>(null);
   const [livePos, setLivePos] = useState<Pt | null>(null);
   const [debugPos, setDebugPos] = useState<Pt | null>(null);
   const [debugActive, setDebugActive] = useState(false);
   const [locked, setLocked] = useState(false);
+  const [showGuides, setShowGuides] = useState(true);
   const captureElRef = useRef<Element | null>(null);
 
   const toLocal = useCallback((e: React.PointerEvent): Pt => {
@@ -183,12 +193,16 @@ export default function ValenceCertaintyPanel() {
       const sa = clamp(Math.acos(clamp((W - p.x) / geo.a, -1, 1)), 0, HALF_PI);
       setGs((g) => ({ ...g!, b, thetaAgree: sa }));
     } else if (dragId === "pass") {
-      // Project the drag point onto the valence bisector in the ellipse basis;
-      // its fraction along the bisector becomes the threshold.
+      // Project the drag point onto the valence bisector in the ellipse basis
+      // to get the fraction under the cursor. The PASS anchor tracks the
+      // midpoint of [innerFrac, thresholdFrac], not thresholdFrac itself, so
+      // solve for the thresholdFrac whose midpoint lands there — moving the
+      // anchor by Δ moves the threshold line by 2Δ (innerFrac is fixed).
       const { alpha, beta } = toBasis(geo, p);
       const c = Math.cos(geo.bisectorTheta);
       const s = Math.sin(geo.bisectorTheta);
-      const frac = alpha * c + beta * s;
+      const midFrac = alpha * c + beta * s;
+      const frac = 2 * midFrac - geo.innerFrac;
       setGs((g) => ({ ...g!, thresholdFrac: clamp(frac, 0.05, 0.95) }));
     }
   };
@@ -264,15 +278,19 @@ export default function ValenceCertaintyPanel() {
         <path d={passCellA} fill={CELL_STYLE.pass.fill} stroke="none" />
         <path d={passCellB} fill={CELL_STYLE.pass.fill} stroke="none" />
 
-        {/* Sector boundary */}
-        <path d={outerArc} fill="none" stroke="#5a5a66" strokeWidth={2} />
-        <path d={innerArc} fill="none" stroke="#5a5a66" strokeWidth={2} />
-        <path d={edgeStart} fill="none" stroke="#5a5a66" strokeWidth={2} />
-        <path d={edgeEnd} fill="none" stroke="#5a5a66" strokeWidth={2} />
+        {showGuides && (
+          <>
+            {/* Sector boundary */}
+            <path d={outerArc} fill="none" stroke="#5a5a66" strokeWidth={2} />
+            <path d={innerArc} fill="none" stroke="#5a5a66" strokeWidth={2} />
+            <path d={edgeStart} fill="none" stroke="#5a5a66" strokeWidth={2} />
+            <path d={edgeEnd} fill="none" stroke="#5a5a66" strokeWidth={2} />
 
-        {/* Dividing lines */}
-        <path d={bisector} fill="none" stroke="#e9ecef" strokeWidth={2} strokeDasharray="6 5" />
-        <path d={thresholdArc} fill="none" stroke="#ffd43b" strokeWidth={3} />
+            {/* Dividing lines */}
+            <path d={bisector} fill="none" stroke="#e9ecef" strokeWidth={2} strokeDasharray="6 5" />
+            <path d={thresholdArc} fill="none" stroke="#ffd43b" strokeWidth={3} />
+          </>
+        )}
 
         {/* Live cursor (your own finger / pointer) */}
         {livePos && (
@@ -299,14 +317,24 @@ export default function ValenceCertaintyPanel() {
           gap: 6,
         }}
       >
-        <button
-          type="button"
-          aria-pressed={locked}
-          onClick={() => setLocked((l) => !l)}
-          style={lockButtonStyle(locked)}
-        >
-          {locked ? "🔒 locked" : "🔓 unlocked"}
-        </button>
+        <div style={{ display: "flex", gap: 6 }}>
+          <button
+            type="button"
+            aria-pressed={locked}
+            onClick={() => setLocked((l) => !l)}
+            style={toggleButtonStyle(locked)}
+          >
+            {locked ? "🔒 locked" : "🔓 unlocked"}
+          </button>
+          <button
+            type="button"
+            aria-pressed={showGuides}
+            onClick={() => setShowGuides((v) => !v)}
+            style={toggleButtonStyle(showGuides)}
+          >
+            {showGuides ? "🐞 guides" : "🐞 guides off"}
+          </button>
+        </div>
 
         {/* Live readout */}
         {active && dbg && (
