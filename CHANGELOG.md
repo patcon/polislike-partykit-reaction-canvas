@@ -17,7 +17,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Changed
 - **Prototype pages moved to GitHub Pages** — `valence-onboarding-v1.html`, `valence-onboarding-v2.html`, `valence-onboarding-v3.html`, and `mood-sounds.html` moved from `public/` to `docs/pages/` and now deploy to `https://patcon.github.io/polislike-partykit-reaction-canvas/` via a new GitHub Actions workflow. Pages with WebSocket connections gain a **server URL input** (default: `wss://whispering-gallery.patcon.partykit.dev`) so the PartyKit host can be specified when accessed from a different origin. Links in `OldFrontPage` and `NewFrontPage` updated to the GitHub Pages URLs.
-- **Valence × certainty panel: anchors are real buttons** — DISAGREE/AGREE/PASS are now `<button>` elements centered on the anchor point (instead of a drag-circle offset above a separate text label), stacked above the instructions text so AGREE stays visible/clickable near the top-right corner. DISAGREE and AGREE now start inset from the bottom/right edge instead of sitting exactly on it, so their labels don't clip on load.
+- **Valence × certainty panel: anchors are real buttons** — DISAGREE/AGREE/PASS are now `<button>` elements centered on the anchor point (instead of a drag-circle offset above a separate text label), stacked above the instructions text so AGREE stays visible/clickable near the top-right corner. DISAGREE and AGREE now start inset from the bottom/right edge instead of sitting exactly on it, so their labels don't clip on load. A lock/unlock toggle next to the top-left readout freezes the anchors in place for easier testing.
 
 ## Week 32 (2026-06-29)
 

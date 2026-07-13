@@ -39,7 +39,7 @@ const ANCHOR_COLOR: Record<CellId, string> = {
   pass: "#8296b4",
 };
 
-const anchorButtonStyle = (pos: Pt, color: string): React.CSSProperties => ({
+const anchorButtonStyle = (pos: Pt, color: string, locked: boolean): React.CSSProperties => ({
   position: "absolute",
   left: pos.x,
   top: pos.y,
@@ -53,10 +53,24 @@ const anchorButtonStyle = (pos: Pt, color: string): React.CSSProperties => ({
   fontSize: 12,
   fontWeight: 700,
   letterSpacing: "0.04em",
-  cursor: "grab",
+  cursor: locked ? "default" : "grab",
+  opacity: locked ? 0.85 : 1,
   touchAction: "none",
   userSelect: "none",
   whiteSpace: "nowrap",
+});
+
+const lockButtonStyle = (locked: boolean): React.CSSProperties => ({
+  fontFamily: "inherit",
+  fontSize: 11,
+  fontWeight: 700,
+  letterSpacing: "0.04em",
+  padding: "5px 10px",
+  borderRadius: 6,
+  border: `1px solid ${locked ? "#ffd43b" : "#444"}`,
+  background: locked ? "rgba(255,212,59,0.15)" : "rgba(255,255,255,0.06)",
+  color: locked ? "#ffd43b" : "#ccc",
+  cursor: "pointer",
 });
 
 type DragId = "disagree" | "agree" | "pass";
@@ -119,6 +133,7 @@ export default function ValenceCertaintyPanel() {
   const [livePos, setLivePos] = useState<Pt | null>(null);
   const [debugPos, setDebugPos] = useState<Pt | null>(null);
   const [debugActive, setDebugActive] = useState(false);
+  const [locked, setLocked] = useState(false);
   const captureElRef = useRef<Element | null>(null);
 
   const toLocal = useCallback((e: React.PointerEvent): Pt => {
@@ -138,7 +153,7 @@ export default function ValenceCertaintyPanel() {
 
   const startDrag = (id: DragId) => (e: React.PointerEvent) => {
     e.stopPropagation();
-    if (!geo) return;
+    if (!geo || locked) return;
     const p = toLocal(e);
     captureElRef.current = e.currentTarget;
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -212,9 +227,9 @@ export default function ValenceCertaintyPanel() {
     <button
       key={id}
       type="button"
-      aria-label={`${ANCHOR_LABELS[id]} anchor — drag to reposition`}
+      aria-label={locked ? `${ANCHOR_LABELS[id]} anchor — locked` : `${ANCHOR_LABELS[id]} anchor — drag to reposition`}
       onPointerDown={startDrag(id)}
-      style={anchorButtonStyle(pos, ANCHOR_COLOR[id])}
+      style={anchorButtonStyle(pos, ANCHOR_COLOR[id], locked)}
     >
       {ANCHOR_LABELS[id]}
     </button>
@@ -274,28 +289,47 @@ export default function ValenceCertaintyPanel() {
       {renderAnchor("agree", agreePos)}
       {renderAnchor("pass", passPos)}
 
-      {/* Live readout */}
-      {active && dbg && (
-        <div
-          style={{
-            position: "absolute",
-            top: 12,
-            left: 12,
-            background: "rgba(0,0,0,0.6)",
-            color: "#fff",
-            fontFamily: "monospace",
-            fontSize: 12,
-            padding: "8px 10px",
-            borderRadius: 6,
-            lineHeight: 1.5,
-          }}
+      <div
+        style={{
+          position: "absolute",
+          top: 12,
+          left: 12,
+          zIndex: 6,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "flex-start",
+          gap: 6,
+        }}
+      >
+        <button
+          type="button"
+          aria-pressed={locked}
+          onClick={() => setLocked((l) => !l)}
+          style={lockButtonStyle(locked)}
         >
-          <div>region: <b>{dbg.region}</b></div>
-          <div>valence: {dbg.valence.toFixed(2)}</div>
-          <div>certainty: {(dbg.certainty * 100).toFixed(0)}%</div>
-          <div>r: {Math.hypot(active.x - W, active.y - H).toFixed(0)}px</div>
-        </div>
-      )}
+          {locked ? "🔒 locked" : "🔓 unlocked"}
+        </button>
+
+        {/* Live readout */}
+        {active && dbg && (
+          <div
+            style={{
+              background: "rgba(0,0,0,0.6)",
+              color: "#fff",
+              fontFamily: "monospace",
+              fontSize: 12,
+              padding: "8px 10px",
+              borderRadius: 6,
+              lineHeight: 1.5,
+            }}
+          >
+            <div>region: <b>{dbg.region}</b></div>
+            <div>valence: {dbg.valence.toFixed(2)}</div>
+            <div>certainty: {(dbg.certainty * 100).toFixed(0)}%</div>
+            <div>r: {Math.hypot(active.x - W, active.y - H).toFixed(0)}px</div>
+          </div>
+        )}
+      </div>
 
       <div
         style={{
