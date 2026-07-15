@@ -12,7 +12,21 @@ export const DEFAULT_PARAMS: Params = {
   multiplier: 10,      // particles spawned per live cursor
 };
 
-/** userId → hue, matching the hash used for cursor dot color in CursorField.tsx. */
+/**
+ * userId → hue (0-359). Unlike the plain char-sum hash used for cursor dot
+ * color elsewhere (e.g. CursorField.tsx), this runs an avalanche finalizer
+ * (Thomas Wang's integer hash) after the polynomial rolling hash, so ids
+ * sharing a long common prefix and differing only by a trailing digit — like
+ * the simulated `sim_wander_0`..`sim_wander_9` ids — still spread across the
+ * full hue wheel instead of landing within ~1 degree of each other.
+ */
 export function hueForUser(userId: string): number {
-  return userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % 360;
+  let hash = 0;
+  for (let i = 0; i < userId.length; i++) {
+    hash = (hash * 31 + userId.charCodeAt(i)) | 0;
+  }
+  hash = Math.imul(hash ^ (hash >>> 16), 0x45d9f3b);
+  hash = Math.imul(hash ^ (hash >>> 16), 0x45d9f3b);
+  hash = hash ^ (hash >>> 16);
+  return Math.abs(hash) % 360;
 }
