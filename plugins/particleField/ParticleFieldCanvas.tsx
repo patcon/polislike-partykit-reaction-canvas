@@ -85,12 +85,24 @@ export default function ParticleFieldCanvas({
       ctx.fillRect(0, 0, w, h);
 
       if (showCursorsRef.current) {
-        ctx.fillStyle = 'rgba(0,0,0,0.15)';
-        for (const [, p] of rawCursors) {
+        for (const [id, p] of rawCursors) {
+          const hue = hueForUser(id);
           const px = (p.x / 100) * w, py = (p.y / 100) * h;
+
+          // Same hue as this owner's particles, but larger with a glow + thick
+          // border so the cursor itself reads as obviously distinct from them.
           ctx.beginPath();
-          ctx.arc(px, py, 5, 0, Math.PI * 2);
+          ctx.arc(px, py, 9, 0, Math.PI * 2);
+          ctx.save();
+          ctx.shadowColor = `hsla(${hue}, 80%, 40%, 0.7)`;
+          ctx.shadowBlur = 14;
+          ctx.fillStyle = `hsla(${hue}, 75%, 50%, 0.9)`;
           ctx.fill();
+          ctx.restore();
+
+          ctx.lineWidth = 3;
+          ctx.strokeStyle = 'rgba(0,0,0,0.6)';
+          ctx.stroke();
         }
       }
 

@@ -13,6 +13,9 @@ All notable changes to this project will be documented in this file. Releases cu
 - **Cursor smoothing extracted into a reusable hook** — the spring-damper math `CursorField` used inline for its smooth-cursor overlay is now `app/utils/cursorSmoothing.ts` (`stepCursorSmoothing`) plus `useSmoothedCoordStream`, a hook that wraps any `CoordStreamResult` (from `useCoordStream` or `useRawCoordStream`) with eased motion. `CursorField` now calls the shared function instead of duplicating it; the new Particle Field panel and its live Storybook story use the hook so particles ease between network updates instead of snapping.
 - **Simulated wandering particles in `Spikes/ParticleFieldLive`** — a new `wanderCount` control (0–10, default 0) merges that many simulated cursors into the live stream, easing toward random targets via the same `createWanderField` the drift/region-hopper sim programs use, so the sim has something to react to even when the real room is empty.
 
+### Changed
+- **Particle Field cursor dots recolored to match their particles** — when `showCursors` is on, each cursor now renders in the same hue as its owned particles (was a flat gray dot), enlarged with a glow and thick dark border so it still reads as obviously distinct from the particles, making the effect of cursor position on particle forces easier to see at a glance.
+
 ### Fixed
 - **Particle Field particles all rendered the same color for related owners** — `hueForUser`'s char-sum hash gave near-identical hues to ids sharing a long common prefix (e.g. the new `sim_wander_0`..`sim_wander_9` ids, previously within ~1 degree of each other). Now runs an avalanche finalizer after the rolling hash so such ids spread across the full hue wheel.
 
