@@ -34,5 +34,5 @@ export function useSmoothedCoordStream(
     return () => cancelAnimationFrame(raf);
   }, [raw.positionsRef]);
 
-  return { positionsRef: smoothedRef, status: raw.status };
+  return { positionsRef: smoothedRef, status: raw.status, connectedRef: raw.connectedRef };
 }

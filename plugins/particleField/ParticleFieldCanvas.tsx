@@ -6,8 +6,20 @@ import type { Params, Particle } from './types';
 export interface ParticleFieldStream {
   /** Per-frame readable. userId → normalized (0-100) cursor position. */
   positionsRef: React.MutableRefObject<Map<string, { x: number; y: number }>>;
+  /**
+   * Per-frame readable set of connected userIds — independent of
+   * `positionsRef`. Drives particle-pool membership so a participant's swarm
+   * appears the instant they connect and persists (dimmed) while they're
+   * connected but not touching, instead of popping in/out with touch state.
+   */
+  connectedRef: React.MutableRefObject<Set<string>>;
   status?: string;
 }
+
+// Alpha for a particle whose owner is connected but not actively touching —
+// dimmed toward neutral rather than disappearing, per particle-valence-experiments.
+const IDLE_ALPHA = 0.18;
+const ACTIVE_ALPHA = 0.85;
 
 const STATUS_COLOR: Record<string, string> = {
   connected: '#2a8f4f', connecting: '#a68a00', disconnected: '#b23b3b', error: '#b23b3b',
@@ -30,6 +42,7 @@ export default function ParticleFieldCanvas({
   paramsRef.current = params;
   const showCursorsRef = useRef(showCursors);
   showCursorsRef.current = showCursors;
+  const [cursorCount, setCursorCount] = useState(0);
   const [humanCount, setHumanCount] = useState(0);
 
   useEffect(() => {
@@ -61,9 +74,12 @@ export default function ParticleFieldCanvas({
       const cursors01 = new Map<string, { x: number; y: number }>();
       for (const [id, p] of rawCursors) cursors01.set(id, { x: p.x / 100, y: p.y / 100 });
 
-      // Reconcile the particle pool per-owner: spawn for new users, drop departed users' particles.
+      // Reconcile the particle pool per connected owner (not per active cursor): a
+      // participant's swarm spawns as soon as their connection is instantiated and
+      // stays until they disconnect, so it persists (dimmed) through touch lifts.
+      const connectedOwners = stream.connectedRef.current;
       const presentOwners = new Set(particles.map(p => p.ownerId));
-      for (const id of rawCursors.keys()) {
+      for (const id of connectedOwners) {
         if (presentOwners.has(id)) continue;
         for (let k = 0; k < P.multiplier; k++) {
           particles.push({ x: rnd() * w, y: rnd() * h, vx: 0, vy: 0, ownerId: id });
@@ -71,7 +87,7 @@ export default function ParticleFieldCanvas({
       }
       if (particles.length) {
         for (let i = particles.length - 1; i >= 0; i--) {
-          if (!rawCursors.has(particles[i].ownerId)) particles.splice(i, 1);
+          if (!connectedOwners.has(particles[i].ownerId)) particles.splice(i, 1);
         }
       }
 
@@ -108,7 +124,8 @@ export default function ParticleFieldCanvas({
 
       for (const p of particles) {
         const hue = hueForUser(p.ownerId);
-        ctx.fillStyle = `hsla(${hue}, 70%, 45%, 0.85)`;
+        const alpha = rawCursors.has(p.ownerId) ? ACTIVE_ALPHA : IDLE_ALPHA;
+        ctx.fillStyle = `hsla(${hue}, 70%, 45%, ${alpha})`;
         ctx.beginPath();
         ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
         ctx.fill();
@@ -116,7 +133,10 @@ export default function ParticleFieldCanvas({
 
       if (t - lastBadge > 1000) {
         lastBadge = t;
-        setHumanCount(rawCursors.size);
+        setCursorCount(rawCursors.size);
+        let humans = 0;
+        for (const id of rawCursors.keys()) if (!id.startsWith('sim_')) humans++;
+        setHumanCount(humans);
       }
 
       raf = requestAnimationFrame(step);
@@ -136,7 +156,7 @@ export default function ParticleFieldCanvas({
             background: 'rgba(255,255,255,0.8)', padding: '3px 7px', borderRadius: 5,
           }}
         >
-          ws: {stream.status} · humans: {humanCount}
+          ws: {stream.status} · cursors: {cursorCount} (humans: {humanCount})
         </div>
       )}
     </div>

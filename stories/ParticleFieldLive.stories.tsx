@@ -27,6 +27,7 @@ import type { Params } from '../plugins/particleField/types';
  */
 function useMergedWanderStream(raw: ParticleFieldStream, wanderCount: number): ParticleFieldStream {
   const mergedRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const connectedRef = useRef<Set<string>>(new Set());
   const fieldRef = useRef(createWanderField({
     count: wanderCount,
     seed: 42,
@@ -54,13 +55,20 @@ function useMergedWanderStream(raw: ParticleFieldStream, wanderCount: number): P
       merged.clear();
       for (const [id, p] of raw.positionsRef.current) merged.set(id, p);
       fieldRef.current.users.forEach((u, i) => merged.set(`sim_wander_${i}`, { x: u.x, y: u.y }));
+
+      // Simulated wanderers are always "connected" — they never lift a finger.
+      const connected = connectedRef.current;
+      connected.clear();
+      for (const id of raw.connectedRef.current) connected.add(id);
+      fieldRef.current.users.forEach((_, i) => connected.add(`sim_wander_${i}`));
+
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [raw.positionsRef]);
+  }, [raw.positionsRef, raw.connectedRef]);
 
-  return { positionsRef: mergedRef, status: raw.status };
+  return { positionsRef: mergedRef, connectedRef, status: raw.status };
 }
 
 function ParticleFieldLiveRoom({
