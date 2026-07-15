@@ -1,10 +1,12 @@
-import React, { useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import ParticleFieldCanvas from '../plugins/particleField/ParticleFieldCanvas';
+import type { ParticleFieldStream } from '../plugins/particleField/ParticleFieldCanvas';
 import { useRawCoordStream } from '../app/hooks/useCoordStream';
 import { useSmoothedCoordStream } from '../app/hooks/useSmoothedCoordStream';
 import { SMOOTH_CURSOR_CONFIG } from '../app/utils/cursor';
 import { getPersistentUserId } from '../app/utils/userId';
+import { createWanderField } from '../app/lib/simulation/programs/_easing';
 import type { Params } from '../plugins/particleField/types';
 
 /**
@@ -17,14 +19,60 @@ import type { Params } from '../plugins/particleField/types';
  * your cursor — e.g. https://whispering-gallery.patcon.partykit.dev/
  */
 
+/**
+ * Merges `wanderCount` simulated cursors (ids `sim_wander_N`) that ease
+ * toward random targets — via the same createWanderField used by the
+ * drift/region-hopper sim programs — into the real cursor stream, so the
+ * particle field has something to react to even when the room is empty.
+ */
+function useMergedWanderStream(raw: ParticleFieldStream, wanderCount: number): ParticleFieldStream {
+  const mergedRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+  const fieldRef = useRef(createWanderField({
+    count: wanderCount,
+    seed: 42,
+    initial: (_, rnd) => ({ x: rnd() * 100, y: rnd() * 100 }),
+    pickTarget: (_, rnd) => ({ x: rnd() * 100, y: rnd() * 100 }),
+    dwell: 30,
+  }));
+
+  // Rebuild the field whenever the slider changes the wanderer count.
+  useEffect(() => {
+    fieldRef.current = createWanderField({
+      count: wanderCount,
+      seed: 42,
+      initial: (_, rnd) => ({ x: rnd() * 100, y: rnd() * 100 }),
+      pickTarget: (_, rnd) => ({ x: rnd() * 100, y: rnd() * 100 }),
+      dwell: 30,
+    });
+  }, [wanderCount]);
+
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      fieldRef.current.step();
+      const merged = mergedRef.current;
+      merged.clear();
+      for (const [id, p] of raw.positionsRef.current) merged.set(id, p);
+      fieldRef.current.users.forEach((u, i) => merged.set(`sim_wander_${i}`, { x: u.x, y: u.y }));
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [raw.positionsRef]);
+
+  return { positionsRef: mergedRef, status: raw.status };
+}
+
 function ParticleFieldLiveRoom({
   roomUrl,
   showCursors,
+  wanderCount,
   ...params
-}: { roomUrl: string; showCursors: boolean } & Params) {
+}: { roomUrl: string; showCursors: boolean; wanderCount: number } & Params) {
   const userId = useRef(getPersistentUserId()).current;
   const raw = useRawCoordStream(roomUrl || null, userId, { includeSelf: true });
-  const stream = useSmoothedCoordStream(raw, SMOOTH_CURSOR_CONFIG);
+  const smoothed = useSmoothedCoordStream(raw, SMOOTH_CURSOR_CONFIG);
+  const stream = useMergedWanderStream(smoothed, wanderCount);
   return (
     <div style={{ width: '100%', height: 480, borderRadius: 8, overflow: 'hidden' }}>
       <ParticleFieldCanvas stream={stream} params={params} showCursors={showCursors} />
@@ -39,6 +87,7 @@ const meta = {
   argTypes: {
     roomUrl: { control: 'text' },
     showCursors: { control: 'boolean' },
+    wanderCount: { control: { type: 'range', min: 0, max: 10, step: 1 } },
     forceScale: { control: { type: 'range', min: 0, max: 300, step: 5 } },
     proximityRange: { control: { type: 'range', min: 0.05, max: 1.4, step: 0.01 } },
     invert: { control: 'boolean' },
@@ -58,6 +107,7 @@ export const Default: Story = {
   args: {
     roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default',
     showCursors: true,
+    wanderCount: 0,
     forceScale: 180,
     proximityRange: 0.4,
     invert: false,
