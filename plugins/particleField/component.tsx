@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { usePanelContext } from '../../app/context/PanelContext';
 import { useCoordStream } from '../../app/hooks/useCoordStream';
+import { useSmoothedCoordStream } from '../../app/hooks/useSmoothedCoordStream';
+import { SMOOTH_CURSOR_CONFIG } from '../../app/utils/cursor';
 import ParticleFieldCanvas from './ParticleFieldCanvas';
 import ConfigDrawer from './ConfigDrawer';
 import { DEFAULT_PARAMS } from './constants';
@@ -9,7 +11,9 @@ import type { Params } from './types';
 export default function ParticleFieldPanel() {
   const { userId } = usePanelContext();
   // includeSelf: this is a presentation viz, matches sibling plugins (boids/moodTones).
-  const stream = useCoordStream(userId, { includeSelf: true });
+  const raw = useCoordStream(userId, { includeSelf: true });
+  // Smoothed so particles ease between network updates instead of snapping.
+  const stream = useSmoothedCoordStream(raw, SMOOTH_CURSOR_CONFIG);
 
   const [params, setParams] = useState<Params>(DEFAULT_PARAMS);
   const [showCursors, setShowCursors] = useState(false);

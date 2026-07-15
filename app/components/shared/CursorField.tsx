@@ -5,6 +5,7 @@ import { computeReactionRegion, DEFAULT_ANCHORS } from "../../utils/voteRegion";
 import { CURSOR_STALE_MS } from "../../utils/cursor";
 import { isSimulatedUserId, shouldMarkAsSimulated } from "../../utils/simulatedUser";
 import { makeImageCoordTransform } from "../../utils/imageCanvasCoords";
+import { stepCursorSmoothing } from "../../utils/cursorSmoothing";
 import { flashSecondsRemaining } from "../../utils/flashTimer";
 import { useRoomSocket, useMessageSubscription } from "../../contexts/RoomSocketContext";
 import type { ReactionAnchors } from "../../utils/voteRegion";
@@ -127,6 +128,8 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
   useEffect(() => { customAvatarsRef.current = customAvatars; }, [customAvatars]);
 
   const smoothCursorStateRef = useRef<Map<string, { x: number; y: number; vx: number; vy: number }>>(new Map());
+  // Reused scratch map for screen-space smoothing targets — avoids an allocation every RAF tick.
+  const screenTargetsScratchRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const dimensionsRef = useRef({ width: window.innerWidth, height: window.innerHeight });
   const toScreenCoordsRef = useRef<(x: number, y: number) => { x: number; y: number }>(
     (x, y) => ({ x: (x / 100) * dimensionsRef.current.width, y: (y / 100) * dimensionsRef.current.height })
@@ -148,30 +151,17 @@ export default function CursorField({ userId, screenName = 'personal', colorCurs
       const layer = smoothCursorLayerRef.current;
       if (!layer) { rafId = requestAnimationFrame(tick); return; }
 
-      const { stiffness, damping, mass, showSmoothCursor } = cursorSmoothingConfig;
+      const { showSmoothCursor } = cursorSmoothingConfig;
       const targets = cursorTargetRef.current;
       const state = smoothCursorStateRef.current;
 
-      // Remove smooth cursor state for cursors that have left
-      for (const id of state.keys()) {
-        if (!targets.has(id)) state.delete(id);
-      }
-
-      // Step physics for each target cursor
+      // Step the shared spring-damper toward each cursor's screen-space position.
+      const screenTargets = screenTargetsScratchRef.current;
+      screenTargets.clear();
       for (const [id, cursor] of targets) {
-        const { x: tx, y: ty } = toScreenCoordsRef.current(cursor.x, cursor.y);
-        let s = state.get(id);
-        if (!s) {
-          s = { x: tx, y: ty, vx: 0, vy: 0 };
-          state.set(id, s);
-        }
-        const dx = tx - s.x;
-        const dy = ty - s.y;
-        s.vx = s.vx * damping + (dx * stiffness) / mass;
-        s.vy = s.vy * damping + (dy * stiffness) / mass;
-        s.x += s.vx;
-        s.y += s.vy;
+        screenTargets.set(id, toScreenCoordsRef.current(cursor.x, cursor.y));
       }
+      stepCursorSmoothing(state, screenTargets, cursorSmoothingConfig);
 
       // D3 data join for enter/exit
       const layerSel = select(layer);

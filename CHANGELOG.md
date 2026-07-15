@@ -10,6 +10,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Added
 - **Particle Field panel** — new `particleField` plugin ports the pairwise attraction/repulsion particle sim from `particle-valence-experiments` onto live participant cursors: particles spawn per live cursor and forces between them are driven by cursor-to-cursor proximity (close cursors attract their particles, distant ones repel), instead of recorded/local playback. Config (force scale, proximity range, core radius, falloff, friction, max speed, center gravity, particles-per-cursor, invert) lives in a collapsible drawer inline in the panel itself rather than the emcee config modal, and the canvas keeps the light theme of the base cursor canvas rather than the dark theme used by other sim panels (boids, valence cross-section). `canScreenMount` so it can be assigned to the Commons screen. New `Spikes/ParticleFieldLive` Storybook story connects to a real deployed PartyKit room by default for live tuning.
+- **Cursor smoothing extracted into a reusable hook** — the spring-damper math `CursorField` used inline for its smooth-cursor overlay is now `app/utils/cursorSmoothing.ts` (`stepCursorSmoothing`) plus `useSmoothedCoordStream`, a hook that wraps any `CoordStreamResult` (from `useCoordStream` or `useRawCoordStream`) with eased motion. `CursorField` now calls the shared function instead of duplicating it; the new Particle Field panel and its live Storybook story use the hook so particles ease between network updates instead of snapping.
 
 ## Week 33 (2026-07-06)
 

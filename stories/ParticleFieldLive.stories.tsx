@@ -2,6 +2,8 @@ import React, { useRef } from 'react';
 import type { Meta, StoryObj } from '@storybook/react-vite';
 import ParticleFieldCanvas from '../plugins/particleField/ParticleFieldCanvas';
 import { useRawCoordStream } from '../app/hooks/useCoordStream';
+import { useSmoothedCoordStream } from '../app/hooks/useSmoothedCoordStream';
+import { SMOOTH_CURSOR_CONFIG } from '../app/utils/cursor';
 import { getPersistentUserId } from '../app/utils/userId';
 import type { Params } from '../plugins/particleField/types';
 
@@ -21,7 +23,8 @@ function ParticleFieldLiveRoom({
   ...params
 }: { roomUrl: string; showCursors: boolean } & Params) {
   const userId = useRef(getPersistentUserId()).current;
-  const stream = useRawCoordStream(roomUrl || null, userId, { includeSelf: true });
+  const raw = useRawCoordStream(roomUrl || null, userId, { includeSelf: true });
+  const stream = useSmoothedCoordStream(raw, SMOOTH_CURSOR_CONFIG);
   return (
     <div style={{ width: '100%', height: 480, borderRadius: 8, overflow: 'hidden' }}>
       <ParticleFieldCanvas stream={stream} params={params} showCursors={showCursors} />
