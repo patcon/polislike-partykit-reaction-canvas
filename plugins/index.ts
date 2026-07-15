@@ -15,6 +15,7 @@ import narrativePlugins from './narrative/index';
 import voiceCallPlugin from './voiceCall/index';
 import boidsPlugin from './boids/index';
 import valenceCrossSectionPlugin from './valenceCrossSection/index';
+import particleFieldPlugin from './particleField/index';
 // import helloWorldPlugin from './helloWorld/index';  // uncomment to activate the helloWorld example plugin
 
 type PluginExport = PanelPlugin | PanelPlugin[];
@@ -36,6 +37,7 @@ const pluginExports: PluginExport[] = [
   voiceCallPlugin,
   boidsPlugin,
   valenceCrossSectionPlugin,
+  particleFieldPlugin,
   // helloWorldPlugin,
 ];
 

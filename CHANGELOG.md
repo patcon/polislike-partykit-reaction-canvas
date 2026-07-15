@@ -6,6 +6,11 @@ All notable changes to this project will be documented in this file. Releases cu
 
 **Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) — e.g. `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`.
 
+## Week 34 (2026-07-13)
+
+### Added
+- **Particle Field panel** — new `particleField` plugin ports the pairwise attraction/repulsion particle sim from `particle-valence-experiments` onto live participant cursors: particles spawn per live cursor and forces between them are driven by cursor-to-cursor proximity (close cursors attract their particles, distant ones repel), instead of recorded/local playback. Config (force scale, proximity range, core radius, falloff, friction, max speed, center gravity, particles-per-cursor, invert) lives in a collapsible drawer inline in the panel itself rather than the emcee config modal, and the canvas keeps the light theme of the base cursor canvas rather than the dark theme used by other sim panels (boids, valence cross-section). `canScreenMount` so it can be assigned to the Commons screen. New `Spikes/ParticleFieldLive` Storybook story connects to a real deployed PartyKit room by default for live tuning.
+
 ## Week 33 (2026-07-06)
 
 ### Added
