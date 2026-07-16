@@ -77,6 +77,12 @@ export function useCoordStream(ownUserId: string, opts?: CoordStreamOptions): Co
         continue;
       }
 
+      // A position event proves this user is connected even if this
+      // subscriber missed the one-time `connected` snapshot — e.g. it joined
+      // the shared room socket (RoomSocketProvider) after the socket had
+      // already been open for a while, so the snapshot fired before this
+      // consumer subscribed.
+      connectedRef.current.add(userId);
       positionsRef.current.set(userId, { x, y });
       const ts = Date.now();
       timestampsRef.current.set(userId, ts);
@@ -153,6 +159,7 @@ export function useRawCoordStream(
           continue;
         }
 
+        connectedRef.current.add(userId);
         positionsRef.current.set(userId, { x, y });
         const ts = Date.now();
         timestampsRef.current.set(userId, ts);

@@ -20,6 +20,7 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ### Fixed
 - **Particle Field particles all rendered the same color for related owners** — `hueForUser`'s char-sum hash gave near-identical hues to ids sharing a long common prefix (e.g. the new `sim_wander_0`..`sim_wander_9` ids, previously within ~1 degree of each other). Now runs an avalanche finalizer after the rolling hash so such ids spread across the full hue wheel.
+- **Particle Field showed cursor dots but no particles on the Commons screen** — `connectedRef` (drives particle-pool membership) was only populated from the server's one-time `connected` snapshot plus `userJoined`/`userLeft` events; a consumer subscribing to the shared room socket after that snapshot already fired (e.g. the panel mounted after other participants had already connected) never learned about those users, so no particles spawned for them even though their cursor-position broadcasts kept arriving. `useCoordStream`/`useRawCoordStream` now also mark a user connected on any position event, not just the explicit join messages. Panel relabeled to "Particle Field Test" (not yet ready for participant-facing use).
 
 ## Week 33 (2026-07-06)
 
