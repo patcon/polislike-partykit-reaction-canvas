@@ -34,8 +34,9 @@ export interface Params {
   multiplierStrategy: 'basic' | 'children';
   /**
    * `none` (default): pairwise force is purely radial (toward/away from the
-   * other particle). `swirl`: adds a tangential component so particles curve
-   * around each other instead of approaching head-on.
+   * other particle). `swirl-*`: adds a tangential component (strength scales
+   * low → high) so particles curve around each other instead of approaching
+   * head-on. See `SWIRL_STRENGTH` in constants.ts for the tier values.
    */
-  dynamism: 'none' | 'swirl';
+  dynamism: 'none' | 'swirl-low' | 'swirl-medium' | 'swirl-high';
 }

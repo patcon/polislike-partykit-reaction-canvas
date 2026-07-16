@@ -14,9 +14,14 @@ export const DEFAULT_PARAMS: Params = {
   dynamism: 'none',
 };
 
-// Tangential-force multiplier applied when Params.dynamism === 'swirl' — see
-// applyPairwiseForces in physics.ts.
-export const SWIRL_STRENGTH = 0.6;
+// Tangential-force multiplier applied per Params.dynamism tier — see
+// applyPairwiseForces in physics.ts. 'swirl-high' keeps the original 0.6
+// (what shipped as the sole 'swirl' option) as the strongest tier.
+export const SWIRL_STRENGTH: Record<'swirl-low' | 'swirl-medium' | 'swirl-high', number> = {
+  'swirl-low': 0.15,
+  'swirl-medium': 0.35,
+  'swirl-high': 0.6,
+};
 
 // `multiplierStrategy: 'children'` tuning — each owner's child cursors spring
 // toward a fixed personal offset from the real cursor (not the exact same

@@ -67,9 +67,10 @@ export function applyPairwiseForces(
 
       // Swirl: add a tangential component (90° from the radial direction) so
       // particles curve around each other instead of approaching head-on.
-      if (P.dynamism === 'swirl') {
-        a.vx += -uy * f * SWIRL_STRENGTH * dt;
-        a.vy += ux * f * SWIRL_STRENGTH * dt;
+      if (P.dynamism !== 'none') {
+        const swirl = SWIRL_STRENGTH[P.dynamism];
+        a.vx += -uy * f * swirl * dt;
+        a.vy += ux * f * swirl * dt;
       }
     }
   }

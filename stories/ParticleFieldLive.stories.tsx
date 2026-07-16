@@ -22,8 +22,12 @@ import type { Params } from '../plugins/particleField/types';
  * your cursor — e.g. https://whispering-gallery.patcon.partykit.dev/
  */
 
-/** Simulated-program choices offered by this story (subset of `PROGRAMS`). */
-const SIM_PROGRAM_IDS = ['drift', 'valence-shift'] as const;
+/**
+ * Simulated-program choices offered by this story (subset of `PROGRAMS`).
+ * `recorded` degrades to emitting nothing if the sample asset is missing
+ * (see recordedPlayback.ts), so no availability probe is needed here.
+ */
+const SIM_PROGRAM_IDS = ['drift', 'valence-shift', 'recorded'] as const;
 const SIM_SEED = 42;
 
 /**
@@ -151,7 +155,7 @@ const meta = {
     centerGravity: { control: { type: 'range', min: 0, max: 4, step: 0.05 } },
     multiplier: { control: { type: 'range', min: 1, max: 12, step: 1 } },
     multiplierStrategy: { control: 'select', options: ['basic', 'children'] },
-    dynamism: { control: 'select', options: ['none', 'swirl'] },
+    dynamism: { control: 'select', options: ['none', 'swirl-low', 'swirl-medium', 'swirl-high'] },
   },
 } satisfies Meta<typeof ParticleFieldLiveRoom>;
 
@@ -239,5 +243,26 @@ export const PresetC: Story = {
     multiplier: 12,
     multiplierStrategy: 'children',
     dynamism: 'none',
+  },
+};
+
+export const PresetD: Story = {
+  args: {
+    roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default',
+    showCursors: true,
+    simulatedProgram: 'valence-shift',
+    simulatedCount: 8,
+    simulatedGroupCount: 3,
+    forceScale: 165,
+    proximityRange: 0.4,
+    invert: false,
+    coreRadius: 22,
+    falloff: 180,
+    friction: 0.025,
+    maxSpeed: 800,
+    centerGravity: 2.2,
+    multiplier: 6,
+    multiplierStrategy: 'children',
+    dynamism: 'swirl-low',
   },
 };

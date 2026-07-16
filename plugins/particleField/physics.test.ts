@@ -92,16 +92,36 @@ describe('applyPairwiseForces', () => {
     expect(parts[1].vx).toBe(0);
   });
 
-  it('adds a tangential component when dynamism is swirl', () => {
-    const parts: Particle[] = [
-      { x: 0, y: 0, vx: 0, vy: 0, ownerId: 'a' },
-      { x: 20, y: 0, vx: 0, vy: 0, ownerId: 'a' },
-    ];
-    const coeffM = new Map([['a', new Map([['a', 50]])]]);
-    applyPairwiseForces(parts, coeffM, { ...baseParams, dynamism: 'swirl' }, 1);
-    // Pure radial attraction (b is to the right) would leave vy at 0; swirl
-    // adds a perpendicular component.
-    expect(parts[0].vy).not.toBe(0);
+  it.each(['swirl-low', 'swirl-medium', 'swirl-high'] as const)(
+    'adds a tangential component when dynamism is %s',
+    (dynamism) => {
+      const parts: Particle[] = [
+        { x: 0, y: 0, vx: 0, vy: 0, ownerId: 'a' },
+        { x: 20, y: 0, vx: 0, vy: 0, ownerId: 'a' },
+      ];
+      const coeffM = new Map([['a', new Map([['a', 50]])]]);
+      applyPairwiseForces(parts, coeffM, { ...baseParams, dynamism }, 1);
+      // Pure radial attraction (b is to the right) would leave vy at 0; swirl
+      // adds a perpendicular component.
+      expect(parts[0].vy).not.toBe(0);
+    },
+  );
+
+  it('scales the swirl magnitude low < medium < high', () => {
+    const runWith = (dynamism: 'swirl-low' | 'swirl-medium' | 'swirl-high') => {
+      const parts: Particle[] = [
+        { x: 0, y: 0, vx: 0, vy: 0, ownerId: 'a' },
+        { x: 20, y: 0, vx: 0, vy: 0, ownerId: 'a' },
+      ];
+      const coeffM = new Map([['a', new Map([['a', 50]])]]);
+      applyPairwiseForces(parts, coeffM, { ...baseParams, dynamism }, 1);
+      return Math.abs(parts[0].vy);
+    };
+    const low = runWith('swirl-low');
+    const medium = runWith('swirl-medium');
+    const high = runWith('swirl-high');
+    expect(low).toBeLessThan(medium);
+    expect(medium).toBeLessThan(high);
   });
 });
 
