@@ -7,8 +7,30 @@ export type CoordStreamStatus = 'connecting' | 'connected' | 'disconnected' | 'e
 export interface CoordStreamResult {
   /** Per-frame readable. Safe to read in a RAF loop without triggering re-renders. */
   positionsRef: React.MutableRefObject<Map<string, { x: number; y: number }>>;
+  /**
+   * Per-frame readable set of userIds currently connected to the room —
+   * independent of `positionsRef`, which only holds users with an active
+   * cursor/touch. A user stays in this set from the moment their connection
+   * is established (server's `connected`/`userJoined` messages) until they
+   * disconnect (`userLeft`), regardless of whether they're actively touching.
+   */
+  connectedRef: React.MutableRefObject<Set<string>>;
   /** Connection status — useful for overlays in standalone contexts. */
   status?: CoordStreamStatus;
+}
+
+/** Applies a `connected`/`userJoined`/`userLeft` message to a connected-users set. */
+function applyConnectionEvent(
+  data: { type?: string; connectedUserIds?: string[]; userId?: string },
+  connectedRef: React.MutableRefObject<Set<string>>,
+): void {
+  if (data.type === 'connected') {
+    for (const id of data.connectedUserIds ?? []) connectedRef.current.add(id);
+  } else if (data.type === 'userJoined' && data.userId) {
+    connectedRef.current.add(data.userId);
+  } else if (data.type === 'userLeft' && data.userId) {
+    connectedRef.current.delete(data.userId);
+  }
 }
 
 
@@ -34,11 +56,16 @@ export function useCoordStream(ownUserId: string, opts?: CoordStreamOptions): Co
   const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   // Tracks the last-seen timestamp per user for expiry.
   const timestampsRef = useRef<Map<string, number>>(new Map());
+  // Server never tells you about yourself (connected/userJoined exclude the
+  // sender), so seed self in directly when included.
+  const connectedRef = useRef<Set<string>>(new Set(includeSelf ? [ownUserId] : []));
 
   useMessageSubscription((evt: MessageEvent) => {
     let data: unknown;
     try { data = JSON.parse(evt.data); } catch { return; }
     if (!data || typeof data !== 'object') return;
+
+    applyConnectionEvent(data as { type?: string; connectedUserIds?: string[]; userId?: string }, connectedRef);
 
     for (const event of expandCursorEvents(data as Parameters<typeof expandCursorEvents>[0])) {
       const { userId, x, y } = event.position;
@@ -50,6 +77,12 @@ export function useCoordStream(ownUserId: string, opts?: CoordStreamOptions): Co
         continue;
       }
 
+      // A position event proves this user is connected even if this
+      // subscriber missed the one-time `connected` snapshot — e.g. it joined
+      // the shared room socket (RoomSocketProvider) after the socket had
+      // already been open for a while, so the snapshot fired before this
+      // consumer subscribed.
+      connectedRef.current.add(userId);
       positionsRef.current.set(userId, { x, y });
       const ts = Date.now();
       timestampsRef.current.set(userId, ts);
@@ -64,7 +97,7 @@ export function useCoordStream(ownUserId: string, opts?: CoordStreamOptions): Co
     }
   });
 
-  return { positionsRef };
+  return { positionsRef, connectedRef };
 }
 
 /**
@@ -83,6 +116,7 @@ export function useRawCoordStream(
   const includeSelf = opts?.includeSelf ?? false;
   const positionsRef = useRef<Map<string, { x: number; y: number }>>(new Map());
   const timestampsRef = useRef<Map<string, number>>(new Map());
+  const connectedRef = useRef<Set<string>>(new Set(includeSelf ? [ownUserId] : []));
   const [status, setStatus] = useState<CoordStreamStatus>('connecting');
 
   useEffect(() => {
@@ -113,6 +147,8 @@ export function useRawCoordStream(
       try { data = JSON.parse(evt.data); } catch { return; }
       if (!data || typeof data !== 'object') return;
 
+      applyConnectionEvent(data as { type?: string; connectedUserIds?: string[]; userId?: string }, connectedRef);
+
       for (const event of expandCursorEvents(data as Parameters<typeof expandCursorEvents>[0])) {
         const { userId, x, y } = event.position;
         if (!includeSelf && userId === ownUserId) continue;
@@ -123,6 +159,7 @@ export function useRawCoordStream(
           continue;
         }
 
+        connectedRef.current.add(userId);
         positionsRef.current.set(userId, { x, y });
         const ts = Date.now();
         timestampsRef.current.set(userId, ts);
@@ -139,8 +176,9 @@ export function useRawCoordStream(
       ws.close();
       positionsRef.current.clear();
       timestampsRef.current.clear();
+      connectedRef.current.clear();
     };
   }, [roomUrl, ownUserId, includeSelf]);
 
-  return { positionsRef, status };
+  return { positionsRef, connectedRef, status };
 }

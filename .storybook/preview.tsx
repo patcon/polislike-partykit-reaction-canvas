@@ -16,6 +16,10 @@ const preview: Preview = {
        color: /(background|color)$/i,
        date: /Date$/i,
       },
+      // Suppress the "You modified this story. Do you want to save your
+      // changes?" banner — it overlaps the bottom of the Controls panel and
+      // was hiding the last row(s) of controls (e.g. dynamism) on tall arg lists.
+      disableSaveFromUI: true,
     },
 
     a11y: {
