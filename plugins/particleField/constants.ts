@@ -10,7 +10,25 @@ export const DEFAULT_PARAMS: Params = {
   maxSpeed: 480,       // px/s clamp
   centerGravity: 0,    // spring pull toward canvas center (0 = off)
   multiplier: 10,      // particles spawned per live cursor
+  multiplierStrategy: 'basic',
+  dynamism: 'none',
 };
+
+// Tangential-force multiplier applied when Params.dynamism === 'swirl' — see
+// applyPairwiseForces in physics.ts.
+export const SWIRL_STRENGTH = 0.6;
+
+// `multiplierStrategy: 'children'` tuning — each owner's child cursors spring
+// toward a fixed personal offset from the real cursor (not the exact same
+// point), in normalized 0-100 space, with an independent simplex-noise wobble
+// layered on top so siblings spread out around the parent instead of
+// clustering on top of it. See ParticleFieldCanvas.tsx.
+export const CHILD_SPRING_STIFFNESS = 0.06;
+export const CHILD_SPRING_DAMPING = 0.85;
+// Max per-child fixed offset from the parent cursor (each axis), canvas units.
+export const CHILD_ORBIT_RADIUS = 14;
+export const CHILD_NOISE_RADIUS = 4;
+export const CHILD_NOISE_SPEED = 0.6;
 
 /**
  * userId → hue (0-359). Unlike the plain char-sum hash used for cursor dot

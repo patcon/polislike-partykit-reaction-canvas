@@ -114,7 +114,10 @@ function ParticleFieldLiveRoom({
   simulatedGroupCount: number;
 } & Params) {
   const userId = useRef(getPersistentUserId()).current;
-  const raw = useRawCoordStream(roomUrl || null, userId, { includeSelf: true });
+  // includeSelf: false — unlike the real panel, this story's own connection has
+  // no TouchLayer to move its cursor, so an included self would just sit inert
+  // as a "dead" swarm in the middle of the canvas.
+  const raw = useRawCoordStream(roomUrl || null, userId);
   const smoothed = useSmoothedCoordStream(raw, SMOOTH_CURSOR_CONFIG);
   const stream = useMergedSimulatedStream(smoothed, simulatedProgram, simulatedCount, simulatedGroupCount);
   return (
@@ -147,6 +150,8 @@ const meta = {
     maxSpeed: { control: { type: 'range', min: 50, max: 1000, step: 10 } },
     centerGravity: { control: { type: 'range', min: 0, max: 4, step: 0.05 } },
     multiplier: { control: { type: 'range', min: 1, max: 12, step: 1 } },
+    multiplierStrategy: { control: 'select', options: ['basic', 'children'] },
+    dynamism: { control: 'select', options: ['none', 'swirl'] },
   },
 } satisfies Meta<typeof ParticleFieldLiveRoom>;
 
@@ -169,5 +174,70 @@ export const Default: Story = {
     maxSpeed: 480,
     centerGravity: 0,
     multiplier: 10,
+    multiplierStrategy: 'basic',
+    dynamism: 'none',
+  },
+};
+
+export const PresetA: Story = {
+  args: {
+    roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default',
+    showCursors: true,
+    simulatedProgram: 'valence-shift',
+    simulatedCount: 5,
+    simulatedGroupCount: 4,
+    forceScale: 165,
+    proximityRange: 0.4,
+    invert: false,
+    coreRadius: 22,
+    falloff: 180,
+    friction: 0.025,
+    maxSpeed: 800,
+    centerGravity: 1.6,
+    multiplier: 10,
+    multiplierStrategy: 'children',
+    dynamism: 'none',
+  },
+};
+
+export const PresetB: Story = {
+  args: {
+    roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default2',
+    showCursors: true,
+    simulatedProgram: 'valence-shift',
+    simulatedCount: 4,
+    simulatedGroupCount: 2,
+    forceScale: 165,
+    proximityRange: 0.4,
+    invert: false,
+    coreRadius: 22,
+    falloff: 180,
+    friction: 0.025,
+    maxSpeed: 800,
+    centerGravity: 1.6,
+    multiplier: 12,
+    multiplierStrategy: 'children',
+    dynamism: 'none',
+  },
+};
+
+export const PresetC: Story = {
+  args: {
+    roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default',
+    showCursors: true,
+    simulatedProgram: 'valence-shift',
+    simulatedCount: 8,
+    simulatedGroupCount: 3,
+    forceScale: 165,
+    proximityRange: 0.4,
+    invert: false,
+    coreRadius: 22,
+    falloff: 180,
+    friction: 0.025,
+    maxSpeed: 800,
+    centerGravity: 2.2,
+    multiplier: 12,
+    multiplierStrategy: 'children',
+    dynamism: 'none',
   },
 };

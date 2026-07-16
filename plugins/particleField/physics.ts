@@ -1,3 +1,4 @@
+import { SWIRL_STRENGTH } from './constants';
 import type { Params, Particle } from './types';
 
 /**
@@ -40,7 +41,7 @@ export function applyPairwiseForces(
     for (let j = 0; j < parts.length; j++) {
       if (i === j) continue;
       const a = parts[i], b = parts[j];
-      const coeff = coeffM.get(a.ownerId)?.get(b.ownerId);
+      const coeff = coeffM.get(a.coeffKey ?? a.ownerId)?.get(b.coeffKey ?? b.ownerId);
       if (coeff == null) continue;
 
       const dx = b.x - a.x, dy = b.y - a.y;
@@ -63,6 +64,13 @@ export function applyPairwiseForces(
       }
       a.vx += ux * f * dt;
       a.vy += uy * f * dt;
+
+      // Swirl: add a tangential component (90° from the radial direction) so
+      // particles curve around each other instead of approaching head-on.
+      if (P.dynamism === 'swirl') {
+        a.vx += -uy * f * SWIRL_STRENGTH * dt;
+        a.vy += ux * f * SWIRL_STRENGTH * dt;
+      }
     }
   }
 }

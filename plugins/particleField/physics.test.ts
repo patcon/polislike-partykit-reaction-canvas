@@ -12,6 +12,8 @@ const baseParams: Params = {
   maxSpeed: 1000,
   centerGravity: 0,
   multiplier: 1,
+  multiplierStrategy: 'basic',
+  dynamism: 'none',
 };
 
 describe('computeCoeffMatrix', () => {
@@ -75,6 +77,31 @@ describe('applyPairwiseForces', () => {
     applyPairwiseForces(parts, coeffM, baseParams, 1);
     expect(parts[0].vx).toBe(0);
     expect(parts[1].vx).toBe(0);
+  });
+
+  it('looks up coefficients by coeffKey instead of ownerId when set', () => {
+    const parts: Particle[] = [
+      { x: 0, y: 0, vx: 0, vy: 0, ownerId: 'a', coeffKey: 'a#0' },
+      { x: 20, y: 0, vx: 0, vy: 0, ownerId: 'a', coeffKey: 'a#1' },
+    ];
+    // Same ownerId, but no coefficient row for either coeffKey — must skip
+    // rather than falling back to the shared ownerId.
+    const coeffM = new Map([['a', new Map([['a', 100]])]]);
+    applyPairwiseForces(parts, coeffM, baseParams, 1);
+    expect(parts[0].vx).toBe(0);
+    expect(parts[1].vx).toBe(0);
+  });
+
+  it('adds a tangential component when dynamism is swirl', () => {
+    const parts: Particle[] = [
+      { x: 0, y: 0, vx: 0, vy: 0, ownerId: 'a' },
+      { x: 20, y: 0, vx: 0, vy: 0, ownerId: 'a' },
+    ];
+    const coeffM = new Map([['a', new Map([['a', 50]])]]);
+    applyPairwiseForces(parts, coeffM, { ...baseParams, dynamism: 'swirl' }, 1);
+    // Pure radial attraction (b is to the right) would leave vy at 0; swirl
+    // adds a perpendicular component.
+    expect(parts[0].vy).not.toBe(0);
   });
 });
 
