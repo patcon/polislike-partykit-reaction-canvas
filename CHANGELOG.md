@@ -16,6 +16,9 @@ All notable changes to this project will be documented in this file. Releases cu
 
 ## Week 32 (2026-06-29)
 
+### Fixed
+- **Prototype HTML pages in `public/` now served correctly** — restored `onFetch` handler in `party/utils/onFetch.ts` and removed `singlePageApp: true`; in production (Cloudflare Workers) `singlePageApp` intercepts all browser navigations via `Sec-Fetch-Mode: navigate` before `onFetch` runs, returning `index.html` even for real `.html` files like `valence-onboarding-v1.html`. `onFetch` owns all routing: serves real assets directly and falls back to `index.html` only for extensionless paths (room names like `/default`).
+
 ### Removed
 - **V1 Polis statement voting app removed** — `SimpleReactionCanvasAppV1`, `DeprecatedAdminPanel`, `DeprecatedStatementPanel`, and their Storybook stories deleted; `PolisStatement` and `QueueItem` types removed from `app/types.ts`; `#v1` hash handler and title entry removed from `client.tsx`. Server-side: removed `queueLogic`, `ghostCursors`, vote HTTP endpoints (`POST/GET/DELETE /vote`), Polis API proxy (`updateStatementsPool`), `GhostCursorManager`, and all V1 types from `party/types.ts`.
 
