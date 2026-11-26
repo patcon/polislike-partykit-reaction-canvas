@@ -6,7 +6,7 @@
  *
  * Usage:
  *   k6 run perf/load-test-k6.js
- *   k6 run --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/default perf/load-test-k6.js
+ *   k6 run --env WS_URL=wss://whispering-gallery-perf.patcon.workers.dev/parties/perf/default perf/load-test-k6.js
  *   k6 run --vus 200 --duration 60s perf/load-test-k6.js
  *
  * Adaptive throttle (mirrors PerfCanvasApp logic):
@@ -27,7 +27,7 @@
  *
  * Target environments:
  *   Local: ws://localhost:1999/parties/perf/default
- *   Perf:  wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/default
+ *   Perf:  wss://whispering-gallery-perf.patcon.workers.dev/parties/perf/default
  */
 
 import { sleep } from "k6";

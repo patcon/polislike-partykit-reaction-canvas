@@ -166,7 +166,6 @@ dist
 .yarn/install-state.gz
 .pnp.\*
 
-.partykit
 .DS_Store
 public/embeddingWorker.js
 public/druidWorker.js
@@ -174,3 +173,10 @@ public/index.html
 
 *storybook.log
 storybook-static
+
+# Wrangler
+.wrangler
+.dev.vars
+
+# Leftover local state from the old `partykit dev` (pre-wrangler); never commit.
+.partykit

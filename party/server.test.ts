@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Server from './server';
-import type * as Party from 'partykit/server';
+import type * as Party from './room';
 
 function makeConn(id: string): Party.Connection {
   return { id, send: vi.fn(), close: vi.fn(), socket: null as never, url: '' } as unknown as Party.Connection;

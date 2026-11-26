@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import type * as Party from 'partykit/server';
+import type * as Party from '../../room';
 
 export function createMockConnection(id: string) {
   const send = vi.fn();

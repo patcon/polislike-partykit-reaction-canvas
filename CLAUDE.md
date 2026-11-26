@@ -22,12 +22,13 @@ If the user says "push" or "commit" right after one was already done, treat it a
 ## Dev commands
 
 ```bash
-pnpm run dev          # ⚠️ BROKEN — use dev-https instead (see below)
-pnpm run dev-https    # PartyKit dev server with HTTPS on port 1999
+pnpm run dev          # wrangler dev (worker + Durable Objects + static assets) on port 1999, plain HTTP
+pnpm run dev-https    # Same, over HTTPS (needed for secure-context APIs on LAN devices)
 pnpm run storybook    # Storybook on localhost:6006
-pnpm run deploy       # Deploy to PartyKit — see rules below
-pnpm run deploy:staging  # Deploy to staging preview environment
-pnpm run cachebust    # Production build with cache-busting
+pnpm run build        # Web workers + client bundle (public/dist) + cachebust
+pnpm run deploy       # Build + `wrangler deploy` to Cloudflare Workers — see rules below
+PREVIEW_NAME=foo pnpm run deploy:preview  # Deploy a named copy: whispering-gallery-foo.patcon.workers.dev
+pnpm run typecheck    # App tsconfig + party/tsconfig.worker.json (Workers types)
 pnpm vitest           # Run all tests: Storybook stories (headless Chromium) + unit/component tests
 ```
 
@@ -36,9 +37,7 @@ pnpm vitest           # Run all tests: Storybook stories (headless Chromium) + u
 project, `.test.tsx` in the `components` (jsdom) project. The `tests/` directory still holds older
 tests; both locations are picked up by `vitest.config.ts`. Prefer co-location for new tests.
 
-**`pnpm run dev` is currently broken for LAN access** — a partykit upstream bug ([partykit/partykit#764](https://github.com/partykit/partykit/pull/764)) uses `Sec-Fetch-Mode: navigate` for SPA routing detection, which browsers only send over HTTPS. Plain HTTP LAN addresses (e.g. `192.168.x.x:1999`) get a 404 instead of the app shell. Use `pnpm run dev-https` until this is resolved upstream.
-
-`pnpm run dev-https` runs both the frontend and `party/server.ts` locally on port 1999 over HTTPS. The app is accessible at `localhost:1999` or any local network IP on port 1999 (e.g. `10.x.x.x:1999`). The WebSocket host is detected by port — if you're on port 1999, sockets connect to the local server; otherwise they connect to the deployed server.
+`pnpm run dev` / `dev-https` run the worker (`party/worker.ts`) and static assets locally via `wrangler dev` on port 1999, listening on all interfaces. The app is accessible at `localhost:1999` or any local network IP on port 1999 (e.g. `10.x.x.x:1999`). The WebSocket host is detected by port — if you're on port 1999, sockets connect to the local server; otherwise they connect to the deployed server.
 
 ### UUID generation
 
@@ -46,15 +45,21 @@ tests; both locations are picked up by `vitest.config.ts`. Prefer co-location fo
 
 Always use `generateUUID()` from `app/utils/userId.ts` instead. It calls `crypto.randomUUID?.()` with a Math.random-based fallback.
 
-### PartyKit CLI notes
+### Server runtime (Cloudflare Workers + `partyserver`)
 
-Use `--force` (not `--yes`) to skip confirmation prompts — e.g. `pnpm exec partykit delete --preview stg --force`. `--yes` is not a valid partykit option and will error.
+The server runs on Cloudflare Workers using [cloudflare/partykit](https://github.com/cloudflare/partykit)'s `partyserver` — **not** hosted PartyKit, which is retired. Ignore older docs describing `partykit deploy` or "deploy PartyKit to your own Cloudflare account".
+
+- `wrangler.jsonc` is the deploy config. Each party is a Durable Object binding, kebab-cased into the URL: `Main` → `/parties/main/:room`, `Perf` → `/parties/perf/:room`. Adding a party means a new class in `party/worker.ts`, a binding, **and a new `migrations` entry with a fresh tag**.
+- Room logic (`party/server.ts`, `party/perf-server.ts`, plugin servers) depends only on the runtime-agnostic types in `party/room.ts`, so it stays unit-testable in node. `party/worker.ts` adapts partyserver's `Server` onto that `Room`. Note that partyserver's `onMessage(connection, message)` order is the reverse of our logic's `onMessage(message, sender)`; the adapter swaps them.
+- Env vars: local dev reads `.env` (or `.dev.vars`). Non-secret defaults are in `wrangler.jsonc` `vars`. Production secrets are set with `pnpm exec wrangler secret put NAME`. Code reads them as `this.room.env.NAME`.
+- Logs: `pnpm exec wrangler tail`.
+- Non-production deploys are named copies of the same worker (own Durable Objects and URL): `PREVIEW_NAME=foo pnpm run deploy:preview` → `whispering-gallery-foo.patcon.workers.dev`. CI uses this for per-PR previews (`pr-N`, deleted on PR close) and perf (`perf`).
 
 ### Deploy rules
 
-> **Never deploy uncommitted changes.** Always commit `party/server.ts` (and any other changed files) before running `npm run deploy`.
+> **Never deploy uncommitted changes.** Always commit `party/server.ts` (and any other changed files) before running `pnpm run deploy`.
 
-CI deploys automatically on merge to `main`. Deploying from the workstation is also appropriate when you want to test `party/server.ts` changes against the production URL or share with others before merging.
+`pnpm run deploy` requires `pnpm exec wrangler login` once per machine. CI deploys to production on merge to `main`, and each PR gets its own preview worker (see `.github/workflows/`). CI needs the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repo secrets. Deploying from the workstation is also appropriate when you want to test `party/server.ts` changes against the production URL or share with others before merging.
 
 ### Cache-busting and `public/index.html`
 
@@ -64,7 +69,8 @@ CI deploys automatically on merge to `main`. Deploying from the workstation is a
 
 ## Architecture
 
-- **`party/server.ts`** — PartyKit server: manages the statement queue, broadcasts cursor events, stores votes, serves the Polis API proxy
+- **`party/worker.ts`** — Cloudflare Worker entry: routes `/parties/*` to the Durable Objects (`Main`, `Perf`), everything else to static assets
+- **`party/server.ts`** — Room logic (runtime-agnostic, see `party/room.ts`): manages the statement queue, broadcasts cursor events, stores votes, serves the Polis API proxy
 - **`app/client.tsx`** — Entry point: hash-based router (`#v1`–`#v5`) + `IndexApp` landing page
 - **`app/components/`** — React components (see `docs/components.md`)
 - **`app/styles.css`** — All CSS; components use class names defined here
@@ -72,7 +78,7 @@ CI deploys automatically on merge to `main`. Deploying from the workstation is a
 - **`app/voteLabels.ts`** — Reaction label presets and custom label encoding/decoding
 - **`app/utils/voteRegion.ts`** — Canvas region math: barycentric-coordinate region detection, anchor positioning
 - **`app/lib/supabase.ts`** — Supabase client + CRUD helpers for `reaction_events` table (V5 only; see `docs/supabase.md`)
-- **`public/`** — Static assets served by PartyKit; `index.template.html` is the HTML shell; standalone HTML pages (e.g. valence onboarding) live here too
+- **`public/`** — Static assets served by Workers static assets (SPA mode); `dist/` is the client bundle built by `scripts/build-client.mjs`; `index.template.html` is the HTML shell; standalone HTML pages (e.g. valence onboarding) live here too
 
 Routing is hash-based (`#v1`–`#v5`). See `docs/routing.md` for the full routing table and all URL params. V4 URL params are reproduced below as they're most actively used.
 

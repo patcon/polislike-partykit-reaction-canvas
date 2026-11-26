@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { getIndexRedirect, getRoomRedirect } from '../app/utils/routing';
 
-// .html / SPA path routing is handled by PartyKit's built-in `serve.singlePageApp`
-// config (partykit.json), not by application code, so there is nothing to unit-test there.
+// .html / SPA path routing is handled by Workers static assets
+// (`not_found_handling: "single-page-application"` in wrangler.jsonc), not by application code, so there is nothing to unit-test there.
 // Server HTTP endpoints (votes, debug-state, Polis proxy) are covered in party/tests/onRequest.test.ts.
 
 describe('getIndexRedirect', () => {

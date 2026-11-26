@@ -15,7 +15,7 @@ import { getPersistentUserId } from '../app/utils/userId';
  * you can confirm data is flowing before boids start reacting.
  *
  * To see boids respond: open the deployed app in another tab and move your
- * cursor — e.g. https://whispering-gallery.patcon.partykit.dev/
+ * cursor — e.g. https://whispering-gallery.patcon.workers.dev/
  */
 
 function BoidLiveRoom({
@@ -70,7 +70,7 @@ type Story = StoryObj<typeof meta>;
 /** Aloof: boids loosely orbit the crowd rather than clinging to each person. */
 export const Aloof: Story = {
   args: {
-    roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default',
+    roomUrl: 'https://whispering-gallery.patcon.workers.dev/default',
     boidCount: 200,
     isBoidCountPerHuman: false,
     mode: 'dynamic',
@@ -87,7 +87,7 @@ export const Aloof: Story = {
 /** Clingy: boids pile directly onto each human cursor. */
 export const Clingy: Story = {
   args: {
-    roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default',
+    roomUrl: 'https://whispering-gallery.patcon.workers.dev/default',
     boidCount: 200,
     isBoidCountPerHuman: false,
     mode: 'dynamic',
@@ -108,7 +108,7 @@ export const Clingy: Story = {
  */
 export const ThirtyPerHuman: Story = {
   args: {
-    roomUrl: 'https://whispering-gallery.patcon.partykit.dev/default',
+    roomUrl: 'https://whispering-gallery.patcon.workers.dev/default',
     boidCount: 30,
     isBoidCountPerHuman: true,
     mode: 'dynamic',

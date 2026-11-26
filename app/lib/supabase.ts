@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// process.env.* is replaced at build time by partykit.json define.
+// process.env.* is replaced at build time by the esbuild `define` in scripts/build-client.mjs.
 // When secrets are not configured (local dev), the substituted identifier
 // is undeclared — ReferenceError. try/catch handles that gracefully.
 let SUPABASE_URL = '';

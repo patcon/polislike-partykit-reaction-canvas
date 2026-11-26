@@ -51,7 +51,7 @@ async function fetchEventBySlug(slug: string, sourceUrl: string): Promise<EventI
     headers: { 'x-gqlvars': JSON.stringify({ slug }) },
   });
   if (!res.ok) return null;
-  const json = await res.json();
+  const json: any = await res.json();
   const e = json?.data?.event;
   if (!e?.id) return null;
   return { id: e.id, name: e.name ?? '', startAt: e.startAt ?? '', url: sourceUrl };
@@ -64,7 +64,7 @@ async function fetchEventsList(groupSlug: string, endpoint: 'upcoming' | 'past',
   if (after) url.searchParams.set('after', after);
   const res = await fetch(url.toString());
   if (!res.ok) return { events: [], hasMore: false, endCursor: null };
-  const json = await res.json();
+  const json: any = await res.json();
   const edges: { node: { id: string; name: string; startAt: string; slug?: string } }[] = json?.events?.edges ?? [];
   return {
     events: edges.map(e => ({
@@ -87,7 +87,7 @@ async function fetchAttendeesByType(nodeId: string, attendance: Attendee['attend
     },
   });
   if (!res.ok) throw new Error(`Guild API returned ${res.status}`);
-  const json = await res.json();
+  const json: any = await res.json();
   const key = attendance === 'in-person' ? 'inPersonAttendees' : 'onlineAttendees';
   const edges: { node: { user: { slugId: string; firstName: string; lastName: string; primaryPhoto: { transformUrl: string } | null; defaultAvatarUrl: string; emailMd5: string | null } } }[] =
     json?.data?.node?.[key]?.edges ?? [];

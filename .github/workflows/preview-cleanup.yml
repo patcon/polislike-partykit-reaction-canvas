@@ -1,18 +1,18 @@
 name: Delete PR Preview
 
-# DISABLED: preview deployments broken (https://github.com/partykit/partykit/issues/985)
-# Replaced by staging-deploy.yml which deploys all PRs to shared staging env.
-# on:
-#   pull_request:
-#     types: [closed]
+# Deletes the per-PR worker created by preview.yml (and its Durable Object data).
 on:
-  workflow_dispatch:
+  pull_request:
+    types: [closed]
 
 jobs:
   delete-preview:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    permissions:
+      deployments: write
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -21,7 +21,25 @@ jobs:
           node-version: 22
           cache: "pnpm"
       - run: pnpm install --frozen-lockfile
-      - run: pnpm exec partykit delete --preview pr-${{ github.event.pull_request.number }} --force
+      # `|| true`: the preview may never have deployed (e.g. checks failed).
+      - run: pnpm exec wrangler delete --name whispering-gallery-pr-${{ github.event.pull_request.number }} --force || true
         env:
-          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
-          PARTYKIT_LOGIN: patcon
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      - name: Mark GitHub deployment inactive
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const { data: deployments } = await github.rest.repos.listDeployments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              environment: `pr-${context.payload.pull_request.number}`,
+            });
+            for (const d of deployments) {
+              await github.rest.repos.createDeploymentStatus({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                deployment_id: d.id,
+                state: 'inactive',
+              });
+            }

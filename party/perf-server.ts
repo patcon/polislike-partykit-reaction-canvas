@@ -1,4 +1,4 @@
-import type * as Party from "partykit/server";
+import type * as Party from "./room";
 
 interface CursorPosition {
   x: number;
@@ -19,7 +19,7 @@ interface CursorEvent {
  * No statement queue, no admin, no ghost cursors, no Polis proxy.
  * Accessible at: /parties/perf/{roomName}
  */
-export default class PerfServer implements Party.Server {
+export default class PerfServer {
   constructor(readonly room: Party.Room) {}
 
   private cursorPositions = new Map<string, CursorPosition>();

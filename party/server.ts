@@ -1,4 +1,4 @@
-import type * as Party from "partykit/server";
+import type * as Party from "./room";
 import { computeReactionRegion, DEFAULT_ANCHORS as REACTION_DEFAULT_ANCHORS } from './lib/reactionRegion';
 import type { ReactionAnchors } from './lib/reactionRegion';
 import { SERVER_CURSOR_BATCH_MS } from '../app/utils/cursor';
@@ -20,7 +20,7 @@ import type {
   SetArrivalCapacityEvent,
 } from './types';
 
-export default class Server implements Party.Server {
+export default class Server {
   private connectionUserMap = new Map<string, string>(); // connectionId -> userId
   private adminConnectionIds = new Set<string>();
   private viewerConnectionIds = new Set<string>();
@@ -260,7 +260,7 @@ private pluginStates = new Map<string, unknown>(
   }
 
   onMessage(message: string, sender: Party.Connection) {
-    // Set DEBUG=true in .env (local) or via `partykit env add` to log incoming message rate.
+    // Set DEBUG=true in .env (local) or via `wrangler secret put` / wrangler.jsonc vars to log incoming message rate.
     // Useful for measuring real client send rates before tuning perf thresholds.
     if (this.room.env.DEBUG === 'true') {
       this.msgCount++;
@@ -660,4 +660,3 @@ private pluginStates = new Map<string, unknown>(
   }
 }
 
-Server satisfies Party.Worker;

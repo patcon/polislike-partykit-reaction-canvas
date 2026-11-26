@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       party:
-        description: "PartyKit party to target"
+        description: "Party to target"
         type: choice
         options:
           - perf
@@ -67,13 +67,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deploy:perf
         env:
-          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
-          PARTYKIT_LOGIN: patcon
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Print perf environment URL
         run: |
-          echo "Perf environment: https://perf.whispering-gallery.patcon.partykit.dev/#perf"
+          echo "Perf environment: https://whispering-gallery-perf.patcon.workers.dev/#perf"
           echo "## Perf Environment" >> "$GITHUB_STEP_SUMMARY"
-          echo "[https://perf.whispering-gallery.patcon.partykit.dev/#perf](https://perf.whispering-gallery.patcon.partykit.dev/#perf)" >> "$GITHUB_STEP_SUMMARY"
+          echo "[https://whispering-gallery-perf.patcon.workers.dev/#perf](https://whispering-gallery-perf.patcon.workers.dev/#perf)" >> "$GITHUB_STEP_SUMMARY"
 
   k6-test:
     needs: [check-commits, deploy-perf]
@@ -91,6 +91,6 @@ jobs:
         with:
           path: perf/load-test-k6.js
           flags: >-
-            --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/${{ inputs.party || 'perf' }}/${{ inputs.room || 'default' }}
+            --env WS_URL=wss://whispering-gallery-perf.patcon.workers.dev/parties/${{ inputs.party || 'perf' }}/${{ inputs.room || 'default' }}
             --vus ${{ inputs.vus || 100 }}
             --duration ${{ inputs.duration || '30s' }}

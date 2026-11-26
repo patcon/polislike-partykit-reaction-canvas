@@ -336,8 +336,8 @@
     <div class="conn-row">
       <label for="server-input">server</label>
       <input type="text" id="server-input"
-        value="wss://whispering-gallery.patcon.partykit.dev"
-        placeholder="wss://whispering-gallery.patcon.partykit.dev"
+        value="wss://whispering-gallery.patcon.workers.dev"
+        placeholder="wss://whispering-gallery.patcon.workers.dev"
         autocomplete="off" spellcheck="false">
     </div>
     <div class="conn-row">
@@ -1037,7 +1037,7 @@ valenceUnit.addEventListener('click', () => {
 // ── WebSocket ────────────────────────────────────────────────────
 function wsUrl(room) {
   const serverRaw = document.getElementById('server-input').value.trim()
-    || 'wss://whispering-gallery.patcon.partykit.dev';
+    || 'wss://whispering-gallery.patcon.workers.dev';
   const withProto = /^wss?:\/\//.test(serverRaw) ? serverRaw : 'wss://' + serverRaw;
   const parsed = new URL(withProto);
   const proto = parsed.protocol === 'ws:' ? 'ws' : 'wss';
