@@ -27,7 +27,7 @@ pnpm run dev-https    # Same, over HTTPS (needed for secure-context APIs on LAN 
 pnpm run storybook    # Storybook on localhost:6006
 pnpm run build        # Web workers + client bundle (public/dist) + cachebust
 pnpm run deploy       # Build + `wrangler deploy` to Cloudflare Workers — see rules below
-pnpm run deploy:staging  # LEGACY: hosted-PartyKit staging preview (until CI moves to wrangler)
+PREVIEW_NAME=foo pnpm run deploy:preview  # Deploy a named copy: whispering-gallery-foo.patcon.workers.dev
 pnpm run typecheck    # App tsconfig + party/tsconfig.worker.json (Workers types)
 pnpm vitest           # Run all tests: Storybook stories (headless Chromium) + unit/component tests
 ```
@@ -53,13 +53,13 @@ The server runs on Cloudflare Workers using [cloudflare/partykit](https://github
 - Room logic (`party/server.ts`, `party/perf-server.ts`, plugin servers) depends only on the runtime-agnostic types in `party/room.ts`, so it stays unit-testable in node. `party/worker.ts` adapts partyserver's `Server` onto that `Room`. Note that partyserver's `onMessage(connection, message)` order is the reverse of our logic's `onMessage(message, sender)`; the adapter swaps them.
 - Env vars: local dev reads `.env` (or `.dev.vars`). Non-secret defaults are in `wrangler.jsonc` `vars`. Production secrets are set with `pnpm exec wrangler secret put NAME`. Code reads them as `this.room.env.NAME`.
 - Logs: `pnpm exec wrangler tail`.
-- `partykit.json` and the `partykit` package remain only for the legacy `deploy:preview/staging/perf` scripts used by CI. For those, use `--force` (not `--yes`) to skip partykit CLI prompts.
+- Non-production deploys are named copies of the same worker (own Durable Objects and URL): `PREVIEW_NAME=foo pnpm run deploy:preview` → `whispering-gallery-foo.patcon.workers.dev`. CI uses this for per-PR previews (`pr-N`, deleted on PR close) and perf (`perf`).
 
 ### Deploy rules
 
 > **Never deploy uncommitted changes.** Always commit `party/server.ts` (and any other changed files) before running `pnpm run deploy`.
 
-`pnpm run deploy` requires `pnpm exec wrangler login` once per machine. CI still deploys via hosted PartyKit on merge to `main` until it is migrated to wrangler. Deploying from the workstation is also appropriate when you want to test `party/server.ts` changes against the production URL or share with others before merging.
+`pnpm run deploy` requires `pnpm exec wrangler login` once per machine. CI deploys to production on merge to `main`, and each PR gets its own preview worker (see `.github/workflows/`). CI needs the `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` repo secrets. Deploying from the workstation is also appropriate when you want to test `party/server.ts` changes against the production URL or share with others before merging.
 
 ### Cache-busting and `public/index.html`
 

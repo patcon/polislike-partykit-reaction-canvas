@@ -1,7 +1,8 @@
 name: Deploy Event Preview
 
-# DISABLED: preview deployments broken (https://github.com/partykit/partykit/issues/985)
-# Replaced by staging-deploy.yml which deploys all PRs to shared staging env.
+# Each event gets its own worker: https://<PARTYKIT_EVENT_PROJECT>-<slug>.patcon.workers.dev
+# (the prefix lives only in a secret, so nothing in source links the URL to this repo).
+# DISABLED: re-enable the issue trigger below when needed. See docs/event-preview.md.
 # on:
 #   issues:
 #     types: [labeled, closed]
@@ -38,7 +39,8 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |
-          SLUG=$(echo "$ISSUE_BODY" | grep 'slug:' | sed 's/.*slug: *//' | tr -d '\r\n' | head -c 40)
+          # Worker names allow only lowercase letters, digits and dashes.
+          SLUG=$(echo "$ISSUE_BODY" | grep 'slug:' | sed 's/.*slug: *//' | tr -d '\r\n' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | head -c 40)
           [ -z "$SLUG" ] && SLUG="event-$ISSUE_NUMBER"
           HASH=$(echo "$ISSUE_BODY" | grep 'hash:' | sed 's/.*hash: *//' | tr -d '\r\n' | head -c 10)
           [ -z "$HASH" ] && HASH="v4"
@@ -55,7 +57,7 @@ jobs:
           script: |
             const slug = process.env.SLUG;
             const project = process.env.PARTYKIT_EVENT_PROJECT;
-            const url = `https://${slug}.${project}.patcon.partykit.dev`;
+            const url = `https://${project}-${slug}.patcon.workers.dev`;
             const marker = '<!-- event-preview-url -->';
             const body = `${marker}\n🔧 Deploying event preview: ${url}\n\nClose this issue to tear down the preview.`;
             const { data: comment } = await github.rest.issues.createComment({
@@ -67,20 +69,12 @@ jobs:
             core.setOutput('comment_id', comment.id);
             core.setOutput('url', url);
 
-      - name: Generate partykit.event.json
-        env:
-          PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
-        run: |
-          jq --arg name "$PARTYKIT_EVENT_PROJECT" \
-             '.name = $name | .serve.build.define["PARTYKIT_EVENT_BUILD"] = "true"' \
-             partykit.json > partykit.event.json
-
-      - name: Generate event index.html
+      - name: Build event bundle and index.html
         env:
           HASH: ${{ steps.config.outputs.hash }}
+          EVENT_BUILD: "true"
         run: |
-          pnpm run build:worker
-          pnpm run cachebust
+          pnpm run build
           sed -i 's|<title>[^<]*</title>|<title>App</title>|' public/index.html
           sed -i '/<meta name="title"/d' public/index.html
           sed -i '/<meta name="description"/d' public/index.html
@@ -89,20 +83,25 @@ jobs:
 
       - name: Deploy event preview
         env:
-          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
-          PARTYKIT_LOGIN: patcon
-          SLUG: ${{ steps.config.outputs.slug }}
-        run: |
-          pnpm exec partykit deploy --config partykit.event.json --preview "$SLUG"
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER: ${{ secrets.PARTYKIT_EVENT_PROJECT }}-${{ steps.config.outputs.slug }}
+        run: pnpm exec wrangler deploy --name "$WORKER"
 
-      - name: Set Telegram env vars for event preview
+      - name: Set Telegram secrets for event preview
         env:
-          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
-          PARTYKIT_LOGIN: patcon
-          SLUG: ${{ steps.config.outputs.slug }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER: ${{ secrets.PARTYKIT_EVENT_PROJECT }}-${{ steps.config.outputs.slug }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
         run: |
-          pnpm exec partykit env pull partykit.event.json
-          pnpm exec partykit env push --config partykit.event.json --preview "$SLUG"
+          if [ -z "$TELEGRAM_BOT_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+            echo "TELEGRAM_* repo secrets not set — bat signal disabled for this preview."
+            exit 0
+          fi
+          printf '%s' "$TELEGRAM_BOT_TOKEN" | pnpm exec wrangler secret put TELEGRAM_BOT_TOKEN --name "$WORKER"
+          printf '%s' "$TELEGRAM_CHAT_ID" | pnpm exec wrangler secret put TELEGRAM_CHAT_ID --name "$WORKER"
 
       - name: Update comment when deployed
         uses: actions/github-script@v9
@@ -123,7 +122,7 @@ jobs:
           SLUG: ${{ steps.config.outputs.slug }}
           PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
         run: |
-          URL="https://${SLUG}.${PARTYKIT_EVENT_PROJECT}.patcon.partykit.dev"
+          URL="https://${PARTYKIT_EVENT_PROJECT}-${SLUG}.patcon.workers.dev"
           fibs=(1 1 2 3 5 8 13 21 34 55)
           for wait in "${fibs[@]}"; do
             status=$(curl -s -o /dev/null -w "%{http_code}" "$URL") || true
@@ -169,20 +168,17 @@ jobs:
           ISSUE_BODY: ${{ github.event.issue.body }}
           ISSUE_NUMBER: ${{ github.event.issue.number }}
         run: |
-          SLUG=$(echo "$ISSUE_BODY" | grep 'slug:' | sed 's/.*slug: *//' | tr -d '\r\n' | head -c 40)
+          # Worker names allow only lowercase letters, digits and dashes.
+          SLUG=$(echo "$ISSUE_BODY" | grep 'slug:' | sed 's/.*slug: *//' | tr -d '\r\n' | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | head -c 40)
           [ -z "$SLUG" ] && SLUG="event-$ISSUE_NUMBER"
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
 
       - name: Delete event preview
         env:
-          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
-          PARTYKIT_LOGIN: patcon
-          SLUG: ${{ steps.config.outputs.slug }}
-          PARTYKIT_EVENT_PROJECT: ${{ secrets.PARTYKIT_EVENT_PROJECT }}
-        run: |
-          jq --arg name "$PARTYKIT_EVENT_PROJECT" '.name = $name' partykit.json > partykit.tmp.json
-          mv partykit.tmp.json partykit.json
-          pnpm exec partykit delete --preview "$SLUG" --force
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WORKER: ${{ secrets.PARTYKIT_EVENT_PROJECT }}-${{ steps.config.outputs.slug }}
+        run: pnpm exec wrangler delete --name "$WORKER" --force
 
       - name: Update comment on teardown
         uses: actions/github-script@v9

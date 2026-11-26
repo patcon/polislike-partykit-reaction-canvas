@@ -6,7 +6,7 @@
  * so LAN IPs (192.168.x.x) always get ws:// regardless of the page protocol.
  * Passing `protocol` explicitly overrides that detection.
  *
- * On port 1999 (local partykit dev) we connect to the local server and use
+ * On port 1999 (local `wrangler dev`) we connect to the local server and use
  * wss when the page is on HTTPS (e.g. pnpm dev-https) to avoid mixed content.
  * On any other port we return the deployed hostname; partysocket's default
  * detection (non-LAN → wss) is correct there.

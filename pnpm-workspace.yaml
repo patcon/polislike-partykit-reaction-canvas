@@ -5,6 +5,3 @@ allowBuilds:
   sharp: true
   workerd: true
 blockExoticSubdeps: false
-overrides:
-  # Legacy hosted-PartyKit CLI only (workerd bump); wrangler uses its own miniflare 4.
-  "partykit>miniflare": "3.20250718.3"

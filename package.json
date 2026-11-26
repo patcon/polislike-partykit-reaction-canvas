@@ -11,8 +11,7 @@
     "dev": "pnpm run build && concurrently --kill-others 'pnpm run build:worker-watch' 'pnpm run build:client --watch' 'wrangler dev --port 1999 --ip 0.0.0.0'",
     "dev-https": "pnpm run build && concurrently --kill-others 'pnpm run build:worker-watch' 'pnpm run build:client --watch' 'wrangler dev --port 1999 --ip 0.0.0.0 --local-protocol https'",
     "deploy": "pnpm run build && wrangler deploy",
-    "deploy:preview": "pnpm run build:worker && pnpm run cachebust && partykit deploy --preview $PREVIEW_NAME",
-    "deploy:staging": "PREVIEW_NAME=staging pnpm run deploy:preview",
+    "deploy:preview": "pnpm run build && wrangler deploy --name whispering-gallery-$PREVIEW_NAME",
     "deploy:perf": "PREVIEW_NAME=perf pnpm run deploy:preview",
     "cachebust": "node scripts/build-with-cachebust.js",
     "storybook": "storybook dev -p 6006",
@@ -22,7 +21,7 @@
     "test": "vitest run",
     "perf": "echo 'Observe at: http://localhost:1999/#perf' && k6 run perf/load-test-k6.js",
     "perf-100": "pnpm run perf --vus 100 --duration 30s",
-    "perf:remote": "echo 'Observe at: https://perf.whispering-gallery.patcon.partykit.dev/#perf' && k6 run --env WS_URL=wss://perf.whispering-gallery.patcon.partykit.dev/parties/perf/default perf/load-test-k6.js"
+    "perf:remote": "echo 'Observe at: https://whispering-gallery-perf.patcon.workers.dev/#perf' && k6 run --env WS_URL=wss://whispering-gallery-perf.patcon.workers.dev/parties/perf/default perf/load-test-k6.js"
   },
   "dependencies": {
     "@huggingface/transformers": "^4.2.0",
@@ -65,7 +64,6 @@
     "concurrently": "^10.0.3",
     "esbuild": "^0.28.0",
     "jsdom": "^29.1.1",
-    "partykit": "^0.0.110",
     "playwright": "^1.61.1",
     "storybook": "^10.1.0",
     "typescript": "^5.5.4",

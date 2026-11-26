@@ -1,4 +1,4 @@
-name: Deploy to Partykit infra
+name: Deploy to Cloudflare Workers
 
 on:
   push:
@@ -34,8 +34,6 @@ jobs:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
       - uses: pnpm/action-setup@v6
       - uses: actions/setup-node@v6
         with:
@@ -44,9 +42,5 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm run deploy
         env:
-          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
-          PARTYKIT_LOGIN: patcon
-      - run: pnpm exec partykit deploy --name polislike-partykit-reaction-canvas
-        env:
-          PARTYKIT_TOKEN: ${{ secrets.PARTYKIT_TOKEN }}
-          PARTYKIT_LOGIN: patcon
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
