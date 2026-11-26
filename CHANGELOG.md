@@ -6,6 +6,12 @@ All notable changes to this project will be documented in this file. Releases cu
 
 **Commits:** [Conventional Commits 1.0.0](https://www.conventionalcommits.org/en/v1.0.0/) — e.g. `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`.
 
+## Week 53 (2026-11-23)
+
+### Changed
+- **Server now runs on Cloudflare Workers via [cloudflare/partykit](https://github.com/cloudflare/partykit) (`partyserver`)**, since hosted PartyKit is being retired. Each party is a Durable Object (`Main` → `/parties/main/:room`, `Perf` → `/parties/perf/:room`), so client URLs and `partysocket` usage are unchanged. Static assets are served by Workers static assets in SPA mode, and the client bundle is built by `scripts/build-client.mjs` (previously `partykit.json` `serve.build`). `pnpm run dev`/`dev-https` now use `wrangler dev` on port 1999. `pnpm run deploy` runs `wrangler deploy` to `whispering-gallery.<account>.workers.dev`, and production secrets are set with `wrangler secret put`. Room logic is unchanged and stays runtime-agnostic behind a small `Room` interface (`party/room.ts`) with a thin Durable Object adapter (`party/worker.ts`). Existing room state from hosted PartyKit does not carry over. CI and staging/preview deploys still use hosted PartyKit until a follow-up moves them to wrangler.
+- **Production URL is now `https://whispering-gallery.patcon.workers.dev`** — the GitHub repo homepage and the default server in the GitHub Pages prototypes (`valence-onboarding-v2/v3`, `mood-sounds`) now point there instead of `whispering-gallery.patcon.partykit.dev`.
+
 ## Week 33 (2026-07-06)
 
 ### Added

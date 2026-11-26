@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import type * as Party from 'partykit/server';
+import type * as Party from '../room';
 import Server from '../server';
 import { createMockRoom, createMockConnection, makeConnectCtx } from './helpers/mockParty';
 

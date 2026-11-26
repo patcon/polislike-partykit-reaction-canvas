@@ -1,0 +1,30 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "whispering-gallery",
+  "main": "party/worker.ts",
+  "compatibility_date": "2025-11-20",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  // Static SPA from public/ (built by scripts/build-client.mjs + cachebust).
+  // /parties/* always hits the worker so WebSocket upgrades reach the Durable Objects.
+  "assets": {
+    "directory": "public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/parties/*"]
+  },
+  // Binding names are kebab-cased into the URL: Main → /parties/main/:room, Perf → /parties/perf/:room
+  "durable_objects": {
+    "bindings": [
+      { "name": "Main", "class_name": "Main" },
+      { "name": "Perf", "class_name": "Perf" }
+    ]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Main", "Perf"] }],
+  // Secrets (not here): TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID — set with `wrangler secret put`,
+  // or in .dev.vars for local dev.
+  "vars": {
+    "DISABLE_STORAGE_PERSISTENCE": "false",
+    "DEBUG": "false"
+  }
+}

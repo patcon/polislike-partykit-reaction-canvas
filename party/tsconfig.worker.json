@@ -1,0 +1,10 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2022", "dom", "dom.iterable"],
+    "target": "es2022",
+    "types": ["@cloudflare/workers-types", "node"]
+  },
+  "include": ["worker.ts"],
+  "exclude": []
+}

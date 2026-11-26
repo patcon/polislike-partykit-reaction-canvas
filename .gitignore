@@ -174,3 +174,7 @@ public/index.html
 
 *storybook.log
 storybook-static
+
+# Wrangler
+.wrangler
+.dev.vars

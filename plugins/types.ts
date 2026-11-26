@@ -1,5 +1,5 @@
 import type React from 'react';
-import type * as Party from 'partykit/server';
+import type * as Party from '../party/room';
 
 /** Minimal connection abstraction — avoids coupling plugins to partykit internals. */
 export interface PluginConnection {

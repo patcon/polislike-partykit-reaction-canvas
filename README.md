@@ -3,7 +3,7 @@
 [![Perf Test](https://github.com/patcon/polislike-partykit-reaction-canvas/actions/workflows/perf-test.yml/badge.svg)](https://github.com/patcon/polislike-partykit-reaction-canvas/actions/workflows/perf-test.yml)
 [![Storybook](https://img.shields.io/badge/Storybook-FF4785?logo=storybook&logoColor=white)](https://main--6a22541e42df9b5a4da5e047.chromatic.com)
 
-A real-time collaborative voting canvas built on [PartyKit](https://partykit.io) (WebSockets) and React. Participants drag or touch their cursor into **Agree / Disagree / Pass** regions of a shared canvas; positions are broadcast live so everyone can see collective reactions in real time.
+A real-time collaborative voting canvas built on [PartyServer](https://github.com/cloudflare/partykit) (WebSockets on Cloudflare Durable Objects) and React. Participants drag or touch their cursor into **Agree / Disagree / Pass** regions of a shared canvas; positions are broadcast live so everyone can see collective reactions in real time.
 
 ## Goals
 
@@ -78,9 +78,9 @@ When 3+ unique devices join a room, a message fires automatically to a public Te
 ## Dev
 
 ```bash
-npm run dev        # PartyKit dev server on localhost:1999
-npm run storybook  # Storybook on localhost:6006
-npm run deploy     # Deploy to PartyKit (commits required first)
+pnpm run dev        # wrangler dev (worker + Durable Objects + assets) on localhost:1999
+pnpm run storybook  # Storybook on localhost:6006
+pnpm run deploy     # Deploy to Cloudflare Workers (commits required first)
 ```
 
 See [`CLAUDE.md`](./CLAUDE.md) for full architecture notes and deploy rules.
@@ -88,6 +88,6 @@ See [`CLAUDE.md`](./CLAUDE.md) for full architecture notes and deploy rules.
 ## Stack
 
 - [React](https://react.dev)
-- [PartyKit](https://partykit.io) — WebSockets / serverless edge
+- [PartyServer](https://github.com/cloudflare/partykit) on Cloudflare Workers + Durable Objects — WebSockets / serverless edge
 - [D3](https://d3js.org) — SVG canvas rendering
 - [Storybook](https://storybook.js.org) — component development

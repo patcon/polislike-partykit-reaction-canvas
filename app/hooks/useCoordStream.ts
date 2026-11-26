@@ -71,7 +71,7 @@ export function useCoordStream(ownUserId: string, opts?: CoordStreamOptions): Co
  * Standalone coord stream backed by a raw WebSocket URL — for use outside
  * RoomSocketProvider (e.g. Storybook live-room stories, perf harnesses).
  * Accepts a PartyKit room URL (http or https) like:
- *   https://whispering-gallery.patcon.partykit.dev/default
+ *   https://whispering-gallery.patcon.workers.dev/default
  *   http://localhost:1999/default
  * Maps http→ws and https→wss — TLS is a server concern, not a WebSocket one.
  */

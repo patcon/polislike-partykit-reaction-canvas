@@ -1,4 +1,4 @@
-import type * as Party from 'partykit/server';
+import type * as Party from '../../../party/room';
 import type { ServerPlugin, PluginContext } from '../../types';
 import type { StoryTracerState, StoryTracerPoint, StoryTracerMeta } from '../types';
 
@@ -35,7 +35,7 @@ export const storyTracerServer: ServerPlugin<StoryTracerState> = {
     const url = new URL(request.url);
     if (request.method === 'POST' && url.pathname.endsWith('/storyTracerSetPoints')) {
       try {
-        const body = await request.json<{ userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta }>();
+        const body = (await request.json()) as { userId: string; points: StoryTracerPoint[]; meta: StoryTracerMeta };
         state.points = body.points;
         state.meta = body.meta;
         void ctx.persistState();
